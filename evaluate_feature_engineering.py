@@ -11,10 +11,14 @@ if not os.path.exists(proj_dir):
     proj_dir = './'
 sys.path.append(proj_dir)
 from evaluate_transgraph import engineer_data
+from evaluator import Evaluator
+from utils.default_random_forest import DefaultRandomForest
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--rep', type=int, default=1)
-parser.add_argument('--time_limit', type=int, default=1200)
+parser.add_argument('--time_limit', type=int, default=120)
 parser.add_argument('--n_job', type=int, default=1)
+parser.add_argument('--mode', type=int, default=0)
 dataset_list = 'credit,diabetes,pc4,sick,spectf,splice,waveform,' \
                'winequality_red,winequality_white,ionosphere,amazon_employee,' \
                'lymphography,messidor_features,spambase,ap_omentum_ovary,a9a'
@@ -44,11 +48,11 @@ else:
 time_limit = args.time_limit
 
 
-def evaluate_ausk_fe(dataset, time_limit, ensb_size=1, include_models=None, seed=1):
+def evaluate_ausk_fe(dataset, time_limit, fe_mth='none', ratio=0.5, ensb_size=1, include_models=None, seed=1):
     print('==> Start to evaluate', dataset, 'budget', time_limit)
     n_job = args.n_job
     # includes_fe = ['no_preprocessing'] if fe is not 'ausk' else None
-    includes_fe = None
+    includes_fe = None if fe_mth == 'none' else ['no_preprocessing']
 
     # Construct the ML model.
     def get_automl(seed, time_budget):
@@ -69,7 +73,7 @@ def evaluate_ausk_fe(dataset, time_limit, ensb_size=1, include_models=None, seed
         print(automl)
         return automl
 
-    data_node, fe_time = engineer_data(dataset, 'none', time_budget=time_limit, seed=seed)
+    data_node, fe_time = engineer_data(dataset, fe_mth, time_budget=int(ratio*time_limit), seed=seed)
     budget_left = int(time_limit - fe_time)
     print('Available budget for automl', budget_left)
 
@@ -88,8 +92,6 @@ def evaluate_ausk_fe(dataset, time_limit, ensb_size=1, include_models=None, seed
 
 
 def evaluate_fe(dataset, time_limit, fe='eval_base', seed=1):
-    from evaluator import Evaluator
-    from utils.default_random_forest import DefaultRandomForest
     np.random.seed(seed)
     train_data, _ = engineer_data(dataset, fe, time_budget=time_limit)
 
@@ -101,7 +103,7 @@ def evaluate_fe(dataset, time_limit, fe='eval_base', seed=1):
     print('==> Validation score', score)
 
     raw_data, _ = engineer_data(dataset, 'none', time_budget=time_limit)
-    base_score = evaluator(train_data)
+    base_score = evaluator(raw_data)
     print('==> Base validation score', base_score)
     return [score, [base_score], []]
 
@@ -148,25 +150,24 @@ def evalaute_ausk_with_fe():
     :return:
     """
     headers = ['NONE', 'AUSK', 'OURS']
-    save_template = proj_dir + 'data/ausk_cv_result_exp2_%s_%d.pkl'
     include_models = ['random_forest']
 
     seed = 1
-    fe_ratio = 0.5
+    mode = args.mode
+    save_template = proj_dir + 'data/ausk_cv_result_exp2_%d_%s_%d.pkl'
     for dataset in datasets:
         exp_data = list()
-        save_path = save_template % (dataset, time_limit)
+        save_path = save_template % (mode, dataset, time_limit)
         if os.path.exists(save_path):
             with open(save_path, 'rb') as f:
                 exp_data = pickle.load(f)
         else:
-            # res1 = exp_trial(dataset, time_limit, fe='none', fe_budget_frac=fe_ratio,
-            #                  include_models=include_models, seed=seed)
-            # res2 = exp_trial(dataset, time_limit, fe='ausk', fe_budget_frac=fe_ratio,
-            #                  include_models=include_models, seed=seed)
-            # res3 = exp_trial(dataset, time_limit, fe='eval_base', fe_budget_frac=fe_ratio,
-            #                  include_models=include_models, seed=seed)
-            # exp_data.append([dataset, res1, res2, res3])
+            if mode == 0:
+                res1 = evaluate_ausk_fe(dataset, time_limit, include_models=include_models, seed=seed)
+            else:
+                res1 = evaluate_ausk_fe(dataset, time_limit, fe_mth='eval_base', ratio=0.5,
+                                        include_models=include_models, seed=seed)
+            exp_data.append([dataset, res1])
             with open(save_path, 'wb') as f:
                 pickle.dump(exp_data, f)
         data = extract_data(exp_data)
@@ -174,5 +175,5 @@ def evalaute_ausk_with_fe():
 
 
 if __name__ == "__main__":
-    evaluate_fe_compoment()
-    # evalaute_ausk_with_fe()
+    # evaluate_fe_compoment()
+    evalaute_ausk_with_fe()
