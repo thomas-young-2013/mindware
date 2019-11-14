@@ -3,7 +3,7 @@ from fe_components.transformers.base_transformer import *
 
 class VarianceSelector(Transformer):
     def __init__(self, param=1e-4):
-        super().__init__("variance_selector", 5)
+        super().__init__("variance_selector", 11)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.params = param
 

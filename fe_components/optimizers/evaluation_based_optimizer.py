@@ -22,7 +22,7 @@ class EvaluationBasedOptimizer(Optimizer):
 
         num_limit = self.maximum_evaluation_num if self.maximum_evaluation_num is not None else 10000000
         budget_limit = self.time_budget
-        max_depth = 1000
+        max_depth = 100000
         beam_width = 3
 
         cnt = 0
@@ -39,7 +39,7 @@ class EvaluationBasedOptimizer(Optimizer):
                     break
 
                 # Fetch available transformations for this node.
-                trans_types = [1, 2, 3, 4, 8, 9]
+                trans_types = [1, 2, 3, 4, 5, 8, 9]
                 trans_set = self.get_available_transformations(node_, trans_types=trans_types)
 
                 for transformer in trans_set:
