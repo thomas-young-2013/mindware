@@ -174,6 +174,31 @@ def evalaute_ausk_with_fe():
         print(tabulate(data, headers, tablefmt="github", floatfmt=".4f"))
 
 
+def evaluate_base_result():
+    seed = 1
+    data_dir = proj_dir + 'data/datasets'
+    datasets = [item.split('.')[0] for item in os.listdir(data_dir) if item.endswith('csv')]
+    results = list()
+    save_path = proj_dir + 'data/ausk_cv_result_exp3.pkl'
+    if os.path.exists(save_path):
+        with open(save_path, 'rb') as f:
+            results = pickle.load(f)
+    else:
+        for dataset in datasets:
+            data_node, _ = engineer_data(dataset, 'none', time_budget=time_limit, seed=seed)
+            cs = DefaultRandomForest.get_hyperparameter_search_space()
+            config = cs.get_default_configuration().get_dictionary()
+            clf = DefaultRandomForest(**config)
+            evaluator = Evaluator(seed=seed, clf=clf)
+            score = evaluator(data_node)
+            print('==> Validation score', score)
+            results.append([dataset, score])
+            with open(save_path, 'wb') as f:
+                pickle.dump(results, f)
+    print(results)
+
+
 if __name__ == "__main__":
     # evaluate_fe_compoment()
     evalaute_ausk_with_fe()
+    # evaluate_base_result()
