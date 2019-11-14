@@ -1,8 +1,6 @@
 import os
 import sys
-import random
 import numpy as np
-import sklearn
 import argparse
 from sklearn.ensemble import RandomForestClassifier
 from fe_components.transformation_graph import DataNode
@@ -19,7 +17,7 @@ args = parser.parse_args()
 
 
 def evaluate_fe_pipeline():
-    from data_manager import DataManager
+    from utils.data_manager import DataManager
     dm = DataManager()
     data_path = 'data/datasets/pc4.csv'
 
@@ -41,7 +39,7 @@ def evaluate_fe_pipeline():
 
 
 def load_data(dataset):
-    from data_manager import DataManager
+    from utils.data_manager import DataManager
     dm = DataManager()
     data_path = proj_dir + 'data/datasets/%s.csv' % dataset
 

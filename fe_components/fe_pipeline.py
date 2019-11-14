@@ -1,5 +1,5 @@
 import abc
-from data_manager import DataManager
+from utils.data_manager import DataManager
 from fe_components.utils.constants import *
 from fe_components.transformation_graph import DataNode
 from fe_components.transformation_graph import TransformationGraph

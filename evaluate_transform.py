@@ -110,7 +110,7 @@ def evaluate_transformation_graph():
 
 
 def evaluate_fe_pipeline():
-    from data_manager import DataManager
+    from utils.data_manager import DataManager
     dm = DataManager()
     # file_path = "data/proprocess_data.csv"
     file_path = 'data/a9a/dataset_183_adult.csv'
@@ -138,7 +138,7 @@ def evaluate_data_manager():
     # print(dm.feature_types)
     # print(dm.missing_flags)
 
-    from data_manager import DataManager
+    from utils.data_manager import DataManager
     import numpy as np
     X = np.array([[1, 2, 3, 4], [1, 'asfd', 2, 1.4]])
     y = [1, 2]
