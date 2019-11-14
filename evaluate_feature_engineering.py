@@ -16,7 +16,7 @@ from utils.default_random_forest import DefaultRandomForest
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--rep', type=int, default=1)
-parser.add_argument('--time_limit', type=int, default=120)
+parser.add_argument('--time_limit', type=int, default=1200)
 parser.add_argument('--n_job', type=int, default=1)
 parser.add_argument('--mode', type=int, default=0)
 dataset_list = 'credit,diabetes,pc4,sick,spectf,splice,waveform,' \
