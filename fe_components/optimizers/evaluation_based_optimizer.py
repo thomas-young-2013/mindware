@@ -20,57 +20,55 @@ class EvaluationBasedOptimizer(Optimizer):
         self.incumbent_score = root_score
         self.incumbent = self.root_node
 
-        num_limit = self.maximum_evaluation_num if self.maximum_evaluation_num is not None else 100000
+        num_limit = self.maximum_evaluation_num if self.maximum_evaluation_num is not None else 10000000
         budget_limit = self.time_budget
-        max_depth = 5
-        beam_width = 2
-
-        from queue import Queue
-        queue = Queue()
+        max_depth = 1000
+        beam_width = 3
 
         cnt = 0
         self.root_node.depth = 1
 
-        queue.put(self.root_node)
-
         # The implementation of Beam Search (https://en.wikipedia.org/wiki/Beam_search).
         is_ended = False
-        while not queue.empty() and not is_ended:
-            node_ = queue.get()
-
-            # Limit the maximum depth in graph.
-            if node_.depth > max_depth:
-                break
-
-            # Fetch available transformations for this node.
-            trans_types = [1, 2, 3, 4, 8, 9]
-            # trans_types = [9]
-            trans_set = self.get_available_transformations(node_, trans_types=trans_types)
+        beam_set = [self.root_node]
+        while len(beam_set) > 0 and not is_ended:
             nodes = list()
-
-            for transformer in trans_set:
-                if transformer.type not in [9]:
-                    transformer.compound_mode = 'in_place'
-                output_node = transformer.operate(node_)
-                output_node.depth = node_.depth + 1
-                nodes.append(output_node)
-                # Evaluate this node.
-                _score = self.evaluator(output_node)
-                output_node.score = _score
-                if _score > self.incumbent_score:
-                    self.incumbent_score = _score
-                    self.incumbent = output_node
-
-                self.graph.add_node(output_node)
-                self.graph.add_trans_in_graph(node_, output_node, transformer)
-                cnt += 1
-                if cnt > num_limit or (budget_limit is not None and time.time() >= self.start_time + budget_limit):
-                    print('==> Budget runs out!', num_limit, budget_limit)
-                    is_ended = True
+            for node_ in beam_set:
+                # Limit the maximum depth in graph.
+                if node_.depth > max_depth:
                     break
 
+                # Fetch available transformations for this node.
+                trans_types = [1, 2, 3, 4, 8, 9]
+                trans_set = self.get_available_transformations(node_, trans_types=trans_types)
+
+                for transformer in trans_set:
+                    if transformer.type not in [9]:
+                        transformer.compound_mode = 'in_place'
+                    try:
+                        output_node = transformer.operate(node_)
+                        output_node.depth = node_.depth + 1
+                        nodes.append(output_node)
+                        # Evaluate this node.
+                        _score = self.evaluator(output_node)
+                        output_node.score = _score
+                        if _score > self.incumbent_score:
+                            self.incumbent_score = _score
+                            self.incumbent = output_node
+
+                        self.graph.add_node(output_node)
+                        self.graph.add_trans_in_graph(node_, output_node, transformer)
+                    except:
+                        pass
+                    cnt += 1
+                    if cnt > num_limit or (budget_limit is not None and time.time() >= self.start_time + budget_limit):
+                        print('==> Budget runs out!', num_limit, budget_limit)
+                        is_ended = True
+                        break
+
+            beam_set = list()
             for node_ in TransformationGraph.sort_nodes_by_score(nodes)[:beam_width]:
-                queue.put(node_)
+                beam_set.append(node_)
 
             print('==> Current incumbent', self.incumbent_score, 'Improvement: ', self.incumbent_score - root_score)
 
