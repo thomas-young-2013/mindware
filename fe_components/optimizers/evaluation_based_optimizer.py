@@ -40,13 +40,16 @@ class EvaluationBasedOptimizer(Optimizer):
 
                 # Fetch available transformations for this node.
                 # trans_types = [1, 2, 3, 4, 5, 8, 9]
-                trans_types = list(range(20))
+                trans_types = list(range(3, 20))
                 trans_set = self.get_available_transformations(node_, trans_types=trans_types)
 
                 for transformer in trans_set:
-                    if transformer.type not in [9]:
+                    if transformer.type in [3, 4, 5]:
                         transformer.compound_mode = 'in_place'
-
+                    if transformer.type in [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19]:
+                        transformer.compound_mode = 'only_new'
+                    if transformer.type in [17]:
+                        transformer.compound_mode = 'concatenate'
                     output_node = transformer.operate(node_)
                     output_node.depth = node_.depth + 1
                     nodes.append(output_node)
