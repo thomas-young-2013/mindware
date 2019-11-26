@@ -3,7 +3,7 @@ from fe_components.transformers.base_transformer import *
 
 class DiscreteCategorizer(Transformer):
     def __init__(self, max_unique=100):
-        super().__init__("discrete_categorizer", 3)
+        super().__init__("discrete_categorizer", 25)
         self.input_type = [DISCRETE]
         self.output_type = CATEGORICAL
         self.model = None

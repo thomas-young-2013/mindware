@@ -1,9 +1,8 @@
 from fe_components.transformation_graph import *
 from fe_components.optimizers.base_optimizer import Optimizer
-from fe_components.transformers.polynomial_generator import PolynomialTransformation
-from fe_components.transformers.variance_selector import VarianceSelector
-from fe_components.transformers.model_based_selector import ModelBasedSelector
-from fe_components.transformers.pca_decomposer import PcaDecomposer
+from fe_components.transformers.generator.polynomial_generator import PolynomialTransformation
+from fe_components.transformers.selector.variance_selector import VarianceSelector
+from fe_components.transformers.generator.pca_decomposer import PcaDecomposer
 from fe_components.transformers.merger import Merger
 
 

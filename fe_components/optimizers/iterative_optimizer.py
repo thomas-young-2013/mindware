@@ -2,8 +2,8 @@ from fe_components.transformation_graph import *
 from fe_components.transformers.merger import Merger
 from fe_components.optimizers.base_optimizer import Optimizer
 from fe_components.transformers import _transformers, _type_infos, _params_infos
-from fe_components.transformers.model_based_selector import ModelBasedSelector
-from fe_components.transformers.polynomial_generator import PolynomialTransformation
+from fe_components.transformers.selector.model_based_selector import ModelBasedSelector
+from fe_components.transformers.generator.polynomial_generator import PolynomialTransformation
 
 
 class IterativeOptimizer(Optimizer):

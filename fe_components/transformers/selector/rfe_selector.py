@@ -4,7 +4,7 @@ from fe_components.transformers.base_transformer import *
 # TODO: Only for classification
 class RecursiveFeatureEliminationSelector(Transformer):
     def __init__(self, param='lr', min_features=1):
-        super().__init__("rfe_selector", 5)
+        super().__init__("rfe_selector", 23)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.params = param
         self.min_features = min_features

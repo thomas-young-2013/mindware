@@ -4,7 +4,7 @@ from fe_components.utils.operations import *
 
 class BinaryTransformation(Transformer):
     def __init__(self, param='add'):
-        super().__init__("binary_transformer", 7)
+        super().__init__("binary_transformer", 22)
         self.input_type = NUMERICAL
         self.output_type = NUMERICAL
         self.params = param

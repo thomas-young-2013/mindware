@@ -5,7 +5,7 @@ from fe_components.utils.operations import *
 
 class ArithmeticTransformation(Transformer):
     def __init__(self, param='sqrt'):
-        super().__init__("arithmetic_transformer", 4)
+        super().__init__("arithmetic_transformer", 21)
         self.input_type = [NUMERICAL, DISCRETE]
         self.output_type = NUMERICAL
         self.params = {'func': param}

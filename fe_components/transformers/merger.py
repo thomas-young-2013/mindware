@@ -3,7 +3,7 @@ from fe_components.transformers.base_transformer import *
 
 class Merger(Transformer):
     def __init__(self):
-        super().__init__("merger", 7)
+        super().__init__("merger", 26)
 
     def operate(self, input_datanodes, target_fields=None):
         if type(input_datanodes) is not list:

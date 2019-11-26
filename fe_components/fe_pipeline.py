@@ -3,9 +3,9 @@ from utils.data_manager import DataManager
 from fe_components.utils.constants import *
 from fe_components.transformation_graph import DataNode
 from fe_components.transformation_graph import TransformationGraph
-from fe_components.transformers.imputer import ImputationTransformation
-from fe_components.transformers.onehot_encoder import OneHotTransformation
-from fe_components.transformers.variance_selector import VarianceSelector
+from fe_components.transformers.preprocessor.imputer import ImputationTransformation
+from fe_components.transformers.preprocessor.onehot_encoder import OneHotTransformation
+from fe_components.transformers.selector.variance_selector import VarianceSelector
 from fe_components.optimizers.iterative_optimizer import IterativeOptimizer
 from fe_components.optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
 from fe_components.optimizers.expansion_reduction_optimizer import ExpansionReductionOptimizer

@@ -3,7 +3,7 @@ from fe_components.transformers.base_transformer import *
 
 class RandomTreesEmbeddingTransformation(Transformer):
     def __init__(self, distribution='uniform'):
-        super().__init__("random_trees_embedding", 7)
+        super().__init__("random_trees_embedding", 18)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.output_type = CATEGORICAL
         self.params = distribution

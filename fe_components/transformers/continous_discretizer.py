@@ -3,7 +3,7 @@ from fe_components.transformers.base_transformer import *
 
 class KBinsDiscretizeTransformation(Transformer):
     def __init__(self, n_bins=50):
-        super().__init__("discretizer", 3)
+        super().__init__("discretizer", 24)
         self.input_type = NUMERICAL
         self.output_type = DISCRETE
         self.model = None

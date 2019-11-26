@@ -1,10 +1,9 @@
 from fe_components.transformers.base_transformer import *
 
 
-# TODO: Only for classification
 class ModelBasedSelector(Transformer):
     def __init__(self, param='et', max_features=None):
-        super().__init__("model_based_selector", 5)
+        super().__init__("model_based_selector", 7)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.params = param
         self.optional_params = ['et', 'svc']

@@ -3,7 +3,7 @@ from fe_components.transformers.base_transformer import *
 
 class PolynomialTransformation(Transformer):
     def __init__(self, degree=2):
-        super().__init__("polynomial_generator", 10)
+        super().__init__("polynomial", 17)
 
         self.input_type = [DISCRETE, NUMERICAL]
         self.output_type = NUMERICAL

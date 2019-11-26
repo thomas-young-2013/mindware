@@ -12,8 +12,8 @@ class Transformer(object, metaclass=abc.ABCMeta):
     """
     This is the parent class for all transformers.
     type specification:
-        -1: no transformation.
-        0: PRE transformations: imputer, one-hot.
+        0: empty, no transformation.
+        1: PRE transformations: imputer, one-hot.
         1: 4 scalers {func}.
         2: normalizer {norm}.
         3: discretizer {bins}, discrete_categorizer.
@@ -25,6 +25,37 @@ class Transformer(object, metaclass=abc.ABCMeta):
         8: data_balancer.
         9: nystronem.
         10: polynomial_generator.
+
+        0: empty.
+        1: imputer.
+        2: one-hot encoding.
+        3: scaler.
+        4: normalizer.
+        5: quantile_transformer.
+        6: generic_univariate_selector.
+        7: model_based_selector.
+        8: percentile_selector.
+        9: variance_selector.
+        10: fast_ica.
+        11: feature_agg.
+        12: kernel_pca.
+        13: kitchen_sinks.
+        14: lda_decomposer.
+        15: nystronem.
+        16: pca.
+        17: polynomial.
+        18: random_trees_embedding.
+        19: svd_decomposer.
+        20: data_balancer.
+        ----
+        21: arithmetic_operations.
+        22: binary_operations.
+        23: rfe.
+        24: continous_discretizer.
+        25: discrete_categorizer.
+        ----
+        26: merger.
+
     """
     def __init__(self, name, type, random_state=1):
         self.name = name

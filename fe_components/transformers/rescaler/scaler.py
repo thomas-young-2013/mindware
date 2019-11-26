@@ -3,7 +3,7 @@ from fe_components.transformers.base_transformer import *
 
 class ScaleTransformation(Transformer):
     def __init__(self, param='min_max'):
-        super().__init__("scaler", 1)
+        super().__init__("scaler", 3)
         self.input_type = [DISCRETE, NUMERICAL]
         self.output_type = NUMERICAL
         self.params = {'func': param}

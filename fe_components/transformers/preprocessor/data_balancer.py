@@ -3,7 +3,7 @@ from fe_components.transformers.base_transformer import *
 
 class DataBalancer(Transformer):
     def __init__(self):
-        super().__init__("data_balancer", 8)
+        super().__init__("data_balancer", 20)
 
     def operate(self, input_datanode, target_fields=None):
         from imblearn.over_sampling import SMOTE

@@ -1,29 +1,23 @@
 from fe_components.transformers.base_transformer import *
 
 
-# TODO: Only for classification
 class GenericUnivariateSelector(Transformer):
     def __init__(self, param='chi2', feature_left=0.5):
-        '''
-        :param param: estimator
-        :param feature_left: int, or float in (0,1). Kbest for int and Percentile for float
-        '''
-        super().__init__("generic_univariate_selector", 5)
+        super().__init__("generic_univariate_selector", 6)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.params = param
-        self.optional_params = ['chi2', 'f', 'mutual_info']
+        self.optional_params = ['chi2', 'f_classif']
         if param == 'chi2':
             from sklearn.feature_selection import chi2
             self.call_param = chi2
-        elif param == 'f':
+        elif param == 'f_classif':
             from sklearn.feature_selection import f_classif
             self.call_param = f_classif
-        elif param == 'mutual_info':
-            from sklearn.feature_selection import mutual_info_classif
-            self.call_param = mutual_info_classif
         else:
             raise ValueError("Unknown score function %s!" % str(param))
+        assert feature_left < 1.0
         self.feature_left = feature_left
+        self.mode = 'fpr'
 
     def operate(self, input_datanode, target_fields=None):
         from sklearn.feature_selection import GenericUnivariateSelect
@@ -45,12 +39,7 @@ class GenericUnivariateSelector(Transformer):
             X_new[X_new < 0] = 0.0
 
         if self.model is None:
-            if isinstance(self.feature_left, int):
-                from sklearn.feature_selection import SelectKBest
-                self.model = SelectKBest(self.call_param, self.feature_left)
-            elif isinstance(self.feature_left, float):
-                from sklearn.feature_selection import SelectPercentile
-                self.model = SelectPercentile(self.call_param, percentile=int(self.feature_left * 100))
+            self.model = GenericUnivariateSelect(score_func=self.call_param, param=self.feature_left, mode=self.mode)
             self.model.fit(X_new, y)
 
         _X = self.model.transform(X_new)

@@ -3,7 +3,7 @@ from fe_components.transformers.base_transformer import *
 
 class OneHotTransformation(Transformer):
     def __init__(self):
-        super().__init__("onehot_encoder", 0)
+        super().__init__("onehot_encoder", 2)
         self.input_type = CATEGORICAL
 
     def operate(self, input_datanode: DataNode, target_fields=None):

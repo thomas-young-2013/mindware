@@ -3,7 +3,7 @@ from fe_components.transformers.base_transformer import *
 
 class ImputationTransformation(Transformer):
     def __init__(self, param='mean'):
-        super().__init__("imputer", 0)
+        super().__init__("imputer", 1)
         self.params = param
 
     def operate(self, input_datanode, target_fields=None):
