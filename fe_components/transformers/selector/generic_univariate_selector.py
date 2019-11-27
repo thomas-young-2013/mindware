@@ -1,23 +1,26 @@
+from ConfigSpace.configuration_space import ConfigurationSpace
+from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
+    CategoricalHyperparameter, Constant
 from fe_components.transformers.base_transformer import *
 
 
 class GenericUnivariateSelector(Transformer):
-    def __init__(self, param='chi2', feature_left=0.5):
+    def __init__(self, score_func='chi2', alpha=0.5, mode='fpr'):
         super().__init__("generic_univariate_selector", 6)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
-        self.params = param
-        self.optional_params = ['chi2', 'f_classif']
-        if param == 'chi2':
+        self.compound_mode = 'only_new'
+
+        self.score_func = score_func
+        self.alpha = alpha
+        self.mode = mode
+        if score_func == 'chi2':
             from sklearn.feature_selection import chi2
-            self.call_param = chi2
-        elif param == 'f_classif':
+            self.call_func = chi2
+        elif score_func == 'f_classif':
             from sklearn.feature_selection import f_classif
-            self.call_param = f_classif
+            self.call_func = f_classif
         else:
-            raise ValueError("Unknown score function %s!" % str(param))
-        assert feature_left < 1.0
-        self.feature_left = feature_left
-        self.mode = 'fpr'
+            raise ValueError("Unknown score function %s!" % str(score_func))
 
     def operate(self, input_datanode, target_fields=None):
         from sklearn.feature_selection import GenericUnivariateSelect
@@ -39,7 +42,8 @@ class GenericUnivariateSelector(Transformer):
             X_new[X_new < 0] = 0.0
 
         if self.model is None:
-            self.model = GenericUnivariateSelect(score_func=self.call_param, param=self.feature_left, mode=self.mode)
+            self.model = GenericUnivariateSelect(
+                score_func=self.call_func, param=self.alpha, mode=self.mode)
             self.model.fit(X_new, y)
 
         _X = self.model.transform(X_new)
@@ -54,3 +58,27 @@ class GenericUnivariateSelector(Transformer):
         output_datanode = DataNode((new_X, y), new_feature_types, input_datanode.task_type)
 
         return output_datanode
+    
+    @staticmethod
+    def get_hyperparameter_search_space(dataset_properties=None):
+        alpha = UniformFloatHyperparameter(
+            name="alpha", lower=0.01, upper=0.5, default_value=0.1)
+
+        score_func = CategoricalHyperparameter(
+            name="score_func",
+            choices=["chi2", "f_classif"],
+            default_value="chi2")
+        if dataset_properties is not None:
+            # Chi2 can handle sparse data, so we respect this
+            if 'sparse' in dataset_properties and dataset_properties['sparse']:
+                score_func = Constant(
+                    name="score_func", value="chi2")
+
+        mode = CategoricalHyperparameter('mode', ['fpr', 'fdr', 'fwe'], 'fpr')
+
+        cs = ConfigurationSpace()
+        cs.add_hyperparameter(alpha)
+        cs.add_hyperparameter(score_func)
+        cs.add_hyperparameter(mode)
+
+        return cs

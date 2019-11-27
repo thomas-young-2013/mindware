@@ -3,8 +3,9 @@ from fe_components.transformation_graph import *
 from fe_components.optimizers.base_optimizer import Optimizer
 from fe_components.transformers.generator.polynomial_generator import PolynomialTransformation
 from fe_components.transformers.selector.variance_selector import VarianceSelector
-from fe_components.transformers.selector.model_based_selector import ModelBasedSelector
+from fe_components.transformers.selector.extra_trees_based_selector import ExtraTreeBasedSelector
 from fe_components.transformers.generator.pca_decomposer import PcaDecomposer
+from fe_components.optimizers.transformer_manager import TransformerManager
 
 
 class EvaluationBasedOptimizer(Optimizer):
@@ -13,6 +14,7 @@ class EvaluationBasedOptimizer(Optimizer):
         self.evaluator = evaluator
         self.incumbent_score = -1.
         self.start_time = time.time()
+        self.transformer_manager = TransformerManager()
 
     def optimize(self):
         # Evaluate the original features.
@@ -39,29 +41,25 @@ class EvaluationBasedOptimizer(Optimizer):
                     break
 
                 # Fetch available transformations for this node.
-                # trans_types = [1, 2, 3, 4, 5, 8, 9]
-                trans_types = list(range(3, 20))
-                trans_set = self.get_available_transformations(node_, trans_types=trans_types)
+                trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
+                trans_set = self.transformer_manager.get_transformations(node_, trans_types=trans_types)
 
                 for transformer in trans_set:
-                    if transformer.type in [3, 4, 5]:
-                        transformer.compound_mode = 'in_place'
-                    if transformer.type in [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19]:
-                        transformer.compound_mode = 'only_new'
-                    if transformer.type in [17]:
-                        transformer.compound_mode = 'concatenate'
-                    output_node = transformer.operate(node_)
-                    output_node.depth = node_.depth + 1
-                    nodes.append(output_node)
-                    # Evaluate this node.
-                    _score = self.evaluator(output_node)
-                    output_node.score = _score
-                    if _score > self.incumbent_score:
-                        self.incumbent_score = _score
-                        self.incumbent = output_node
+                    try:
+                        output_node = transformer.operate(node_)
+                        output_node.depth = node_.depth + 1
+                        # Evaluate this node.
+                        _score = self.evaluator(output_node)
+                        output_node.score = _score
+                        if _score > self.incumbent_score:
+                            self.incumbent_score = _score
+                            self.incumbent = output_node
 
-                    self.graph.add_node(output_node)
-                    self.graph.add_trans_in_graph(node_, output_node, transformer)
+                        nodes.append(output_node)
+                        self.graph.add_node(output_node)
+                        self.graph.add_trans_in_graph(node_, output_node, transformer)
+                    except ValueError as e:
+                        print(e)
 
                     cnt += 1
                     if cnt > num_limit or (budget_limit is not None and time.time() >= self.start_time + budget_limit):
@@ -102,7 +100,7 @@ class EvaluationBasedOptimizer(Optimizer):
                 self.graph.add_trans_in_graph(input_node, output_node, transformer)
 
                 input_node = output_node
-                transformer = ModelBasedSelector(param='et')
+                transformer = ExtraTreeBasedSelector()
                 output_node = transformer.operate(input_node)
                 print('Shape ==>', input_node.shape, output_node.shape)
                 self.graph.add_node(output_node)
@@ -131,7 +129,7 @@ class EvaluationBasedOptimizer(Optimizer):
                 self.graph.add_trans_in_graph(input_node, output_node, transformer)
 
                 input_node = output_node
-                transformer = ModelBasedSelector(param='et')
+                transformer = ExtraTreeBasedSelector()
                 output_node = transformer.operate(input_node)
                 print('Shape ==>', input_node.shape, output_node.shape)
                 self.graph.add_node(output_node)

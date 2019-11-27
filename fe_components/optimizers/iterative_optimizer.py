@@ -2,7 +2,7 @@ from fe_components.transformation_graph import *
 from fe_components.transformers.merger import Merger
 from fe_components.optimizers.base_optimizer import Optimizer
 from fe_components.transformers import _transformers, _type_infos, _params_infos
-from fe_components.transformers.selector.model_based_selector import ModelBasedSelector
+from fe_components.transformers.selector.extra_trees_based_selector import ExtraTreeBasedSelector
 from fe_components.transformers.generator.polynomial_generator import PolynomialTransformation
 
 
@@ -69,7 +69,7 @@ class IterativeOptimizer(Optimizer):
         self.graph.add_trans_in_graph(input_nodes, output_node, transformer)
 
         input_node = output_node
-        transformer = ModelBasedSelector(max_features=input_node.data[0].shape[1])
+        transformer = ExtraTreeBasedSelector(max_features=input_node.data[0].shape[1])
         output_node = transformer.operate(input_node)
         self.graph.add_node(output_node)
         self.graph.add_trans_in_graph(input_node, output_node, transformer)

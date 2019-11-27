@@ -80,7 +80,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
             input_node = onehot_encoder.operate(input_node, categorical_fields)
 
         # Removing columns with the same values.
-        variance_selector = VarianceSelector(param=1e-6)
+        variance_selector = VarianceSelector()
         input_node = variance_selector.operate(input_node)
 
         # Label encoding.

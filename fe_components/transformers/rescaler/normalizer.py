@@ -2,11 +2,12 @@ from fe_components.transformers.base_transformer import *
 
 
 class NormalizeTransformation(Transformer):
-    def __init__(self, norm='l2'):
+    def __init__(self):
         super().__init__("normalizer", 4)
         self.input_type = [NUMERICAL, DISCRETE]
+        self.compound_mode = 'in_place'
+        self.params = {'norm': 'l2'}
         self.output_type = NUMERICAL
-        self.params = {'norm': norm}
 
     @ease_trans
     def operate(self, input_datanode, target_fields=None):

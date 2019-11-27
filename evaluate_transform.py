@@ -1,36 +1,12 @@
 from fe_components.transformers.preprocessor.imputer import ImputationTransformation
 from fe_components.transformers.continous_discretizer import *
-from fe_components.transformers.selector.model_based_selector import ModelBasedSelector
 from fe_components.transformers.rescaler.scaler import ScaleTransformation
 from fe_components.transformers.preprocessor.onehot_encoder import OneHotTransformation
 from fe_components.transformers.merger import Merger
 from fe_components.transformation_graph import DataNode
 from fe_components.fe_pipeline import FEPipeline
 from fe_components.utils.constants import *
-
-
-def evaluate_individual_transformation():
-    data = (np.array([
-        [0, 1.2, 1, 1],
-        [0, 1, 1, 1],
-        [0, 3, 0, 2],
-        [0, 5, 0, 5]
-    ]), np.array([1, 1, 0, 0]))
-    feature_type = [NUMERICAL, NUMERICAL, DISCRETE, DISCRETE]
-    datanode = DataNode(data, feature_type)
-
-    # transformer = NormalizeTransformation()
-    transformer = ModelBasedSelector(param='lr')
-    # transformer = VarianceSelector()
-    # transformer = PolynomialTransformation()
-    # transformer = QuantileTransformation()
-
-    # transformer.concatenate = True
-    output_datanode = transformer.operate(datanode)
-
-    print(output_datanode)
-    print(output_datanode.data)
-    print(output_datanode.feature_types)
+from fe_components.transformation_graph import TransformationGraph
 
 
 def evaluate_transformation_graph():

@@ -1,11 +1,12 @@
+from ConfigSpace.configuration_space import ConfigurationSpace
 from fe_components.transformers.base_transformer import *
 
 
 class VarianceSelector(Transformer):
-    def __init__(self, param=1e-4):
+    def __init__(self):
         super().__init__("variance_selector", 9)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
-        self.params = param
+        self.compound_mode = 'only_new'
 
     def operate(self, input_datanode, target_fields=None):
         from sklearn.feature_selection import VarianceThreshold
@@ -24,13 +25,13 @@ class VarianceSelector(Transformer):
             irrevalent_fields.remove(field_id)
 
         is_selected = [True] * len(target_fields)
-
+        param = 0.0
         if self.model is None:
-            self.model = VarianceThreshold(threshold=self.params)
+            self.model = VarianceThreshold(threshold=param)
             self.model.fit(X_new)
 
         for idx, var in enumerate(self.model.variances_):
-            is_selected[idx] = True if var >= self.params else False
+            is_selected[idx] = True if var >= param else False
 
         irrevalent_types = [feature_types[idx] for idx in irrevalent_fields]
         selected_types = [feature_types[idx] for idx in target_fields if is_selected[idx]]
@@ -46,3 +47,8 @@ class VarianceSelector(Transformer):
         output_datanode = DataNode((new_X, y), new_feature_types, input_datanode.task_type)
 
         return output_datanode
+
+    @staticmethod
+    def get_hyperparameter_search_space(dataset_properties=None):
+        cs = ConfigurationSpace()
+        return cs

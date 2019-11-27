@@ -12,20 +12,6 @@ class Transformer(object, metaclass=abc.ABCMeta):
     """
     This is the parent class for all transformers.
     type specification:
-        0: empty, no transformation.
-        1: PRE transformations: imputer, one-hot.
-        1: 4 scalers {func}.
-        2: normalizer {norm}.
-        3: discretizer {bins}, discrete_categorizer.
-        4: 7 arithmetic transformers {func}, quantile_transformer.
-        5: FS transformers: generic_univariate_selector, model_based_selector, rfe_selector, variance_selector.
-        6: DR transformations: fast_ica_decomposer, feature_agglomeration_decomposer,
-                               lda_decomposer, pca_decomposer, svd_decomposer.
-        7: merger, random_trees_embedding.
-        8: data_balancer.
-        9: nystronem.
-        10: polynomial_generator.
-
         0: empty.
         1: imputer.
         2: one-hot encoding.
@@ -33,7 +19,8 @@ class Transformer(object, metaclass=abc.ABCMeta):
         4: normalizer.
         5: quantile_transformer.
         6: generic_univariate_selector.
-        7: model_based_selector.
+        7: extra_trees_based_selector.
+        7: liblinear_svc_based_selector.
         8: percentile_selector.
         9: variance_selector.
         10: fast_ica.
