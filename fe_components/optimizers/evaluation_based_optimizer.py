@@ -62,6 +62,13 @@ class EvaluationBasedOptimizer(Optimizer):
                         print(transformer.name, str(e))
                     except RuntimeError as e:
                         print(transformer.name, str(e))
+                    except IndexError as e:
+                        print(transformer.name, str(e))
+                        # path_ids = self.graph.get_path_nodes(node_)
+                        #
+                        # for node_id in path_ids[1:]:
+                        #     edge = self.graph.get_edge(self.graph.input_edge_dict[node_id])
+                        #     print(edge)
 
                     cnt += 1
                     if cnt > num_limit or (budget_limit is not None and time.time() >= self.start_time + budget_limit):
