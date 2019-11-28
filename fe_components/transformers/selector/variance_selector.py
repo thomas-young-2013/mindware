@@ -3,7 +3,7 @@ from fe_components.transformers.base_transformer import *
 
 
 class VarianceSelector(Transformer):
-    def __init__(self, threshold=1e-4):
+    def __init__(self, threshold=1e-7):
         super().__init__("variance_selector", 9)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
@@ -31,7 +31,7 @@ class VarianceSelector(Transformer):
             self.model.fit(X_new)
 
         for idx, var in enumerate(self.model.variances_):
-            is_selected[idx] = True if var >= self.threshold else False
+            is_selected[idx] = True if var > self.threshold else False
 
         irrevalent_types = [feature_types[idx] for idx in irrevalent_fields]
         selected_types = [feature_types[idx] for idx in target_fields if is_selected[idx]]

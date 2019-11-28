@@ -1,6 +1,5 @@
 from ConfigSpace.configuration_space import ConfigurationSpace
-from ConfigSpace.hyperparameters import CategoricalHyperparameter, \
-    UniformIntegerHyperparameter, UnParametrizedHyperparameter
+from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from fe_components.transformers.base_transformer import *
 from fe_components.utils.configspace_utils import check_for_bool
 
@@ -9,7 +8,7 @@ class PolynomialTransformation(Transformer):
     def __init__(self, degree=2, interaction_only='True', include_bias='False', random_state=None):
         super().__init__("polynomial", 17)
         self.input_type = [DISCRETE, NUMERICAL]
-        self.compound_mode = 'only_new'
+        self.compound_mode = 'concatenate'
 
         self.output_type = NUMERICAL
         self.degree = degree
@@ -45,13 +44,9 @@ class PolynomialTransformation(Transformer):
 
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None):
-        # More than degree 3 is too expensive!
-        # degree = UniformIntegerHyperparameter("degree", 2, 3, 2)
         degree = UnParametrizedHyperparameter(name="degree", value=2)
-        interaction_only = CategoricalHyperparameter("interaction_only",
-                                                     ["False", "True"], "False")
-        include_bias = CategoricalHyperparameter("include_bias",
-                                                 ["True", "False"], "True")
+        interaction_only = UnParametrizedHyperparameter("interaction_only", "True")
+        include_bias = UnParametrizedHyperparameter("include_bias", "False")
 
         cs = ConfigurationSpace()
         cs.add_hyperparameters([degree, interaction_only, include_bias])
