@@ -89,7 +89,6 @@ class EvaluationBasedOptimizer(Optimizer):
         # 2. Conduct feature selection.
         input_node = self.incumbent
         if input_node.cat_num > 1:
-            input_node = self.incumbent
             transformer = PolynomialTransformation()
             transformer.compound_mode = 'concatenate'
             transformer.input_type = CATEGORICAL

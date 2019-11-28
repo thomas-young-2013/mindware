@@ -25,7 +25,7 @@ dataset_list = 'credit,diabetes,pc4,sick,spectf,splice,waveform,' \
 dataset_list2 = 'eeg,higgs,kropt,madelon,mushroom,quake,satimage,semeion'
 dataset_list3 = 'messidor_features,lymphography,winequality_red,winequality_white,credit,' \
                 'ionosphere,splice,diabetes,pc4,spectf,spambase,amazon_employee'
-parser.add_argument('--datasets', type=str, default='ionosphere')
+parser.add_argument('--datasets', type=str, default=dataset_list3)
 args = parser.parse_args()
 
 
@@ -93,7 +93,7 @@ def evaluate_ausk_fe(dataset, time_limit, fe_mth='none', ratio=0.5, ensb_size=1,
 
 def evaluate_fe(dataset, time_limit, fe='eval_base', seed=1):
     np.random.seed(seed)
-    train_data, _ = engineer_data(dataset, fe, time_budget=time_limit)
+    train_data, _ = engineer_data(dataset, fe, time_budget=time_limit, seed=seed)
 
     cs = DefaultRandomForest.get_hyperparameter_search_space()
     config = cs.get_default_configuration().get_dictionary()
