@@ -4,7 +4,6 @@ from fe_components.optimizers.base_optimizer import Optimizer
 from fe_components.transformers.generator.polynomial_generator import PolynomialTransformation
 from fe_components.transformers.selector.variance_selector import VarianceSelector
 from fe_components.transformers.selector.extra_trees_based_selector import ExtraTreeBasedSelector
-from fe_components.transformers.generator.pca_decomposer import PcaDecomposer
 from fe_components.optimizers.transformer_manager import TransformerManager
 
 
@@ -87,33 +86,6 @@ class EvaluationBasedOptimizer(Optimizer):
             print(e)
             return self.incumbent
 
-        # 1. Apply polynomial transformation on the non-categorical features.
-        # 2. Conduct feature selection.
-        if input_node.shape[1] - input_node.cat_num > 1:
-            input_node = self.incumbent
-            transformer = PolynomialTransformation()
-            transformer.compound_mode = 'concatenate'
-            try:
-                output_node = transformer.operate(input_node)
-                print('Shape ==>', input_node.shape, output_node.shape)
-                self.graph.add_node(output_node)
-                self.graph.add_trans_in_graph(input_node, output_node, transformer)
-
-                input_node = output_node
-                transformer = ExtraTreeBasedSelector()
-                output_node = transformer.operate(input_node)
-                print('Shape ==>', input_node.shape, output_node.shape)
-                self.graph.add_node(output_node)
-                self.graph.add_trans_in_graph(input_node, output_node, transformer)
-
-                _score = self.evaluator(output_node)
-
-                if _score > self.incumbent_score:
-                    self.incumbent_score = _score
-                    self.incumbent = output_node
-            except MemoryError as e:
-                print(e)
-
         # 1. Apply cross transformations on the categorical features.
         # 2. Conduct feature selection.
         if input_node.cat_num > 1:
@@ -143,18 +115,4 @@ class EvaluationBasedOptimizer(Optimizer):
             except MemoryError as e:
                 print(e)
 
-        # PCA Dimension reduction.
-        if True:
-            input_node = self.incumbent
-            transformer = PcaDecomposer()
-            output_node = transformer.operate(input_node)
-            print('Shape ==>', input_node.shape, output_node.shape)
-            self.graph.add_node(output_node)
-            self.graph.add_trans_in_graph(input_node, output_node, transformer)
-
-            _score = self.evaluator(output_node)
-
-            if _score > self.incumbent_score:
-                self.incumbent_score = _score
-                self.incumbent = output_node
         return self.incumbent
