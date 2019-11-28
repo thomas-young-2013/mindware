@@ -6,7 +6,7 @@ from fe_components.utils.configspace_utils import check_for_bool
 
 
 class PolynomialTransformation(Transformer):
-    def __init__(self, degree=2, interaction_only='False', include_bias='True', random_state=None):
+    def __init__(self, degree=2, interaction_only='True', include_bias='False', random_state=None):
         super().__init__("polynomial", 17)
         self.input_type = [DISCRETE, NUMERICAL]
         self.compound_mode = 'only_new'

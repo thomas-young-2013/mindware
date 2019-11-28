@@ -2,7 +2,6 @@ import time
 from fe_components.transformation_graph import *
 from fe_components.optimizers.base_optimizer import Optimizer
 from fe_components.transformers.generator.polynomial_generator import PolynomialTransformation
-from fe_components.transformers.selector.variance_selector import VarianceSelector
 from fe_components.transformers.selector.extra_trees_based_selector import ExtraTreeBasedSelector
 from fe_components.optimizers.transformer_manager import TransformerManager
 
@@ -58,7 +57,11 @@ class EvaluationBasedOptimizer(Optimizer):
                         self.graph.add_node(output_node)
                         self.graph.add_trans_in_graph(node_, output_node, transformer)
                     except ValueError as e:
-                        print(e)
+                        print(transformer.name, str(e))
+                    except MemoryError as e:
+                        print(transformer.name, str(e))
+                    except RuntimeError as e:
+                        print(transformer.name, str(e))
 
                     cnt += 1
                     if cnt > num_limit or (budget_limit is not None and time.time() >= self.start_time + budget_limit):
@@ -72,22 +75,9 @@ class EvaluationBasedOptimizer(Optimizer):
 
             print('==> Current incumbent', self.incumbent_score, 'Improvement: ', self.incumbent_score - root_score)
 
-        try:
-            input_node = self.incumbent
-            transformer = VarianceSelector()
-            output_node = transformer.operate(input_node)
-            self.graph.add_node(output_node)
-            self.graph.add_trans_in_graph(input_node, output_node, transformer)
-            _score = self.evaluator(output_node)
-            if _score >= self.incumbent_score:
-                self.incumbent_score = _score
-                self.incumbent = output_node
-        except ValueError as e:
-            print(e)
-            return self.incumbent
-
         # 1. Apply cross transformations on the categorical features.
         # 2. Conduct feature selection.
+        input_node = self.incumbent
         if input_node.cat_num > 1:
             input_node = self.incumbent
             transformer = PolynomialTransformation()
@@ -99,6 +89,12 @@ class EvaluationBasedOptimizer(Optimizer):
                 print('Shape ==>', input_node.shape, output_node.shape)
                 self.graph.add_node(output_node)
                 self.graph.add_trans_in_graph(input_node, output_node, transformer)
+
+                _score = self.evaluator(output_node)
+
+                if _score > self.incumbent_score:
+                    self.incumbent_score = _score
+                    self.incumbent = output_node
 
                 input_node = output_node
                 transformer = ExtraTreeBasedSelector()
@@ -112,7 +108,9 @@ class EvaluationBasedOptimizer(Optimizer):
                 if _score > self.incumbent_score:
                     self.incumbent_score = _score
                     self.incumbent = output_node
+            except ValueError as e:
+                print(transformer.name, str(e))
             except MemoryError as e:
-                print(e)
+                print(transformer.name, str(e))
 
         return self.incumbent
