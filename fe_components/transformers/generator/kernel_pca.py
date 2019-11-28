@@ -7,7 +7,7 @@ from fe_components.transformers.base_transformer import *
 
 
 class KernelPCA(Transformer):
-    def __init__(self, n_components=100, kernel='rbf', degree=3, gamma=0.25, coef0=0.0,
+    def __init__(self, n_components=0.3, kernel='rbf', degree=3, gamma=0.25, coef0=0.0,
                  random_state=None):
         super().__init__("kernel_pca", 12)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
@@ -29,13 +29,13 @@ class KernelPCA(Transformer):
             import scipy.sparse
             import sklearn.decomposition
 
-            self.n_components = int(self.n_components)
+            n_components = min(2000, max(3, int(self.n_components * X.shape[1])))
             self.degree = int(self.degree)
             self.gamma = float(self.gamma)
             self.coef0 = float(self.coef0)
 
             self.model = sklearn.decomposition.KernelPCA(
-                n_components=self.n_components, kernel=self.kernel,
+                n_components=n_components, kernel=self.kernel,
                 degree=self.degree, gamma=self.gamma, coef0=self.coef0,
                 remove_zero_eig=True, random_state=self.random_state)
             if scipy.sparse.issparse(X):
@@ -54,8 +54,8 @@ class KernelPCA(Transformer):
 
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None):
-        n_components = UniformIntegerHyperparameter(
-            "n_components", 10, 2000, default_value=100)
+        n_components = UniformFloatHyperparameter(
+            "n_components", 0.01, 1.0, log=True, default_value=0.3)
         kernel = CategoricalHyperparameter('kernel',
                                            ['poly', 'rbf', 'sigmoid', 'cosine'], 'rbf')
         gamma = UniformFloatHyperparameter("gamma", 3.0517578125e-05, 8,

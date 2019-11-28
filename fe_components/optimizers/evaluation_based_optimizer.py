@@ -41,7 +41,7 @@ class EvaluationBasedOptimizer(Optimizer):
 
                 # Fetch available transformations for this node.
                 trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
-                if node_.depth > 1:
+                if node_.depth > 1 and 17 in trans_types:
                     trans_types.remove(17)
                 trans_set = self.transformer_manager.get_transformations(node_, trans_types=trans_types)
 

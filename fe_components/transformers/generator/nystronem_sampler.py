@@ -28,13 +28,14 @@ class NystronemSampler(Transformer):
         if not self.model:
             import scipy
             from sklearn.kernel_approximation import Nystroem
-            self.n_components = int(self.n_components)
+            n_components = min(X.shape[0], self.n_components)
+
             self.gamma = float(self.gamma)
             self.degree = int(self.degree)
             self.coef0 = float(self.coef0)
 
             self.model = Nystroem(
-                kernel=self.kernel, n_components=self.n_components,
+                kernel=self.kernel, n_components=n_components,
                 gamma=self.gamma, degree=self.degree, coef0=self.coef0,
                 random_state=self.random_state)
 
@@ -66,7 +67,7 @@ class NystronemSampler(Transformer):
             possible_kernels.append("chi2")
         kernel = CategoricalHyperparameter('kernel', possible_kernels, 'rbf')
         n_components = UniformIntegerHyperparameter(
-            "n_components", 50, 10000, default_value=100, log=True)
+            "n_components", 10, 2000, default_value=100, log=True)
         gamma = UniformFloatHyperparameter("gamma", 3.0517578125e-05, 8,
                                            log=True, default_value=0.1)
         degree = UniformIntegerHyperparameter('degree', 2, 5, 3)
