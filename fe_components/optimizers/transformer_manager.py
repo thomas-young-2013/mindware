@@ -6,12 +6,14 @@ from fe_components.utils.configspace_utils import sample_configurations
 
 
 class TransformerManager(object, metaclass=abc.ABCMeta):
-    def __init__(self, random_state=1):
+    def __init__(self, disable_hpo=False, random_state=1):
         # Store the executed hyperparameter configurations for each transformer.
         self.hyper_configs = dict()
+        self.disable_hpo = disable_hpo
         self.random_state = random_state
 
-    def get_transformations(self, node: DataNode, trans_types: typing.List, batch_size=3):
+    def get_transformations(self, node: DataNode, trans_types: typing.List,
+                            batch_size=3):
         """
         Collect a batch of transformations with different hyperparameters in each call.
         :return: a list of transformations.
@@ -38,7 +40,7 @@ class TransformerManager(object, metaclass=abc.ABCMeta):
                 continue
 
             config_space = transformer_class().get_hyperparameter_search_space()
-            if len(config_space.get_hyperparameters()) == 0:
+            if len(config_space.get_hyperparameters()) == 0 or self.disable_hpo:
                 transformers.append(transformer_class())
                 continue
 
