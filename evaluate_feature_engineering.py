@@ -6,7 +6,7 @@ import numpy as np
 from tabulate import tabulate
 import autosklearn.classification
 
-proj_dir = '/home/thomas/PycharmProjects/Feature-Engineering/'
+proj_dir = '/home/thomas/PycharmProjects/feature-engieering-toolkit/'
 if not os.path.exists(proj_dir):
     proj_dir = './'
 sys.path.append(proj_dir)
