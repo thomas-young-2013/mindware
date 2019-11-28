@@ -44,6 +44,7 @@ class EvaluationBasedOptimizer(Optimizer):
 
                 for transformer in trans_set:
                     try:
+                        print(transformer.name)
                         output_node = transformer.operate(node_)
                         output_node.depth = node_.depth + 1
                         # Evaluate this node.
