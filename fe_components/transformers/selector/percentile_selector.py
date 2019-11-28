@@ -11,7 +11,6 @@ class PercentileSelector(Transformer):
         self.score_func = score_func
         self.percentile = percentile
 
-
     def get_score_func(self):
         if self.score_func == 'chi2':
             from sklearn.feature_selection import chi2
@@ -40,7 +39,7 @@ class PercentileSelector(Transformer):
 
         # Because the pipeline guarantees that each feature is positive,
         # clip all values below zero to zero
-        if self.params == 'chi2':
+        if self.score_func == 'chi2':
             X_new[X_new < 0] = 0.0
 
         if self.model is None:

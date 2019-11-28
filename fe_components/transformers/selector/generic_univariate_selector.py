@@ -38,7 +38,7 @@ class GenericUnivariateSelector(Transformer):
 
         # Because the pipeline guarantees that each feature is positive,
         # clip all values below zero to zero
-        if self.params == 'chi2':
+        if self.score_func == 'chi2':
             X_new[X_new < 0] = 0.0
 
         if self.model is None:

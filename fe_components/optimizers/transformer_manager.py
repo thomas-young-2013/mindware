@@ -11,7 +11,7 @@ class TransformerManager(object, metaclass=abc.ABCMeta):
         self.hyper_configs = dict()
         self.random_state = random_state
 
-    def get_transformations(self, node: DataNode, trans_types: typing.List, batch_size=4):
+    def get_transformations(self, node: DataNode, trans_types: typing.List, batch_size=3):
         """
         Collect a batch of transformations with different hyperparameters in each call.
         :return: a list of transformations.
