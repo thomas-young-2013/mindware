@@ -71,7 +71,7 @@ def load_data(dataset):
     return X, y, feature_types
 
 
-def engineer_data(dataset, fe='none', time_budget=None, seed=1):
+def engineer_data(dataset, fe='none', evaluator=None, time_budget=None, seed=1):
     import time
     start_time = time.time()
     X, y, feature_types = load_data(dataset)
@@ -83,12 +83,7 @@ def engineer_data(dataset, fe='none', time_budget=None, seed=1):
         pipeline = FEPipeline(fe_enabled=True, optimizer_type='epd_rdc', seed=seed)
         train_data = pipeline.fit_transform(input_data)
     elif fe == 'eval_base':
-        from evaluator import Evaluator
-        from utils.default_random_forest import DefaultRandomForest
-        cs = DefaultRandomForest.get_hyperparameter_search_space()
-        config = cs.get_default_configuration().get_dictionary()
-        clf = DefaultRandomForest(**config, random_state=seed)
-        evaluator = Evaluator(seed=seed, clf=clf)
+        assert evaluator is not None
         pipeline = FEPipeline(fe_enabled=True, optimizer_type='eval_base',
                               time_budget=time_budget, evaluator=evaluator, seed=seed)
         train_data = pipeline.fit_transform(input_data)

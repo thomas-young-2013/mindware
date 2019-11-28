@@ -16,7 +16,7 @@ from utils.default_random_forest import DefaultRandomForest
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--rep', type=int, default=1)
-parser.add_argument('--time_limit', type=int, default=60)
+parser.add_argument('--time_limit', type=int, default=120)
 parser.add_argument('--n_job', type=int, default=1)
 parser.add_argument('--mode', type=int, default=0)
 dataset_list = 'credit,diabetes,pc4,sick,spectf,splice,waveform,' \
@@ -93,14 +93,17 @@ def evaluate_ausk_fe(dataset, time_limit, fe_mth='none', ratio=0.5, ensb_size=1,
 
 def evaluate_fe(dataset, time_limit, fe='eval_base', seed=1):
     np.random.seed(seed)
-    train_data, _ = engineer_data(dataset, fe, time_budget=time_limit, seed=seed)
-
     cs = DefaultRandomForest.get_hyperparameter_search_space()
     config = cs.get_default_configuration().get_dictionary()
     clf = DefaultRandomForest(**config, random_state=seed)
     evaluator = Evaluator(seed=seed, clf=clf)
+
+    train_data, _ = engineer_data(dataset, fe, evaluator=evaluator, time_budget=time_limit, seed=seed)
     score = evaluator(train_data)
     print('==> Validation score', score)
+
+    if score < train_data.score:
+        score = train_data.score
 
     raw_data, _ = engineer_data(dataset, 'none', time_budget=time_limit)
     base_score = evaluator(raw_data)

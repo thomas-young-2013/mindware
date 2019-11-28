@@ -33,7 +33,7 @@ class Evaluator(object):
         np.random.seed(self.seed)
         start_time = time.time()
         X_train, y_train = data_node.data
-        score = cross_validation(self.clf, X_train, y_train, n_fold=self.cv)
+        score = cross_validation(self.clf, X_train, y_train, n_fold=self.cv, random_state=self.seed)
         print('Evaluation %d || Score: %.4f || Time cost: %.2f seconds || Shape: %s' %
               (self.eval_id, score, time.time() - start_time, X_train.shape))
         self.eval_id += 1
