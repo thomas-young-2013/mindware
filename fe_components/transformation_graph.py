@@ -9,6 +9,7 @@ class DataNode(object):
         self._node_id = -1
         self.depth = None
         self.score = None
+        self.trans_hist = list()
 
     def copy_(self):
         new_data = [val.copy() for val in self.data]

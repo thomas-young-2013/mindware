@@ -17,5 +17,7 @@ class DataBalancer(Transformer):
 
         new_feature_types = input_datanode.feature_types.copy()
         output_datanode = DataNode(data, new_feature_types, input_datanode.task_type)
+        output_datanode.trans_hist = input_datanode.trans_hist.copy()
+        output_datanode.trans_hist.append(self.type)
 
         return output_datanode

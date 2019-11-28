@@ -87,7 +87,7 @@ def engineer_data(dataset, fe='none', time_budget=None, seed=1):
         from utils.default_random_forest import DefaultRandomForest
         cs = DefaultRandomForest.get_hyperparameter_search_space()
         config = cs.get_default_configuration().get_dictionary()
-        clf = DefaultRandomForest(**config)
+        clf = DefaultRandomForest(**config, random_state=seed)
         evaluator = Evaluator(seed=seed, clf=clf)
         pipeline = FEPipeline(fe_enabled=True, optimizer_type='eval_base',
                               time_budget=time_budget, evaluator=evaluator, seed=seed)

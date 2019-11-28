@@ -16,7 +16,7 @@ from utils.default_random_forest import DefaultRandomForest
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--rep', type=int, default=1)
-parser.add_argument('--time_limit', type=int, default=1200)
+parser.add_argument('--time_limit', type=int, default=60)
 parser.add_argument('--n_job', type=int, default=1)
 parser.add_argument('--mode', type=int, default=0)
 dataset_list = 'credit,diabetes,pc4,sick,spectf,splice,waveform,' \
@@ -25,7 +25,7 @@ dataset_list = 'credit,diabetes,pc4,sick,spectf,splice,waveform,' \
 dataset_list2 = 'eeg,higgs,kropt,madelon,mushroom,quake,satimage,semeion'
 dataset_list3 = 'messidor_features,lymphography,winequality_red,winequality_white,credit,' \
                 'ionosphere,splice,diabetes,pc4,spectf,spambase,amazon_employee'
-parser.add_argument('--datasets', type=str, default=dataset_list3)
+parser.add_argument('--datasets', type=str, default='messidor_features')
 args = parser.parse_args()
 
 
@@ -97,7 +97,7 @@ def evaluate_fe(dataset, time_limit, fe='eval_base', seed=1):
 
     cs = DefaultRandomForest.get_hyperparameter_search_space()
     config = cs.get_default_configuration().get_dictionary()
-    clf = DefaultRandomForest(**config)
+    clf = DefaultRandomForest(**config, random_state=seed)
     evaluator = Evaluator(seed=seed, clf=clf)
     score = evaluator(train_data)
     print('==> Validation score', score)

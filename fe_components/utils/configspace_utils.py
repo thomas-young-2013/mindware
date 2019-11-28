@@ -18,13 +18,14 @@ def sample_configurations(configuration_space: ConfigurationSpace,
         sample_cnt += 1
         if sample_cnt > 50 * sample_size:
             break
-    if len(result) == 0:
-        hist_num = len(historical_configs)
-        if hist_num > sample_size:
-            idxs = random.sample(range(len(historical_configs)), sample_size)
-            result = [historical_configs[idx] for idx in idxs]
-        else:
-            result = historical_configs.copy()
+
+    # if len(result) == 0:
+    #     hist_num = len(historical_configs)
+    #     if hist_num > sample_size:
+    #         idxs = random.sample(range(len(historical_configs)), sample_size)
+    #         result = [historical_configs[idx] for idx in idxs]
+    #     else:
+    #         result = historical_configs.copy()
     return result
 
 

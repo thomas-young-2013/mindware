@@ -22,7 +22,7 @@ class EvaluationBasedOptimizer(Optimizer):
 
         num_limit = self.maximum_evaluation_num if self.maximum_evaluation_num is not None else 10000000
         budget_limit = self.time_budget
-        max_depth = 100000
+        max_depth = 8
         beam_width = 3
 
         cnt = 0
@@ -34,9 +34,10 @@ class EvaluationBasedOptimizer(Optimizer):
         while len(beam_set) > 0 and not is_ended:
             nodes = list()
             for node_ in beam_set:
+                print('='*50)
                 # Limit the maximum depth in graph.
                 if node_.depth > max_depth:
-                    break
+                    continue
 
                 # Fetch available transformations for this node.
                 trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
@@ -45,10 +46,15 @@ class EvaluationBasedOptimizer(Optimizer):
                 trans_set = self.transformer_manager.get_transformations(node_, trans_types=trans_types)
 
                 for transformer in trans_set:
+                    # Avoid repeating the same transformation multiple times.
+                    if transformer.type in node_.trans_hist:
+                        continue
                     try:
                         print(transformer.name)
                         output_node = transformer.operate(node_)
                         output_node.depth = node_.depth + 1
+                        output_node.trans_hist.append(transformer.type)
+
                         # Evaluate this node.
                         _score = self.evaluator(output_node)
                         output_node.score = _score
@@ -82,7 +88,7 @@ class EvaluationBasedOptimizer(Optimizer):
             beam_set = list()
             for node_ in TransformationGraph.sort_nodes_by_score(nodes)[:beam_width]:
                 beam_set.append(node_)
-
+            beam_set.append(self.root_node)
             print('==> Current incumbent', self.incumbent_score, 'Improvement: ', self.incumbent_score - root_score)
 
         # 1. Apply cross transformations on the categorical features.

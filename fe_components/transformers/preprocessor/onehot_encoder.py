@@ -34,4 +34,7 @@ class OneHotTransformation(Transformer):
         feature_types = list(np.delete(feature_types, target_fields))
         feature_types.extend([CATEGORICAL] * new_X.shape[1])
         output_datanode = DataNode((X_output, y), feature_types, input_datanode.task_type)
+        output_datanode.trans_hist = input_datanode.trans_hist.copy()
+        output_datanode.trans_hist.append(self.type)
+
         return output_datanode
