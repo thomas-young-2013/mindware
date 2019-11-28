@@ -25,7 +25,7 @@ dataset_list = 'credit,diabetes,pc4,sick,spectf,splice,waveform,' \
 dataset_list2 = 'eeg,higgs,kropt,madelon,mushroom,quake,satimage,semeion'
 dataset_list3 = 'messidor_features,lymphography,winequality_red,winequality_white,credit,' \
                 'ionosphere,splice,diabetes,pc4,spectf,spambase,amazon_employee'
-parser.add_argument('--datasets', type=str, default='ionosphere')
+parser.add_argument('--datasets', type=str, default=dataset_list3)
 args = parser.parse_args()
 
 
