@@ -36,7 +36,7 @@ class EvaluationBasedOptimizer(Optimizer):
             for node_ in beam_set:
                 print('='*50)
                 # Limit the maximum depth in graph.
-                if node_.depth > max_depth:
+                if node_.depth > max_depth or is_ended:
                     continue
 
                 # Fetch available transformations for this node.
