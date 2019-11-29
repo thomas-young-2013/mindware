@@ -19,3 +19,4 @@ build/*
 # temp file
 lfe/*
 data/datasets/*
+*.log

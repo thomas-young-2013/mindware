@@ -1,8 +1,8 @@
 import numpy as np
-from fe_components.transformers.selector.generic_univariate_selector import GenericUnivariateSelector
-from fe_components.transformation_graph import DataNode
+from components.transformers.selector.generic_univariate_selector import GenericUnivariateSelector
+from components.transformation_graph import DataNode
 
-from fe_components.utils.constants import *
+from components.utils.constants import *
 
 
 def evaluate_feature_selectors():
@@ -44,7 +44,7 @@ def test_selector():
     print(output_datanode.data)
 
     # Test percentile selector.
-    from fe_components.transformers.selector.percentile_selector import PercentileSelector
+    from components.transformers.selector.percentile_selector import PercentileSelector
     scaler = PercentileSelector(percentile=25)
     scaler.concatenate = False
     output_datanode = scaler.operate(datanode)
@@ -52,14 +52,14 @@ def test_selector():
     print(output_datanode.data)
 
     # Test model based selector.
-    from fe_components.transformers.selector.model_based_selector import ModelBasedSelector
+    from components.transformers.selector.model_based_selector import ModelBasedSelector
     scaler = ModelBasedSelector(param='et')
     output_datanode = scaler.operate(datanode)
     print(output_datanode)
     print(output_datanode.data)
 
     # Test variance threshold.
-    from fe_components.transformers.selector.variance_selector import VarianceSelector
+    from components.transformers.selector.variance_selector import VarianceSelector
     scaler = VarianceSelector()
     output_datanode = scaler.operate(datanode)
     print(output_datanode)
@@ -77,7 +77,7 @@ def test_generator():
     datanode = DataNode(data, feature_type)
 
     # Test SVD.
-    from fe_components.transformers.generator.svd_decomposer import SvdDecomposer
+    from components.transformers.generator.svd_decomposer import SvdDecomposer
     scaler = SvdDecomposer(frac=0.5)
     scaler.concatenate = False
     output_datanode = scaler.operate(datanode)
@@ -85,7 +85,7 @@ def test_generator():
     print(output_datanode.data)
 
     # Test feature agglomerate.
-    from fe_components.transformers.generator.feature_agglomeration_decomposer import FeatureAgglomerationDecomposer
+    from components.transformers.generator.feature_agglomeration_decomposer import FeatureAgglomerationDecomposer
     scaler = FeatureAgglomerationDecomposer(frac=0.5)
     scaler.concatenate = False
     output_datanode = scaler.operate(datanode)
@@ -93,7 +93,7 @@ def test_generator():
     print(output_datanode.data)
 
     # Test PCA.
-    from fe_components.transformers.generator.pca_decomposer import PcaDecomposer
+    from components.transformers.generator.pca_decomposer import PcaDecomposer
     scaler = PcaDecomposer(frac=0.99)
     scaler.concatenate = False
     output_datanode = scaler.operate(datanode)
@@ -101,7 +101,7 @@ def test_generator():
     print(output_datanode.data)
 
     # Test kernel PCA.
-    from fe_components.transformers.generator.kernel_pca import KernelPCA
+    from components.transformers.generator.kernel_pca import KernelPCA
     scaler = KernelPCA()
     scaler.concatenate = False
     output_datanode = scaler.operate(datanode)
@@ -109,7 +109,7 @@ def test_generator():
     print(output_datanode.data)
 
     # Test fast ICA.
-    from fe_components.transformers.generator.fast_ica_decomposer import FastIcaDecomposer
+    from components.transformers.generator.fast_ica_decomposer import FastIcaDecomposer
     scaler = FastIcaDecomposer(frac=0.5)
     scaler.concatenate = False
     output_datanode = scaler.operate(datanode)
@@ -117,7 +117,7 @@ def test_generator():
     print(output_datanode.data)
 
     # Test LDA.
-    # from fe_components.transformers.generator.lda_decomposer import LdaDecomposer
+    # from components.transformers.generator.lda_decomposer import LdaDecomposer
     # scaler = LdaDecomposer(frac=0.3)
     # scaler.concatenate = False
     # output_datanode = scaler.operate(datanode)
@@ -125,7 +125,7 @@ def test_generator():
     # print(output_datanode.data)
 
     # Test random trees embedding.
-    from fe_components.transformers.generator.random_trees_embedding import RandomTreesEmbeddingTransformation
+    from components.transformers.generator.random_trees_embedding import RandomTreesEmbeddingTransformation
     scaler = RandomTreesEmbeddingTransformation()
     output_datanode = scaler.operate(datanode)
     print(output_datanode)

@@ -1,12 +1,12 @@
-from fe_components.transformers.preprocessor.imputer import ImputationTransformation
-from fe_components.transformers.continous_discretizer import *
-from fe_components.transformers.rescaler.scaler import ScaleTransformation
-from fe_components.transformers.preprocessor.onehot_encoder import OneHotTransformation
-from fe_components.transformers.merger import Merger
-from fe_components.transformation_graph import DataNode
-from fe_components.fe_pipeline import FEPipeline
-from fe_components.utils.constants import *
-from fe_components.transformation_graph import TransformationGraph
+from components.transformers.preprocessor.imputer import ImputationTransformation
+from components.transformers.continous_discretizer import *
+from components.transformers.rescaler.scaler import ScaleTransformation
+from components.transformers.preprocessor.onehot_encoder import OneHotTransformation
+from components.transformers.merger import Merger
+from components.transformation_graph import DataNode
+from components.fe_pipeline import FEPipeline
+from components.utils.constants import *
+from components.transformation_graph import TransformationGraph
 
 
 def evaluate_transformation_graph():

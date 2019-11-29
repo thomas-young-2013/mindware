@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from fe_components.utils.constants import *
-from fe_components.utils.utils import is_discrete, detect_abnormal_type
+from components.utils.constants import *
+from components.utils.utils import is_discrete, detect_abnormal_type
 
 default_missing_values = ["n/a", "na", "--", "-", "?"]
 
