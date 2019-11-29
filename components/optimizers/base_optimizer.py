@@ -22,6 +22,7 @@ class Optimizer(object, metaclass=abc.ABCMeta):
     def optimize(self):
         raise NotImplementedError()
 
+    @abc.abstractmethod
     def iterate(self):
         pass
 
