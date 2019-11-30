@@ -14,7 +14,7 @@ class DataNode(object):
     def copy_(self):
         new_data = [val.copy() for val in self.data]
         new_node = DataNode(new_data, self.feature_types.copy(), self.task_type)
-        new_data.trans_hist = self.trans_hist.copy()
+        new_node.trans_hist = self.trans_hist.copy()
         return new_node
 
     def set_values(self, node):

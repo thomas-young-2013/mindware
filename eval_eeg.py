@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 from sklearn import preprocessing
 
@@ -19,14 +18,13 @@ dataset = 'winequality_white'
 data_file = 'data/datasets/%s.csv' % dataset
 X, y = load_data(data_file)
 print(X.shape, y.shape, set(y))
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 clf = RandomForestClassifier(n_estimators=100)
-from sklearn.preprocessing import MinMaxScaler, Imputer
 # X = MinMaxScaler().fit_transform(X)
 # X = Imputer(strategy='mean').fit_transform(X)
 
-from evaluator import cross_validation
+from components.evaluator import cross_validation
 
 score = cross_validation(clf, X, y, 5)
 print(score)

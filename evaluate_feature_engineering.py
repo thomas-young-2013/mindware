@@ -11,7 +11,7 @@ if not os.path.exists(proj_dir):
     proj_dir = './'
 sys.path.append(proj_dir)
 from evaluate_transgraph import engineer_data
-from evaluator import Evaluator
+from components.evaluator import Evaluator
 from utils.default_random_forest import DefaultRandomForest
 
 parser = argparse.ArgumentParser()
@@ -93,10 +93,14 @@ def evaluate_ausk_fe(dataset, time_limit, fe_mth='none', ratio=0.5, ensb_size=1,
 
 def evaluate_fe(dataset, time_limit, fe='eval_base', seed=1):
     np.random.seed(seed)
-    cs = DefaultRandomForest.get_hyperparameter_search_space()
-    config = cs.get_default_configuration().get_dictionary()
-    clf = DefaultRandomForest(**config, random_state=seed)
-    evaluator = Evaluator(seed=seed, clf=clf)
+
+    # Prepare the configuration for random forest.
+    from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
+    from autosklearn.pipeline.components.classification.random_forest import RandomForest
+    cs = RandomForest.get_hyperparameter_search_space()
+    clf_hp = UnParametrizedHyperparameter("estimator", 'random_forest')
+    cs.add_hyperparameter(clf_hp)
+    evaluator = Evaluator(cs.get_default_configuration(), seed=seed)
 
     train_data, _ = engineer_data(dataset, fe, evaluator=evaluator, time_budget=time_limit, seed=seed)
     score = evaluator(train_data)
@@ -119,8 +123,6 @@ def evaluate_fe_compoment():
     # Add random forest classifier (with default hyperparameter) component to auto-sklearn.
     from utils.default_random_forest import DefaultRandomForest
     autosklearn.pipeline.components.classification.add_classifier(DefaultRandomForest)
-    # cs = DefaultRandomForest.get_hyperparameter_search_space()
-    # print(cs)
 
     headers = ['AUSK', 'EB', 'ER']
     save_template = proj_dir + 'data/ausk_cv_result_exp1_%s_%d.pkl'

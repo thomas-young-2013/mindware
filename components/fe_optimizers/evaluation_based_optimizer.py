@@ -12,6 +12,7 @@ class EvaluationBasedOptimizer(Optimizer):
         self.incumbent_score = -1.
         self.baseline_score = -1
         self.start_time = time.time()
+        self.hp_config = None
 
         self.max_depth = 8
         self.beam_width = 3
@@ -31,7 +32,7 @@ class EvaluationBasedOptimizer(Optimizer):
     def iterate(self):
         if self.iteration_id == 0:
             # Evaluate the original features.
-            self.incumbent_score = self.evaluator(self.root_node)
+            self.incumbent_score = self.evaluator(self.hp_config, data_node=self.root_node)
             self.baseline_score = self.incumbent_score
             self.incumbent = self.root_node
             self.root_node.depth = 1
@@ -61,13 +62,13 @@ class EvaluationBasedOptimizer(Optimizer):
 
                 error_msg = None
                 try:
-                    self.logger.info(transformer.name)
+                    self.logger.info('[%s]' % transformer.name)
                     output_node = transformer.operate(node_)
                     output_node.depth = node_.depth + 1
                     output_node.trans_hist.append(transformer.type)
 
                     # Evaluate this node.
-                    _score = self.evaluator(output_node)
+                    _score = self.evaluator(self.hp_config, data_node=output_node)
                     output_node.score = _score
                     if _score > self.incumbent_score:
                         self.incumbent_score = _score
@@ -93,9 +94,12 @@ class EvaluationBasedOptimizer(Optimizer):
                     and self.evaluation_count > self.maximum_evaluation_num) or \
                         (self.time_budget is not None
                          and time.time() >= self.start_time + self.time_budget):
-                    self.logger.info('==> Budget runs out: %s, %s\n' % (self.maximum_evaluation_num, self.time_budget))
+                    self.logger.info('[Budget Runs Out]: %s, %s\n' % (self.maximum_evaluation_num, self.time_budget))
                     self.is_ended = True
                     break
+
+            self.logger.info('\n [Current Inc]: %.4f, [Improvement]: %.5f'
+                             % (self.incumbent_score, self.incumbent_score - self.baseline_score))
 
         # Update the beam set according to their performance.
         self.beam_set = list()
@@ -103,9 +107,6 @@ class EvaluationBasedOptimizer(Optimizer):
             self.beam_set.append(node_)
         # Add the original dataset into the beam set.
         self.beam_set.append(self.root_node)
-
-        self.logger.info('\n==> Current incumbent: %.4f, Improvement: %f'
-                         % (self.incumbent_score, self.incumbent_score - self.baseline_score))
 
         self.iteration_id += 1
         return self.incumbent

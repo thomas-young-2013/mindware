@@ -11,7 +11,7 @@ if not os.path.exists(proj_dir):
 sys.path.append(proj_dir)
 from evaluate_transgraph import engineer_data
 from utils.default_random_forest import DefaultRandomForest
-from evaluator import Evaluator
+from components.evaluator import Evaluator
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--time_limit', type=int, default=1200)

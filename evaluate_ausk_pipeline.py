@@ -1,7 +1,6 @@
 import numpy as np
 import random
-from imblearn.over_sampling import SMOTE
-from evaluator import Evaluator
+from components.evaluator import Evaluator
 from evaluate_transgraph import engineer_data
 from utils.default_random_forest import DefaultRandomForest
 
