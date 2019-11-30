@@ -1,6 +1,6 @@
 import numpy as np
 from components.transformers.selector.generic_univariate_selector import GenericUnivariateSelector
-from components.transformation_graph import DataNode
+from components.feature_engineering.transformation_graph import DataNode
 
 from components.utils.constants import *
 

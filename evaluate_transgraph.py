@@ -3,8 +3,8 @@ import sys
 import numpy as np
 import argparse
 from sklearn.ensemble import RandomForestClassifier
-from components.transformation_graph import DataNode
-from components.fe_pipeline import FEPipeline
+from components.feature_engineering.transformation_graph import DataNode
+from components.feature_engineering.fe_pipeline import FEPipeline
 
 proj_dir = '/home/thomas/PycharmProjects/Feature-Engineering/'
 if not os.path.exists(proj_dir):
