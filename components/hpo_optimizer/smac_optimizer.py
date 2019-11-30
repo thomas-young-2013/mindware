@@ -1,7 +1,7 @@
 import time
 import numpy as np
-from litesmac.scenario.scenario import Scenario
-from litesmac.facade.smac_facade import SMAC
+from smac.scenario.scenario import Scenario
+from smac.facade.smac_facade import SMAC
 from components.hpo_optimizer.base_optimizer import BaseHPOptimizer
 
 
