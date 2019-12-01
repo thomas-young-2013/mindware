@@ -26,6 +26,7 @@ class SMACOptimizer(BaseHPOptimizer):
         self.trial_cnt = 0
         self.configs = list()
         self.perfs = list()
+        self.incumbent_perf, self.incumbent_config = -1, None
 
     def run(self):
         while True:
@@ -45,10 +46,15 @@ class SMACOptimizer(BaseHPOptimizer):
             runhistory = self.optimizer.solver.runhistory
             runkeys = list(runhistory.data.keys())
             for key in runkeys[self.trial_cnt:]:
-                reward = 1. - runhistory.data[key][0]
-                self.perfs.append(reward)
-                self.configs.append(runhistory.ids_config[key[0]])
+                _reward = 1. - runhistory.data[key][0]
+                _config = runhistory.ids_config[key[0]]
+                self.perfs.append(_reward)
+                self.configs.append(_config)
+                if _reward > self.incumbent_perf:
+                    self.incumbent_perf = _reward
+                    self.incumbent_config = _config
+
             self.trial_cnt = len(runhistory.data.keys())
         iteration_cost = time.time() - _start_time
 
-        return np.max(self.perfs), iteration_cost
+        return self.incumbent_perf, iteration_cost, self.incumbent_config

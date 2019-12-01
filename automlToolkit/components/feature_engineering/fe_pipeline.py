@@ -7,9 +7,7 @@ from automlToolkit.components.feature_engineering.transformation_graph import Tr
 from automlToolkit.components.feature_engineering.transformations.preprocessor.imputer import ImputationTransformation
 from automlToolkit.components.feature_engineering.transformations.preprocessor.onehot_encoder import OneHotTransformation
 from automlToolkit.components.feature_engineering.transformations.selector.variance_selector import VarianceSelector
-from automlToolkit.components.fe_optimizers.iterative_optimizer import IterativeOptimizer
 from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
-from automlToolkit.components.fe_optimizers.expansion_reduction_optimizer import ExpansionReductionOptimizer
 from automlToolkit.utils.logging_utils import setup_logger, get_logger
 
 
@@ -143,10 +141,8 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         if self.fe_enabled:
             if self.optimizer_type == 'eval_base':
                 self.optimizer = EvaluationBasedOptimizer(self.cleaned_node, self.evaluator, self._seed)
-            elif self.optimizer_type == 'epd_rdc':
-                self.optimizer = ExpansionReductionOptimizer(self.cleaned_node)
             else:
-                self.optimizer = IterativeOptimizer(self.cleaned_node)
+                raise ValueError('invalid optimizer type!')
 
             self.optimizer.time_budget = self.time_budget
             self.optimizer.maximum_evaluation_num = self.maximum_evaluation_num

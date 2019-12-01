@@ -29,13 +29,14 @@ def get_estimator(config):
 
 
 class Evaluator(object):
-    def __init__(self, clf_config, data_node=None, cv=5, seed=1):
+    def __init__(self, clf_config, data_node=None, name=None, cv=5, seed=1):
         self.clf_config = clf_config
-        self.logger = get_logger('Evaluator-%d' % seed)
         self.data_node = data_node
+        self.name = name
         self.cv = cv
         self.seed = seed
         self.eval_id = 0
+        self.logger = get_logger('Evaluator-%s' % self.name)
 
     def __call__(self, config, **kwargs):
         np.random.seed(self.seed)
@@ -54,5 +55,5 @@ class Evaluator(object):
         self.logger.info('%s%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
                          (fmt_str, self.eval_id, classifier_id,
                           score, time.time() - start_time, X_train.shape))
-        # self.eval_id += 1
+        self.eval_id += 1
         return score

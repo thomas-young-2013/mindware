@@ -30,6 +30,7 @@ class EvaluationBasedOptimizer(Optimizer):
         return self.incumbent
 
     def iterate(self):
+        _iter_start_time = time.time()
         if self.iteration_id == 0:
             # Evaluate the original features.
             self.incumbent_score = self.evaluator(self.hp_config, data_node=self.root_node)
@@ -49,7 +50,8 @@ class EvaluationBasedOptimizer(Optimizer):
                 continue
 
             # Fetch available transformations for this node.
-            trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
+            # trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
+            trans_types = [0, 3, 4, 5, 6, 7, 8, 9]
             # The polynomial and cross features are eliminated in the latter transformations.
             if node_.depth > 1 and 17 in trans_types:
                 trans_types.remove(17)
@@ -109,4 +111,5 @@ class EvaluationBasedOptimizer(Optimizer):
         self.beam_set.append(self.root_node)
 
         self.iteration_id += 1
-        return self.incumbent
+        iteration_cost = time.time() - _iter_start_time
+        return self.incumbent.score, iteration_cost, self.incumbent
