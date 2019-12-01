@@ -10,7 +10,7 @@ if not os.path.exists(proj_dir):
     proj_dir = './'
 sys.path.append(proj_dir)
 from evaluate_transgraph import engineer_data
-from utils.default_random_forest import DefaultRandomForest
+from automlToolkit.utils import DefaultRandomForest
 from components.evaluator import Evaluator
 
 parser = argparse.ArgumentParser()

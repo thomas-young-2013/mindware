@@ -2,7 +2,7 @@ import numpy as np
 import random
 from components.evaluator import Evaluator
 from evaluate_transgraph import engineer_data
-from utils.default_random_forest import DefaultRandomForest
+from automlToolkit.utils import DefaultRandomForest
 
 
 def eval(dataset):

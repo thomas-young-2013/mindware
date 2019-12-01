@@ -1,10 +1,8 @@
 import os
 import sys
-import numpy as np
 import argparse
-from sklearn.ensemble import RandomForestClassifier
-from components.feature_engineering.transformation_graph import DataNode
-from components.feature_engineering.fe_pipeline import FEPipeline
+from automlToolkit.components.feature_engineering.transformation_graph import DataNode
+from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
 
 proj_dir = '/home/thomas/PycharmProjects/Feature-Engineering/'
 if not os.path.exists(proj_dir):
@@ -17,7 +15,7 @@ args = parser.parse_args()
 
 
 def load_data(dataset):
-    from utils.data_manager import DataManager
+    from automlToolkit.utils.data_manager import DataManager
     dm = DataManager()
     data_path = proj_dir + 'data/datasets/%s.csv' % dataset
 

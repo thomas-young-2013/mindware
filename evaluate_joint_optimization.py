@@ -1,5 +1,4 @@
 import os
-import sys
 import pickle
 import argparse
 import numpy as np
@@ -85,7 +84,7 @@ def evaluate_joint_case(dataset, rep=5):
             for model in models_collection:
                 tmp_res = list()
 
-                from fe_methods.evaluation_based_search import EvaluationBasedSearch
+                from automlToolkit.fe_methods.evaluation_based_search import EvaluationBasedSearch
                 fe = EvaluationBasedSearch(get_clf(model))
                 X_train_new = fe.fit(X_train, y_train)
                 X_test_new = fe.transform(X_test)
@@ -119,7 +118,7 @@ def evaluate_joint_case(dataset, rep=5):
 
 
 def evaluate_selection_methods(dataset, rep=5):
-    from fe_methods.enumeration_selection import FeatureEnumerationSelector
+    from automlToolkit.fe_methods.enumeration_selection import FeatureEnumerationSelector
     save_path = data_dir + 'data/enumeration_selection_eval_%s.pkl' % dataset
     if os.path.exists(save_path):
         with open(save_path, 'rb') as f:

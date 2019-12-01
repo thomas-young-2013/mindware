@@ -1,5 +1,5 @@
-from components.hpo_optimizer.smac_optimizer import SMACOptimizer
-from components.evaluator import Evaluator
+from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
+from automlToolkit.components.evaluator import Evaluator
 from evaluate_transgraph import engineer_data
 
 raw_data, _ = engineer_data('pc4', 'none')

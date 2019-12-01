@@ -31,7 +31,7 @@ def exp_trial(dataset, time_limit, fe=True):
     if fe:
         config = None
     else:
-        from utils.tpot_config import classifier_config_dict
+        from automlToolkit.utils import classifier_config_dict
         config = classifier_config_dict
 
     def get_automl(seed):

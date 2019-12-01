@@ -11,8 +11,8 @@ if not os.path.exists(proj_dir):
     proj_dir = './'
 sys.path.append(proj_dir)
 from evaluate_transgraph import engineer_data
-from components.evaluator import Evaluator
-from utils.default_random_forest import DefaultRandomForest
+from automlToolkit.components.evaluator import Evaluator
+from automlToolkit.utils.default_random_forest import DefaultRandomForest
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--rep', type=int, default=1)
@@ -121,7 +121,7 @@ def evaluate_fe_compoment():
     :return:
     """
     # Add random forest classifier (with default hyperparameter) component to auto-sklearn.
-    from utils.default_random_forest import DefaultRandomForest
+    from automlToolkit.utils.default_random_forest import DefaultRandomForest
     autosklearn.pipeline.components.classification.add_classifier(DefaultRandomForest)
 
     headers = ['AUSK', 'EB', 'ER']
