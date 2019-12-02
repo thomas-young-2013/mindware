@@ -5,6 +5,7 @@ from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
+from automlToolkit.utils.functions import get_increasing_sequence
 
 
 class SecondLayerBandit(object):
@@ -66,13 +67,7 @@ class SecondLayerBandit(object):
         else:
             imp_values = list()
             for _arm in self.arms:
-                increasing_rewards = list()
-                for _reward in self.rewards[_arm]:
-                    if len(increasing_rewards) == 0:
-                        inc_reward = _reward
-                    else:
-                        inc_reward = increasing_rewards[-1] if _reward <= increasing_rewards[-1] else _reward
-                    increasing_rewards.append(inc_reward)
+                increasing_rewards = get_increasing_sequence(self.rewards[_arm])
 
                 impv = list()
                 for idx in range(1, len(increasing_rewards)):
@@ -86,6 +81,7 @@ class SecondLayerBandit(object):
             else:
                 arm_picked = self.arms[np.argmax(imp_values)]
             self.action_sequence.append(arm_picked)
+
             self.logger.debug('Pulling arm: %s' % arm_picked)
             results = self.optimizer[arm_picked].iterate()
             self.collect_iter_stats(arm_picked, results)
@@ -95,4 +91,4 @@ class SecondLayerBandit(object):
         self.optimize()
         _perf = Evaluator(self.inc['hpo'], data_node=self.inc['fe'], name='fe', seed=self.seed)(self.inc['hpo'])
         self.final_rewards.append(_perf)
-        return _perf
+        return np.max(self.final_rewards)
