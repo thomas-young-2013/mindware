@@ -29,7 +29,7 @@ def get_estimator(config):
 
 
 class Evaluator(object):
-    def __init__(self, clf_config, data_node=None, name=None, cv=5, seed=1):
+    def __init__(self, clf_config, data_node=None, name='fe', cv=5, seed=1):
         self.clf_config = clf_config
         self.data_node = data_node
         self.name = name
@@ -39,6 +39,9 @@ class Evaluator(object):
         self.logger = get_logger('Evaluator-%s' % self.name)
 
     def __call__(self, config, **kwargs):
+        if self.name is None:
+            self.logger.warning('This evaluator has no name/type!')
+
         np.random.seed(self.seed)
         config = config if config is not None else self.clf_config
         classifier_id, clf = get_estimator(config)
@@ -51,9 +54,14 @@ class Evaluator(object):
         start_time = time.time()
         X_train, y_train = data_node.data
         score = cross_validation(clf, X_train, y_train, n_fold=self.cv, random_state=self.seed)
+
         fmt_str = '\n'+' '*5 + '==> '
         self.logger.info('%s%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
                          (fmt_str, self.eval_id, classifier_id,
                           score, time.time() - start_time, X_train.shape))
         self.eval_id += 1
+
+        if self.name == 'hpo':
+            # Turn it into a minimization problem.
+            score = 1. - score
         return score

@@ -1,5 +1,3 @@
-import abc
-import typing
 import numpy as np
 from automlToolkit.components.evaluator import Evaluator
 from automlToolkit.utils.logging_utils import get_logger
@@ -16,6 +14,7 @@ class SecondLayerBandit(object):
         self.seed = seed
         self.sliding_window_size = 3
         self.logger = get_logger(__class__.__name__)
+        np.random.seed(self.seed)
 
         # Bandit settings.
         self.arms = ['fe', 'hpo']
@@ -27,6 +26,8 @@ class SecondLayerBandit(object):
             self.rewards[arm] = list()
             self.evaluation_cost[arm] = list()
         self.pull_cnt = 0
+        self.action_sequence = list()
+        self.final_rewards = list()
 
         from autosklearn.pipeline.components.classification import _classifiers
         clf_class = _classifiers[classifier_id]
@@ -57,6 +58,8 @@ class SecondLayerBandit(object):
                     results = self.optimizer[_arm].iterate()
                     self.collect_iter_stats(_arm, results)
                     self.pull_cnt += 1
+                    self.action_sequence.append(_arm)
+            self.final_rewards.append(self.optimizer['fe'].baseline_score)
         else:
             imp_values = list()
             for _arm in self.arms:
@@ -73,13 +76,20 @@ class SecondLayerBandit(object):
                     impv.append(increasing_rewards[idx] - increasing_rewards[idx - 1])
                 imp_values.append(np.mean(impv[-self.sliding_window_size:]))
 
-            arm_picked = self.arms[np.argmax(imp_values)]
-
-            self.logger.info('Pulling arm: %s' % _arm)
+            self.logger.info('Imp values: %s' % imp_values)
+            if np.sum(imp_values) == 0:
+                # If ties, break randomly.
+                arm_picked = np.random.choice(self.arms, 1)[0]
+            else:
+                arm_picked = self.arms[np.argmax(imp_values)]
+            self.action_sequence.append(arm_picked)
+            self.logger.info('Pulling arm: %s' % arm_picked)
             results = self.optimizer[arm_picked].iterate()
             self.collect_iter_stats(arm_picked, results)
             self.pull_cnt += 1
 
     def play_once(self):
         self.optimize()
-        return Evaluator(self.inc['hpo'], data_node=self.inc['fe'], seed=self.seed)(self.inc['hpo'])
+        _perf = Evaluator(self.inc['hpo'], data_node=self.inc['fe'], seed=self.seed)(self.inc['hpo'])
+        self.final_rewards.append(_perf)
+        return _perf

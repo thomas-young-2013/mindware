@@ -1,7 +1,7 @@
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
-from evaluate_transgraph import engineer_data
+from automlToolkit.datasets.utils import load_data
 
-raw_data, _ = engineer_data('pc4', 'none')
+raw_data = load_data('pc4', datanode_returned=True)
 bandit = SecondLayerBandit('liblinear_svc', raw_data)
 
 rewards = list()
@@ -11,3 +11,6 @@ for iter in range(20):
     rewards.append(res)
     print(rewards)
     print('\n' * 5)
+
+print(bandit.final_rewards)
+print(bandit.action_sequence)
