@@ -5,7 +5,7 @@ from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from autosklearn.pipeline.components.classification.adaboost import AdaboostClassifier
 from autosklearn.pipeline.components.classification.liblinear_svc import LibLinear_SVC
 
-raw_data = load_data('pc4', datanode_returned=True)
+raw_data = load_data('diabetes', datanode_returned=True)
 
 cs = LibLinear_SVC.get_hyperparameter_search_space()
 model = UnParametrizedHyperparameter("estimator", 'liblinear_svc')

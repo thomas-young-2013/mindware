@@ -40,7 +40,7 @@ class Evaluator(object):
 
     def __call__(self, config, **kwargs):
         if self.name is None:
-            self.logger.warning('This evaluator has no name/type!')
+            raise ValueError('This evaluator has no name/type!')
 
         np.random.seed(self.seed)
         config = config if config is not None else self.clf_config

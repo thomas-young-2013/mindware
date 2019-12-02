@@ -21,6 +21,9 @@ class EvaluationBasedOptimizer(Optimizer):
         self.beam_set = list()
         self.is_ended = False
 
+        # self.trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
+        self.trans_types = [0, 3, 4, 5, 6, 7, 8, 9]
+
     def optimize(self):
         while not self.is_ended:
             self.logger.info('='*50)
@@ -38,7 +41,7 @@ class EvaluationBasedOptimizer(Optimizer):
             self.incumbent = self.root_node
             self.root_node.depth = 1
 
-            self.beam_set.append(self.root_node)
+            self.beam_set.extend([self.root_node] * (self.beam_width + 1))
 
         nodes = list()
         for node_ in self.beam_set:
@@ -49,13 +52,11 @@ class EvaluationBasedOptimizer(Optimizer):
             if node_.depth > self.max_depth or self.is_ended:
                 continue
 
-            # Fetch available transformations for this node.
-            # trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
-            trans_types = [0, 3, 4, 5, 6, 7, 8, 9]
             # The polynomial and cross features are eliminated in the latter transformations.
-            if node_.depth > 1 and 17 in trans_types:
-                trans_types.remove(17)
-            trans_set = self.transformer_manager.get_transformations(node_, trans_types=trans_types)
+            if node_.depth > 1 and 17 in self.trans_types:
+                self.trans_types.remove(17)
+            # Fetch available transformations for this node.
+            trans_set = self.transformer_manager.get_transformations(node_, trans_types=self.trans_types)
 
             for transformer in trans_set:
                 # Avoid repeating the same transformation multiple times.

@@ -35,13 +35,16 @@ class SecondLayerBandit(object):
         model = UnParametrizedHyperparameter("estimator", classifier_id)
         cs.add_hyperparameter(model)
 
-        # Build the HPO component.
-        hpo_evaluator = Evaluator(cs.get_default_configuration(), data_node=data, name='hpo', seed=self.seed)
-        self.optimizer['hpo'] = SMACOptimizer(hpo_evaluator, cs, trials_per_iter=10, seed=self.seed)
-
         # Build the Feature Engineering component.
         fe_evaluator = Evaluator(cs.get_default_configuration(), name='fe', seed=self.seed)
         self.optimizer['fe'] = EvaluationBasedOptimizer(self.original_data, fe_evaluator, self.seed)
+        self.inc['fe'] = data
+
+        # Build the HPO component.
+        trials_per_iter = (self.optimizer['fe'].beam_width + 1) * len(self.optimizer['fe'].trans_types)
+        hpo_evaluator = Evaluator(cs.get_default_configuration(), data_node=data, name='hpo', seed=self.seed)
+        self.optimizer['hpo'] = SMACOptimizer(hpo_evaluator, cs, trials_per_iter=trials_per_iter // 2, seed=self.seed)
+        self.inc['hpo'] = cs.get_default_configuration()
 
     def collect_iter_stats(self, _arm, results):
         score, iter_cost, config = results
@@ -50,46 +53,46 @@ class SecondLayerBandit(object):
         self.inc[_arm] = config
 
     def optimize(self):
-        if self.pull_cnt == 0:
-            # First pull each arm #sliding_window_size times.
-            for _ in range(self.sliding_window_size):
-                for _arm in self.arms:
-                    self.logger.info('Pulling arm: %s' % _arm)
-                    results = self.optimizer[_arm].iterate()
-                    self.collect_iter_stats(_arm, results)
-                    self.pull_cnt += 1
-                    self.action_sequence.append(_arm)
-            self.final_rewards.append(self.optimizer['fe'].baseline_score)
+        # First pull each arm #sliding_window_size times.
+        if self.pull_cnt < len(self.arms) * self.sliding_window_size:
+            _arm = self.arms[self.pull_cnt % 2]
+            self.logger.debug('Pulling arm: %s' % _arm)
+            results = self.optimizer[_arm].iterate()
+            self.collect_iter_stats(_arm, results)
+            self.pull_cnt += 1
+            self.action_sequence.append(_arm)
+            if _arm == 'fe' and len(self.final_rewards) == 0:
+                self.final_rewards.append(self.optimizer['fe'].baseline_score)
         else:
             imp_values = list()
             for _arm in self.arms:
                 increasing_rewards = list()
                 for _reward in self.rewards[_arm]:
                     if len(increasing_rewards) == 0:
-                        increasing_rewards.append(_reward)
+                        inc_reward = _reward
                     else:
                         inc_reward = increasing_rewards[-1] if _reward <= increasing_rewards[-1] else _reward
-                        increasing_rewards.append(inc_reward)
+                    increasing_rewards.append(inc_reward)
 
                 impv = list()
                 for idx in range(1, len(increasing_rewards)):
                     impv.append(increasing_rewards[idx] - increasing_rewards[idx - 1])
                 imp_values.append(np.mean(impv[-self.sliding_window_size:]))
 
-            self.logger.info('Imp values: %s' % imp_values)
+            self.logger.debug('Imp values: %s' % imp_values)
             if np.sum(imp_values) == 0:
-                # If ties, break randomly.
+                # Break ties randomly.
                 arm_picked = np.random.choice(self.arms, 1)[0]
             else:
                 arm_picked = self.arms[np.argmax(imp_values)]
             self.action_sequence.append(arm_picked)
-            self.logger.info('Pulling arm: %s' % arm_picked)
+            self.logger.debug('Pulling arm: %s' % arm_picked)
             results = self.optimizer[arm_picked].iterate()
             self.collect_iter_stats(arm_picked, results)
             self.pull_cnt += 1
 
     def play_once(self):
         self.optimize()
-        _perf = Evaluator(self.inc['hpo'], data_node=self.inc['fe'], seed=self.seed)(self.inc['hpo'])
+        _perf = Evaluator(self.inc['hpo'], data_node=self.inc['fe'], name='fe', seed=self.seed)(self.inc['hpo'])
         self.final_rewards.append(_perf)
         return _perf
