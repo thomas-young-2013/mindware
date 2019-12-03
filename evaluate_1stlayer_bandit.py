@@ -9,7 +9,7 @@ from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 parser = argparse.ArgumentParser()
 dataset_set = 'messidor_features,lymphography,winequality_red,winequality_white,credit,' \
                 'ionosphere,splice,diabetes,pc4,spectf,spambase,amazon_employee'
-parser.add_argument('--datasets', type=str, default='credit')
+parser.add_argument('--datasets', type=str, default='none')
 
 # algorithms = ['lda', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
 #               'adaboost', 'random_forest', 'extra_trees', 'gradient_boosting']
@@ -18,7 +18,7 @@ seed = 1
 project_dir = './'
 
 
-def evaluate_1stlayer_bandit(dataset='credit', trial_num=100):
+def evaluate_1stlayer_bandit(dataset='credit', trial_num=80):
     _start_time = time.time()
     raw_data = load_data(dataset, datanode_returned=True)
     bandit = FirstLayerBandit(trial_num, algorithms, raw_data)
