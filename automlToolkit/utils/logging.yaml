@@ -8,15 +8,15 @@ formatters:
 handlers:
   console:
     class: logging.StreamHandler
-    level: INFO
+    level: DEBUG
     formatter: simple
     stream: ext://sys.stdout
 
   file_handler:
     class: logging.FileHandler
-    level: DEBUG
+    level: INFO
     formatter: simple
-    filename: auto_feature.log
+    filename: automl_toolkit.log
 
 root:
   level: DEBUG

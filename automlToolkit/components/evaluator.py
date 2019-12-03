@@ -56,7 +56,7 @@ class Evaluator(object):
         score = cross_validation(clf, X_train, y_train, n_fold=self.cv, random_state=self.seed)
 
         fmt_str = '\n'+' '*5 + '==> '
-        self.logger.info('%s%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
+        self.logger.debug('%s%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
                          (fmt_str, self.eval_id, classifier_id,
                           score, time.time() - start_time, X_train.shape))
         self.eval_id += 1

@@ -26,9 +26,9 @@ class EvaluationBasedOptimizer(Optimizer):
 
     def optimize(self):
         while not self.is_ended:
-            self.logger.info('='*50)
-            self.logger.info('Start the ITERATION: %d' % self.iteration_id)
-            self.logger.info('='*50)
+            self.logger.debug('='*50)
+            self.logger.debug('Start the ITERATION: %d' % self.iteration_id)
+            self.logger.debug('='*50)
             self.iterate()
         return self.incumbent
 
@@ -45,7 +45,7 @@ class EvaluationBasedOptimizer(Optimizer):
 
         nodes = list()
         for node_ in self.beam_set:
-            self.logger.info('=' * 50)
+            self.logger.debug('=' * 50)
 
             # Limit the maximum depth in graph.
             # Avoid the too complex features.
@@ -65,7 +65,7 @@ class EvaluationBasedOptimizer(Optimizer):
 
                 error_msg = None
                 try:
-                    self.logger.info('[%s]' % transformer.name)
+                    self.logger.debug('[%s]' % transformer.name)
                     output_node = transformer.operate(node_)
                     output_node.depth = node_.depth + 1
                     output_node.trans_hist.append(transformer.type)
@@ -97,11 +97,11 @@ class EvaluationBasedOptimizer(Optimizer):
                     and self.evaluation_count > self.maximum_evaluation_num) or \
                         (self.time_budget is not None
                          and time.time() >= self.start_time + self.time_budget):
-                    self.logger.info('[Budget Runs Out]: %s, %s\n' % (self.maximum_evaluation_num, self.time_budget))
+                    self.logger.debug('[Budget Runs Out]: %s, %s\n' % (self.maximum_evaluation_num, self.time_budget))
                     self.is_ended = True
                     break
 
-            self.logger.info('\n [Current Inc]: %.4f, [Improvement]: %.5f'
+            self.logger.debug('\n [Current Inc]: %.4f, [Improvement]: %.5f'
                              % (self.incumbent_score, self.incumbent_score - self.baseline_score))
 
         # Update the beam set according to their performance.

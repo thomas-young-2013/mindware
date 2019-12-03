@@ -13,14 +13,14 @@ class SMACOptimizer(BaseHPOptimizer):
         self.evaluation_num_limit = evaluation_limit
         self.trials_per_iter = trials_per_iter
 
-        scenario_dict = {
+        self.scenario_dict = {
             'abort_on_first_run_crash': False,
             "run_obj": "quality",
-            "cs": config_space,
+            "cs": self.config_space,
             "deterministic": "true"
         }
 
-        self.optimizer = SMAC(scenario=Scenario(scenario_dict),
+        self.optimizer = SMAC(scenario=Scenario(self.scenario_dict),
                               rng=np.random.RandomState(self.seed),
                               tae_runner=self.evaluator)
         self.trial_cnt = 0
@@ -58,3 +58,29 @@ class SMACOptimizer(BaseHPOptimizer):
         iteration_cost = time.time() - _start_time
 
         return self.incumbent_perf, iteration_cost, self.incumbent_config
+
+    def optimize(self):
+        self.scenario_dict = {
+            'abort_on_first_run_crash': False,
+            "run_obj": "quality",
+            "cs": self.config_space,
+            "deterministic": "true",
+            "runcount-limit": self.evaluation_num_limit
+        }
+        self.optimizer = SMAC(scenario=Scenario(self.scenario_dict),
+                              rng=np.random.RandomState(self.seed),
+                              tae_runner=self.evaluator)
+
+        self.optimizer.optimize()
+
+        runhistory = self.optimizer.solver.runhistory
+        runkeys = list(runhistory.data.keys())
+        for key in runkeys:
+            _reward = 1. - runhistory.data[key][0]
+            _config = runhistory.ids_config[key[0]]
+            self.perfs.append(_reward)
+            self.configs.append(_config)
+            if _reward > self.incumbent_perf:
+                self.incumbent_perf = _reward
+                self.incumbent_config = _config
+        return self.incumbent_config, self.incumbent_perf
