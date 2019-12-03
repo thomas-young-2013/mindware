@@ -10,7 +10,7 @@ class EvaluationBasedOptimizer(Optimizer):
         self.transformer_manager = TransformerManager()
         self.evaluator = evaluator
         self.incumbent_score = -1.
-        self.baseline_score = -1
+        self.baseline_score = -1.
         self.start_time = time.time()
         self.hp_config = None
 
@@ -117,7 +117,7 @@ class EvaluationBasedOptimizer(Optimizer):
                     break
 
             self.logger.debug('\n [Current Inc]: %.4f, [Improvement]: %.5f'
-                             % (self.incumbent_score, self.incumbent_score - self.baseline_score))
+                              % (self.incumbent_score, self.incumbent_score - self.baseline_score))
 
         # Update the beam set according to their performance.
         self.beam_set = list()
