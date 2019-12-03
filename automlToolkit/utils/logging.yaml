@@ -14,7 +14,7 @@ handlers:
 
   file_handler:
     class: logging.FileHandler
-    level: INFO
+    level: DEBUG
     formatter: simple
     filename: automl_toolkit.log
 
