@@ -5,7 +5,7 @@ from automlToolkit.components.fe_optimizers.transformer_manager import Transform
 
 
 class EvaluationBasedOptimizer(Optimizer):
-    def __init__(self, input_data: DataNode, evaluator, seed):
+    def __init__(self, input_data: DataNode, evaluator, model_id, seed):
         super().__init__(str(__class__.__name__), input_data, seed)
         self.transformer_manager = TransformerManager()
         self.evaluator = evaluator
@@ -21,8 +21,20 @@ class EvaluationBasedOptimizer(Optimizer):
         self.beam_set = list()
         self.is_ended = False
 
-        # self.trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
-        self.trans_types = [0, 3, 4, 5, 6, 7, 8, 9]
+        self.trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
+        # self.trans_types = [0, 3, 4, 5, 6, 7, 8, 9]
+
+        # which would take too long
+        # Combinations of non-linear models with feature learning.
+        # feature_learning = ["kitchen_sinks", "kernel_pca", "nystroem_sampler"]
+        classifier_set = ["adaboost", "decision_tree", "extra_trees",
+                          "gradient_boosting", "k_nearest_neighbors",
+                          "libsvm_svc", "random_forest", "gaussian_nb", "decision_tree"]
+
+        if model_id in classifier_set:
+            for tran_id in [12, 13, 15]:
+                if tran_id in self.trans_types:
+                    self.trans_types.remove(tran_id)
 
     def optimize(self):
         while not self.is_ended:

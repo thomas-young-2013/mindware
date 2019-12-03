@@ -14,7 +14,7 @@ class SecondLayerBandit(object):
         self.original_data = data
         self.seed = seed
         self.sliding_window_size = 3
-        self.logger = get_logger(__class__.__name__)
+        self.logger = get_logger('%s=>%s' % (__class__.__name__, classifier_id))
         np.random.seed(self.seed)
 
         # Bandit settings.
@@ -38,7 +38,7 @@ class SecondLayerBandit(object):
 
         # Build the Feature Engineering component.
         fe_evaluator = Evaluator(cs.get_default_configuration(), name='fe', seed=self.seed)
-        self.optimizer['fe'] = EvaluationBasedOptimizer(self.original_data, fe_evaluator, self.seed)
+        self.optimizer['fe'] = EvaluationBasedOptimizer(self.original_data, fe_evaluator, classifier_id, self.seed)
         self.inc['fe'] = data
 
         # Build the HPO component.
@@ -48,6 +48,7 @@ class SecondLayerBandit(object):
         self.inc['hpo'] = cs.get_default_configuration()
 
     def collect_iter_stats(self, _arm, results):
+        self.logger.info('After %d-th pulling, results: %s' % (self.pull_cnt, results))
         score, iter_cost, config = results
         self.rewards[_arm].append(score)
         self.evaluation_cost[_arm].append(iter_cost)
@@ -57,7 +58,7 @@ class SecondLayerBandit(object):
         # First pull each arm #sliding_window_size times.
         if self.pull_cnt < len(self.arms) * self.sliding_window_size:
             _arm = self.arms[self.pull_cnt % 2]
-            self.logger.debug('Pulling arm: %s' % _arm)
+            self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.classifier_id, self.pull_cnt))
             results = self.optimizer[_arm].iterate()
             self.collect_iter_stats(_arm, results)
             self.pull_cnt += 1
@@ -82,7 +83,7 @@ class SecondLayerBandit(object):
                 arm_picked = self.arms[np.argmax(imp_values)]
             self.action_sequence.append(arm_picked)
 
-            self.logger.debug('Pulling arm: %s' % arm_picked)
+            self.logger.info('Pulling arm: %s for %s at %d-th round' % (arm_picked, self.classifier_id, self.pull_cnt))
             results = self.optimizer[arm_picked].iterate()
             self.collect_iter_stats(arm_picked, results)
             self.pull_cnt += 1

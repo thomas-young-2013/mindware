@@ -29,7 +29,7 @@ class Transformer(object, metaclass=abc.ABCMeta):
         14: lda_decomposer.
         15: nystronem.
         16: pca.
-        17: polynomial.
+        17: polynomial, and cross features.
         18: random_trees_embedding.
         19: svd_decomposer.
         20: data_balancer.

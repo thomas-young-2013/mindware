@@ -1,3 +1,4 @@
+import time
 import numpy as np
 from typing import List
 from automlToolkit.utils.logging_utils import get_logger
@@ -28,6 +29,11 @@ class FirstLayerBandit(object):
         self.pull_cnt = 0
         self.action_sequence = list()
         self.final_rewards = list()
+        self.start_time = time.time()
+        self.time_records = list()
+
+    def get_stats(self):
+        return self.time_records, self.final_rewards
 
     def optimize(self):
         arm_num = len(self.arms)
@@ -36,19 +42,23 @@ class FirstLayerBandit(object):
 
             if self.pull_cnt < arm_num * self.alpha:
                 _arm = self.arms[self.pull_cnt % arm_num]
+                self.logger.info('Pulling %s in %d-th round' % (_arm, self.pull_cnt))
                 reward = self.sub_bandits[_arm].play_once()
                 self.rewards[_arm].append(reward)
                 self.action_sequence.append(_arm)
                 self.final_rewards.append(reward)
-                self.logger.info('%s - %.4f' % (_arm, reward))
+                self.time_records.append(time.time() - self.start_time)
+                self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
             else:
                 # Pull each arm in the candidate once.
                 for _arm in arm_candidate:
+                    self.logger.info('Pulling %s in %d-th round' % (_arm, self.pull_cnt))
                     reward = self.sub_bandits[_arm].play_once()
                     self.rewards[_arm].append(reward)
                     self.action_sequence.append(_arm)
                     self.final_rewards.append(reward)
-                    self.logger.info('%s - %.4f' % (_arm, reward))
+                    self.time_records.append(time.time() - self.start_time)
+                    self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
 
                 # Update the upper/lower bound estimation.
                 upper_bounds, lower_bounds = list(), list()
@@ -68,8 +78,8 @@ class FirstLayerBandit(object):
                             if upper_bounds[i] < lower_bounds[j]:
                                 flags[i] = True
 
-                self.logger.info(
-                    '>>> Remove Arms: %s' % [item for idx, item in enumerate(arm_candidate) if flags[idx]])
+                self.logger.info('Remove Arms: %s' %
+                                 [item for idx, item in enumerate(arm_candidate) if flags[idx]])
                 # Update the arm_candidates.
                 arm_candidate = [item for index, item in enumerate(arm_candidate) if not flags[index]]
 
