@@ -124,7 +124,8 @@ class EvaluationBasedOptimizer(Optimizer):
         for node_ in TransformationGraph.sort_nodes_by_score(nodes)[:self.beam_width]:
             self.beam_set.append(node_)
         # Add the original dataset into the beam set.
-        self.beam_set.append(self.root_node)
+        for _ in range(1 + self.beam_width - len(self.beam_set)):
+            self.beam_set.append(self.root_node)
 
         self.iteration_id += 1
         iteration_cost = time.time() - _iter_start_time
