@@ -29,7 +29,7 @@ def get_estimator(config):
 
 
 class Evaluator(object):
-    def __init__(self, clf_config, data_node=None, name='fe', cv=5, seed=1):
+    def __init__(self, clf_config, data_node=None, name=None, cv=5, seed=1):
         self.clf_config = clf_config
         self.data_node = data_node
         self.name = name

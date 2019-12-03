@@ -50,7 +50,7 @@ class SMACOptimizer(BaseHPOptimizer):
                 _config = runhistory.ids_config[key[0]]
                 self.perfs.append(_reward)
                 self.configs.append(_config)
-                if _reward > self.incumbent_perf:
+                if _reward is not None and _reward > self.incumbent_perf:
                     self.incumbent_perf = _reward
                     self.incumbent_config = _config
 

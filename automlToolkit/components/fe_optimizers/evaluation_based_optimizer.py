@@ -48,7 +48,9 @@ class EvaluationBasedOptimizer(Optimizer):
         _iter_start_time = time.time()
         if self.iteration_id == 0:
             # Evaluate the original features.
-            self.incumbent_score = self.evaluator(self.hp_config, data_node=self.root_node)
+            self.incumbent_score = self.evaluator(self.hp_config, data_node=self.root_node, name='fe')
+            if self.incumbent_score is None:
+                self.incumbent_score = 0.
             self.baseline_score = self.incumbent_score
             self.incumbent = self.root_node
             self.root_node.depth = 1
@@ -83,15 +85,16 @@ class EvaluationBasedOptimizer(Optimizer):
                     output_node.trans_hist.append(transformer.type)
 
                     # Evaluate this node.
-                    _score = self.evaluator(self.hp_config, data_node=output_node)
+                    _score = self.evaluator(self.hp_config, data_node=output_node, name='fe')
                     output_node.score = _score
-                    if _score > self.incumbent_score:
+                    if _score is not None and _score > self.incumbent_score:
                         self.incumbent_score = _score
                         self.incumbent = output_node
 
-                    nodes.append(output_node)
-                    self.graph.add_node(output_node)
-                    self.graph.add_trans_in_graph(node_, output_node, transformer)
+                    if _score is not None:
+                        nodes.append(output_node)
+                        self.graph.add_node(output_node)
+                        self.graph.add_trans_in_graph(node_, output_node, transformer)
                 except ValueError as e:
                     error_msg = '%s: %s' % (transformer.name, str(e))
                 except MemoryError as e:
