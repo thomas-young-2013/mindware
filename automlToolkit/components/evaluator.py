@@ -61,9 +61,6 @@ class Evaluator(object):
                           score, time.time() - start_time, X_train.shape))
         self.eval_id += 1
 
-        if score is None:
-            return 0.0
-
         if self.name == 'hpo':
             # Turn it into a minimization problem.
             score = 1. - score

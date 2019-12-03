@@ -50,6 +50,8 @@ class SecondLayerBandit(object):
     def collect_iter_stats(self, _arm, results):
         self.logger.info('After %d-th pulling, results: %s' % (self.pull_cnt, results))
         score, iter_cost, config = results
+        if score is None:
+            score = 0.0
         self.rewards[_arm].append(score)
         self.evaluation_cost[_arm].append(iter_cost)
         self.inc[_arm] = config
