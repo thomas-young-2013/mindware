@@ -4,7 +4,7 @@ from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 from automlToolkit.datasets.utils import load_data
 
 
-def evaluate_2armed_bandit(dataset='diabetes', algo='random_forest', time_limit=1200):
+def evaluate_2armed_bandit(dataset='pc4', algo='libsvm_svc', time_limit=1200):
     raw_data = load_data(dataset, datanode_returned=True)
     bandit = SecondLayerBandit(algo, raw_data)
 
