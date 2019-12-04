@@ -20,7 +20,7 @@ class EvaluationBasedOptimizer(Optimizer):
         self.evaluation_count = 0
         self.beam_set = list()
         self.is_ended = False
-
+        self.evaluation_num_last_iteration = -1
         self.temporary_nodes = list()
 
         self.trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
@@ -48,6 +48,7 @@ class EvaluationBasedOptimizer(Optimizer):
 
     def iterate(self):
         _iter_start_time = time.time()
+        _evaluation_cnt = 0
         if self.iteration_id == 0:
             # Evaluate the original features.
             self.incumbent_score = self.evaluator(self.hp_config, data_node=self.root_node, name='fe')
@@ -56,7 +57,7 @@ class EvaluationBasedOptimizer(Optimizer):
             self.baseline_score = self.incumbent_score
             self.incumbent = self.root_node
             self.root_node.depth = 1
-
+            _evaluation_cnt += 1
             self.beam_set.extend([self.root_node] * (self.beam_width + 1))
 
         # Get one node in the beam set.
@@ -115,6 +116,8 @@ class EvaluationBasedOptimizer(Optimizer):
                 if error_msg is not None:
                     self.logger.error(error_msg)
 
+            _evaluation_cnt += 1
+
             self.evaluation_count += 1
             if (self.maximum_evaluation_num is not None
                 and self.evaluation_count > self.maximum_evaluation_num) or \
@@ -126,6 +129,8 @@ class EvaluationBasedOptimizer(Optimizer):
 
         self.logger.info('\n [Current Inc]: %.4f, [Improvement]: %.5f'
                           % (self.incumbent_score, self.incumbent_score - self.baseline_score))
+
+        self.evaluation_num_last_iteration = max(self.evaluation_num_last_iteration, _evaluation_cnt)
 
         # Update the beam set according to their performance.
         if len(self.beam_set) == 0:

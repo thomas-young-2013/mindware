@@ -119,7 +119,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
 
     def _get_logger(self, name):
         import os
-        logger_name = 'AutoFeatureEngine (%d):%s' % (self._seed, name)
+        logger_name = 'AutomlToolkit-%d:%s' % (self._seed, name)
         setup_logger(os.path.join(self.tmp_directory, '%s.log' % str(logger_name)),
                      self.logging_config,
                      )

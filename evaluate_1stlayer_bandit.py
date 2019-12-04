@@ -18,7 +18,7 @@ seed = 1
 project_dir = './'
 
 
-def evaluate_1stlayer_bandit(dataset='credit', trial_num=100):
+def evaluate_1stlayer_bandit(dataset='credit', trial_num=500):
     _start_time = time.time()
     raw_data = load_data(dataset, datanode_returned=True)
     bandit = FirstLayerBandit(trial_num, algorithms, raw_data)

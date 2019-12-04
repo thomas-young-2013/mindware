@@ -43,7 +43,7 @@ class SecondLayerBandit(object):
         self.inc['fe'] = data
 
         # Build the HPO component.
-        trials_per_iter = (self.optimizer['fe'].beam_width + 1) * len(self.optimizer['fe'].trans_types)
+        trials_per_iter = len(self.optimizer['fe'].trans_types)
         hpo_evaluator = Evaluator(cs.get_default_configuration(), data_node=data, name='hpo', seed=self.seed)
         self.optimizer['hpo'] = SMACOptimizer(hpo_evaluator, cs, trials_per_iter=trials_per_iter // 2, seed=self.seed)
         self.inc['hpo'] = cs.get_default_configuration()
@@ -57,6 +57,10 @@ class SecondLayerBandit(object):
         self.evaluation_cost[_arm].append(iter_cost)
         self.inc[_arm] = config
         self.incumbent_perf = max(score, self.incumbent_perf)
+
+        if _arm == 'fe':
+            _num_iter = self.optimizer['fe'].evaluation_num_last_iteration // 4
+            self.optimizer['hpo'].trials_per_iter = max(_num_iter, 1)
 
     def optimize(self):
         # First pull each arm #sliding_window_size times.
