@@ -29,6 +29,7 @@ class SecondLayerBandit(object):
         self.pull_cnt = 0
         self.action_sequence = list()
         self.final_rewards = list()
+        self.incumbent_perf = -1.
 
         from autosklearn.pipeline.components.classification import _classifiers
         clf_class = _classifiers[classifier_id]
@@ -55,6 +56,7 @@ class SecondLayerBandit(object):
         self.rewards[_arm].append(score)
         self.evaluation_cost[_arm].append(iter_cost)
         self.inc[_arm] = config
+        self.incumbent_perf = max(score, self.incumbent_perf)
 
     def optimize(self):
         # First pull each arm #sliding_window_size times.
@@ -93,5 +95,8 @@ class SecondLayerBandit(object):
     def play_once(self):
         self.optimize()
         _perf = Evaluator(self.inc['hpo'], data_node=self.inc['fe'], name='fe', seed=self.seed)(self.inc['hpo'])
+        if _perf is None:
+            _perf = 0.0
+        _perf = max(_perf, self.incumbent_perf)
         self.final_rewards.append(_perf)
-        return np.max(self.final_rewards)
+        return _perf

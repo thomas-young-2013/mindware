@@ -18,7 +18,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
     def __init__(self, optimizer_type='eval_base', time_budget=None,
                  maximum_evaluation_num=None,
                  fe_enabled=True, evaluator=None, debug=False, seed=1,
-                 tmp_directory='./', logging_config=None):
+                 tmp_directory='./', logging_config=None, model_id=None):
         self.maximum_evaluation_num = maximum_evaluation_num
         self.time_budget = time_budget
 
@@ -32,6 +32,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         self.raw_range = None
         self.cleaned_node = None
         self.optimizer = None
+        self.model_id = model_id
         self._logger = None
         self._seed = seed
         self.tmp_directory = tmp_directory
@@ -140,7 +141,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         # TODO: dtype is object.
         if self.fe_enabled:
             if self.optimizer_type == 'eval_base':
-                self.optimizer = EvaluationBasedOptimizer(self.cleaned_node, self.evaluator, self._seed)
+                self.optimizer = EvaluationBasedOptimizer(self.cleaned_node, self.evaluator, self.model_id, self._seed)
             else:
                 raise ValueError('invalid optimizer type!')
 
