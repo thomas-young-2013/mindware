@@ -1,12 +1,16 @@
 import time
+import typing
 from automlToolkit.components.feature_engineering.transformation_graph import *
 from automlToolkit.components.fe_optimizers.base_optimizer import Optimizer
 from automlToolkit.components.fe_optimizers.transformer_manager import TransformerManager
 from automlToolkit.utils.decorators import time_limit, TimeoutException
+from automlToolkit.components.evaluator import Evaluator
 
 
 class EvaluationBasedOptimizer(Optimizer):
-    def __init__(self, input_data: DataNode, evaluator, model_id, time_limit_per_trans, seed):
+    def __init__(self, input_data: DataNode, evaluator: Evaluator,
+                 model_id: str, time_limit_per_trans: int,
+                 seed: int, shared_mode: bool=False):
         super().__init__(str(__class__.__name__), input_data, seed)
         self.transformer_manager = TransformerManager()
         self.time_limit_per_trans = time_limit_per_trans
@@ -24,6 +28,10 @@ class EvaluationBasedOptimizer(Optimizer):
         self.is_ended = False
         self.evaluation_num_last_iteration = -1
         self.temporary_nodes = list()
+        # Used to share new feature set.
+        self.local_datanodes = list()
+        self.global_datanodes = list()
+        self.shared_mode = shared_mode
 
         self.trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
         # self.trans_types = [0, 3, 4, 5, 6, 7, 8, 9]
@@ -96,7 +104,8 @@ class EvaluationBasedOptimizer(Optimizer):
                 with time_limit(self.time_limit_per_trans):
                     output_node = transformer.operate(node_)
                     output_node.depth = node_.depth + 1
-                    output_node.trans_hist.append(transformer.type)
+                    if transformer.type != 0:
+                        output_node.trans_hist.append(transformer.type)
 
                     # Evaluate this node.
                     _score = self.evaluator(self.hp_config, data_node=output_node, name='fe')
@@ -143,14 +152,39 @@ class EvaluationBasedOptimizer(Optimizer):
         # Update the beam set according to their performance.
         if len(self.beam_set) == 0:
             self.beam_set = list()
+            self.local_datanodes = list()
             for node_ in TransformationGraph.sort_nodes_by_score(self.temporary_nodes)[:self.beam_width]:
                 self.beam_set.append(node_)
+                if self.shared_mode:
+                    self.local_datanodes.append(node_)
             # Add the original dataset into the beam set.
             for _ in range(1 + self.beam_width - len(self.beam_set)):
                 self.beam_set.append(self.root_node)
             self.temporary_nodes = list()
             self.logger.info('Finish one level in beam search: %d' % self.iteration_id)
+            if self.shared_mode:
+                self.refresh_beam_set()
+
+        # Maintain the local incumbent data node.
+        if self.incumbent_score > self.local_datanodes[0].score:
+            if len(self.local_datanodes) == self.beam_width:
+                self.local_datanodes.pop()
+            self.local_datanodes.insert(0, self.incumbent)
 
         self.iteration_id += 1
         iteration_cost = time.time() - _iter_start_time
         return self.incumbent.score, iteration_cost, self.incumbent
+
+    def fetch_local_incumbents(self):
+        return [node_._copy() for node_ in self.local_datanodes]
+
+    def refresh_beam_set(self):
+        if len(self.global_datanodes) > 0:
+            original_beam_set = [node._copy for node in self.beam_set]
+            self.beam_set = list()
+            self.beam_set.append(original_beam_set[0])
+            for node in self.global_datanodes:
+                self.beam_set.append(node)
+
+    def sync_global_incumbents(self, global_nodes: typing.List[DataNode]):
+        self.global_datanodes = [node._copy() for node in global_nodes]
