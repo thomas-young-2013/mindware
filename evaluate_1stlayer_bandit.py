@@ -7,18 +7,20 @@ from automlToolkit.datasets.utils import load_data
 from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 
 parser = argparse.ArgumentParser()
-dataset_set = 'messidor_features,lymphography,winequality_red,winequality_white,credit,' \
-                'ionosphere,splice,diabetes,pc4,spectf,spambase,amazon_employee'
-parser.add_argument('--datasets', type=str, default='none')
+# dataset_set = 'messidor_features,lymphography,winequality_red,winequality_white,credit,' \
+#                 'ionosphere,splice,diabetes,pc4,spectf,spambase,amazon_employee'
+dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
+              'messidor_features,winequality_red,winequality_white,splice,spambase'
+parser.add_argument('--datasets', type=str, default=dataset_set)
 
 # algorithms = ['lda', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
 #               'adaboost', 'random_forest', 'extra_trees', 'gradient_boosting']
-algorithms = ['k_nearest_neighbors', 'libsvm_svc', 'random_forest', 'adaboost']
+
 seed = 1
 project_dir = './'
 
 
-def evaluate_1stlayer_bandit(dataset='credit', trial_num=500):
+def evaluate_1stlayer_bandit(algorithms, dataset='credit', trial_num=200):
     _start_time = time.time()
     raw_data = load_data(dataset, datanode_returned=True)
     bandit = FirstLayerBandit(trial_num, algorithms, raw_data)
@@ -27,14 +29,14 @@ def evaluate_1stlayer_bandit(dataset='credit', trial_num=500):
     print(bandit.action_sequence)
     time_cost = time.time() - _start_time
 
-    save_path = project_dir + 'data/hierarchical_bandits_%s_%d.pkl' % (dataset, trial_num)
+    save_path = project_dir + 'data/hierarchical_bandits_%s_%d_%d.pkl' % (dataset, trial_num, len(algorithms))
     with open(save_path, 'wb') as f:
         pickle.dump([bandit.final_rewards, bandit.time_records, bandit.action_sequence], f)
 
     return time_cost
 
 
-def evaluate_autosklearn(dataset='credit', time_limit=1200):
+def evaluate_autosklearn(algorithms, dataset='credit', time_limit=1200):
     print('==> Start to evaluate', dataset, 'budget', time_limit)
     n_job = 1
     ensb_size = 1
@@ -65,14 +67,21 @@ def evaluate_autosklearn(dataset='credit', time_limit=1200):
     time_records = automl.cv_results_['mean_fit_time']
     best_result = np.max(test_results)
     print('Validation Accuracy', best_result)
-    save_path = project_dir + 'data/ausk_%s.pkl' % dataset
+    save_path = project_dir + 'data/ausk_%s_%d.pkl' % (dataset, len(algorithms))
     with open(save_path, 'wb') as f:
         pickle.dump([test_results, time_records, time_limit], f)
 
 
-def benchmark(dataset):
-    time_cost = evaluate_1stlayer_bandit(dataset)
-    evaluate_autosklearn(dataset, int(time_cost))
+def benchmark(dataset, mode):
+    if mode == 1:
+        algorithms = ['k_nearest_neighbors', 'libsvm_svc', 'random_forest', 'adaboost']
+        time_cost = evaluate_1stlayer_bandit(algorithms, dataset, trial_num=200)
+        evaluate_autosklearn(algorithms, dataset, int(time_cost))
+    else:
+        algorithms = ['lda', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
+                      'adaboost', 'random_forest', 'extra_trees', 'gradient_boosting']
+        time_cost = evaluate_1stlayer_bandit(algorithms, dataset, trial_num=200)
+        evaluate_autosklearn(algorithms, dataset, int(time_cost))
 
 
 if __name__ == "__main__":
@@ -85,4 +94,7 @@ if __name__ == "__main__":
         dataset_list = dataset_str.split(',')
 
     for dataset in dataset_list:
-        benchmark(dataset)
+        benchmark(dataset, 1)
+
+    for dataset in dataset_list:
+        benchmark(dataset, 2)
