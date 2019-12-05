@@ -166,10 +166,14 @@ class EvaluationBasedOptimizer(Optimizer):
                 self.refresh_beam_set()
 
         # Maintain the local incumbent data node.
-        if self.incumbent_score > self.local_datanodes[0].score:
-            if len(self.local_datanodes) == self.beam_width:
-                self.local_datanodes.pop()
-            self.local_datanodes.insert(0, self.incumbent)
+        if self.shared_mode:
+            if len(self.local_datanodes) == 0:
+                self.local_datanodes.append(self.incumbent)
+            else:
+                if self.incumbent_score > self.local_datanodes[0].score:
+                    if len(self.local_datanodes) == self.beam_width:
+                        self.local_datanodes.pop()
+                    self.local_datanodes.insert(0, self.incumbent)
 
         self.iteration_id += 1
         iteration_cost = time.time() - _iter_start_time
