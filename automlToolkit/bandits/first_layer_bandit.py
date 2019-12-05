@@ -1,19 +1,31 @@
+import os
 import time
 import numpy as np
 from typing import List
-from automlToolkit.utils.logging_utils import get_logger
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
+from automlToolkit.utils.logging_utils import setup_logger, get_logger
 
 
 class FirstLayerBandit(object):
-    def __init__(self, trial_num, classifier_ids: List[str], data: DataNode, seed=1):
+    def __init__(self, trial_num, classifier_ids: List[str], data: DataNode,
+                 per_run_time_limit=300, output_dir=None,
+                 dataset_name='default_dataset_name',
+                 tmp_directory='logs', logging_config=None, seed=1):
         self.original_data = data
-        self.seed = seed
-        self.alpha = 3
         self.trial_num = trial_num
-        self.logger = get_logger(__class__.__name__)
+        self.alpha = 3
+        self.seed = seed
         np.random.seed(self.seed)
+
+        self.dataset_name = dataset_name
+
+        # Set up backend.
+        self.tmp_directory = tmp_directory
+        self.logging_config = logging_config
+        if not os.path.exists(self.tmp_directory):
+            os.makedirs(self.tmp_directory)
+        self.logger = self._get_logger(self.dataset_name)
 
         # Bandit settings.
         self.arms = classifier_ids
@@ -24,7 +36,10 @@ class FirstLayerBandit(object):
         for arm in self.arms:
             self.rewards[arm] = list()
             self.evaluation_cost[arm] = list()
-            self.sub_bandits[arm] = SecondLayerBandit(arm, data, seed=self.seed)
+            self.sub_bandits[arm] = SecondLayerBandit(
+                arm, data, output_dir=output_dir,
+                per_run_time_limit=per_run_time_limit, seed=self.seed
+            )
 
         self.pull_cnt = 0
         self.action_sequence = list()
@@ -86,3 +101,10 @@ class FirstLayerBandit(object):
             self.pull_cnt += 1
 
         return self.final_rewards
+
+    def _get_logger(self, name):
+        logger_name = 'AutomlToolkit_%d_%s' % (self.seed, name)
+        setup_logger(os.path.join(self.tmp_directory, '%s.log' % str(logger_name)),
+                     self.logging_config,
+                     )
+        return get_logger(logger_name)

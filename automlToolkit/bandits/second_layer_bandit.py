@@ -9,7 +9,8 @@ from automlToolkit.utils.functions import get_increasing_sequence
 
 
 class SecondLayerBandit(object):
-    def __init__(self, classifier_id: str, data: DataNode, seed=1):
+    def __init__(self, classifier_id: str, data: DataNode,
+                 output_dir=None, per_run_time_limit=300, seed=1):
         self.classifier_id = classifier_id
         self.original_data = data
         self.seed = seed
@@ -39,13 +40,18 @@ class SecondLayerBandit(object):
 
         # Build the Feature Engineering component.
         fe_evaluator = Evaluator(cs.get_default_configuration(), name='fe', seed=self.seed)
-        self.optimizer['fe'] = EvaluationBasedOptimizer(self.original_data, fe_evaluator, classifier_id, self.seed)
+        self.optimizer['fe'] = EvaluationBasedOptimizer(
+            self.original_data, fe_evaluator,
+            classifier_id, per_run_time_limit, self.seed
+        )
         self.inc['fe'] = data
 
         # Build the HPO component.
         trials_per_iter = len(self.optimizer['fe'].trans_types)
         hpo_evaluator = Evaluator(cs.get_default_configuration(), data_node=data, name='hpo', seed=self.seed)
-        self.optimizer['hpo'] = SMACOptimizer(hpo_evaluator, cs, trials_per_iter=trials_per_iter // 2, seed=self.seed)
+        self.optimizer['hpo'] = SMACOptimizer(
+            hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
+            trials_per_iter=trials_per_iter // 2, seed=self.seed)
         self.inc['hpo'] = cs.get_default_configuration()
 
     def collect_iter_stats(self, _arm, results):

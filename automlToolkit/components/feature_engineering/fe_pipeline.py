@@ -1,3 +1,4 @@
+import os
 import abc
 from typing import Optional
 from automlToolkit.utils.data_manager import DataManager
@@ -17,10 +18,12 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
     """
     def __init__(self, optimizer_type='eval_base', time_budget=None,
                  maximum_evaluation_num=None,
+                 time_limit_per_trans=600,
                  fe_enabled=True, evaluator=None, debug=False, seed=1,
-                 tmp_directory='./', logging_config=None, model_id=None):
+                 tmp_directory='logs', logging_config=None, model_id=None):
         self.maximum_evaluation_num = maximum_evaluation_num
         self.time_budget = time_budget
+        self.time_limit_per_trans = time_limit_per_trans
 
         self.fe_enabled = fe_enabled
         self.debug_enabled = debug
@@ -37,6 +40,10 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         self._seed = seed
         self.tmp_directory = tmp_directory
         self.logging_config = logging_config
+
+        # Set up backend.
+        if not os.path.exists(self.tmp_directory):
+            os.makedirs(self.tmp_directory)
 
     def preprocess(self):
         # In imputation, the data in node is a DataFrame.
@@ -141,7 +148,10 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         # TODO: dtype is object.
         if self.fe_enabled:
             if self.optimizer_type == 'eval_base':
-                self.optimizer = EvaluationBasedOptimizer(self.cleaned_node, self.evaluator, self.model_id, self._seed)
+                self.optimizer = EvaluationBasedOptimizer(
+                    self.cleaned_node, self.evaluator,
+                    self.model_id, self.time_limit_per_trans, self._seed
+                )
             else:
                 raise ValueError('invalid optimizer type!')
 

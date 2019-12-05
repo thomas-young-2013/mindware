@@ -22,3 +22,5 @@ data/datasets/*
 *.log
 
 smac3-output*
+
+logs/

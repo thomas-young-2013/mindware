@@ -1,6 +1,8 @@
+import sys
+import signal
 import resource
 import platform
-import sys
+from contextlib import contextmanager
 
 
 def memory_limit(percentage: float):
@@ -44,3 +46,24 @@ def memory(percentage=0.8):
 def main():
     print('My memory is limited to 80%.')
 """
+
+
+class TimeoutException(Exception):
+    pass
+
+
+"""
+https://stackoverflow.com/questions/366682/how-to-limit-execution-time-of-a-function-call-in-python
+"""
+
+
+@contextmanager
+def time_limit(seconds):
+    def signal_handler(signum, frame):
+        raise TimeoutException("Timed out!")
+    signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)

@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import pickle
+import datetime
 import argparse
 import numpy as np
 import autosklearn.classification
@@ -22,12 +23,17 @@ parser.add_argument('--datasets', type=str, default=dataset_set)
 
 seed = 1
 project_dir = './'
+per_run_time_limit = 300
 
 
 def evaluate_1stlayer_bandit(algorithms, dataset='credit', trial_num=200):
     _start_time = time.time()
     raw_data = load_data(dataset, datanode_returned=True)
-    bandit = FirstLayerBandit(trial_num, algorithms, raw_data)
+    bandit = FirstLayerBandit(trial_num, algorithms, raw_data,
+                              output_dir='logs',
+                              per_run_time_limit=per_run_time_limit,
+                              dataset_name=dataset,
+                              seed=seed)
     bandit.optimize()
     print(bandit.final_rewards)
     print(bandit.action_sequence)
@@ -42,19 +48,18 @@ def evaluate_1stlayer_bandit(algorithms, dataset='credit', trial_num=200):
 
 def evaluate_autosklearn(algorithms, dataset='credit', time_limit=1200):
     print('==> Start to evaluate', dataset, 'budget', time_limit)
-    n_job = 1
-    ensb_size = 1
     include_models = algorithms
     automl = autosklearn.classification.AutoSklearnClassifier(
         time_left_for_this_task=time_limit,
+        per_run_time_limit=per_run_time_limit,
         include_preprocessors=None,
         exclude_preprocessors=None,
-        n_jobs=n_job,
+        n_jobs=1,
         include_estimators=include_models,
         ensemble_memory_limit=8192,
         ml_memory_limit=8192,
-        ensemble_size=ensb_size,
-        ensemble_nbest=ensb_size,
+        ensemble_size=1,
+        ensemble_nbest=1,
         initial_configurations_via_metalearning=0,
         seed=seed,
         resampling_strategy='cv',

@@ -2,12 +2,14 @@ import time
 from automlToolkit.components.feature_engineering.transformation_graph import *
 from automlToolkit.components.fe_optimizers.base_optimizer import Optimizer
 from automlToolkit.components.fe_optimizers.transformer_manager import TransformerManager
+from automlToolkit.utils.decorators import time_limit, TimeoutException
 
 
 class EvaluationBasedOptimizer(Optimizer):
-    def __init__(self, input_data: DataNode, evaluator, model_id, seed):
+    def __init__(self, input_data: DataNode, evaluator, model_id, time_limit_per_trans, seed):
         super().__init__(str(__class__.__name__), input_data, seed)
         self.transformer_manager = TransformerManager()
+        self.time_limit_per_trans = time_limit_per_trans
         self.evaluator = evaluator
         self.incumbent_score = -1.
         self.baseline_score = -1.
@@ -89,12 +91,15 @@ class EvaluationBasedOptimizer(Optimizer):
             error_msg = None
             try:
                 self.logger.debug('[%s]' % transformer.name)
-                output_node = transformer.operate(node_)
-                output_node.depth = node_.depth + 1
-                output_node.trans_hist.append(transformer.type)
 
-                # Evaluate this node.
-                _score = self.evaluator(self.hp_config, data_node=output_node, name='fe')
+                # Limit the execution and evaluation time for each transformation.
+                with time_limit(self.time_limit_per_trans):
+                    output_node = transformer.operate(node_)
+                    output_node.depth = node_.depth + 1
+                    output_node.trans_hist.append(transformer.type)
+
+                    # Evaluate this node.
+                    _score = self.evaluator(self.hp_config, data_node=output_node, name='fe')
                 output_node.score = _score
                 if _score is not None and _score > self.incumbent_score:
                     self.incumbent_score = _score
@@ -112,6 +117,9 @@ class EvaluationBasedOptimizer(Optimizer):
                 error_msg = '%s: %s' % (transformer.name, str(e))
             except IndexError as e:
                 error_msg = '%s: %s' % (transformer.name, str(e))
+            except TimeoutException as e:
+                error_msg = '%s: %s' % (transformer.name, str(e))
+                error_msg += '\nExecution time exceeds %d seconds' % self.time_limit_per_trans
             finally:
                 if error_msg is not None:
                     self.logger.error(error_msg)

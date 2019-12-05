@@ -88,7 +88,10 @@ def evaluate_evaluation_based_fe(dataset, time_limit, seed=1):
     raw_data = load_data(dataset, datanode_returned=True)
 
     pipeline = FEPipeline(fe_enabled=True, optimizer_type='eval_base',
-                          time_budget=time_limit, evaluator=evaluator, seed=seed, model_id='random_forest')
+                          time_budget=time_limit, evaluator=evaluator,
+                          seed=seed, model_id='random_forest',
+                          time_limit_per_trans=300
+                          )
     train_data = pipeline.fit_transform(raw_data)
 
     score = evaluator(None, data_node=train_data)

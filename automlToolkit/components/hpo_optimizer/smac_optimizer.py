@@ -1,4 +1,5 @@
 import time
+import datetime
 import numpy as np
 from smac.scenario.scenario import Scenario
 from smac.facade.smac_facade import SMAC
@@ -6,18 +7,25 @@ from automlToolkit.components.hpo_optimizer.base_optimizer import BaseHPOptimize
 
 
 class SMACOptimizer(BaseHPOptimizer):
-    def __init__(self, evaluator, config_space,
-                 time_limit=None, evaluation_limit=None, trials_per_iter=1, seed=1):
+    def __init__(self, evaluator, config_space, time_limit=None, evaluation_limit=None,
+                 per_run_time_limit=600, output_dir='./', trials_per_iter=1, seed=1):
         super().__init__(evaluator, config_space, seed)
         self.time_limit = time_limit
         self.evaluation_num_limit = evaluation_limit
         self.trials_per_iter = trials_per_iter
+        self.per_run_time_limit = per_run_time_limit
 
+        if not output_dir.endswith('/'):
+            output_dir += '/'
+        output_dir += "smac3_output_%s" % (datetime.datetime.fromtimestamp(
+            time.time()).strftime('%Y-%m-%d_%H:%M:%S_%f'))
         self.scenario_dict = {
             'abort_on_first_run_crash': False,
             "run_obj": "quality",
             "cs": self.config_space,
-            "deterministic": "true"
+            "deterministic": "true",
+            "cutoff_time": self.per_run_time_limit,
+            'output_dir': output_dir
         }
 
         self.optimizer = SMAC(scenario=Scenario(self.scenario_dict),
@@ -65,7 +73,8 @@ class SMACOptimizer(BaseHPOptimizer):
             "run_obj": "quality",
             "cs": self.config_space,
             "deterministic": "true",
-            "runcount-limit": self.evaluation_num_limit
+            "runcount-limit": self.evaluation_num_limit,
+            "wallclock_limit": self.time_limit
         }
         self.optimizer = SMAC(scenario=Scenario(self.scenario_dict),
                               rng=np.random.RandomState(self.seed),

@@ -41,6 +41,7 @@ class Evaluator(object):
     def __call__(self, config, **kwargs):
         if self.name is None:
             raise ValueError('This evaluator has no name/type!')
+        assert self.name in ['hpo', 'fe']
 
         np.random.seed(self.seed)
         config = config if config is not None else self.clf_config
@@ -57,8 +58,8 @@ class Evaluator(object):
 
         fmt_str = '\n'+' '*5 + '==> '
         self.logger.debug('%s%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
-                         (fmt_str, self.eval_id, classifier_id,
-                          score, time.time() - start_time, X_train.shape))
+                          (fmt_str, self.eval_id, classifier_id,
+                           score, time.time() - start_time, X_train.shape))
         self.eval_id += 1
 
         if self.name == 'hpo':
