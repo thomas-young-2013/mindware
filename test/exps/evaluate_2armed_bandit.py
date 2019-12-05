@@ -1,5 +1,8 @@
+import os
+import sys
 import time
 import numpy as np
+sys.path.append(os.getcwd())
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 from automlToolkit.datasets.utils import load_data
 

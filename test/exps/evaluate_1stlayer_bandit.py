@@ -1,8 +1,12 @@
+import os
+import sys
 import time
 import pickle
 import argparse
 import numpy as np
 import autosklearn.classification
+sys.path.append(os.getcwd())
+
 from automlToolkit.datasets.utils import load_data
 from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 

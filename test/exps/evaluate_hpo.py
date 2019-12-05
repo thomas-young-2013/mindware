@@ -1,10 +1,13 @@
-from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
-from automlToolkit.datasets.utils import load_data
-from automlToolkit.components.evaluator import Evaluator
+import os
+import sys
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from autosklearn.pipeline.components.classification.adaboost import AdaboostClassifier
 from autosklearn.pipeline.components.classification.liblinear_svc import LibLinear_SVC
 from autosklearn.pipeline.components.classification.libsvm_svc import LibSVM_SVC
+sys.path.append(os.getcwd())
+from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
+from automlToolkit.datasets.utils import load_data
+from automlToolkit.components.evaluator import Evaluator
 
 raw_data = load_data('pc4', datanode_returned=True)
 
