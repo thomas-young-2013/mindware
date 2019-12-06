@@ -183,7 +183,7 @@ class EvaluationBasedOptimizer(Optimizer):
 
     def refresh_beam_set(self):
         if len(self.global_datanodes) > 0:
-            original_beam_set = [node._copy() for node in self.beam_set]
+            original_beam_set = [node.copy_() for node in self.beam_set]
             self.beam_set = list()
             self.beam_set.append(original_beam_set[0])
             for node in self.global_datanodes:
