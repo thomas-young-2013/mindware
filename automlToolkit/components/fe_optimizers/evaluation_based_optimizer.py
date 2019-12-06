@@ -157,13 +157,15 @@ class EvaluationBasedOptimizer(Optimizer):
                 self.beam_set.append(node_)
                 if self.shared_mode:
                     self.local_datanodes.append(node_)
+
+            if self.shared_mode:
+                self.refresh_beam_set()
+
             # Add the original dataset into the beam set.
             for _ in range(1 + self.beam_width - len(self.beam_set)):
                 self.beam_set.append(self.root_node)
             self.temporary_nodes = list()
             self.logger.info('Finish one level in beam search: %d' % self.iteration_id)
-            if self.shared_mode:
-                self.refresh_beam_set()
 
         # Maintain the local incumbent data node.
         if self.shared_mode:
@@ -179,16 +181,10 @@ class EvaluationBasedOptimizer(Optimizer):
         iteration_cost = time.time() - _iter_start_time
         return self.incumbent.score, iteration_cost, self.incumbent
 
-    def fetch_local_incumbents(self):
-        return [node_._copy() for node_ in self.local_datanodes]
-
     def refresh_beam_set(self):
         if len(self.global_datanodes) > 0:
-            original_beam_set = [node._copy for node in self.beam_set]
+            original_beam_set = [node._copy() for node in self.beam_set]
             self.beam_set = list()
             self.beam_set.append(original_beam_set[0])
             for node in self.global_datanodes:
                 self.beam_set.append(node)
-
-    def sync_global_incumbents(self, global_nodes: typing.List[DataNode]):
-        self.global_datanodes = [node._copy() for node in global_nodes]

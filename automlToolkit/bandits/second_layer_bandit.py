@@ -1,3 +1,4 @@
+import typing
 import numpy as np
 from automlToolkit.components.evaluator import Evaluator
 from automlToolkit.utils.logging_utils import get_logger
@@ -110,3 +111,9 @@ class SecondLayerBandit(object):
         _perf = max(_perf, self.incumbent_perf)
         self.final_rewards.append(_perf)
         return _perf
+
+    def fetch_local_incumbents(self):
+        return [node_ for node_ in self.optimizer['fe'].local_datanodes]
+
+    def sync_global_incumbents(self, global_nodes: typing.List[DataNode]):
+        self.optimizer['fe'].global_datanodes = [node._copy() for node in global_nodes]

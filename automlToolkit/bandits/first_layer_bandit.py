@@ -16,6 +16,7 @@ class FirstLayerBandit(object):
         self.trial_num = trial_num
         self.alpha = 3
         self.seed = seed
+        self.shared_mode = False
         np.random.seed(self.seed)
 
         self.dataset_name = dataset_name
@@ -32,10 +33,12 @@ class FirstLayerBandit(object):
         self.rewards = dict()
         self.sub_bandits = dict()
         self.evaluation_cost = dict()
+        self.fe_datanodes = dict()
 
         for arm in self.arms:
             self.rewards[arm] = list()
             self.evaluation_cost[arm] = list()
+            self.fe_datanodes[arm] = list()
             self.sub_bandits[arm] = SecondLayerBandit(
                 arm, data, output_dir=output_dir,
                 per_run_time_limit=per_run_time_limit, seed=self.seed
@@ -50,6 +53,9 @@ class FirstLayerBandit(object):
     def get_stats(self):
         return self.time_records, self.final_rewards
 
+    def update_global_datanodes(self, arm):
+        self.fe_datanodes[arm] = self.sub_bandits[arm].fetch_local_incumbents()
+
     def optimize(self):
         arm_num = len(self.arms)
         arm_candidate = self.arms.copy()
@@ -62,6 +68,8 @@ class FirstLayerBandit(object):
                 self.rewards[_arm].append(reward)
                 self.action_sequence.append(_arm)
                 self.final_rewards.append(reward)
+                if self.shared_mode:
+                    self.update_global_datanodes(_arm)
                 self.time_records.append(time.time() - self.start_time)
                 self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
             else:
@@ -72,6 +80,8 @@ class FirstLayerBandit(object):
                     self.rewards[_arm].append(reward)
                     self.action_sequence.append(_arm)
                     self.final_rewards.append(reward)
+                    if self.shared_mode:
+                        self.update_global_datanodes(_arm)
                     self.time_records.append(time.time() - self.start_time)
                     self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
 
@@ -97,6 +107,21 @@ class FirstLayerBandit(object):
                                  [item for idx, item in enumerate(arm_candidate) if flags[idx]])
                 # Update the arm_candidates.
                 arm_candidate = [item for index, item in enumerate(arm_candidate) if not flags[index]]
+
+            # Sync the features data nodes.
+            if self.shared_mode:
+                data_nodes = list()
+                scores = list()
+                for _arm in arm_candidate:
+                    data_nodes.extend(self.fe_datanodes[_arm])
+                    scores.extend([node.score for node in self.fe_datanodes[_arm]])
+                # Sample #beam_size-1 nodes.
+                beam_size = self.sub_bandits[arm_candidate[0]].optimizer['fe'].beam_width
+                # TODO: how to generate the global nodes.
+                idxs = np.argsort(-np.asarray(scores))[: beam_size - 1]
+                global_nodes = [data_nodes[idx] for idx in idxs]
+                for _arm in arm_candidate:
+                    self.sub_bandits[_arm].sync_global_incumbents(global_nodes)
 
             self.pull_cnt += 1
 
