@@ -8,5 +8,4 @@ class Empty(Transformer):
         self.compound_mode = 'only_new'
 
     def operate(self, input_datanodes, target_fields=None):
-        assert not isinstance(input_datanodes, list)
-        return input_datanodes.copy_()
+        return input_datanodes

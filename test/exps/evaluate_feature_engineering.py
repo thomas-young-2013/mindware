@@ -11,7 +11,7 @@ from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--time_limit', type=int, default=1200)
-parser.add_argument('--datasets', type=str, default='all')
+parser.add_argument('--datasets', type=str, default='spectf')
 parser.add_argument('--mth', type=str, choices=['ausk', 'ours'], default='ours')
 parser.add_argument("-v", "--verbose", action="store_true",
                     help="increase output verbosity")

@@ -105,7 +105,11 @@ class TransformationGraph(object):
         for input_id in input_ids:
             self.add_edge(input_id, output_datanode.node_id, transformer)
 
-    def add_node(self, data_node):
+    def add_node(self, data_node: DataNode):
+        # Avoid adding the same node into the graph multiple times.
+        if data_node.node_id != -1:
+            return data_node.node_id
+
         node_id = self.node_size
         data_node._node_id = node_id
         self.nodes.append(data_node)

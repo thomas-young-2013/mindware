@@ -22,7 +22,7 @@ parser.add_argument('--datasets', type=str, default=dataset_set)
 
 seed = 1
 project_dir = './'
-per_run_time_limit = 300
+per_run_time_limit = 180
 
 
 def evaluate_1stlayer_bandit(algorithms, dataset='credit', trial_num=200):
@@ -101,8 +101,8 @@ if __name__ == "__main__":
     else:
         dataset_list = dataset_str.split(',')
 
-    for dataset in dataset_list:
-        benchmark(dataset, 1)
+    # for dataset in dataset_list:
+    #     benchmark(dataset, 1)
 
     for dataset in dataset_list:
         benchmark(dataset, 2)

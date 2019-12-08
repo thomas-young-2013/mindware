@@ -11,9 +11,19 @@ class TransformerManager(object, metaclass=abc.ABCMeta):
         self.hyper_configs = dict()
         self.disable_hpo = disable_hpo
         self.random_state = random_state
+        # Store the executed transformations on this node.
+        self.node_trans_pairs = dict()
+        # init the root node.
+        self.node_trans_pairs[0] = list()
+
+    def add_execution_record(self, node_id: int, trans_id: int):
+        if node_id not in self.node_trans_pairs:
+            self.node_trans_pairs[node_id] = list()
+        if trans_id not in self.node_trans_pairs[node_id]:
+            self.node_trans_pairs[node_id].append(trans_id)
 
     def get_transformations(self, node: DataNode, trans_types: typing.List,
-                            batch_size=3):
+                            batch_size: int=1):
         """
         Collect a batch of transformations with different hyperparameters in each call.
         :return: a list of transformations.
@@ -27,23 +37,37 @@ class TransformerManager(object, metaclass=abc.ABCMeta):
             trans_ids.extend(_type_infos[_type])
         trans_ids = list(set(trans_ids))
         transformers = list()
+        node_id = node.node_id
+        if node_id not in self.node_trans_pairs:
+            self.node_trans_pairs[node_id] = list()
 
         for id in trans_ids:
             if id not in self.hyper_configs:
                 self.hyper_configs[id] = list()
-            if _transformers[id]().type not in trans_types:
+
+            trans_type = _transformers[id]().type
+            if trans_type not in trans_types:
+                continue
+
+            # Avoid repeating the same transformation multiple times.
+            if trans_type in node.trans_hist:
                 continue
 
             transformer_class = _transformers[id]
+
+            # For transformations without hyperparameters.
             if not hasattr(transformer_class, 'get_hyperparameter_search_space'):
-                transformers.append(transformer_class())
+                if trans_type not in self.node_trans_pairs[node_id]:
+                    transformers.append(transformer_class())
                 continue
 
             config_space = transformer_class().get_hyperparameter_search_space()
             if len(config_space.get_hyperparameters()) == 0 or self.disable_hpo:
-                transformers.append(transformer_class())
+                if trans_type not in self.node_trans_pairs[node_id]:
+                    transformers.append(transformer_class())
                 continue
 
+            # For transformations with hyperparameters.
             sampled_configs = sample_configurations(
                 config_space, batch_size, self.hyper_configs[id], seed=self.random_state)
             for config in sampled_configs:
