@@ -1,7 +1,7 @@
 import time
 import numpy as np
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, train_test_split
 from automlToolkit.utils.logging_utils import get_logger
 
 
@@ -17,6 +17,14 @@ def cross_validation(clf, X, y, n_fold=5, shuffle=True, random_state=1):
         pred = clf.predict(valid_x)
         scores.append(accuracy_score(pred, valid_y))
     return np.mean(scores)
+
+
+def holdout_validation(clf, X, y, test_size=0.2, random_state=1):
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=random_state)
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+    return accuracy_score(y_test, y_pred)
 
 
 def get_estimator(config):
@@ -54,8 +62,8 @@ class Evaluator(object):
 
         start_time = time.time()
         X_train, y_train = data_node.data
-        score = cross_validation(clf, X_train, y_train, n_fold=self.cv, random_state=self.seed)
-
+        # score = cross_validation(clf, X_train, y_train, n_fold=self.cv, random_state=self.seed)
+        score = holdout_validation(clf, X_train, y_train, random_state=self.seed)
         fmt_str = '\n'+' '*5 + '==> '
         self.logger.debug('%s%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
                           (fmt_str, self.eval_id, classifier_id,

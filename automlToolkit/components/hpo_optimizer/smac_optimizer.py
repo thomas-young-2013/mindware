@@ -34,7 +34,8 @@ class SMACOptimizer(BaseHPOptimizer):
         self.trial_cnt = 0
         self.configs = list()
         self.perfs = list()
-        self.incumbent_perf, self.incumbent_config = -1, None
+        self.incumbent_perf = -1.
+        self.incumbent_config = self.config_space.get_default_configuration()
 
     def run(self):
         while True:

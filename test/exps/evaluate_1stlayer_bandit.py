@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser()
 # dataset_set = 'messidor_features,lymphography,winequality_red,winequality_white,credit,' \
 #                 'ionosphere,splice,diabetes,pc4,spectf,spambase,amazon_employee'
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
-              'messidor_features,winequality_red,winequality_white,splice,spambase'
+              'messidor_features,winequality_red,winequality_white,splice,spambase,amazon_employee'
 parser.add_argument('--datasets', type=str, default=dataset_set)
 
 # algorithms = ['lda', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
@@ -38,7 +38,8 @@ def evaluate_1stlayer_bandit(algorithms, dataset='credit', trial_num=200):
     print(bandit.action_sequence)
     time_cost = time.time() - _start_time
 
-    save_path = project_dir + 'data/hierarchical_bandits_%s_%d_%d.pkl' % (dataset, trial_num, len(algorithms))
+    save_path = project_dir + 'data/hierarchical_bandits_%s_%d_%d_%d.pkl' % (
+        dataset, trial_num, len(algorithms), seed)
     with open(save_path, 'wb') as f:
         pickle.dump([bandit.final_rewards, bandit.time_records, bandit.action_sequence], f)
 
