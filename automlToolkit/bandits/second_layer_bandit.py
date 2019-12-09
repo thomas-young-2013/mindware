@@ -11,7 +11,7 @@ from automlToolkit.utils.functions import get_increasing_sequence
 
 class SecondLayerBandit(object):
     def __init__(self, classifier_id: str, data: DataNode,
-                 output_dir=None, per_run_time_limit=300, seed=1):
+                 output_dir='logs', per_run_time_limit=300, seed=1):
         self.classifier_id = classifier_id
         self.original_data = data
         self.seed = seed
@@ -66,7 +66,7 @@ class SecondLayerBandit(object):
         self.incumbent_perf = max(score, self.incumbent_perf)
 
         if _arm == 'fe':
-            _num_iter = self.optimizer['fe'].evaluation_num_last_iteration // 4
+            _num_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
             self.optimizer['hpo'].trials_per_iter = max(_num_iter, 1)
 
     def optimize(self):

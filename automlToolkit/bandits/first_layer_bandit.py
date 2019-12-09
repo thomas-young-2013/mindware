@@ -14,7 +14,7 @@ class FirstLayerBandit(object):
                  tmp_directory='logs', logging_config=None, seed=1):
         self.original_data = data
         self.trial_num = trial_num
-        self.alpha = 3
+        self.alpha = 4
         self.seed = seed
         self.shared_mode = False
         np.random.seed(self.seed)
