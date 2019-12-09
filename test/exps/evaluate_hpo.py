@@ -41,4 +41,4 @@ if __name__ == "__main__":
     # 2: 113.09
     # 20: 642.82
     # None: 2956.58
-    conduct_hpo(dataset='amazon_employee', classifier_id='gradient_boosting')
+    conduct_hpo(dataset='spectf', classifier_id='gradient_boosting')

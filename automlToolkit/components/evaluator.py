@@ -37,10 +37,12 @@ def get_estimator(config):
 
 
 class Evaluator(object):
-    def __init__(self, clf_config, data_node=None, name=None, cv=5, seed=1):
+    def __init__(self, clf_config, data_node=None, name=None,
+                 resampling_strategy='cv', cv=5, seed=1):
         self.clf_config = clf_config
         self.data_node = data_node
         self.name = name
+        self.resampling_strategy = resampling_strategy
         self.cv = cv
         self.seed = seed
         self.eval_id = 0
@@ -62,8 +64,13 @@ class Evaluator(object):
 
         start_time = time.time()
         X_train, y_train = data_node.data
-        # score = cross_validation(clf, X_train, y_train, n_fold=self.cv, random_state=self.seed)
-        score = holdout_validation(clf, X_train, y_train, random_state=self.seed)
+        if self.resampling_strategy == 'cv':
+            score = cross_validation(clf, X_train, y_train, n_fold=self.cv, random_state=self.seed)
+        elif self.resampling_strategy == 'holdout':
+            score = holdout_validation(clf, X_train, y_train, random_state=self.seed)
+        else:
+            raise ValueError('Invalid resampling strategy: %s!' % self.resampling_strategy)
+
         fmt_str = '\n'+' '*5 + '==> '
         self.logger.debug('%s%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
                           (fmt_str, self.eval_id, classifier_id,

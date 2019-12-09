@@ -36,6 +36,9 @@ class SMACOptimizer(BaseHPOptimizer):
         self.perfs = list()
         self.incumbent_perf = -1.
         self.incumbent_config = self.config_space.get_default_configuration()
+        # Estimate the size of the hyperparameter space.
+        self.config_num_threshold = int(len(set(
+            self.config_space.sample_configuration(12500))) * 0.8)
 
     def run(self):
         while True:
@@ -49,7 +52,14 @@ class SMACOptimizer(BaseHPOptimizer):
 
     def iterate(self):
         _start_time = time.time()
+        _flag = False
         for _ in range(self.trials_per_iter):
+            if len(self.configs) >= self.config_num_threshold:
+                _flag = True
+                self.logger.warning('Already explored 70 percentage of the '
+                                    'hp space: %d!' % self.config_num_threshold)
+                break
+
             self.optimizer.iterate()
 
             runhistory = self.optimizer.solver.runhistory
@@ -64,8 +74,10 @@ class SMACOptimizer(BaseHPOptimizer):
                     self.incumbent_config = _config
 
             self.trial_cnt = len(runhistory.data.keys())
-        iteration_cost = time.time() - _start_time
-
+        if not _flag:
+            iteration_cost = time.time() - _start_time
+        else:
+            iteration_cost = None
         return self.incumbent_perf, iteration_cost, self.incumbent_config
 
     def optimize(self):

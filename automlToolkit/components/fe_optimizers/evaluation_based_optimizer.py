@@ -126,20 +126,8 @@ class EvaluationBasedOptimizer(Optimizer):
                         self.graph.add_node(output_node)
                         if transformer.type != 0:
                             self.graph.add_trans_in_graph(node_, output_node, transformer)
-                except ValueError as e:
-                    error_msg = '%s: %s' % (transformer.name, str(e))
-                except MemoryError as e:
-                    error_msg = '%s: %s' % (transformer.name, str(e))
-                except RuntimeError as e:
-                    error_msg = '%s: %s' % (transformer.name, str(e))
-                except IndexError as e:
-                    error_msg = '%s: %s' % (transformer.name, str(e))
-                except TimeoutException as e:
-                    error_msg = '%s: %s' % (transformer.name, str(e))
-                    error_msg += '\nExecution time exceeds %d seconds' % self.time_limit_per_trans
-                finally:
-                    if error_msg is not None:
-                        self.logger.error(error_msg)
+                except Exception as e:
+                    self.logger.error('%s: %s' % (transformer.name, str(e)))
 
                 _evaluation_cnt += 1
 
