@@ -1,13 +1,22 @@
 import os
 import sys
+import argparse
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 sys.path.append(os.getcwd())
 from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from automlToolkit.datasets.utils import load_data
 from automlToolkit.components.evaluator import Evaluator
 
+parser = argparse.ArgumentParser()
+dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
+              'messidor_features,winequality_red,winequality_white,splice,spambase,amazon_employee'
+parser.add_argument('--dataset', type=str, default='spectf')
+parser.add_argument('--algo', type=str, default='gradient_boosting')
+parser.add_argument('--iter_num', type=int, default=100)
+parser.add_argument('--seed', type=int, default=1)
 
-def conduct_hpo(dataset='pc4', classifier_id='random_forest', iter_mode=True):
+
+def conduct_hpo(dataset='pc4', classifier_id='random_forest', iter_num=100, iter_mode=True):
     from autosklearn.pipeline.components.classification import _classifiers
 
     clf_class = _classifiers[classifier_id]
@@ -19,16 +28,16 @@ def conduct_hpo(dataset='pc4', classifier_id='random_forest', iter_mode=True):
     evaluator = Evaluator(cs.get_default_configuration(), name='hpo', data_node=raw_data)
 
     if not iter_mode:
-        optimizer = SMACOptimizer(evaluator, cs, evaluation_limit=300, output_dir='logs')
+        optimizer = SMACOptimizer(evaluator, cs, evaluation_limit=180, output_dir='logs')
         inc, val = optimizer.optimize()
         print(inc, val)
     else:
         import time
         _start_time = time.time()
         optimizer = SMACOptimizer(
-            evaluator, cs, trials_per_iter=1, output_dir='logs')
+            evaluator, cs, trials_per_iter=1, evaluation_limit=180, output_dir='logs')
         results = list()
-        for _iter in range(50):
+        for _iter in range(iter_num):
             perf, _, _ = optimizer.iterate()
             print(_iter, perf)
             results.append(perf)
@@ -37,8 +46,5 @@ def conduct_hpo(dataset='pc4', classifier_id='random_forest', iter_mode=True):
 
 
 if __name__ == "__main__":
-    # test_case: amazon_employee, gradient_boosting.
-    # 2: 113.09
-    # 20: 642.82
-    # None: 2956.58
-    conduct_hpo(dataset='winequality_white', classifier_id='gradient_boosting')
+    args = parser.parse_args()
+    conduct_hpo(dataset=args.dataset, classifier_id=args.algo, iter_num=args.iter_num)
