@@ -28,14 +28,16 @@ def conduct_hpo(dataset='pc4', classifier_id='random_forest', iter_num=100, iter
     evaluator = Evaluator(cs.get_default_configuration(), name='hpo', data_node=raw_data)
 
     if not iter_mode:
-        optimizer = SMACOptimizer(evaluator, cs, evaluation_limit=180, output_dir='logs')
+        optimizer = SMACOptimizer(evaluator, cs, evaluation_limit=600, output_dir='logs')
         inc, val = optimizer.optimize()
         print(inc, val)
     else:
         import time
         _start_time = time.time()
         optimizer = SMACOptimizer(
-            evaluator, cs, trials_per_iter=1, evaluation_limit=180, output_dir='logs')
+            evaluator, cs, trials_per_iter=1,
+            output_dir='logs', per_run_time_limit=180
+        )
         results = list()
         for _iter in range(iter_num):
             perf, _, _ = optimizer.iterate()
