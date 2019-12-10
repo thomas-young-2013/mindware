@@ -12,26 +12,27 @@ dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
               'messidor_features,winequality_red,winequality_white,splice,spambase,amazon_employee'
 
 parser.add_argument('--datasets', type=str, default=dataset_set)
-parser.add_argument('--mth', type=str, default='ours')
+parser.add_argument('--mth', choices=['ours', 'ausk'], default='ours')
 parser.add_argument('--seed', type=int, default=1)
-parser.add_argument('--algo_num', type=int, default=4)
-parser.add_argument('--trial_num', type=int, default=150)
+parser.add_argument('--algo_num', type=int, default=8)
+parser.add_argument('--trial_num', type=int, default=100)
 
 project_dir = './'
 
 
 def plot(mth, dataset, algo_num, trial_num, seed):
     if mth == 'ours':
-        save_path = project_dir + 'data/hierarchical_bandits_%s_%d_%d_%d.pkl' % \
+        save_path = project_dir + 'data/hmab_%s_%d_%d_%d.pkl' % \
                     (dataset, trial_num, algo_num, seed)
     else:
-        save_path = project_dir + 'data/ausk_%s_%d_%d.pkl' % (dataset, algo_num, seed)
+        save_path = project_dir + 'data/ausk_%s_%d.pkl' % (dataset, algo_num)
 
     with open(save_path, 'rb') as f:
-        final_rewards, time_records, action_sequence = pickle.load(f)
-    print('Final Rewards', final_rewards)
-    print('Time records', time_records)
-    print('Action Sequence', action_sequence)
+        result = pickle.load(f)
+    print('Best validation accuracy: %.4f' % np.max(result[0]))
+    print('Final Rewards', result[0])
+    print('Time records', result[1])
+    print('Action Sequence', result[2])
     print('-' * 30)
 
 

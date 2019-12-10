@@ -19,7 +19,7 @@ def conduct_hpo(dataset='pc4', classifier_id='random_forest', iter_mode=True):
     evaluator = Evaluator(cs.get_default_configuration(), name='hpo', data_node=raw_data)
 
     if not iter_mode:
-        optimizer = SMACOptimizer(evaluator, cs, evaluation_limit=150, output_dir='logs')
+        optimizer = SMACOptimizer(evaluator, cs, evaluation_limit=300, output_dir='logs')
         inc, val = optimizer.optimize()
         print(inc, val)
     else:
@@ -28,7 +28,7 @@ def conduct_hpo(dataset='pc4', classifier_id='random_forest', iter_mode=True):
         optimizer = SMACOptimizer(
             evaluator, cs, trials_per_iter=1, output_dir='logs')
         results = list()
-        for _iter in range(30):
+        for _iter in range(50):
             perf, _, _ = optimizer.iterate()
             print(_iter, perf)
             results.append(perf)
@@ -41,4 +41,4 @@ if __name__ == "__main__":
     # 2: 113.09
     # 20: 642.82
     # None: 2956.58
-    conduct_hpo(dataset='spectf', classifier_id='gradient_boosting')
+    conduct_hpo(dataset='winequality_white', classifier_id='gradient_boosting')

@@ -1,12 +1,16 @@
-from components.transformers.preprocessor.imputer import ImputationTransformation
-from components.feature_engineering.transformations.continous_discretizer import *
-from components.feature_engineering.transformations.rescaler.scaler import ScaleTransformation
-from components.transformers.preprocessor.onehot_encoder import OneHotTransformation
-from components.feature_engineering.transformations.merger import Merger
-from components.feature_engineering.transformation_graph import DataNode
-from components.feature_engineering.fe_pipeline import FEPipeline
-from components.utils.constants import *
-from components.feature_engineering.transformation_graph import TransformationGraph
+import os
+import sys
+sys.path.append(os.getcwd())
+
+from automlToolkit.components.feature_engineering.transformations.preprocessor.imputer import ImputationTransformation
+from automlToolkit.components.feature_engineering.transformations.continous_discretizer import *
+from automlToolkit.components.feature_engineering.transformations.rescaler.scaler import ScaleTransformation
+from automlToolkit.components.feature_engineering.transformations.preprocessor.onehot_encoder import OneHotTransformation
+from automlToolkit.components.feature_engineering.transformation_graph import TransformationGraph
+from automlToolkit.components.feature_engineering.transformations.merger import Merger
+from automlToolkit.components.feature_engineering.transformation_graph import DataNode
+from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
+from automlToolkit.components.utils.constants import *
 
 
 def evaluate_transformation_graph():
@@ -22,17 +26,17 @@ def evaluate_transformation_graph():
     graph = TransformationGraph()
     graph.add_node(datanode)
 
-    transformer = ImputationTransformation('most_frequent')
+    transformer = ImputationTransformation()
     output_datanode1 = transformer.operate(datanode, target_fields=[0, 1])
     graph.add_node(output_datanode1)
-    graph.add_edge(datanode.get_node_id(), output_datanode1.get_node_id(), transformer)
+    graph.add_edge(datanode.node_id(), output_datanode1.node_id(), transformer)
 
     transformer = OneHotTransformation()
     output_datanode2 = transformer.operate(output_datanode1)
     graph.add_node(output_datanode2)
     graph.add_edge(output_datanode1.get_node_id(), output_datanode2.get_node_id(), transformer)
 
-    transformer = ScaleTransformation(param='standard')
+    transformer = ScaleTransformation()
     transformer.concatenate = True
     output_datanode3 = transformer.operate(output_datanode2)
     graph.add_node(output_datanode3)
@@ -41,7 +45,7 @@ def evaluate_transformation_graph():
     print(output_datanode3)
     print(output_datanode3.data)
 
-    transformer = ScaleTransformation(param='min_max')
+    transformer = ScaleTransformation()
     transformer.concatenate = False
     output_datanode4 = transformer.operate(output_datanode2)
     graph.add_node(output_datanode4)
@@ -86,7 +90,7 @@ def evaluate_transformation_graph():
 
 
 def evaluate_fe_pipeline():
-    from automlToolkit.utils import DataManager
+    from automlToolkit.utils.data_manager import DataManager
     dm = DataManager()
     # file_path = "data/proprocess_data.csv"
     file_path = 'data/a9a/dataset_183_adult.csv'
@@ -114,7 +118,7 @@ def evaluate_data_manager():
     # print(dm.feature_types)
     # print(dm.missing_flags)
 
-    from automlToolkit.utils import DataManager
+    from automlToolkit.utils.data_manager import DataManager
     import numpy as np
     X = np.array([[1, 2, 3, 4], [1, 'asfd', 2, 1.4]])
     y = [1, 2]
