@@ -84,7 +84,7 @@ def benchmark(dataset, algo_num, trial_num, seed):
     algorithms = ['k_nearest_neighbors', 'libsvm_svc', 'random_forest', 'adaboost']
     if algo_num == 8:
         algorithms = ['lda', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
-                      'adaboost', 'random_forest', 'extra_trees', 'gradient_boosting']
+                      'adaboost', 'random_forest', 'extra_trees', 'decision_tree']
     time_cost = evaluate_1stlayer_bandit(algorithms, dataset,
                                          trial_num=trial_num, seed=seed)
     evaluate_autosklearn(algorithms, dataset, int(time_cost), seed=seed)
