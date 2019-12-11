@@ -20,7 +20,7 @@ parser.add_argument('--seed', type=int, default=1)
 
 
 project_dir = './'
-per_run_time_limit = 180
+per_run_time_limit = 150
 
 
 def evaluate_1stlayer_bandit(algorithms, dataset='credit', trial_num=200, seed=1):

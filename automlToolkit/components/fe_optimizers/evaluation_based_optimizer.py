@@ -1,10 +1,14 @@
 import time
 import typing
+from collections import namedtuple
 from automlToolkit.components.feature_engineering.transformation_graph import *
 from automlToolkit.components.fe_optimizers.base_optimizer import Optimizer
 from automlToolkit.components.fe_optimizers.transformer_manager import TransformerManager
 from automlToolkit.utils.decorators import time_limit, TimeoutException
 from automlToolkit.components.evaluator import Evaluator
+from automlToolkit.components.utils.constants import SUCCESS, ERROR, TIMEOUT
+
+EvaluationResult = namedtuple('EvaluationResult', 'status duration score extra')
 
 
 class EvaluationBasedOptimizer(Optimizer):
@@ -35,6 +39,7 @@ class EvaluationBasedOptimizer(Optimizer):
         self.is_ended = False
         self.evaluation_num_last_iteration = -1
         self.temporary_nodes = list()
+        self.execution_history = dict()
 
         # Used to share new feature set.
         self.local_datanodes = list()
@@ -64,11 +69,19 @@ class EvaluationBasedOptimizer(Optimizer):
     def iterate(self):
         _iter_start_time = time.time()
         _evaluation_cnt = 0
+        execution_status = list()
+
         if self.iteration_id == 0:
             # Evaluate the original features.
+            _start_time, status, extra = time.time(), SUCCESS, '%d,root_node' % _evaluation_cnt
             self.incumbent_score = self.evaluator(self.hp_config, data_node=self.root_node, name='fe')
             if self.incumbent_score is None:
                 self.incumbent_score = 0.
+                status = ERROR
+            execution_status.append(EvaluationResult(status=status,
+                                                     duration=time.time()-_start_time,
+                                                     score=self.incumbent_score,
+                                                     extra=extra))
             self.baseline_score = self.incumbent_score
             self.incumbent = self.root_node
             self.root_node.depth = 1
@@ -98,10 +111,12 @@ class EvaluationBasedOptimizer(Optimizer):
             self.logger.info('The number of transformations is: %d' % len(trans_set))
             for transformer in trans_set:
                 self.logger.debug('[%s][%s]' % (self.model_id, transformer.name))
-                assert (node_.node_id != -1)
+
                 if transformer.type != 0:
                     self.transformer_manager.add_execution_record(node_.node_id, transformer.type)
 
+                _start_time, status, _score = time.time(), SUCCESS, -1
+                extra = ['%d' % _evaluation_cnt, self.model_id, transformer.name]
                 try:
                     # Limit the execution and evaluation time for each transformation.
                     with time_limit(self.time_limit_per_trans):
@@ -116,6 +131,8 @@ class EvaluationBasedOptimizer(Optimizer):
                         else:
                             _score = output_node.score
 
+                    if _score is None:
+                        status = ERROR
                     if _score is not None and _score > self.incumbent_score:
                         self.incumbent_score = _score
                         self.incumbent = output_node
@@ -126,8 +143,17 @@ class EvaluationBasedOptimizer(Optimizer):
                         if transformer.type != 0:
                             self.graph.add_trans_in_graph(node_, output_node, transformer)
                 except Exception as e:
+                    extra.append(str(e))
                     self.logger.error('%s: %s' % (transformer.name, str(e)))
+                    status = ERROR
+                    if isinstance(e, TimeoutException):
+                        status = TIMEOUT
 
+                execution_status.append(
+                    EvaluationResult(status=status,
+                                     duration=time.time() - _start_time,
+                                     score=_score,
+                                     extra=extra))
                 _evaluation_cnt += 1
 
                 self.evaluation_count += 1
@@ -173,6 +199,7 @@ class EvaluationBasedOptimizer(Optimizer):
                     self.local_datanodes.insert(0, self.incumbent)
 
         self.iteration_id += 1
+        self.execution_history[self.iteration_id] = execution_status
         iteration_cost = time.time() - _iter_start_time
         return self.incumbent.score, iteration_cost, self.incumbent
 

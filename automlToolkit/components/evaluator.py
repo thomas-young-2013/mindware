@@ -49,6 +49,7 @@ class Evaluator(object):
         self.logger = get_logger('Evaluator-%s' % self.name)
 
     def __call__(self, config, **kwargs):
+        start_time = time.time()
         if self.name is None:
             raise ValueError('This evaluator has no name/type!')
         assert self.name in ['hpo', 'fe']
@@ -62,7 +63,6 @@ class Evaluator(object):
         else:
             data_node = self.data_node
 
-        start_time = time.time()
         X_train, y_train = data_node.data
         if self.resampling_strategy == 'cv':
             score = cross_validation(clf, X_train, y_train, n_fold=self.cv, random_state=self.seed)
