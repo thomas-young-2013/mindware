@@ -99,7 +99,7 @@ class FirstLayerBandit(object):
                 for _arm in arm_candidate:
                     rewards = self.rewards[_arm]
                     slope = (rewards[-1] - rewards[-self.alpha])/self.alpha
-                    upper_bound = rewards[-1] + slope*(self.trial_num - _iter_id)
+                    upper_bound = np.min(1.0, rewards[-1] + slope*(self.trial_num - _iter_id))
                     upper_bounds.append(upper_bound)
                     lower_bounds.append(rewards[-1])
 
