@@ -26,8 +26,9 @@ class FirstLayerBandit(object):
         self.logging_config = logging_config
         if not os.path.exists(self.tmp_directory):
             os.makedirs(self.tmp_directory)
-        self.logger = self._get_logger(self.dataset_name)
-
+        logger_name = "%s-%s" % (__class__.__name__, self.dataset_name)
+        self.logger = self._get_logger(logger_name)
+        
         # Bandit settings.
         self.arms = classifier_ids
         self.rewards = dict()
@@ -44,7 +45,6 @@ class FirstLayerBandit(object):
                 per_run_time_limit=per_run_time_limit, seed=self.seed
             )
 
-        self.pull_cnt = 0
         self.action_sequence = list()
         self.final_rewards = list()
         self.start_time = time.time()
@@ -57,40 +57,49 @@ class FirstLayerBandit(object):
         self.fe_datanodes[arm] = self.sub_bandits[arm].fetch_local_incumbents()
 
     def optimize(self):
+        # Initialize the parameters.
         arm_num = len(self.arms)
         arm_candidate = self.arms.copy()
-        while self.pull_cnt < self.trial_num:
-
-            if self.pull_cnt < arm_num * self.alpha:
-                _arm = self.arms[self.pull_cnt % arm_num]
-                self.logger.info('Pulling %s in %d-th round' % (_arm, self.pull_cnt))
+        _iter_id = 0
+        
+        while _iter_id < self.trial_num:
+            if _iter_id < arm_num * self.alpha:
+                _arm = self.arms[_iter_id % arm_num]
+                self.logger.info('PULLING %s in %d-th round' % (_arm, _iter_id))
                 reward = self.sub_bandits[_arm].play_once()
+
                 self.rewards[_arm].append(reward)
                 self.action_sequence.append(_arm)
                 self.final_rewards.append(reward)
+                self.time_records.append(time.time() - self.start_time)
+
                 if self.shared_mode:
                     self.update_global_datanodes(_arm)
-                self.time_records.append(time.time() - self.start_time)
+
                 self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
+                _iter_id += 1
             else:
                 # Pull each arm in the candidate once.
                 for _arm in arm_candidate:
-                    self.logger.info('Pulling %s in %d-th round' % (_arm, self.pull_cnt))
+                    self.logger.info('PULLING %s in %d-th round' % (_arm, _iter_id))
                     reward = self.sub_bandits[_arm].play_once()
                     self.rewards[_arm].append(reward)
                     self.action_sequence.append(_arm)
                     self.final_rewards.append(reward)
+                    self.time_records.append(time.time() - self.start_time)
+
                     if self.shared_mode:
                         self.update_global_datanodes(_arm)
-                    self.time_records.append(time.time() - self.start_time)
+
                     self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
+                    _iter_id += 1
 
                 # Update the upper/lower bound estimation.
                 upper_bounds, lower_bounds = list(), list()
                 for _arm in arm_candidate:
                     rewards = self.rewards[_arm]
                     slope = (rewards[-1] - rewards[-self.alpha])/self.alpha
-                    upper_bound = rewards[-1] + slope*(self.trial_num - self.pull_cnt)
+                    upper_bound = rewards[-1] + slope*(self.trial_num - _iter_id)
                     upper_bounds.append(upper_bound)
                     lower_bounds.append(rewards[-1])
 
@@ -103,11 +112,16 @@ class FirstLayerBandit(object):
                             if upper_bounds[i] < lower_bounds[j]:
                                 flags[i] = True
 
-                self.logger.info('Remove Arms: %s' %
-                                 [item for idx, item in enumerate(arm_candidate) if flags[idx]])
+                if np.sum(flags) == n:
+                    self.logger.error('Removing all the arms simultaneously!')
+                self.logger.info('Candidates : %s' % ','.join(arm_candidate))
+                self.logger.info('Upper bound: %s' % ','.join(['%.4f' % val for val in upper_bounds]))
+                self.logger.info('Lower bound: %s' % ','.join(['%.4f' % val for val in lower_bounds]))
+                self.logger.info('Remove Arms: %s' % [item for idx, item in enumerate(arm_candidate) if flags[idx]])
+
                 # Update the arm_candidates.
                 arm_candidate = [item for index, item in enumerate(arm_candidate) if not flags[index]]
-
+            
             # Sync the features data nodes.
             if self.shared_mode:
                 data_nodes = list()
@@ -122,9 +136,7 @@ class FirstLayerBandit(object):
                 global_nodes = [data_nodes[idx] for idx in idxs]
                 for _arm in arm_candidate:
                     self.sub_bandits[_arm].sync_global_incumbents(global_nodes)
-
-            self.pull_cnt += 1
-
+        
         return self.final_rewards
 
     def _get_logger(self, name):

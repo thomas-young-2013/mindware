@@ -105,12 +105,13 @@ class SecondLayerBandit(object):
 
     def play_once(self):
         self.optimize()
-        _perf = Evaluator(self.inc['hpo'], data_node=self.inc['fe'], name='fe', seed=self.seed)(self.inc['hpo'])
+        _perf = Evaluator(self.inc['hpo'], data_node=self.inc['fe'],
+                          name='fe', seed=self.seed)(self.inc['hpo'])
         if _perf is None:
             _perf = 0.0
-        _perf = max(_perf, self.incumbent_perf)
-        self.final_rewards.append(_perf)
-        return _perf
+        self.incumbent_perf = max(_perf, self.incumbent_perf)
+        self.final_rewards.append(self.incumbent_perf)
+        return self.incumbent_perf
 
     def fetch_local_incumbents(self):
         return [node_ for node_ in self.optimizer['fe'].local_datanodes]

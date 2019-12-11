@@ -102,7 +102,6 @@ class EvaluationBasedOptimizer(Optimizer):
                 if transformer.type != 0:
                     self.transformer_manager.add_execution_record(node_.node_id, transformer.type)
 
-                error_msg = None
                 try:
                     # Limit the execution and evaluation time for each transformation.
                     with time_limit(self.time_limit_per_trans):
