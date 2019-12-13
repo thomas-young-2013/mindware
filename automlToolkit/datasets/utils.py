@@ -10,7 +10,7 @@ def load_data(dataset, proj_dir='./', datanode_returned=False):
         data_path = proj_dir + 'data/datasets/%s.xls' % dataset
 
     # Load train data.
-    if dataset in ['higgs', 'amazon_employee', 'spectf']:
+    if dataset in ['higgs', 'amazon_employee', 'spectf', 'usps']:
         label_column = 0
     else:
         label_column = -1

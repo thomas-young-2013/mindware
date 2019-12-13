@@ -14,8 +14,8 @@ EvaluationResult = namedtuple('EvaluationResult', 'status duration score extra')
 class EvaluationBasedOptimizer(Optimizer):
     def __init__(self, input_data: DataNode, evaluator: Evaluator,
                  model_id: str, time_limit_per_trans: int,
-                 seed: int, shared_mode: bool=False,
-                 batch_size: int=2, beam_width: int=3):
+                 seed: int, shared_mode: bool = False,
+                 batch_size: int = 2, beam_width: int = 3):
         super().__init__(str(__class__.__name__), input_data, seed)
         self.transformer_manager = TransformerManager()
         self.time_limit_per_trans = time_limit_per_trans
