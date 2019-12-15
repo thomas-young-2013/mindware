@@ -24,3 +24,5 @@ data/datasets/*
 smac3-output*
 
 logs/
+
+data/

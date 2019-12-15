@@ -2,7 +2,7 @@ import os
 import time
 import numpy as np
 from typing import List
-from automlToolkit.components.feature_engineering.transformation_graph import DataNode
+from automlToolkit.components.feature_engineering.transformation_graph import DataNode, TransformationGraph
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 from automlToolkit.utils.logging_utils import setup_logger, get_logger
 
@@ -11,12 +11,13 @@ class FirstLayerBandit(object):
     def __init__(self, trial_num, classifier_ids: List[str], data: DataNode,
                  per_run_time_limit=300, output_dir=None,
                  dataset_name='default_dataset_name',
-                 tmp_directory='logs', logging_config=None, seed=1):
+                 tmp_directory='logs',
+                 share_feature=False, logging_config=None, seed=1):
         self.original_data = data
         self.trial_num = trial_num
         self.alpha = 4
         self.seed = seed
-        self.shared_mode = False
+        self.shared_mode = share_feature
         np.random.seed(self.seed)
 
         self.dataset_name = dataset_name
@@ -42,7 +43,9 @@ class FirstLayerBandit(object):
             self.fe_datanodes[arm] = list()
             self.sub_bandits[arm] = SecondLayerBandit(
                 arm, data, output_dir=output_dir,
-                per_run_time_limit=per_run_time_limit, seed=self.seed
+                per_run_time_limit=per_run_time_limit,
+                share_fe=self.shared_mode,
+                seed=self.seed
             )
 
         self.action_sequence = list()
@@ -123,17 +126,16 @@ class FirstLayerBandit(object):
                 arm_candidate = [item for index, item in enumerate(arm_candidate) if not flags[index]]
             
             # Sync the features data nodes.
-            if self.shared_mode:
+            if self.shared_mode and _iter_id >= arm_num * self.alpha \
+                    and _iter_id % 2 == 0 and len(arm_candidate) > 1:
+                self.logger.info('Start to SYNC features among all arms!')
                 data_nodes = list()
-                scores = list()
                 for _arm in arm_candidate:
                     data_nodes.extend(self.fe_datanodes[_arm])
-                    scores.extend([node.score for node in self.fe_datanodes[_arm]])
                 # Sample #beam_size-1 nodes.
                 beam_size = self.sub_bandits[arm_candidate[0]].optimizer['fe'].beam_width
                 # TODO: how to generate the global nodes.
-                idxs = np.argsort(-np.asarray(scores))[: beam_size - 1]
-                global_nodes = [data_nodes[idx] for idx in idxs]
+                global_nodes = TransformationGraph.sort_nodes_by_score(data_nodes)[:beam_size - 1]
                 for _arm in arm_candidate:
                     self.sub_bandits[_arm].sync_global_incumbents(global_nodes)
         

@@ -180,7 +180,8 @@ class EvaluationBasedOptimizer(Optimizer):
                     self.local_datanodes.append(node_)
 
             if self.shared_mode:
-                self.refresh_beam_set()
+                self.logger.info('The number of local nodes: %d' % len(self.local_datanodes))
+                self.logger.info('The local scores are: %s' % str([node.score for node in self.local_datanodes]))
 
             # Add the original dataset into the beam set.
             for _ in range(1 + self.beam_width - len(self.beam_set)):
@@ -192,11 +193,8 @@ class EvaluationBasedOptimizer(Optimizer):
         if self.shared_mode:
             if len(self.local_datanodes) == 0:
                 self.local_datanodes.append(self.incumbent)
-            else:
-                if self.incumbent_score > self.local_datanodes[0].score:
-                    if len(self.local_datanodes) == self.beam_width:
-                        self.local_datanodes.pop()
-                    self.local_datanodes.insert(0, self.incumbent)
+            if len(self.local_datanodes) > self.beam_width:
+                self.local_datanodes = TransformationGraph.sort_nodes_by_score(self.local_datanodes)[:self.beam_width]
 
         self.iteration_id += 1
         self.execution_history[self.iteration_id] = execution_status
@@ -205,8 +203,9 @@ class EvaluationBasedOptimizer(Optimizer):
 
     def refresh_beam_set(self):
         if len(self.global_datanodes) > 0:
-            original_beam_set = [node.copy_() for node in self.beam_set]
-            self.beam_set = list()
-            self.beam_set.append(original_beam_set[0])
-            for node in self.global_datanodes:
+            self.logger.info('Sync the global nodes!')
+            # Add local nodes.
+            self.beam_set = self.local_datanodes[:self.beam_width-1]
+            # Add Beam_size - 1 global nodes.
+            for node in self.global_datanodes[:self.beam_width - 1]:
                 self.beam_set.append(node)

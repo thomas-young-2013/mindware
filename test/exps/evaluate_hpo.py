@@ -25,6 +25,7 @@ def conduct_hpo(dataset='pc4', classifier_id='random_forest', iter_num=100, iter
     cs.add_hyperparameter(model)
 
     raw_data = load_data(dataset, datanode_returned=True)
+    print(set(raw_data.data[1]))
     evaluator = Evaluator(cs.get_default_configuration(), name='hpo', data_node=raw_data)
 
     if not iter_mode:

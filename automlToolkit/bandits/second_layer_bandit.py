@@ -11,9 +11,10 @@ from automlToolkit.utils.functions import get_increasing_sequence
 
 class SecondLayerBandit(object):
     def __init__(self, classifier_id: str, data: DataNode,
-                 output_dir='logs', per_run_time_limit=300, seed=1):
+                 share_fe=False, output_dir='logs', per_run_time_limit=300, seed=1):
         self.classifier_id = classifier_id
         self.original_data = data
+        self.share_fe = share_fe
         self.seed = seed
         self.sliding_window_size = 3
         self.logger = get_logger('%s=>%s' % (__class__.__name__, classifier_id))
@@ -43,7 +44,8 @@ class SecondLayerBandit(object):
         fe_evaluator = Evaluator(cs.get_default_configuration(), name='fe', seed=self.seed)
         self.optimizer['fe'] = EvaluationBasedOptimizer(
             self.original_data, fe_evaluator,
-            classifier_id, per_run_time_limit, self.seed
+            classifier_id, per_run_time_limit, self.seed,
+            shared_mode=self.share_fe
         )
         self.inc['fe'] = data
 
@@ -114,7 +116,9 @@ class SecondLayerBandit(object):
         return self.incumbent_perf
 
     def fetch_local_incumbents(self):
-        return [node_ for node_ in self.optimizer['fe'].local_datanodes]
+        return self.optimizer['fe'].local_datanodes
 
     def sync_global_incumbents(self, global_nodes: typing.List[DataNode]):
-        self.optimizer['fe'].global_datanodes = [node.copy_() for node in global_nodes]
+        fe_optimizer = self.optimizer['fe']
+        fe_optimizer.global_datanodes = [node.copy_() for node in global_nodes]
+        fe_optimizer.refresh_beam_set()
