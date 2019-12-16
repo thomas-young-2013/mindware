@@ -120,5 +120,9 @@ class SecondLayerBandit(object):
 
     def sync_global_incumbents(self, global_nodes: typing.List[DataNode]):
         fe_optimizer = self.optimizer['fe']
-        fe_optimizer.global_datanodes = [node.copy_() for node in global_nodes]
+        fe_optimizer.global_datanodes = []
+        for node in global_nodes:
+            _node = node.copy_()
+            _node.depth = node.depth
+            fe_optimizer.global_datanodes.append(_node)
         fe_optimizer.refresh_beam_set()

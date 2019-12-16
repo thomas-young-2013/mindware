@@ -49,9 +49,9 @@ def benchmark(dataset, algo_num, trial_num, seed):
     if algo_num == 8:
         algorithms = ['lda', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
                       'adaboost', 'random_forest', 'extra_trees', 'decision_tree']
-    algorithms = ['libsvm_svc', 'k_nearest_neighbors']
-    # time_cost = evaluate_1stlayer_bandit(algorithms, False, dataset,
-    #                                      trial_num=trial_num, seed=seed)
+    # algorithms = ['libsvm_svc', 'k_nearest_neighbors']
+    time_cost = evaluate_1stlayer_bandit(algorithms, False, dataset,
+                                         trial_num=trial_num, seed=seed)
     time_cost = evaluate_1stlayer_bandit(algorithms, True, dataset,
                                          trial_num=trial_num, seed=seed)
 

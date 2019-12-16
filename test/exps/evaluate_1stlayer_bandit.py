@@ -14,7 +14,9 @@ parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
               'messidor_features,winequality_red,winequality_white,splice,spambase,amazon_employee'
 parser.add_argument('--datasets', type=str, default=dataset_set)
+parser.add_argument('--mode', type=str, choices=['ausk', 'mab', 'benchmark'], default='benchmark')
 parser.add_argument('--algo_num', type=int, default=8)
+parser.add_argument('--time_cost', type=int, default=1200)
 parser.add_argument('--trial_num', type=int, default=100)
 parser.add_argument('--seed', type=int, default=1)
 
@@ -77,17 +79,11 @@ def evaluate_autosklearn(algorithms, dataset='credit', time_limit=1200, seed=1):
     print('Validation Accuracy', best_result)
     save_path = project_dir + 'data/ausk_%s_%d.pkl' % (dataset, len(algorithms))
     with open(save_path, 'wb') as f:
-        pickle.dump([test_results, time_records, time_limit], f)
+        pickle.dump([test_results, time_records, time_limit, model_desc], f)
 
 
-def benchmark(dataset, algo_num, trial_num, seed):
-    algorithms = ['k_nearest_neighbors', 'libsvm_svc', 'random_forest', 'adaboost']
-    if algo_num == 8:
-        algorithms = ['lda', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
-                      'adaboost', 'random_forest', 'extra_trees', 'decision_tree']
-    # algorithms = ['libsvm_svc']
-    time_cost = evaluate_1stlayer_bandit(algorithms, dataset,
-                                         trial_num=trial_num, seed=seed)
+def benchmark(algorithms, dataset, trial_num, seed):
+    time_cost = evaluate_1stlayer_bandit(algorithms, dataset, trial_num=trial_num, seed=seed)
     evaluate_autosklearn(algorithms, dataset, int(time_cost), seed=seed)
 
 
@@ -96,7 +92,13 @@ if __name__ == "__main__":
     dataset_str = args.datasets
     algo_num = args.algo_num
     trial_num = args.trial_num
+    mode = args.mode
     seed = args.seed
+
+    algorithms = ['k_nearest_neighbors', 'libsvm_svc', 'random_forest', 'adaboost']
+    if algo_num == 8:
+        algorithms = ['lda', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
+                      'adaboost', 'random_forest', 'extra_trees', 'decision_tree']
 
     dataset_list = list()
     if dataset_str == 'all':
@@ -105,4 +107,14 @@ if __name__ == "__main__":
         dataset_list = dataset_str.split(',')
 
     for dataset in dataset_list:
-        benchmark(dataset, algo_num, trial_num, seed)
+        if mode == 'benchmark':
+            benchmark(algorithms, dataset, trial_num, seed)
+        elif mode == 'mab':
+            time_cost = evaluate_1stlayer_bandit(
+                algorithms, dataset, trial_num=trial_num, seed=seed
+            )
+        elif mode == 'ausk':
+            time_cost = args.time_cost
+            evaluate_autosklearn(algorithms, dataset, time_cost, seed=seed)
+        else:
+            raise ValueError('Invalid parameter: %s' % mode)
