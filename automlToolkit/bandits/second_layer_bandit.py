@@ -6,6 +6,7 @@ from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
+from automlToolkit.utils.decorators import time_limit, TimeoutException
 from automlToolkit.utils.functions import get_increasing_sequence
 
 
@@ -144,8 +145,14 @@ class SecondLayerBandit(object):
     def play_once(self):
         if self.mth == 'rb':
             self.optimize()
-            _perf = Evaluator(self.inc['hpo'], data_node=self.inc['fe'],
-                              name='fe', seed=self.seed)(self.inc['hpo'])
+            _perf = None
+            try:
+                with time_limit(300):
+                    _perf = Evaluator(
+                        self.inc['hpo'], data_node=self.inc['fe'], name='fe', seed=self.seed
+                    )(self.inc['hpo'])
+            except Exception as e:
+                self.logger.error(str(e))
             if _perf is None:
                 _perf = 0.0
             self.incumbent_perf = max(_perf, self.incumbent_perf)
