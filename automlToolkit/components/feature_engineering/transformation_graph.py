@@ -112,7 +112,11 @@ class TransformationGraph(object):
 
         node_id = self.node_size
         data_node._node_id = node_id
-        self.nodes.append(data_node)
+        image_node = data_node.copy_()
+        # Image node does not store the data in the graph.
+        image_node.data = None
+        image_node._node_id = node_id
+        self.nodes.append(image_node)
         self.node_size += 1
         return node_id
 

@@ -94,8 +94,6 @@ class EvaluationBasedOptimizer(Optimizer):
 
         self.logger.debug('=' * 50)
         self.logger.info('Start %d-th FE iteration.' % self.iteration_id)
-        if self.iteration_id == 100:
-            print(self.iteration_id)
 
         # Limit the maximum depth in graph.
         # Avoid the too complex features.

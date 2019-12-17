@@ -11,12 +11,17 @@ from automlToolkit.utils.functions import get_increasing_sequence
 
 class SecondLayerBandit(object):
     def __init__(self, classifier_id: str, data: DataNode,
-                 share_fe=False, output_dir='logs', per_run_time_limit=300, seed=1):
+                 share_fe=False, output_dir='logs',
+                 per_run_time_limit=150, seed=1,
+                 mth='rb', sw_size=3):
+        self.per_run_time_limit = per_run_time_limit
         self.classifier_id = classifier_id
         self.original_data = data
         self.share_fe = share_fe
+        self.output_dir = output_dir
+        self.mth = mth
         self.seed = seed
-        self.sliding_window_size = 3
+        self.sliding_window_size = sw_size
         self.logger = get_logger('%s=>%s' % (__class__.__name__, classifier_id))
         np.random.seed(self.seed)
 
@@ -39,6 +44,7 @@ class SecondLayerBandit(object):
         cs = clf_class.get_hyperparameter_search_space()
         model = UnParametrizedHyperparameter("estimator", classifier_id)
         cs.add_hyperparameter(model)
+        self.config_space = cs
 
         # Build the Feature Engineering component.
         fe_evaluator = Evaluator(cs.get_default_configuration(), name='fe', seed=self.seed)
@@ -105,13 +111,49 @@ class SecondLayerBandit(object):
             self.collect_iter_stats(arm_picked, results)
             self.pull_cnt += 1
 
+    def optimize_alternatedly(self):
+        _arm = self.arms[self.pull_cnt % 2]
+        self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.classifier_id, self.pull_cnt))
+        if _arm == 'fe':
+            # Build the Feature Engineering component.
+            fe_evaluator = Evaluator(self.inc['hpo'], name='fe', seed=self.seed)
+            self.optimizer[_arm] = EvaluationBasedOptimizer(
+                self.inc['fe'], fe_evaluator,
+                self.classifier_id, self.per_run_time_limit, self.seed,
+                shared_mode=self.share_fe
+            )
+        else:
+            trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration
+            hpo_evaluator = Evaluator(self.config_space.get_default_configuration(),
+                                      data_node=self.inc['fe'],
+                                      name='hpo',
+                                      seed=self.seed)
+            self.optimizer[_arm] = SMACOptimizer(
+                hpo_evaluator, self.config_space, output_dir=self.output_dir,
+                per_run_time_limit=self.per_run_time_limit,
+                trials_per_iter=trials_per_iter // 2, seed=self.seed
+            )
+
+        results = self.optimizer[_arm].iterate()
+        if _arm == 'fe' and len(self.final_rewards) == 0:
+            self.final_rewards.append(self.optimizer['fe'].baseline_score)
+        self.collect_iter_stats(_arm, results)
+        self.action_sequence.append(_arm)
+        self.pull_cnt += 1
+
     def play_once(self):
-        self.optimize()
-        _perf = Evaluator(self.inc['hpo'], data_node=self.inc['fe'],
-                          name='fe', seed=self.seed)(self.inc['hpo'])
-        if _perf is None:
-            _perf = 0.0
-        self.incumbent_perf = max(_perf, self.incumbent_perf)
+        if self.mth == 'rb':
+            self.optimize()
+            _perf = Evaluator(self.inc['hpo'], data_node=self.inc['fe'],
+                              name='fe', seed=self.seed)(self.inc['hpo'])
+            if _perf is None:
+                _perf = 0.0
+            self.incumbent_perf = max(_perf, self.incumbent_perf)
+        elif self.mth == 'alter':
+            self.optimize_alternatedly()
+        else:
+            raise ValueError('Invalid method: %s' % self.mth)
+
         self.final_rewards.append(self.incumbent_perf)
         return self.incumbent_perf
 
