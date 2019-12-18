@@ -71,10 +71,16 @@ class SecondLayerBandit(object):
         self.inc['hpo'] = cs.get_default_configuration()
 
     def collect_iter_stats(self, _arm, results):
+        if _arm == 'fe' and len(self.final_rewards) == 0:
+            self.incumbent_perf = self.optimizer['fe'].baseline_score
+            self.final_rewards.append(self.incumbent_perf)
+
         self.logger.info('After %d-th pulling, results: %s' % (self.pull_cnt, results))
         score, iter_cost, config = results
+
         if score is None:
             score = 0.0
+
         self.rewards[_arm].append(score)
         self.evaluation_cost[_arm].append(iter_cost)
         self.inc[_arm] = config
@@ -96,6 +102,7 @@ class SecondLayerBandit(object):
                 imp = self.incumbent_perf - self.final_rewards[-1]
             else:
                 imp = self.incumbent_perf - self.optimizer['fe'].baseline_score
+            assert imp >= 0.
             self.imp_rewards[_arm].append(imp)
 
     def prepare_optimizer(self, _arm):
@@ -134,8 +141,6 @@ class SecondLayerBandit(object):
             self.collect_iter_stats(_arm, results)
             self.pull_cnt += 1
             self.action_sequence.append(_arm)
-            if _arm == 'fe' and len(self.final_rewards) == 0:
-                self.final_rewards.append(self.optimizer['fe'].baseline_score)
         else:
             imp_values = list()
             for _arm in self.arms:
@@ -203,8 +208,7 @@ class SecondLayerBandit(object):
 
         # Execute one iteration.
         results = self.optimizer[_arm].iterate()
-        if _arm == 'fe' and len(self.final_rewards) == 0:
-            self.final_rewards.append(self.optimizer['fe'].baseline_score)
+
         self.collect_iter_stats(_arm, results)
         self.action_sequence.append(_arm)
         self.pull_cnt += 1
