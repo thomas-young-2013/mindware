@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
               'messidor_features,winequality_red,winequality_white,splice,spambase,amazon_employee'
 parser.add_argument('--datasets', type=str, default=dataset_set)
-parser.add_argument('--mode', type=str, choices=['alter', 'rb', 'plot', 'both'], default='both')
+parser.add_argument('--mode', type=str, choices=['alter', 'rb', 'alter-rb', 'plot', 'both'], default='both')
 parser.add_argument('--algo', type=str, default='random_forest')
 parser.add_argument('--time_cost', type=int, default=3600)
 parser.add_argument('--iter_num', type=int, default=100)
@@ -25,9 +25,9 @@ def evaluate_2rd_layered_bandit(mth='rb', dataset='pc4',
                                 algo='libsvm_svc',
                                 iter_num=100,
                                 time_limit=120000,
-                                seed=1):
+                                seed=1, strategy='avg'):
     raw_data = load_data(dataset, datanode_returned=True)
-    bandit = SecondLayerBandit(algo, raw_data, mth=mth, seed=seed)
+    bandit = SecondLayerBandit(algo, raw_data, mth=mth, strategy=strategy, seed=seed)
 
     _start_time = time.time()
     stats = list()
@@ -40,7 +40,11 @@ def evaluate_2rd_layered_bandit(mth='rb', dataset='pc4',
             break
         print('Iteration-%d: %.4f' % (_iter, bandit.final_rewards[-1]))
 
-    save_path = project_dir + 'data/%s_2rdlayer_mab_%s_%s_%d_%d.pkl' % (mth, dataset, algo, iter_num, time_cost)
+    if strategy == 'avg':
+        save_path = project_dir + 'data/%s_2rdlayer_mab_%s_%s_%d_%d.pkl' % (mth, dataset, algo, iter_num, time_cost)
+    else:
+        save_path = project_dir + 'data/%s_2rdlayer_mab_%s_%s_%d_%d_%s.pkl' % (
+            mth, dataset, algo, iter_num, time_cost, strategy)
     data = [bandit.final_rewards, bandit.action_sequence, bandit.evaluation_cost]
     with open(save_path, 'wb') as f:
         pickle.dump(data, f)
@@ -77,6 +81,9 @@ if __name__ == "__main__":
         elif mode == 'rb':
             evaluate_2rd_layered_bandit(mth='rb', dataset=dataset, algo=algo,
                                         iter_num=iter_num, time_limit=time_cost, seed=seed)
+        elif mode == 'alter-rb':
+            evaluate_2rd_layered_bandit(mth='alter', dataset=dataset, algo=algo,
+                                        iter_num=iter_num, strategy='rb', time_limit=time_cost, seed=seed)
         elif mode == 'both':
             evaluate_2rd_layered_bandit(mth='alter', dataset=dataset, algo=algo,
                                         iter_num=iter_num, time_limit=time_cost, seed=seed)

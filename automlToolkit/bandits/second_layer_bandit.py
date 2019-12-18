@@ -14,13 +14,14 @@ class SecondLayerBandit(object):
     def __init__(self, classifier_id: str, data: DataNode,
                  share_fe=False, output_dir='logs',
                  per_run_time_limit=150, seed=1,
-                 mth='rb', sw_size=3):
+                 mth='rb', sw_size=3, strategy='avg'):
         self.per_run_time_limit = per_run_time_limit
         self.classifier_id = classifier_id
         self.original_data = data
         self.share_fe = share_fe
         self.output_dir = output_dir
         self.mth = mth
+        self.strategy = strategy
         self.seed = seed
         self.sliding_window_size = sw_size
         self.logger = get_logger('%s=>%s' % (__class__.__name__, classifier_id))
@@ -40,8 +41,10 @@ class SecondLayerBandit(object):
         self.final_rewards = list()
         self.incumbent_perf = -1.
         self.update_flag = dict()
+        self.imp_rewards = dict()
         for arm in self.arms:
             self.update_flag[arm] = True
+            self.imp_rewards[arm] = list()
 
         from autosklearn.pipeline.components.classification import _classifiers
         clf_class = _classifiers[classifier_id]
@@ -87,6 +90,13 @@ class SecondLayerBandit(object):
         if _arm == 'fe':
             _num_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
             self.optimizer['hpo'].trials_per_iter = max(_num_iter, 1)
+
+        if self.mth == 'alter' and self.strategy == 'rb':
+            if len(self.final_rewards) > 0:
+                imp = self.incumbent_perf - self.final_rewards[-1]
+            else:
+                imp = self.incumbent_perf - self.optimizer['fe'].baseline_score
+            self.imp_rewards[_arm].append(imp)
 
     def prepare_optimizer(self, _arm):
         if _arm == 'fe':
@@ -139,7 +149,8 @@ class SecondLayerBandit(object):
             self.logger.debug('Imp values: %s' % imp_values)
             if imp_values[0] == imp_values[1]:
                 # Break ties randomly.
-                arm_picked = np.random.choice(self.arms, 1)[0]
+                # arm_picked = np.random.choice(self.arms, 1)[0]
+                arm_picked = 'fe' if self.action_sequence[-1] == 'hpo' else 'hpo'
             else:
                 arm_picked = self.arms[np.argmax(imp_values)]
             self.action_sequence.append(arm_picked)
@@ -149,35 +160,48 @@ class SecondLayerBandit(object):
             self.collect_iter_stats(arm_picked, results)
             self.pull_cnt += 1
 
-    def optimize_alternatedly(self):
-        _arm = self.arms[self.pull_cnt % 2]
-        self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.classifier_id, self.pull_cnt))
-        if _arm == 'fe':
-            if self.update_flag[_arm] is True:
-                # Build the Feature Engineering component.
-                fe_evaluator = Evaluator(self.inc['hpo'], name='fe', seed=self.seed)
-                self.optimizer[_arm] = EvaluationBasedOptimizer(
-                    self.inc['fe'], fe_evaluator,
-                    self.classifier_id, self.per_run_time_limit, self.seed,
-                    shared_mode=self.share_fe
-                )
-            else:
-                self.logger.info('No improvement on HPO, so use the old FE optimizer!')
+    def choose_arm(self):
+        # First pull each arm #sliding_window_size times.
+        if self.pull_cnt < len(self.arms) * self.sliding_window_size:
+            arm_picked = self.arms[self.pull_cnt % 2]
+            # if _arm == 'fe' and len(self.final_rewards) == 0:
+            #     self.final_rewards.append(self.optimizer['fe'].baseline_score)
         else:
-            if self.update_flag[_arm] is True:
-                trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration
-                hpo_evaluator = Evaluator(self.config_space.get_default_configuration(),
-                                          data_node=self.inc['fe'],
-                                          name='hpo',
-                                          seed=self.seed)
-                self.optimizer[_arm] = SMACOptimizer(
-                    hpo_evaluator, self.config_space, output_dir=self.output_dir,
-                    per_run_time_limit=self.per_run_time_limit,
-                    trials_per_iter=trials_per_iter // 2, seed=self.seed
-                )
-            else:
-                self.logger.info('No improvement on FE, so use the old HPO optimizer!')
+            imp_values = list()
+            for _arm in self.arms:
+                if self.mth == 'rb':
+                    increasing_rewards = get_increasing_sequence(self.rewards[_arm])
+                    impv = list()
+                    for idx in range(1, len(increasing_rewards)):
+                        impv.append(increasing_rewards[idx] - increasing_rewards[idx - 1])
+                    imp_values.append(np.mean(impv[-self.sliding_window_size:]))
+                elif self.mth == 'alter' and self.strategy == 'rb':
+                    imp_values.append(np.mean(self.imp_rewards[_arm][-self.sliding_window_size:]))
+                else:
+                    raise ValueError('Invalid parameters!')
 
+            self.logger.info('Imp values: %s' % imp_values)
+            if imp_values[0] == imp_values[1]:
+                # Break ties randomly.
+                self.logger.info('Same Imp values: %s' % imp_values)
+                arm_picked = 'fe' if self.action_sequence[-1] == 'hpo' else 'hpo'
+                # arm_picked = np.random.choice(self.arms, 1)[0]
+            else:
+                self.logger.info('Different Imp values: %s' % imp_values)
+                arm_picked = self.arms[np.argmax(imp_values)]
+        return arm_picked
+
+    def optimize_alternatedly(self):
+        # First choose one arm.
+        if self.strategy == 'avg':
+            _arm = self.arms[self.pull_cnt % 2]
+        else:
+            _arm = self.choose_arm()
+        self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.classifier_id, self.pull_cnt))
+
+        self.prepare_optimizer(_arm)
+
+        # Execute one iteration.
         results = self.optimizer[_arm].iterate()
         if _arm == 'fe' and len(self.final_rewards) == 0:
             self.final_rewards.append(self.optimizer['fe'].baseline_score)
