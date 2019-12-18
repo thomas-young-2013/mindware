@@ -90,8 +90,14 @@ if __name__ == "__main__":
             evaluate_2rd_layered_bandit(mth='rb', dataset=dataset, algo=algo,
                                         iter_num=iter_num, time_limit=time_cost, seed=seed)
         else:
-            for mth in ['rb', 'alter']:
-                save_path = project_dir + 'data/%s_2rdlayer_mab_%s_%s_%d_%d.pkl' % (mth, dataset, algo, iter_num, time_cost)
+            for mth in ['rb', 'alter', 'alter-rb']:
+                if mth != 'alter-rb':
+                    save_path = project_dir + 'data/%s_2rdlayer_mab_%s_%s_%d_%d.pkl' % \
+                                (mth, dataset, algo, iter_num, time_cost)
+                else:
+                    strategy = 'rb'
+                    save_path = project_dir + 'data/%s_2rdlayer_mab_%s_%s_%d_%d_%s.pkl' % (
+                        mth, dataset, algo, iter_num, time_cost, strategy)
                 if not os.path.exists(save_path):
                     continue
                 with open(save_path, 'rb') as f:
