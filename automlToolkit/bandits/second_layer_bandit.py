@@ -39,6 +39,9 @@ class SecondLayerBandit(object):
         self.action_sequence = list()
         self.final_rewards = list()
         self.incumbent_perf = -1.
+        self.update_flag = dict()
+        for arm in self.arms:
+            self.update_flag[arm] = True
 
         from autosklearn.pipeline.components.classification import _classifiers
         clf_class = _classifiers[classifier_id]
@@ -74,9 +77,43 @@ class SecondLayerBandit(object):
         self.inc[_arm] = config
         self.incumbent_perf = max(score, self.incumbent_perf)
 
+        for arm_id in self.arms:
+            self.update_flag[arm_id] = False
+
+        if self.final_rewards[-1] < self.incumbent_perf:
+            arm_id = 'fe' if _arm == 'hpo' else 'hpo'
+            self.update_flag[arm_id] = True
+
         if _arm == 'fe':
             _num_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
             self.optimizer['hpo'].trials_per_iter = max(_num_iter, 1)
+
+    def prepare_optimizer(self, _arm):
+        if _arm == 'fe':
+            if self.update_flag[_arm] is True:
+                # Build the Feature Engineering component.
+                fe_evaluator = Evaluator(self.inc['hpo'], name='fe', seed=self.seed)
+                self.optimizer[_arm] = EvaluationBasedOptimizer(
+                    self.inc['fe'], fe_evaluator,
+                    self.classifier_id, self.per_run_time_limit, self.seed,
+                    shared_mode=self.share_fe
+                )
+            else:
+                self.logger.info('No improvement on HPO, so use the old FE optimizer!')
+        else:
+            if self.update_flag[_arm] is True:
+                trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration
+                hpo_evaluator = Evaluator(self.config_space.get_default_configuration(),
+                                          data_node=self.inc['fe'],
+                                          name='hpo',
+                                          seed=self.seed)
+                self.optimizer[_arm] = SMACOptimizer(
+                    hpo_evaluator, self.config_space, output_dir=self.output_dir,
+                    per_run_time_limit=self.per_run_time_limit,
+                    trials_per_iter=trials_per_iter // 2, seed=self.seed
+                )
+            else:
+                self.logger.info('No improvement on FE, so use the old HPO optimizer!')
 
     def optimize(self):
         # First pull each arm #sliding_window_size times.
@@ -100,7 +137,7 @@ class SecondLayerBandit(object):
                 imp_values.append(np.mean(impv[-self.sliding_window_size:]))
 
             self.logger.debug('Imp values: %s' % imp_values)
-            if np.sum(imp_values) == 0:
+            if imp_values[0] == imp_values[1]:
                 # Break ties randomly.
                 arm_picked = np.random.choice(self.arms, 1)[0]
             else:
@@ -116,24 +153,30 @@ class SecondLayerBandit(object):
         _arm = self.arms[self.pull_cnt % 2]
         self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.classifier_id, self.pull_cnt))
         if _arm == 'fe':
-            # Build the Feature Engineering component.
-            fe_evaluator = Evaluator(self.inc['hpo'], name='fe', seed=self.seed)
-            self.optimizer[_arm] = EvaluationBasedOptimizer(
-                self.inc['fe'], fe_evaluator,
-                self.classifier_id, self.per_run_time_limit, self.seed,
-                shared_mode=self.share_fe
-            )
+            if self.update_flag[_arm] is True:
+                # Build the Feature Engineering component.
+                fe_evaluator = Evaluator(self.inc['hpo'], name='fe', seed=self.seed)
+                self.optimizer[_arm] = EvaluationBasedOptimizer(
+                    self.inc['fe'], fe_evaluator,
+                    self.classifier_id, self.per_run_time_limit, self.seed,
+                    shared_mode=self.share_fe
+                )
+            else:
+                self.logger.info('No improvement on HPO, so use the old FE optimizer!')
         else:
-            trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration
-            hpo_evaluator = Evaluator(self.config_space.get_default_configuration(),
-                                      data_node=self.inc['fe'],
-                                      name='hpo',
-                                      seed=self.seed)
-            self.optimizer[_arm] = SMACOptimizer(
-                hpo_evaluator, self.config_space, output_dir=self.output_dir,
-                per_run_time_limit=self.per_run_time_limit,
-                trials_per_iter=trials_per_iter // 2, seed=self.seed
-            )
+            if self.update_flag[_arm] is True:
+                trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration
+                hpo_evaluator = Evaluator(self.config_space.get_default_configuration(),
+                                          data_node=self.inc['fe'],
+                                          name='hpo',
+                                          seed=self.seed)
+                self.optimizer[_arm] = SMACOptimizer(
+                    hpo_evaluator, self.config_space, output_dir=self.output_dir,
+                    per_run_time_limit=self.per_run_time_limit,
+                    trials_per_iter=trials_per_iter // 2, seed=self.seed
+                )
+            else:
+                self.logger.info('No improvement on FE, so use the old HPO optimizer!')
 
         results = self.optimizer[_arm].iterate()
         if _arm == 'fe' and len(self.final_rewards) == 0:
