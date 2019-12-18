@@ -80,7 +80,7 @@ class SecondLayerBandit(object):
         for arm_id in self.arms:
             self.update_flag[arm_id] = False
 
-        if self.final_rewards[-1] < self.incumbent_perf:
+        if len(self.final_rewards) > 0 and self.final_rewards[-1] < self.incumbent_perf:
             arm_id = 'fe' if _arm == 'hpo' else 'hpo'
             self.update_flag[arm_id] = True
 
