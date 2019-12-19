@@ -21,7 +21,7 @@ def cross_validation(clf, X, y, n_fold=5, shuffle=True, random_state=1):
 
 def holdout_validation(clf, X, y, test_size=0.2, random_state=1):
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=test_size, random_state=random_state)
+        X, y, test_size=test_size, random_state=random_state, stratify=y)
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
     return accuracy_score(y_test, y_pred)

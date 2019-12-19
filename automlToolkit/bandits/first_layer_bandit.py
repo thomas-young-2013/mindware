@@ -45,7 +45,8 @@ class FirstLayerBandit(object):
                 arm, data, output_dir=output_dir,
                 per_run_time_limit=per_run_time_limit,
                 share_fe=self.shared_mode,
-                seed=self.seed
+                seed=self.seed,
+                dataset_id=dataset_name
             )
 
         self.action_sequence = list()
