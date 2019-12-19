@@ -111,8 +111,8 @@ if __name__ == "__main__":
                 results = list()
                 for seed in seeds:
                     save_folder = project_dir + 'data/2rdlayer-mab/'
-                    file_path = save_folder + '%s-%d_2rdlayer-mab_%s_%s_%d_%d.pkl' % (
-                        mth, seed, dataset, algo, iter_num, time_cost)
+                    file_path = save_folder + '%s-%d_2rdlayer-mab_%s_%s_%d_%d_%s.pkl' % (
+                        mth, seed, dataset, algo, iter_num, time_cost, cv)
                     if not os.path.exists(file_path):
                         continue
                     with open(file_path, 'rb') as f:
