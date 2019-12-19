@@ -41,10 +41,11 @@ def evaluate_2rd_layered_bandit(mth='rb', dataset='pc4',
         print('Iteration-%d: %.4f' % (_iter, bandit.final_rewards[-1]))
 
     if strategy == 'avg':
-        save_path = project_dir + 'data/%s_2rdlayer_mab_%s_%s_%d_%d.pkl' % (mth, dataset, algo, iter_num, time_cost)
+        save_path = project_dir + 'data/%s_2rdlayer_mab_%s_%s_%d_%d_%d.pkl' % (
+            mth, dataset, algo, iter_num, time_cost, seed)
     else:
-        save_path = project_dir + 'data/%s_2rdlayer_mab_%s_%s_%d_%d_%s.pkl' % (
-            mth, dataset, algo, iter_num, time_cost, strategy)
+        save_path = project_dir + 'data/%s_2rdlayer_mab_%s_%s_%d_%d_%s_%d.pkl' % (
+            mth, dataset, algo, iter_num, time_cost, strategy, seed)
     data = [bandit.final_rewards, bandit.action_sequence, bandit.evaluation_cost]
     with open(save_path, 'wb') as f:
         pickle.dump(data, f)
