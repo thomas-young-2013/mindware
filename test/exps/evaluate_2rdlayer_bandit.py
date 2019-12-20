@@ -120,6 +120,12 @@ if __name__ == "__main__":
                     final_rewards, action_sequence, evaluation_cost, _ = data
                     results.append(final_rewards)
                 if len(results) == len(seeds):
+                    for item in results:
+                        cur_num = len(item)
+                        if cur_num < 1 + iter_num:
+                            item.extend([item[-1]] * (1+iter_num - cur_num))
+                        assert len(item) == iter_num + 1
+
                     mean_values = np.mean(results, axis=0)
                     std_value = np.std(np.asarray(results)[:, -1])
                     row_data.append('%.2f%%' % (100*mean_values[-1]))
