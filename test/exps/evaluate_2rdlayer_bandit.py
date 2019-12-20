@@ -10,7 +10,7 @@ from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 from automlToolkit.datasets.utils import load_data
 
 parser = argparse.ArgumentParser()
-dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,vehicle,yeast' \
+dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,vehicle,yeast,' \
               'messidor_features,winequality_red,winequality_white,splice,spambase,amazon_employee'
 parser.add_argument('--datasets', type=str, default=dataset_set)
 parser.add_argument('--mode', type=str, choices=['alter', 'rb', 'alter-rb', 'plot', 'all'], default='both')
