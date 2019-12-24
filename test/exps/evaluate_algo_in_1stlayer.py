@@ -38,7 +38,10 @@ def evaluate_1stlayer_bandit(run_id, opt_algo, algorithms, dataset='credit', tri
     print(bandit.action_sequence)
     time_cost = time.time() - _start_time
 
-    save_path = project_dir + 'data/eval_1st_mab_%s_%s_%d_%d_%d.pkl' % (
+    save_folder = project_dir + 'data/1stlayer-mab/'
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder)
+    save_path = save_folder + 'eval_1st_mab_%s_%s_%d_%d_%d.pkl' % (
         opt_algo, dataset, run_id, trial_num, len(algorithms))
     with open(save_path, 'wb') as f:
         data = [bandit.final_rewards, bandit.time_records, bandit.action_sequence, time_cost]
@@ -83,7 +86,8 @@ if __name__ == "__main__":
             for mth in ['explore_first', 'exp3']:
                 results = list()
                 for run_id in range(rep_num):
-                    file_path = project_dir + 'data/eval_1st_mab_%s_%s_%d_%d_%d.pkl' % (
+                    save_folder = project_dir + 'data/1stlayer-mab/'
+                    file_path = save_folder + 'eval_1st_mab_%s_%s_%d_%d_%d.pkl' % (
                         mth, dataset, run_id, trial_num, len(algorithms))
                     if not os.path.exists(file_path):
                         continue
