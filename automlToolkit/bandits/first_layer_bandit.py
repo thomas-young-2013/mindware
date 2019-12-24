@@ -60,7 +60,43 @@ class FirstLayerBandit(object):
     def update_global_datanodes(self, arm):
         self.fe_datanodes[arm] = self.sub_bandits[arm].fetch_local_incumbents()
 
-    def optimize(self):
+    def optimize(self, strategy='explore_first'):
+        if strategy == 'explore_first':
+            self.optimize_explore_first()
+        elif strategy == 'exp3':
+            self.optimize_exp3()
+        else:
+            raise ValueError('Unsupported optimization method: %s!' % strategy)
+
+    def optimize_exp3(self):
+        # Initialize the parameters.
+        K = len(self.arms)
+        p_distri = np.ones(K) / K
+        estimated_cumulative_loss = np.zeros(K)
+
+        for iter_id in range(1, 1 + self.trial_num):
+            eta = np.sqrt(np.log(K) / (iter_id*K))
+            # Draw an arm according to p distribution.
+            arm_idx = np.random.choice(K, 1, p=p_distri)[0]
+            _arm = self.arms[arm_idx]
+
+            self.logger.info('PULLING %s in %d-th round' % (_arm, iter_id))
+            reward = self.sub_bandits[_arm].play_once()
+            self.rewards[_arm].append(reward)
+            self.action_sequence.append(_arm)
+            self.final_rewards.append(reward)
+            self.time_records.append(time.time() - self.start_time)
+            self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
+
+            loss = 1. - reward
+            estimated_loss = loss / p_distri[arm_idx]
+            estimated_cumulative_loss[arm_idx] += estimated_loss
+            # Update the probability distribution over arms.
+            tmp_weights = np.exp(-eta*estimated_cumulative_loss)
+            p_distri = tmp_weights/np.sum(tmp_weights)
+        return self.rewards
+
+    def optimize_explore_first(self):
         # Initialize the parameters.
         arm_num = len(self.arms)
         arm_candidate = self.arms.copy()
