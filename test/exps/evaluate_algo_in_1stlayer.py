@@ -31,6 +31,7 @@ def evaluate_1stlayer_bandit(run_id, opt_algo, algorithms, dataset='credit', tri
                               output_dir='logs',
                               per_run_time_limit=per_run_time_limit,
                               dataset_name=dataset,
+                              eval_type='holdout',
                               seed=seed)
     bandit.optimize(strategy=opt_algo)
     print(bandit.final_rewards)

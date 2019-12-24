@@ -12,6 +12,7 @@ class FirstLayerBandit(object):
                  per_run_time_limit=300, output_dir=None,
                  dataset_name='default_dataset_name',
                  tmp_directory='logs',
+                 eval_type='cv',
                  share_feature=False, logging_config=None, seed=1):
         self.original_data = data
         self.trial_num = trial_num
@@ -46,6 +47,7 @@ class FirstLayerBandit(object):
                 per_run_time_limit=per_run_time_limit,
                 share_fe=self.shared_mode,
                 seed=self.seed,
+                eval_type=eval_type,
                 dataset_id=dataset_name
             )
 
