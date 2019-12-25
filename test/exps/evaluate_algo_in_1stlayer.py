@@ -8,6 +8,7 @@ import numpy as np
 sys.path.append(os.getcwd())
 from automlToolkit.datasets.utils import load_data
 from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
+from automlToolkit.utils.functions import get_increasing_sequence
 
 parser = argparse.ArgumentParser()
 dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \
@@ -96,11 +97,16 @@ if __name__ == "__main__":
                     final_rewards, action_sequence, evaluation_cost, _ = data
                     results.append(final_rewards)
                 if len(results) == rep_num:
+                    array = list()
                     for item in results:
-                        assert len(item) == trial_num
+                        item = get_increasing_sequence(item)
+                        if len(item) < trial_num+1:
+                            item.extend([item[-1]] * (1+trial_num - len(item)))
+                        assert len(item) == trial_num + 1
+                        array.append(item)
 
-                    mean_values = np.mean(results, axis=0)
-                    std_value = np.std(np.asarray(results)[:, -1])
+                    mean_values = np.mean(array, axis=0)
+                    std_value = np.std(np.asarray(array)[:, -1])
                     row_data.append('%.2f%%' % (100 * mean_values[-1]))
                     row_data.append('%.4f' % std_value)
                     print('=' * 30)
