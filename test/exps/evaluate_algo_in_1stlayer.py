@@ -102,6 +102,7 @@ if __name__ == "__main__":
                         item = get_increasing_sequence(item)
                         if len(item) < trial_num+1:
                             item.extend([item[-1]] * (1+trial_num - len(item)))
+                        item = item[:trial_num+1]
                         assert len(item) == trial_num + 1
                         array.append(item)
 

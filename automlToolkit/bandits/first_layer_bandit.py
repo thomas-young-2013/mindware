@@ -67,8 +67,116 @@ class FirstLayerBandit(object):
             self.optimize_explore_first()
         elif strategy == 'exp3':
             self.optimize_exp3()
+        elif strategy == 'sw_ucb':
+            self.optimize_sw_ucb()
+        elif strategy == 'discounted_ucb':
+            self.optimize_discounted_ucb()
         else:
             raise ValueError('Unsupported optimization method: %s!' % strategy)
+
+    def optimize_sw_ucb(self):
+        # Initialize the parameters.
+        K = len(self.arms)
+        N_t = np.zeros(K)
+        X_t = np.zeros(K)
+        c_t = np.zeros(K)
+        gamma = 0.9
+        tau = 2 * K
+        B = 0.1
+        epsilon = 0.1
+        action_ids = list()
+
+        for iter_id in range(1, 1 + self.trial_num):
+            if iter_id <= K:
+                arm_idx = iter_id-1
+                _arm = self.arms[arm_idx]
+            else:
+                # Choose the arm according to SW-UCB.
+                sw = np.max([0, iter_id - tau + 1])
+                _action_ids, _rewards = action_ids[sw:], self.final_rewards[sw:]
+                _It = np.zeros(K)
+                for id in range(K):
+                    past_rewards = [item for idx, item in zip(_action_ids, _rewards) if idx == id]
+                    X_sum = 0. if len(past_rewards) == 0 else np.sum(past_rewards)
+                    X_t[id] = 1./N_t[id] * X_sum
+                    c = np.log(np.min([iter_id, tau]))
+                    c_t[id] = B * np.sqrt(epsilon * c / N_t[id])
+                    _It[id] = X_t[id] + c_t[id]
+                arm_idx = np.argmax(_It)
+                _arm = self.arms[arm_idx]
+
+                l1 = '\nIn the %d-th iteration: ' % iter_id
+                l1 += '\nX_t: %s' % str(X_t)
+                l1 += '\nc_t: %s' % str(c_t)
+                l1 += '\nI_t: %s\n' % str(_It)
+                self.logger.info(l1)
+
+            action_ids.append(arm_idx)
+            self.logger.info('PULLING %s in %d-th round' % (_arm, iter_id))
+            reward = self.sub_bandits[_arm].play_once()
+
+            self.rewards[_arm].append(reward)
+            self.action_sequence.append(_arm)
+            self.final_rewards.append(reward)
+            self.time_records.append(time.time() - self.start_time)
+            self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
+
+            # Update N_t.
+            for id in range(K):
+                N_t[id] = N_t[id] * gamma
+                if id == arm_idx:
+                    N_t[id] += 1
+
+        return self.rewards
+
+    def optimize_discounted_ucb(self):
+        # Initialize the parameters.
+        K = len(self.arms)
+        N_t = np.zeros(K)
+        X_t = np.zeros(K)
+        X_ac = np.zeros(K)
+        c_t = np.zeros(K)
+        gamma = 0.95
+        B = 0.1
+        epsilon = 0.1
+
+        for iter_id in range(1, 1 + self.trial_num):
+            if iter_id <= K:
+                arm_idx = iter_id-1
+                _arm = self.arms[arm_idx]
+            else:
+                # Choose the arm according to D-UCB.
+                _It = np.zeros(K)
+                n_t = np.sum(N_t)
+                for id in range(K):
+                    X_t[id] = 1./N_t[id] * X_ac[id]
+                    c_t[id] = 2 * B * np.sqrt(epsilon * np.log(n_t) / N_t[id])
+                    _It[id] = X_t[id] + c_t[id]
+                arm_idx = np.argmax(_It)
+                _arm = self.arms[arm_idx]
+
+                l1 = '\nIn the %d-th iteration: ' % iter_id
+                l1 += '\nX_t: %s' % str(X_t)
+                l1 += '\nc_t: %s' % str(c_t)
+                l1 += '\nI_t: %s\n' % str(_It)
+                self.logger.info(l1)
+
+            self.logger.info('PULLING %s in %d-th round' % (_arm, iter_id))
+            reward = self.sub_bandits[_arm].play_once()
+
+            self.rewards[_arm].append(reward)
+            self.action_sequence.append(_arm)
+            self.final_rewards.append(reward)
+            self.time_records.append(time.time() - self.start_time)
+            self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
+
+            # Update N_t.
+            for id in range(K):
+                N_t[id] *= gamma
+                X_ac[id] *= gamma
+                if id == arm_idx:
+                    N_t[id] += 1
+                    X_ac[id] += reward
 
     def optimize_exp3(self):
         # Initialize the parameters.
