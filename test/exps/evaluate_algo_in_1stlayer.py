@@ -19,6 +19,7 @@ parser.add_argument('--mode', type=str, choices=['plot', 'exp'], default='exp')
 parser.add_argument('--algo_num', type=int, default=8)
 parser.add_argument('--trial_num', type=int, default=100)
 parser.add_argument('--seed', type=int, default=1)
+parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--rep_num', type=int, default=10)
 
 project_dir = './'
@@ -57,10 +58,11 @@ if __name__ == "__main__":
     algo_num = args.algo_num
     trial_num = args.trial_num
     methods = args.methods.split(',')
+    start_id = args.start_id
     rep_num = args.rep_num
     mode = args.mode
     np.random.seed(args.seed)
-    seeds = np.random.randint(low=1, high=10000, size=args.rep_num)
+    seeds = np.random.randint(low=1, high=10000, size=start_id + args.rep_num)
 
     algorithms = ['k_nearest_neighbors', 'libsvm_svc', 'random_forest', 'adaboost']
     if algo_num == 8:
@@ -71,7 +73,7 @@ if __name__ == "__main__":
 
     if mode == 'exp':
         for dataset in dataset_list:
-            for _id in range(rep_num):
+            for _id in range(start_id, start_id + rep_num):
                 for method in methods:
                     time_cost = evaluate_1stlayer_bandit(
                         _id, method, algorithms,
@@ -80,11 +82,11 @@ if __name__ == "__main__":
                         seed=seeds[_id]
                     )
     else:
-        headers = ['dataset', 'explore_first_mu', 'explore_first_var', 'exp3_mu', 'exp3_var']
+        headers = ['dataset', 'explore_first_mu', 'explore_first_var', 'exp3_mu', 'exp3_var', 'ducb_mu', 'ducb_var']
         tbl_data = list()
         for dataset in dataset_list:
             row_data = [dataset]
-            for mth in ['explore_first', 'exp3']:
+            for mth in ['explore_first', 'exp3', 'discounted_ucb']:
                 results = list()
                 for run_id in range(rep_num):
                     save_folder = project_dir + 'data/1stlayer-mab/'
