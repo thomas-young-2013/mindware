@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser()
 dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \
               'ionosphere,lymphography,messidor_features,winequality_red'
 parser.add_argument('--datasets', type=str, default=dataset_set)
-parser.add_argument('--methods', type=str, default='explore_first,exp3')
+parser.add_argument('--B', type=str, default='0.01,0.003,0.001,0.03')
 parser.add_argument('--mode', type=str, choices=['plot', 'exp'], default='exp')
 parser.add_argument('--algo_num', type=int, default=8)
 parser.add_argument('--trial_num', type=int, default=100)
@@ -26,7 +26,7 @@ project_dir = './'
 per_run_time_limit = 150
 
 
-def evaluate_1stlayer_bandit(run_id, opt_algo, algorithms, dataset='credit', trial_num=200, seed=1):
+def evaluate_1stlayer_bandit(run_id, B, algorithms, dataset='credit', trial_num=200, seed=1):
     _start_time = time.time()
     raw_data = load_data(dataset, datanode_returned=True)
     bandit = FirstLayerBandit(trial_num, algorithms, raw_data,
@@ -35,7 +35,8 @@ def evaluate_1stlayer_bandit(run_id, opt_algo, algorithms, dataset='credit', tri
                               dataset_name=dataset,
                               eval_type='holdout',
                               seed=seed)
-    bandit.optimize(strategy=opt_algo)
+    bandit.B = B
+    bandit.optimize(strategy='discounted_ucb')
     print(bandit.final_rewards)
     print(bandit.action_sequence)
     time_cost = time.time() - _start_time
@@ -43,8 +44,8 @@ def evaluate_1stlayer_bandit(run_id, opt_algo, algorithms, dataset='credit', tri
     save_folder = project_dir + 'data/1stlayer-mab/'
     if not os.path.exists(save_folder):
         os.makedirs(save_folder)
-    save_path = save_folder + 'eval_1st_mab_%s_%s_%d_%d_%d.pkl' % (
-        opt_algo, dataset, run_id, trial_num, len(algorithms))
+    save_path = save_folder + 'eval_ducb_%.4f_%s_%d_%d_%d.pkl' % (
+        B, dataset, run_id, trial_num, len(algorithms))
     with open(save_path, 'wb') as f:
         data = [bandit.final_rewards, bandit.time_records, bandit.action_sequence, time_cost]
         pickle.dump(data, f)
@@ -57,7 +58,7 @@ if __name__ == "__main__":
     dataset_str = args.datasets
     algo_num = args.algo_num
     trial_num = args.trial_num
-    methods = args.methods.split(',')
+    bs = [float(item) for item in args.B.split(',')]
     start_id = args.start_id
     rep_num = args.rep_num
     mode = args.mode
@@ -74,29 +75,30 @@ if __name__ == "__main__":
     if mode == 'exp':
         for dataset in dataset_list:
             for _id in range(start_id, start_id + rep_num):
-                for method in methods:
+                for _B in bs:
                     time_cost = evaluate_1stlayer_bandit(
-                        _id, method, algorithms,
+                        _id, _B, algorithms,
                         dataset=dataset,
                         trial_num=trial_num,
                         seed=seeds[_id]
                     )
     else:
         headers = ['dataset']
-        for mth in methods:
-            headers.extend(['%s_mu' % mth, '%s_var' % mth])
+        for _B in bs:
+            headers.append('%.4f_mu' % _B)
+            headers.append('%.4f_var' % _B)
         tbl_data = list()
         for dataset in dataset_list:
             row_data = [dataset]
-            for mth in methods:
+            for _B in bs:
                 results = list()
                 for run_id in range(rep_num):
                     save_folder = project_dir + 'data/1stlayer-mab/'
-                    file_path = save_folder + 'eval_1st_mab_%s_%s_%d_%d_%d.pkl' % (
-                        mth, dataset, run_id, trial_num, len(algorithms))
-                    if not os.path.exists(file_path):
+                    save_path = save_folder + 'eval_ducb_%.4f_%s_%d_%d_%d.pkl' % (
+                        _B, dataset, run_id, trial_num, len(algorithms))
+                    if not os.path.exists(save_path):
                         continue
-                    with open(file_path, 'rb') as f:
+                    with open(save_path, 'rb') as f:
                         data = pickle.load(f)
                     final_rewards, action_sequence, evaluation_cost, _ = data
                     results.append(final_rewards)
@@ -115,7 +117,7 @@ if __name__ == "__main__":
                     row_data.append('%.2f%%' % (100 * mean_values[-1]))
                     row_data.append('%.4f' % std_value)
                     print('=' * 30)
-                    print('%s-%s: %.2f%%' % (dataset, mth, 100 * mean_values[-1]))
+                    print('%s-%.4f: %.2f%%' % (dataset, _B, 100 * mean_values[-1]))
                     print('-' * 30)
                     print(mean_values)
                     print('=' * 30)

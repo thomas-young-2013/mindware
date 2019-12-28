@@ -17,6 +17,7 @@ class FirstLayerBandit(object):
         self.original_data = data
         self.trial_num = trial_num
         self.alpha = 4
+        self.B = 0.01
         self.seed = seed
         self.shared_mode = share_feature
         np.random.seed(self.seed)
@@ -137,8 +138,9 @@ class FirstLayerBandit(object):
         X_ac = np.zeros(K)
         c_t = np.zeros(K)
         gamma = 0.95
-        B = 0.1
-        epsilon = 0.1
+        # 0.1 0.1
+        B = self.B
+        epsilon = 1.
 
         for iter_id in range(1, 1 + self.trial_num):
             if iter_id <= K:
