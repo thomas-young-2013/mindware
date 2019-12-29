@@ -1,6 +1,7 @@
 import os
 import time
 import numpy as np
+from scipy.stats import norm
 from typing import List
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode, TransformationGraph
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
@@ -72,8 +73,55 @@ class FirstLayerBandit(object):
             self.optimize_sw_ucb()
         elif strategy == 'discounted_ucb':
             self.optimize_discounted_ucb()
+        elif strategy == 'sw_ts':
+            self.optimize_sw_ts()
         else:
             raise ValueError('Unsupported optimization method: %s!' % strategy)
+
+    def optimize_sw_ts(self):
+        K = len(self.arms)
+        C = 4
+        # Initialize the parameters.
+        params = [0, 1] * K
+        arm_cnts = np.zeros(K)
+
+        for iter_id in range(1, 1 + self.trial_num):
+            if iter_id <= C*K:
+                arm_idx = (iter_id-1) % K
+                _arm = self.arms[arm_idx]
+            else:
+                samples = list()
+                for _id in range(K):
+                    idx = 2 * _id
+                    sample = norm.rvs(loc=params[idx], scale=params[idx+1])
+                    sample = params[idx] if sample < params[idx] else sample
+                    samples.append(sample)
+                arm_idx = np.argmax(samples)
+                _arm = self.arms[arm_idx]
+
+                l1 = '\nIn the %d-th iteration: ' % iter_id
+                l1 += '\nmu: %s' % str([val for idx, val in enumerate(params) if idx % 2 == 0])
+                l1 += '\nstd: %s' % str([val for idx, val in enumerate(params) if idx % 2 == 1])
+                l1 += '\nI_t: %s\n' % str(samples)
+                self.logger.info(l1)
+
+            arm_cnts[arm_idx] += 1
+            self.logger.info('PULLING %s in %d-th round' % (_arm, iter_id))
+            reward = self.sub_bandits[_arm].play_once()
+
+            self.rewards[_arm].append(reward)
+            self.action_sequence.append(_arm)
+            self.final_rewards.append(reward)
+            self.time_records.append(time.time() - self.start_time)
+            self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
+
+            # Update parameters in Thompson Sampling.
+            for _id in range(K):
+                _rewards = self.rewards[self.arms[_id]][-C:]
+                _mu = np.mean(_rewards)
+                _std = np.std(_rewards)
+                idx = 2 * _id
+                params[idx], params[idx+1] = _mu, _std
 
     def optimize_sw_ucb(self):
         # Initialize the parameters.
