@@ -9,6 +9,8 @@ sys.path.append(os.getcwd())
 
 from automlToolkit.datasets.utils import load_data, load_train_test_data
 from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
+from automlToolkit.components.feature_engineering.transformation_graph import DataNode
+from automlToolkit.components.evaluator import get_estimator
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
@@ -42,6 +44,26 @@ def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200
     print(dataset, bandit.score(test_raw_data))
     time_cost = time.time() - _start_time
     return time_cost
+
+
+def ensemble_implementation_examples(bandit: FirstLayerBandit, test_data: DataNode):
+    from sklearn.model_selection import train_test_split
+
+    stats = bandit.fetch_ensemble_members(test_data)
+    seed = stats['split_seed']
+    predictions = list()
+    for algo_id in bandit.arms:
+        X, y = stats[algo_id]['train_dataset'].data
+        X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, stratify=y, random_state=seed)
+        X_test, y_test = stats[algo_id]['test_dataset'].data
+
+        # TODO: Choose a subset of configurations according their corresponding performance.
+        for config in stats[algo_id]['configurations']:
+            # Build the ML estimator.
+            _, estimator = get_estimator(config)
+            print(X_train.shape, X_test.shape)
+            estimator.fit(X_train, y_train)
+            y_pred = estimator.predict(X_valid)
 
 
 if __name__ == "__main__":
