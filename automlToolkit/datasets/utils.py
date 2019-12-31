@@ -1,5 +1,7 @@
+from sklearn.model_selection import train_test_split
 from automlToolkit.utils.data_manager import DataManager
 from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
+from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 
 
 def load_data(dataset, proj_dir='./', datanode_returned=False):
@@ -35,3 +37,12 @@ def load_data(dataset, proj_dir='./', datanode_returned=False):
         X, y = train_data.data
         feature_types = train_data.feature_types
         return X, y, feature_types
+
+
+def load_train_test_data(dataset, proj_dir='./', test_size=0.2, random_state=45):
+    X, y, feature_type = load_data(dataset, proj_dir, False)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=random_state, stratify=y)
+    train_node = DataNode(data=[X_train, y_train], feature_type=feature_type)
+    test_node = DataNode(data=[X_test, y_test], feature_type=feature_type)
+    return train_node, test_node

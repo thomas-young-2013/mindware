@@ -6,6 +6,7 @@ from typing import List
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode, TransformationGraph
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 from automlToolkit.utils.logging_utils import setup_logger, get_logger
+from automlToolkit.components.evaluator import get_estimator
 
 
 class FirstLayerBandit(object):
@@ -25,6 +26,9 @@ class FirstLayerBandit(object):
 
         self.dataset_name = dataset_name
 
+        # Best configuration.
+        self.optimal_algo_id = None
+
         # Set up backend.
         self.tmp_directory = tmp_directory
         self.logging_config = logging_config
@@ -34,6 +38,7 @@ class FirstLayerBandit(object):
         self.logger = self._get_logger(logger_name)
         
         # Bandit settings.
+        self.incumbent_perf = -1.
         self.arms = classifier_ids
         self.rewards = dict()
         self.sub_bandits = dict()
@@ -77,6 +82,50 @@ class FirstLayerBandit(object):
             self.optimize_sw_ts()
         else:
             raise ValueError('Unsupported optimization method: %s!' % strategy)
+
+    def fetch_ensemble_members(self, test_data: DataNode = None):
+        stats = dict()
+        stats['split_seed'] = self.seed
+        for algo_id in self.arms:
+            data = dict()
+            fe_optimizer = self.sub_bandits[algo_id].optimizer['fe']
+            hpo_optimizer = self.sub_bandits[algo_id].optimizer['hpo']
+            if test_data is not None:
+                test_data_node = fe_optimizer.apply(test_data)
+                data['test_dataset'] = test_data_node
+            data['train_dataset'] = fe_optimizer.incumbent
+            data['configurations'] = hpo_optimizer.configs
+            data['performance'] = hpo_optimizer.perfs
+            stats[algo_id] = data
+        return stats
+
+    def predict(self, test_data: DataNode):
+        best_arm = self.optimal_algo_id
+
+        # Get the best features found.
+        fe_optimizer = self.sub_bandits[best_arm].optimizer['fe']
+        train_data_node = fe_optimizer.incumbent
+        test_data_node = fe_optimizer.apply(test_data)
+
+        # Get the best configuration found.
+        hpo_optimizer = self.sub_bandits[best_arm].optimizer['hpo']
+        best_config = hpo_optimizer.incumbent_config
+
+        # Build the ML estimator.
+        _, estimator = get_estimator(best_config)
+        X_train, y_train = train_data_node.data
+        X_test, _ = test_data_node.data
+        print(X_train.shape, X_test.shape)
+        estimator.fit(X_train, y_train)
+        y_pred = estimator.predict(test_data_node.data[0])
+        return y_pred
+
+    def score(self, test_data: DataNode, metric_func=None):
+        if metric_func is None:
+            from sklearn.metrics.classification import accuracy_score
+            metric_func = accuracy_score
+        y_pred = self.predict(test_data)
+        return metric_func(test_data.data[1], y_pred)
 
     def optimize_sw_ts(self):
         K = len(self.arms)
@@ -272,6 +321,9 @@ class FirstLayerBandit(object):
                 self.action_sequence.append(_arm)
                 self.final_rewards.append(reward)
                 self.time_records.append(time.time() - self.start_time)
+                if reward > self.incumbent_perf:
+                    self.incumbent_perf = reward
+                    self.optimal_algo_id = _arm
 
                 if self.shared_mode:
                     self.update_global_datanodes(_arm)
@@ -319,6 +371,14 @@ class FirstLayerBandit(object):
                 self.logger.info('Lower bound: %s' % ','.join(['%.4f' % val for val in lower_bounds]))
                 self.logger.info('Remove Arms: %s' % [item for idx, item in enumerate(arm_candidate) if flags[idx]])
 
+                if n == 1:
+                    self.optimal_algo_id = arm_candidate[0]
+                elif n > 1:
+                    algo_idx = np.argmax(upper_bounds)
+                    self.optimal_algo_id = arm_candidate[algo_idx]
+                else:
+                    raise ValueError('The size of candidate set is zero!')
+
                 # Update the arm_candidates.
                 arm_candidate = [item for index, item in enumerate(arm_candidate) if not flags[index]]
             
@@ -335,7 +395,7 @@ class FirstLayerBandit(object):
                 global_nodes = TransformationGraph.sort_nodes_by_score(data_nodes)[:beam_size - 1]
                 for _arm in arm_candidate:
                     self.sub_bandits[_arm].sync_global_incumbents(global_nodes)
-        
+
         return self.final_rewards
 
     def _get_logger(self, name):

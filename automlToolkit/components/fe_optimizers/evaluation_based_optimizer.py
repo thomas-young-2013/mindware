@@ -131,15 +131,15 @@ class EvaluationBasedOptimizer(Optimizer):
 
                     if _score is None:
                         status = ERROR
-                    if _score is not None and _score > self.incumbent_score:
-                        self.incumbent_score = _score
-                        self.incumbent = output_node
-
-                    if _score is not None:
+                    else:
                         self.temporary_nodes.append(output_node)
                         self.graph.add_node(output_node)
-                        if transformer.type != 0:
+                        # Avoid self-loop.
+                        if transformer.type != 0 and node_.node_id != output_node.node_id:
                             self.graph.add_trans_in_graph(node_, output_node, transformer)
+                        if _score > self.incumbent_score:
+                            self.incumbent_score = _score
+                            self.incumbent = output_node
                 except Exception as e:
                     extra.append(str(e))
                     self.logger.error('%s: %s' % (transformer.name, str(e)))
