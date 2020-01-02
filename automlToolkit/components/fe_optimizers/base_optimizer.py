@@ -31,7 +31,8 @@ class Optimizer(object, metaclass=abc.ABCMeta):
 
     def apply(self, data_node: DataNode):
         path_ids = self.graph.get_path_nodes(self.incumbent)
-
+        self.logger.info('The path ids: %s' % str(path_ids))
+        print(path_ids)
         inputnode = self.graph.get_node(path_ids[0])
         inputnode.set_values(data_node)
 

@@ -26,10 +26,7 @@ if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
 
-def evaluate_tpot(dataset, run_id, time_limit, seed=1, use_fe=True):
-    n_job = args.n_job
-    # Construct the ML model.
-    config = None
+def evaluate_hpsklearn(dataset, run_id, time_limit, seed=1):
     from automlToolkit.utils.hpsklearn_config import tpe_classifier
 
     # TODO: Specify max_evals
@@ -75,4 +72,4 @@ if __name__ == "__main__":
     for dataset in dataset_list:
         for run_id in range(start_id, start_id + rep):
             seed = int(seeds[run_id])
-            evaluate_tpot(dataset, run_id, time_limit, seed)
+            evaluate_hpsklearn(dataset, run_id, time_limit, seed)
