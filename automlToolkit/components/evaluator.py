@@ -1,12 +1,12 @@
 import time
 import numpy as np
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.model_selection import StratifiedKFold, train_test_split, StratifiedShuffleSplit
 from automlToolkit.utils.logging_utils import get_logger
 
 
 def cross_validation(clf, X, y, n_fold=5, shuffle=True, random_state=1):
-    kfold = StratifiedKFold(n_splits=n_fold, random_state=random_state, shuffle=shuffle)
+    kfold = StratifiedKFold(n_splits=n_fold, random_state=1, shuffle=shuffle)
     scores = list()
     for train_idx, valid_idx in kfold.split(X, y):
         train_x = X[train_idx]
@@ -20,11 +20,15 @@ def cross_validation(clf, X, y, n_fold=5, shuffle=True, random_state=1):
 
 
 def holdout_validation(clf, X, y, test_size=0.2, random_state=1):
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=test_size, random_state=random_state, stratify=y)
-    clf.fit(X_train, y_train)
-    y_pred = clf.predict(X_test)
-    return accuracy_score(y_test, y_pred)
+    sss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=1)
+    # X_train, X_test, y_train, y_test = train_test_split(
+    #     X, y, test_size=test_size, random_state=random_state, stratify=y)
+    for train_index, test_index in sss.split(X, y):
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+        clf.fit(X_train, y_train)
+        y_pred = clf.predict(X_test)
+        return accuracy_score(y_test, y_pred)
 
 
 def get_estimator(config):
