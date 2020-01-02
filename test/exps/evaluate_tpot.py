@@ -3,7 +3,7 @@ import sys
 import pickle
 import argparse
 import numpy as np
-from tpot import TPOTClassifier
+from automlToolkit.tpot import TPOTClassifier
 from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
@@ -15,7 +15,7 @@ dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
 parser.add_argument('--datasets', type=str, default='diabetes')
 parser.add_argument('--rep_num', type=int, default=5)
 parser.add_argument('--start_id', type=int, default=0)
-parser.add_argument('--time_limit', type=int, default=10)
+parser.add_argument('--time_limit', type=int, default=600)
 parser.add_argument('--n_job', type=int, default=1)
 parser.add_argument('--seed', type=int, default=1)
 
@@ -30,14 +30,13 @@ def evaluate_tpot(dataset, run_id, time_limit, seed=1, use_fe=True):
     # Construct the ML model.
     config = None
     if not use_fe:
-        from automlToolkit.utils import classifier_config_dict
+        from automlToolkit.utils.tpot_config import classifier_config_dict
         config = classifier_config_dict
 
-    # TODO: tpot's split method needs to be modified. holdout instead of cv.
     automl = TPOTClassifier(config_dict=config, generations=10000, population_size=20,
-                            verbosity=2, n_jobs=n_job,
+                            verbosity=2, n_jobs=n_job, cv=0.2,
                             max_eval_time_mins=2.5,
-                            max_time_mins=time_limit,
+                            max_time_mins=int(time_limit / 60),
                             random_state=seed)
 
     raw_data, test_raw_data = load_train_test_data(dataset)
@@ -71,6 +70,6 @@ if __name__ == "__main__":
         dataset_list = dataset_str.split(',')
 
     for dataset in dataset_list:
-        for run_id in range(start_id, start_id+rep):
+        for run_id in range(start_id, start_id + rep):
             seed = int(seeds[run_id])
             evaluate_tpot(dataset, run_id, time_limit, seed)
