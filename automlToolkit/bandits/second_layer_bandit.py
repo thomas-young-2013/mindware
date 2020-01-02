@@ -19,7 +19,7 @@ class SecondLayerBandit(object):
         self.per_run_time_limit = per_run_time_limit
         self.classifier_id = classifier_id
         self.evaluation_type = eval_type
-        self.original_data = data
+        self.original_data = data.copy_()
         self.share_fe = share_fe
         self.output_dir = output_dir
         self.mth = mth

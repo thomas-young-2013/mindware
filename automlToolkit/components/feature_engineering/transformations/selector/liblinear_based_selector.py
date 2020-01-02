@@ -72,6 +72,7 @@ class LibLinearBasedSelector(Transformer):
         output_datanode = DataNode((new_X, y), new_feature_types, input_datanode.task_type)
         output_datanode.trans_hist = input_datanode.trans_hist.copy()
         output_datanode.trans_hist.append(self.type)
+        self.target_fields = target_fields.copy()
 
         return output_datanode
 

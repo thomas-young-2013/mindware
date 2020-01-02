@@ -44,6 +44,7 @@ class Optimizer(object, metaclass=abc.ABCMeta):
             inputnode = input_node_list[0] if len(input_node_list) == 1 else input_node_list
 
             edge = self.graph.get_edge(self.graph.input_edge_dict[node_id])
+            self.logger.info('Transformation: %s - %d' % (edge.transformer.name, edge.transformer.type))
             outputnode = edge.transformer.operate(inputnode, edge.target_fields)
             self.graph.get_node(node_id).set_values(outputnode)
         output_node = self.graph.get_node(path_ids[-1])

@@ -17,7 +17,7 @@ class FirstLayerBandit(object):
                  tmp_directory='logs',
                  eval_type='cv',
                  share_feature=False, logging_config=None, seed=1):
-        self.original_data = data
+        self.original_data = data.copy_()
         self.trial_num = trial_num
         self.alpha = 4
         self.B = 0.01
@@ -96,6 +96,7 @@ class FirstLayerBandit(object):
                     test_data_node = fe_optimizer.apply(test_data)
                     data['test_dataset'] = test_data_node
                 except Exception as e:
+                    self.logger.error('CRITICAL ERROR!')
                     self.logger.error(str(e))
                     data['test_dataset'] = test_data
                     return None
