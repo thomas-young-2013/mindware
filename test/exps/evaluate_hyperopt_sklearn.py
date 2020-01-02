@@ -3,8 +3,8 @@ import sys
 import pickle
 import argparse
 import numpy as np
-from hpsklearn import HyperoptEstimator
 from hyperopt import tpe
+from hpsklearn import HyperoptEstimator
 from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
