@@ -42,6 +42,7 @@ class SecondLayerBandit(object):
         self.action_sequence = list()
         self.final_rewards = list()
         self.incumbent_perf = -1.
+        self.incumbent_source = None
         self.update_flag = dict()
         self.imp_rewards = dict()
         for arm in self.arms:
@@ -54,6 +55,7 @@ class SecondLayerBandit(object):
         model = UnParametrizedHyperparameter("estimator", classifier_id)
         cs.add_hyperparameter(model)
         self.config_space = cs
+        self.config_space.seed(self.seed)
 
         # Build the Feature Engineering component.
         fe_evaluator = Evaluator(cs.get_default_configuration(), name='fe', resampling_strategy=self.evaluation_type, seed=self.seed)
@@ -86,7 +88,9 @@ class SecondLayerBandit(object):
         self.rewards[_arm].append(score)
         self.evaluation_cost[_arm].append(iter_cost)
         self.inc[_arm] = config
-        self.incumbent_perf = max(score, self.incumbent_perf)
+        if score > self.incumbent_perf:
+            self.incumbent_perf = score
+            self.incumbent_source = _arm
 
         for arm_id in self.arms:
             self.update_flag[arm_id] = False
@@ -229,7 +233,9 @@ class SecondLayerBandit(object):
                 self.logger.error(str(e))
             if _perf is None:
                 _perf = 0.0
-            self.incumbent_perf = max(_perf, self.incumbent_perf)
+            if _perf > self.incumbent_perf:
+                self.incumbent_source = 'both'
+                self.incumbent_perf = _perf
         elif self.mth == 'alter':
             self.optimize_alternatedly()
         else:

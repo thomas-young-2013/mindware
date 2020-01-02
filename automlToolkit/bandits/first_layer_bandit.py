@@ -3,6 +3,7 @@ import time
 import numpy as np
 from scipy.stats import norm
 from typing import List
+from sklearn.model_selection import train_test_split
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode, TransformationGraph
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 from automlToolkit.utils.logging_utils import setup_logger, get_logger
@@ -91,34 +92,77 @@ class FirstLayerBandit(object):
             fe_optimizer = self.sub_bandits[algo_id].optimizer['fe']
             hpo_optimizer = self.sub_bandits[algo_id].optimizer['hpo']
             if test_data is not None:
-                test_data_node = fe_optimizer.apply(test_data)
-                data['test_dataset'] = test_data_node
+                try:
+                    test_data_node = fe_optimizer.apply(test_data)
+                    data['test_dataset'] = test_data_node
+                except Exception as e:
+                    self.logger.error(str(e))
+                    data['test_dataset'] = test_data
+                    return None
+
             data['train_dataset'] = fe_optimizer.incumbent
             data['configurations'] = hpo_optimizer.configs
             data['performance'] = hpo_optimizer.perfs
+            inc_source = self.sub_bandits[algo_id].incumbent_source
+            if inc_source == 'hpo':
+                data['train_dataset'] = self.original_data
+                if test_data is not None:
+                    data['test_dataset'] = test_data
+            data['inc_source'] = inc_source
+
             stats[algo_id] = data
         return stats
 
-    def predict(self, test_data: DataNode):
+    def predict(self, test_data: DataNode, phase='test'):
+        assert phase in ['test', 'validation']
         best_arm = self.optimal_algo_id
-
+        sub_bandit = self.sub_bandits[best_arm]
         # Get the best features found.
-        fe_optimizer = self.sub_bandits[best_arm].optimizer['fe']
-        train_data_node = fe_optimizer.incumbent
-        test_data_node = fe_optimizer.apply(test_data)
-
+        fe_optimizer = sub_bandit.optimizer['fe']
         # Get the best configuration found.
-        hpo_optimizer = self.sub_bandits[best_arm].optimizer['hpo']
-        best_config = hpo_optimizer.incumbent_config
+        hpo_optimizer = sub_bandit.optimizer['hpo']
 
         # Build the ML estimator.
-        _, estimator = get_estimator(best_config)
+        inc_source = sub_bandit.incumbent_source
+        if inc_source == 'hpo':
+            test_data_node = test_data
+            train_data_node = self.original_data
+            config = hpo_optimizer.incumbent_config
+        elif inc_source == 'fe':
+            test_data_node = fe_optimizer.apply(test_data)
+            train_data_node = fe_optimizer.incumbent
+            config = sub_bandit.config_space.get_default_configuration()
+        else:
+            test_data_node = fe_optimizer.apply(test_data)
+            train_data_node = fe_optimizer.incumbent
+            config = hpo_optimizer.incumbent_config
+
+        _, estimator = get_estimator(config)
         X_train, y_train = train_data_node.data
         X_test, _ = test_data_node.data
         print(X_train.shape, X_test.shape)
+
+        if phase == 'validation':
+            X, y = train_data_node.data
+            X_train, _, y_train, _ = train_test_split(
+                X, y, test_size=0.2, random_state=self.seed, stratify=y)
+
         estimator.fit(X_train, y_train)
         y_pred = estimator.predict(test_data_node.data[0])
         return y_pred
+
+    def validate(self, metric_func=None):
+        if metric_func is None:
+            from sklearn.metrics.classification import accuracy_score
+            metric_func = accuracy_score
+
+        X, y = self.original_data.data
+        _, X_val, _, y_val = train_test_split(
+            X, y, test_size=0.2, random_state=self.seed, stratify=y)
+        valid_data = DataNode(data=[X_val, y_val], feature_type=self.original_data.feature_types.copy())
+
+        y_pred = self.predict(valid_data, phase='validation')
+        return metric_func(valid_data.data[1], y_pred)
 
     def score(self, test_data: DataNode, metric_func=None):
         if metric_func is None:
@@ -399,7 +443,7 @@ class FirstLayerBandit(object):
         return self.final_rewards
 
     def _get_logger(self, name):
-        logger_name = 'AutomlToolkit_%d_%s' % (self.seed, name)
+        logger_name = 'AutomlToolkit_%s' % name
         setup_logger(os.path.join(self.tmp_directory, '%s.log' % str(logger_name)),
                      self.logging_config,
                      )
