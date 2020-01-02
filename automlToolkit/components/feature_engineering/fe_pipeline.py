@@ -20,11 +20,11 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
                  maximum_evaluation_num=None,
                  time_limit_per_trans=600,
                  fe_enabled=True, evaluator=None, debug=False, seed=1,
-                 tmp_directory='logs', logging_config=None, model_id=None):
+                 tmp_directory='logs', logging_config=None, model_id=None, task_id='Default'):
         self.maximum_evaluation_num = maximum_evaluation_num
         self.time_budget = time_budget
         self.time_limit_per_trans = time_limit_per_trans
-
+        self.task_id = task_id
         self.fe_enabled = fe_enabled
         self.debug_enabled = debug
         self.transgraph = TransformationGraph()
@@ -126,7 +126,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
 
     def _get_logger(self, name):
         import os
-        logger_name = 'AutomlToolkit-%d:%s' % (self._seed, name)
+        logger_name = 'AutomlToolkit-%s-%d:%s' % (self.task_id, self._seed, name)
         setup_logger(os.path.join(self.tmp_directory, '%s.log' % str(logger_name)),
                      self.logging_config,
                      )

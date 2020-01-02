@@ -29,7 +29,7 @@ class EvaluationBasedOptimizer(Optimizer):
         # Parameters in beam search.
         self.hpo_batch_size = batch_size
         self.beam_width = beam_width
-        self.max_depth = 8
+        self.max_depth = 6  # old value=8
         self.trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
         # self.trans_types = [6, 7, 8, 9]
 
