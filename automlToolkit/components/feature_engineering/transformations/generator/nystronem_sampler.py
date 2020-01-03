@@ -1,7 +1,9 @@
+import scipy
 from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
     UniformIntegerHyperparameter, CategoricalHyperparameter
 from ConfigSpace.conditions import InCondition, EqualsCondition
+from sklearn.kernel_approximation import Nystroem
 from automlToolkit.components.feature_engineering.transformations.base_transformer import *
 
 
@@ -23,11 +25,17 @@ class NystronemSampler(Transformer):
     @ease_trans
     def operate(self, input_datanode, target_fields=None):
         X, y = input_datanode.data
-        X_new = X[:, target_fields]
+        X_new = X[:, target_fields].astype(np.float64)
+
+        # Because the pipeline guarantees that each feature is positive,
+        # clip all values below zero to zero
+        if self.kernel == 'chi2':
+            if scipy.sparse.issparse(X_new):
+                X_new.data[X_new.data < 0] = 0.0
+            else:
+                X_new[X_new < 0] = 0.0
 
         if not self.model:
-            import scipy
-            from sklearn.kernel_approximation import Nystroem
             n_components = min(X.shape[0], self.n_components)
 
             self.gamma = float(self.gamma)
@@ -38,14 +46,6 @@ class NystronemSampler(Transformer):
                 kernel=self.kernel, n_components=n_components,
                 gamma=self.gamma, degree=self.degree, coef0=self.coef0,
                 random_state=self.random_state)
-
-            # Because the pipeline guarantees that each feature is positive,
-            # clip all values below zero to zero
-            if self.kernel == 'chi2':
-                if scipy.sparse.issparse(X):
-                    X.data[X.data < 0] = 0.0
-                else:
-                    X[X < 0] = 0.0
 
             self.model.fit(X_new.astype(np.float64))
 
