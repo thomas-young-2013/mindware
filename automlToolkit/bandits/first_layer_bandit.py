@@ -3,7 +3,8 @@ import time
 import numpy as np
 from scipy.stats import norm
 from typing import List
-from sklearn.model_selection import train_test_split
+from sklearn.metrics.classification import accuracy_score
+from sklearn.model_selection import StratifiedShuffleSplit
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode, TransformationGraph
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 from automlToolkit.utils.logging_utils import setup_logger, get_logger
@@ -29,6 +30,8 @@ class FirstLayerBandit(object):
 
         # Best configuration.
         self.optimal_algo_id = None
+        self.nbest_algo_ids = None
+        self.best_lower_bounds = None
 
         # Set up backend.
         self.tmp_directory = tmp_directory
@@ -51,7 +54,7 @@ class FirstLayerBandit(object):
             self.evaluation_cost[arm] = list()
             self.fe_datanodes[arm] = list()
             self.sub_bandits[arm] = SecondLayerBandit(
-                arm, data, output_dir=output_dir,
+                arm, self.original_data, output_dir=output_dir,
                 per_run_time_limit=per_run_time_limit,
                 share_fe=self.shared_mode,
                 seed=self.seed,
@@ -84,82 +87,100 @@ class FirstLayerBandit(object):
         else:
             raise ValueError('Unsupported optimization method: %s!' % strategy)
 
-    def fetch_ensemble_members(self, test_data: DataNode = None):
+    def fetch_ensemble_members(self, test_data: DataNode = None, mode=True):
         stats = dict()
-        stats['split_seed'] = self.seed
-        for algo_id in self.arms:
-            data = dict()
-            fe_optimizer = self.sub_bandits[algo_id].optimizer['fe']
-            hpo_optimizer = self.sub_bandits[algo_id].optimizer['hpo']
-            if test_data is not None:
-                try:
-                    test_data_node = fe_optimizer.apply(test_data)
-                    data['test_dataset'] = test_data_node
-                except Exception as e:
-                    self.logger.error('CRITICAL ERROR!')
-                    self.logger.error(str(e))
-                    data['test_dataset'] = test_data
-                    return None
-
-            data['train_dataset'] = fe_optimizer.incumbent
-            data['configurations'] = hpo_optimizer.configs
-            data['performance'] = hpo_optimizer.perfs
-            inc_source = self.sub_bandits[algo_id].incumbent_source
-            if inc_source == 'hpo':
-                data['train_dataset'] = self.original_data
+        if mode:
+            stats['split_seed'] = self.seed
+            for algo_id in self.nbest_algo_ids:
+                data = dict()
+                inc = self.sub_bandits[algo_id].inc
+                fe_optimizer = self.sub_bandits[algo_id].optimizer['fe']
+                hpo_optimizer = self.sub_bandits[algo_id].optimizer['hpo']
                 if test_data is not None:
-                    data['test_dataset'] = test_data
-            data['inc_source'] = inc_source
+                    test_data_node = fe_optimizer.apply(test_data, inc['fe'])
+                    data['test_dataset'] = test_data_node
 
-            stats[algo_id] = data
+                data['train_dataset'] = inc['fe']
+                data['configurations'] = hpo_optimizer.configs
+                data['performance'] = hpo_optimizer.perfs
+                inc_source = self.sub_bandits[algo_id].incumbent_source
+                data['inc_source'] = inc_source
+
+                stats[algo_id] = data
+        else:
+            stats = dict()
+            stats['split_seed'] = self.seed
+            for algo_id in self.nbest_algo_ids:
+                data = dict()
+                inc = self.sub_bandits[algo_id].inc
+                fe_optimizer = self.sub_bandits[algo_id].optimizer['fe']
+                hpo_optimizer = self.sub_bandits[algo_id].optimizer['hpo']
+
+                data['test_dataset'] = test_data
+                data['train_dataset'] = self.original_data
+
+                if test_data is not None:
+                    test_data_node = fe_optimizer.apply(test_data, inc['fe'])
+                    data['fe_test_dataset'] = test_data_node
+                    data['fe_train_dataset'] = inc['fe']
+                # TODO: confirm the best pair of fe-hpo's config in configs.
+                data['configurations'] = hpo_optimizer.configs
+                data['performance'] = hpo_optimizer.perfs
+                inc_source = self.sub_bandits[algo_id].incumbent_source
+                data['inc_source'] = inc_source
+                stats[algo_id] = data
         return stats
 
     def predict(self, test_data: DataNode, phase='test'):
         assert phase in ['test', 'validation']
         best_arm = self.optimal_algo_id
         sub_bandit = self.sub_bandits[best_arm]
-        # Get the best features found.
         fe_optimizer = sub_bandit.optimizer['fe']
-        # Get the best configuration found.
-        hpo_optimizer = sub_bandit.optimizer['hpo']
+
+        # print('Test data shape', test_data.data[0].shape)
+        test_data_node = fe_optimizer.apply(test_data, sub_bandit.inc['fe'])
+        train_data_node = sub_bandit.inc['fe']
+        config = sub_bandit.inc['hpo']
+        # Just test.
+        _train_data = fe_optimizer.apply(self.original_data, sub_bandit.inc['fe'])
+        assert (sub_bandit.inc['fe'].data[0] == _train_data.data[0]).all()
 
         # Build the ML estimator.
-        inc_source = sub_bandit.incumbent_source
-        if inc_source == 'hpo':
-            test_data_node = test_data
-            train_data_node = self.original_data
-            config = hpo_optimizer.incumbent_config
-        elif inc_source == 'fe':
-            test_data_node = fe_optimizer.apply(test_data)
-            train_data_node = fe_optimizer.incumbent
-            config = sub_bandit.config_space.get_default_configuration()
-        else:
-            test_data_node = fe_optimizer.apply(test_data)
-            train_data_node = fe_optimizer.incumbent
-            config = hpo_optimizer.incumbent_config
-
         _, estimator = get_estimator(config)
         X_train, y_train = train_data_node.data
         X_test, _ = test_data_node.data
-        print(X_train.shape, X_test.shape)
+        self.logger.debug('X_train/test shapes: %s, %s' % (str(X_train.shape), str(X_test.shape)))
 
         if phase == 'validation':
             X, y = train_data_node.data
-            X_train, _, y_train, _ = train_test_split(
-                X, y, test_size=0.2, random_state=self.seed, stratify=y)
+            from sklearn.model_selection import StratifiedShuffleSplit
+            sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=1)
+            for train_index, test_index in sss.split(X, y):
+                X_train, X_val = X[train_index], X[test_index]
+                y_train, y_val = y[train_index], y[test_index]
 
         estimator.fit(X_train, y_train)
         y_pred = estimator.predict(test_data_node.data[0])
+        if phase == 'validation':
+            assert (test_data_node.data[0] == X_val).all()
+            assert (test_data_node.data[1] == y_val).all()
+            print('='*50)
+            print(accuracy_score(y_pred, y_val))
+            print('='*50)
         return y_pred
+
+    def train_valid_split(self):
+        X, y = self.original_data.data
+        sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=1)
+        for train_index, test_index in sss.split(X, y):
+            X_train, X_val = X[train_index], X[test_index]
+            y_train, y_val = y[train_index], y[test_index]
+        return X_train, X_val, y_train, y_val
 
     def validate(self, metric_func=None):
         if metric_func is None:
-            from sklearn.metrics.classification import accuracy_score
             metric_func = accuracy_score
-
-        X, y = self.original_data.data
-        _, X_val, _, y_val = train_test_split(
-            X, y, test_size=0.2, random_state=self.seed, stratify=y)
+        _, X_val, _, y_val = self.train_valid_split()
         valid_data = DataNode(data=[X_val, y_val], feature_type=self.original_data.feature_types.copy())
 
         y_pred = self.predict(valid_data, phase='validation')
@@ -354,6 +375,7 @@ class FirstLayerBandit(object):
         # Initialize the parameters.
         arm_num = len(self.arms)
         arm_candidate = self.arms.copy()
+        self.best_lower_bounds = np.zeros(arm_num)
         _iter_id = 0
         
         while _iter_id < self.trial_num:
@@ -399,6 +421,7 @@ class FirstLayerBandit(object):
                     upper_bound = np.min([1.0, rewards[-1] + slope*(self.trial_num - _iter_id)])
                     upper_bounds.append(upper_bound)
                     lower_bounds.append(rewards[-1])
+                    self.best_lower_bounds[self.arms.index(_arm)] = rewards[-1]
 
                 # Reject the sub-optimal arms.
                 n = len(arm_candidate)
@@ -416,17 +439,29 @@ class FirstLayerBandit(object):
                 self.logger.info('Lower bound: %s' % ','.join(['%.4f' % val for val in lower_bounds]))
                 self.logger.info('Remove Arms: %s' % [item for idx, item in enumerate(arm_candidate) if flags[idx]])
 
-                if n == 1:
-                    self.optimal_algo_id = arm_candidate[0]
-                elif n > 1:
-                    algo_idx = np.argmax(upper_bounds)
-                    self.optimal_algo_id = arm_candidate[algo_idx]
-                else:
-                    raise ValueError('The size of candidate set is zero!')
-
                 # Update the arm_candidates.
                 arm_candidate = [item for index, item in enumerate(arm_candidate) if not flags[index]]
-            
+
+            if _iter_id >= self.trial_num - 1:
+                _lower_bounds = self.best_lower_bounds.copy()
+                algo_idx = np.argmax(_lower_bounds)
+                self.optimal_algo_id = self.arms[algo_idx]
+                _best_perf = _lower_bounds[algo_idx]
+
+                threshold = 0.96
+                self.nbest_algo_ids = list()
+                for _idx, _arm in enumerate(self.arms):
+                    if _lower_bounds[_idx] >= threshold * _best_perf:
+                        self.nbest_algo_ids.append(_arm)
+                assert len(self.nbest_algo_ids) > 0
+                self.logger.info('='*50)
+                self.logger.info('Best_algo_perf:    %s' % str(_best_perf))
+                self.logger.info('Best_algo_id:      %s' % str(self.optimal_algo_id))
+                self.logger.info('Arm candidates:    %s' % str(self.arms))
+                self.logger.info('Best_lower_bounds: %s' % str(self.best_lower_bounds))
+                self.logger.info('Nbest_algo_ids   : %s' % str(self.nbest_algo_ids))
+                self.logger.info('='*50)
+
             # Sync the features data nodes.
             if self.shared_mode and _iter_id >= arm_num * self.alpha \
                     and _iter_id % 2 == 0 and len(arm_candidate) > 1:

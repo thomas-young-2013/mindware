@@ -50,14 +50,12 @@ def evaluate_fe_bugs(dataset, run_id, time_limit, seed):
     train_data = pipeline.fit_transform(raw_data.copy_())
     test_data = pipeline.transform(test_raw_data.copy_())
     train_data_new = pipeline.transform(raw_data.copy_())
-    score = evaluator(None, data_node=train_data_new)
-    print('==> Base validation score', score)
 
-    score = evaluator(None, data_node=train_data)
-    print('==> Base validation score', score)
+    assert (train_data.data[0] == train_data_new.data[0]).all()
+    assert (train_data.data[1] == train_data_new.data[1]).all()
 
     score = evaluator(None, data_node=test_data)
-    print('==> Base test score', score)
+    print('==> Test score', score)
 
 
 if __name__ == "__main__":

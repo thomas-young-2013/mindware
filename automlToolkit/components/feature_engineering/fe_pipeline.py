@@ -159,9 +159,9 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
             self.optimizer.maximum_evaluation_num = self.maximum_evaluation_num
             self.optimizer.optimize()
 
-        # Conduct feature engineering iteratively.
         return self
 
+    # Conduct feature engineering iteratively.
     def iterate(self):
         pass
 
@@ -174,4 +174,4 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
 
         if not self.fe_enabled:
             return self.cleaned_node
-        return self.optimizer.apply(self.cleaned_node)
+        return self.optimizer.apply(self.cleaned_node, self.optimizer.incumbent)

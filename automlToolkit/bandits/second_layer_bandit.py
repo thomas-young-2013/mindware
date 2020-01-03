@@ -35,6 +35,7 @@ class SecondLayerBandit(object):
         self.optimizer = dict()
         self.evaluation_cost = dict()
         self.inc = dict()
+        self.local_inc = dict()
         for arm in self.arms:
             self.rewards[arm] = list()
             self.evaluation_cost[arm] = list()
@@ -55,24 +56,30 @@ class SecondLayerBandit(object):
         model = UnParametrizedHyperparameter("estimator", classifier_id)
         cs.add_hyperparameter(model)
         self.config_space = cs
+        self.default_config = cs.get_default_configuration()
         self.config_space.seed(self.seed)
 
         # Build the Feature Engineering component.
-        fe_evaluator = Evaluator(cs.get_default_configuration(), name='fe', resampling_strategy=self.evaluation_type, seed=self.seed)
+        fe_evaluator = Evaluator(self.default_config,
+                                 name='fe', resampling_strategy=self.evaluation_type,
+                                 seed=self.seed)
         self.optimizer['fe'] = EvaluationBasedOptimizer(
             self.original_data, fe_evaluator,
             classifier_id, per_run_time_limit, self.seed,
             shared_mode=self.share_fe
         )
-        self.inc['fe'] = data
+        self.inc['fe'], self.local_inc['fe'] = self.original_data, self.original_data
 
         # Build the HPO component.
         trials_per_iter = len(self.optimizer['fe'].trans_types)
-        hpo_evaluator = Evaluator(cs.get_default_configuration(), data_node=data, name='hpo', resampling_strategy=self.evaluation_type, seed=self.seed)
+        hpo_evaluator = Evaluator(self.default_config,
+                                  data_node=self.original_data, name='hpo',
+                                  resampling_strategy=self.evaluation_type,
+                                  seed=self.seed)
         self.optimizer['hpo'] = SMACOptimizer(
             hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
             trials_per_iter=trials_per_iter // 2, seed=self.seed)
-        self.inc['hpo'] = cs.get_default_configuration()
+        self.inc['hpo'], self.local_inc['hpo'] = self.default_config, self.default_config
 
     def collect_iter_stats(self, _arm, results):
         if _arm == 'fe' and len(self.final_rewards) == 0:
@@ -87,10 +94,14 @@ class SecondLayerBandit(object):
 
         self.rewards[_arm].append(score)
         self.evaluation_cost[_arm].append(iter_cost)
-        self.inc[_arm] = config
+        self.local_inc[_arm] = config
         if score > self.incumbent_perf:
+            self.inc[_arm] = config
+            if _arm == 'fe':
+                self.inc['hpo'] = self.default_config
+            else:
+                self.inc['fe'] = self.original_data
             self.incumbent_perf = score
-            self.incumbent_source = _arm
 
         for arm_id in self.arms:
             self.update_flag[arm_id] = False
@@ -227,14 +238,16 @@ class SecondLayerBandit(object):
             try:
                 with time_limit(300):
                     _perf = Evaluator(
-                        self.inc['hpo'], data_node=self.inc['fe'], name='fe', resampling_strategy=self.evaluation_type, seed=self.seed
-                    )(self.inc['hpo'])
+                        self.local_inc['hpo'], data_node=self.local_inc['fe'],
+                        name='fe', resampling_strategy=self.evaluation_type,
+                        seed=self.seed)(self.local_inc['hpo'])
             except Exception as e:
                 self.logger.error(str(e))
             if _perf is None:
                 _perf = 0.0
             if _perf > self.incumbent_perf:
-                self.incumbent_source = 'both'
+                self.inc['hpo'] = self.local_inc['hpo']
+                self.inc['fe'] = self.local_inc['fe']
                 self.incumbent_perf = _perf
         elif self.mth == 'alter':
             self.optimize_alternatedly()

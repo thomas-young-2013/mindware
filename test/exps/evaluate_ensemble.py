@@ -15,6 +15,7 @@ from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 from automlToolkit.datasets.utils import load_data, load_train_test_data
 from automlToolkit.components.ensemble.ensemble_selection import EnsembleSelection
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
+from automlToolkit.components.ensemble.ensemble_builder import EnsembleBuilder
 from automlToolkit.components.utils.constants import CATEGORICAL
 
 parser = argparse.ArgumentParser()
@@ -55,15 +56,15 @@ def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200
 
     validation_accuracy_without_ens = bandit.validate()
     test_accuracy_without_ens = bandit.score(test_raw_data)
-    test_accuracy = ensemble_implementation_examples(bandit, test_raw_data)
-
+    test_accuracy = ensemble_implementation_examples(bandit, test_raw_data, seed)
+    test_accuracy_1 = EnsembleBuilder(bandit).score(test_raw_data)
     print('Validation score without ens', validation_accuracy_without_ens, validation_accuracy)
     print("Test score without ensemble: %s - %f" % (dataset, test_accuracy_without_ens))
-    print("Test score With ensemble: %s - %f" % (dataset, test_accuracy))
+    print("Test score With ensemble: %s - %f - %f" % (dataset, test_accuracy, test_accuracy_1))
 
     save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
     with open(save_path, 'wb') as f:
-        stats = [time_cost]
+        stats = [time_cost, test_accuracy, test_accuracy_1]
         pickle.dump([validation_accuracy, test_accuracy, stats], f)
     return time_cost
 
@@ -81,17 +82,22 @@ def load_hmab_time_costs(start_id, rep, dataset, n_algo, trial_num):
 
 
 def ensemble_implementation_examples(bandit: FirstLayerBandit, test_data: DataNode):
-    from sklearn.model_selection import train_test_split
-    from autosklearn.metrics import accuracy
+    from sklearn.model_selection import StratifiedShuffleSplit
     from sklearn.metrics import accuracy_score
+    from autosklearn.metrics import accuracy
     n_best = 20
     stats = bandit.fetch_ensemble_members(test_data)
     seed = stats['split_seed']
+    test_size = 0.2
     train_predictions = []
     test_predictions = []
-    for algo_id in bandit.arms:
+    for algo_id in bandit.nbest_algo_ids:
         X, y = stats[algo_id]['train_dataset'].data
-        X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, stratify=y, random_state=seed)
+        sss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=1)
+        for train_index, test_index in sss.split(X, y):
+            X_train, X_valid = X[train_index], X[test_index]
+            y_train, y_valid = y[train_index], y[test_index]
+
         X_test, y_test = stats[algo_id]['test_dataset'].data
         configs = stats[algo_id]['configurations']
         performance = stats[algo_id]['performance']
@@ -108,7 +114,8 @@ def ensemble_implementation_examples(bandit: FirstLayerBandit, test_data: DataNo
             y_pred = estimator.predict_proba(X_test)
             test_predictions.append(y_pred)
 
-    es = EnsembleSelection(ensemble_size=50, task_type=1, metric=accuracy, random_state=np.random.RandomState(42))
+    es = EnsembleSelection(ensemble_size=50, task_type=1,
+                           metric=accuracy, random_state=np.random.RandomState(seed))
     es.fit(train_predictions, y_valid, identifiers=None)
     y_pred = es.predict(test_predictions)
     y_pred = np.argmax(y_pred, axis=-1)
