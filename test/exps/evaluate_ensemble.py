@@ -202,36 +202,36 @@ if __name__ == "__main__":
                 time_cost = evaluate_1stlayer_bandit(algorithms, run_id, dataset, trial_num=trial_num, seed=seed)
                 evaluate_autosklearn(algorithms, run_id, trial_num, dataset, time_cost, seed=seed)
 
-        if mode == 'plot':
-            headers = ['dataset']
-            methods = ['hmab', 'ausk']
+    if mode == 'plot':
+        headers = ['dataset']
+        methods = ['hmab', 'ausk']
+        for mth in methods:
+            headers.extend(['%s_mu' % mth, '%s_var' % mth])
+        tbl_data = list()
+        for dataset in dataset_list:
+            row_data = [dataset]
             for mth in methods:
-                headers.extend(['%s_mu' % mth, '%s_var' % mth])
-            tbl_data = list()
-            for dataset in dataset_list:
-                row_data = [dataset]
-                for mth in methods:
-                    results = list()
-                    for run_id in range(rep):
-                        task_id = '%s-%s-%d-%d' % (dataset, mth, len(algorithms), trial_num)
-                        file_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
-                        if not os.path.exists(file_path):
-                            continue
-                        with open(file_path, 'rb') as f:
-                            data = pickle.load(f)
-                        _, test_acc, _ = data
-                        results.append(test_acc)
-                    if len(results) == rep:
-                        mean_value = np.mean(results, axis=0)
-                        std_value = np.std(results)
-                        row_data.append('%.2f%%' % (100 * mean_value))
-                        row_data.append('%.4f' % std_value)
-                        print('=' * 30)
-                        print('%s-%s: %.2f%%' % (dataset, mth, 100 * mean_value))
-                        print('-' * 30)
-                        print('=' * 30)
-                    else:
-                        row_data.extend(['-', '-'])
+                results = list()
+                for run_id in range(rep):
+                    task_id = '%s-%s-%d-%d' % (dataset, mth, len(algorithms), trial_num)
+                    file_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
+                    if not os.path.exists(file_path):
+                        continue
+                    with open(file_path, 'rb') as f:
+                        data = pickle.load(f)
+                    _, test_acc, _ = data
+                    results.append(test_acc)
+                if len(results) == rep:
+                    mean_value = np.mean(results, axis=0)
+                    std_value = np.std(results)
+                    row_data.append('%.2f%%' % (100 * mean_value))
+                    row_data.append('%.4f' % std_value)
+                    print('=' * 30)
+                    print('%s-%s: %.2f%%' % (dataset, mth, 100 * mean_value))
+                    print('-' * 30)
+                    print('=' * 30)
+                else:
+                    row_data.extend(['-', '-'])
 
-                tbl_data.append(row_data)
-            print(tabulate.tabulate(tbl_data, headers, tablefmt='github'))
+            tbl_data.append(row_data)
+        print(tabulate.tabulate(tbl_data, headers, tablefmt='github'))
