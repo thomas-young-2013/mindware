@@ -152,51 +152,48 @@ class FirstLayerBandit(object):
         fe_optimizer = sub_bandit.optimizer['fe']
 
         # print('Test data shape', test_data.data[0].shape)
-        test_data_node = fe_optimizer.apply(test_data, sub_bandit.inc['fe'])
         train_data_node = sub_bandit.inc['fe']
+        test_data_node = fe_optimizer.apply(test_data, sub_bandit.inc['fe'])
         config = sub_bandit.inc['hpo']
+
         # Just test.
         _train_data = fe_optimizer.apply(self.original_data, sub_bandit.inc['fe'])
-        assert (sub_bandit.inc['fe'].data[0] == _train_data.data[0]).all()
+        assert train_data_node == _train_data
+
+        if phase == 'validation':
+            _, tmp_test_data = self.train_valid_split(self.original_data)
+            assert tmp_test_data == test_data
+            train_data_node, tmp_valid_data = self.train_valid_split(train_data_node)
+            assert test_data_node == tmp_valid_data
 
         # Build the ML estimator.
         _, estimator = get_estimator(config)
         X_train, y_train = train_data_node.data
-        X_test, _ = test_data_node.data
-        self.logger.debug('X_train/test shapes: %s, %s' % (str(X_train.shape), str(X_test.shape)))
-
-        if phase == 'validation':
-            X, y = train_data_node.data
-            from sklearn.model_selection import StratifiedShuffleSplit
-            sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=1)
-            for train_index, test_index in sss.split(X, y):
-                X_train, X_val = X[train_index], X[test_index]
-                y_train, y_val = y[train_index], y[test_index]
+        X_test, y_test = test_data_node.data
+        self.logger.info('X_train/test shapes: %s, %s' % (str(X_train.shape), str(X_test.shape)))
 
         estimator.fit(X_train, y_train)
         y_pred = estimator.predict(test_data_node.data[0])
         if phase == 'validation':
-            assert (test_data_node.data[0] == X_val).all()
-            assert (test_data_node.data[1] == y_val).all()
             print('='*50)
-            print(accuracy_score(y_pred, y_val))
+            print(accuracy_score(y_pred, y_test))
             print('='*50)
         return y_pred
 
-    def train_valid_split(self):
-        X, y = self.original_data.data
+    def train_valid_split(self, node: DataNode):
+        X, y = node.copy_().data
         sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=1)
         for train_index, test_index in sss.split(X, y):
             X_train, X_val = X[train_index], X[test_index]
             y_train, y_val = y[train_index], y[test_index]
-        return X_train, X_val, y_train, y_val
+        train_data = DataNode(data=[X_train, y_train], feature_type=node.feature_types.copy())
+        valid_data = DataNode(data=[X_val, y_val], feature_type=node.feature_types.copy())
+        return train_data, valid_data
 
     def validate(self, metric_func=None):
         if metric_func is None:
             metric_func = accuracy_score
-        _, X_val, _, y_val = self.train_valid_split()
-        valid_data = DataNode(data=[X_val, y_val], feature_type=self.original_data.feature_types.copy())
-
+        _, valid_data = self.train_valid_split(self.original_data)
         y_pred = self.predict(valid_data, phase='validation')
         return metric_func(valid_data.data[1], y_pred)
 

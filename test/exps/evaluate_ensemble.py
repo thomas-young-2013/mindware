@@ -215,7 +215,7 @@ if __name__ == "__main__":
         headers = ['dataset']
         methods = ['hmab', 'ausk']
         for mth in methods:
-            headers.extend(['%s_mu' % mth, '%s_var' % mth])
+            headers.extend(['%s_mu_val' % mth, '%s_var_val' % mth, '%s_mu_test' % mth, '%s_var_test' % mth])
         tbl_data = list()
         for dataset in dataset_list:
             row_data = [dataset]
@@ -228,20 +228,20 @@ if __name__ == "__main__":
                         continue
                     with open(file_path, 'rb') as f:
                         data = pickle.load(f)
-                    _, test_acc, _ = data
-                    results.append(test_acc)
+                    val_acc, test_acc, _ = data
+                    results.append([val_acc, test_acc])
                 if len(results) == rep:
-                    print(results)
+                    results = np.array(results)
+                    print(np.mean(results, axis=0))
                     mean_value = np.mean(results, axis=0)
-                    std_value = np.std(results)
-                    row_data.append('%.2f%%' % (100 * mean_value))
-                    row_data.append('%.4f' % std_value)
-                    print('=' * 30)
-                    print('%s-%s: %.2f%%' % (dataset, mth, 100 * mean_value))
-                    print('-' * 30)
+                    std_value = [np.std(results[:, 0]), np.std(results[:, 1])]
+                    row_data.append('%.2f%%' % (100 * mean_value[0]))
+                    row_data.append('%.4f' % std_value[0])
+                    row_data.append('%.2f%%' % (100 * mean_value[1]))
+                    row_data.append('%.4f' % std_value[1])
                     print('=' * 30)
                 else:
-                    row_data.extend(['-', '-'])
+                    row_data.extend(['-', '-', '-', '-'])
 
             tbl_data.append(row_data)
         print(tabulate.tabulate(tbl_data, headers, tablefmt='github'))

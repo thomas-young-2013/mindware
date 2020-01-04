@@ -31,7 +31,7 @@ class Optimizer(object, metaclass=abc.ABCMeta):
 
     def apply(self, data_node: DataNode, ref_node: DataNode):
         path_ids = self.graph.get_path_nodes(ref_node)
-        self.logger.debug('The path ids: %s' % str(path_ids))
+        self.logger.info('The path ids: %s' % str(path_ids))
         inputnode = self.graph.get_node(path_ids[0])
         inputnode.set_values(data_node)
 
@@ -43,12 +43,12 @@ class Optimizer(object, metaclass=abc.ABCMeta):
             inputnode = input_node_list[0] if len(input_node_list) == 1 else input_node_list
 
             edge = self.graph.get_edge(self.graph.input_edge_dict[node_id])
-            self.logger.debug('Transformation: %s - %d' % (edge.transformer.name, edge.transformer.type))
+            self.logger.info('Transformation: %s - %d' % (edge.transformer.name, edge.transformer.type))
             outputnode = edge.transformer.operate(inputnode, edge.target_fields)
-            self.logger.debug('%s => %s' % (str(inputnode.shape), str(outputnode.shape)))
+            self.logger.info('%s => %s' % (str(inputnode.shape), str(outputnode.shape)))
             self.graph.get_node(node_id).set_values(outputnode)
         output_node = self.graph.get_node(path_ids[-1]).copy_()
-        self.logger.debug('returned shape: %s' % str(output_node.shape))
+        self.logger.info('returned shape: %s' % str(output_node.shape))
         return output_node
 
     def get_available_transformations(self, node: DataNode, trans_types: typing.List):
