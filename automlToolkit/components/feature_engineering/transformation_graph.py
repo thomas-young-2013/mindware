@@ -11,6 +11,16 @@ class DataNode(object):
         self.score = None
         self.trans_hist = list()
 
+    def __eq__(self, node):
+        """Overrides the default implementation"""
+        if isinstance(node, DataNode):
+            if self.shape != node.shape:
+                return False
+            if (self.data[0] == node.data[0]).all() \
+                    and (self.data[1] == node.data[1]).all():
+                return True
+        return False
+
     def copy_(self):
         new_data = [val.copy() for val in self.data]
         new_node = DataNode(new_data, self.feature_types.copy(), self.task_type)

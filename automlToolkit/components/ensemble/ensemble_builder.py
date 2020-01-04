@@ -23,23 +23,16 @@ class EnsembleBuilder(object):
         train_predictions = []
         test_predictions = []
         for algo_id in self.bandit.nbest_algo_ids:
-            configs = stats[algo_id]['configurations']
-            performance = stats[algo_id]['performance']
+            best_configs = stats[algo_id]['configurations']
 
-            best_configs = list()
-            for idx in np.argsort(-np.array(performance)):
-                if configs[idx] not in best_configs:
-                    best_configs.append(configs[idx])
-                if len(best_configs) >= n_best:
-                    break
-
-            for dataset_id in ['', 'fe_']:
-                X, y = stats[algo_id][dataset_id+'train_dataset'].data
+            train_list, test_list = stats[algo_id]['train_data_list'], stats[algo_id]['test_data_list']
+            for idx in range(len(train_list)):
+                X, y = train_list[idx].data
                 sss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=1)
                 for train_index, test_index in sss.split(X, y):
                     X_train, X_valid = X[train_index], X[test_index]
                     y_train, y_valid = y[train_index], y[test_index]
-                X_test, y_test = stats[algo_id][dataset_id+'test_dataset'].data
+                X_test, y_test = test_list[idx].data
 
                 for config in best_configs:
                     # Build the ML estimator.

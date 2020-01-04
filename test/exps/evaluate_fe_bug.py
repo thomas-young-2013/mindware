@@ -53,6 +53,7 @@ def evaluate_fe_bugs(dataset, run_id, time_limit, seed):
 
     assert (train_data.data[0] == train_data_new.data[0]).all()
     assert (train_data.data[1] == train_data_new.data[1]).all()
+    assert (train_data_new == train_data)
 
     score = evaluator(None, data_node=test_data)
     print('==> Test score', score)

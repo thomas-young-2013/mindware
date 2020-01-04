@@ -113,21 +113,34 @@ class FirstLayerBandit(object):
             for algo_id in self.nbest_algo_ids:
                 data = dict()
                 inc = self.sub_bandits[algo_id].inc
+                local_inc = self.sub_bandits[algo_id].local_inc
                 fe_optimizer = self.sub_bandits[algo_id].optimizer['fe']
                 hpo_optimizer = self.sub_bandits[algo_id].optimizer['hpo']
 
-                data['test_dataset'] = test_data
-                data['train_dataset'] = self.original_data
+                train_data_candidates = [inc['fe'], local_inc['fe'], self.sub_bandits[algo_id].original_data]
+                train_data_list, test_data_list = list(), list()
+                for item in train_data_candidates:
+                    if item not in train_data_list:
+                        train_data_list.append(item)
+                        test_data_node = fe_optimizer.apply(test_data, item)
+                        test_data_list.append(test_data_node)
 
-                if test_data is not None:
-                    test_data_node = fe_optimizer.apply(test_data, inc['fe'])
-                    data['fe_test_dataset'] = test_data_node
-                    data['fe_train_dataset'] = inc['fe']
-                # TODO: confirm the best pair of fe-hpo's config in configs.
-                data['configurations'] = hpo_optimizer.configs
-                data['performance'] = hpo_optimizer.perfs
-                inc_source = self.sub_bandits[algo_id].incumbent_source
-                data['inc_source'] = inc_source
+                data['test_data_list'] = test_data_list
+                data['train_data_list'] = train_data_list
+
+                configs = hpo_optimizer.configs
+                perfs = hpo_optimizer.perfs
+                best_configs = [self.sub_bandits[algo_id].default_config, inc['hpo'], local_inc['hpo']]
+                best_configs = list(set(best_configs))
+                n_best = 20
+
+                for idx in np.argsort(-np.array(perfs)):
+                    if configs[idx] not in best_configs:
+                        best_configs.append(configs[idx])
+                    if len(best_configs) >= n_best:
+                        break
+                data['configurations'] = best_configs
+
                 stats[algo_id] = data
         return stats
 

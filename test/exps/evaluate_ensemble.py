@@ -52,20 +52,22 @@ def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200
     print(bandit.final_rewards)
     print(bandit.action_sequence)
 
-    validation_accuracy = np.max(bandit.final_rewards)
+    validation_accuracy_without_ens0 = np.max(bandit.final_rewards)
+    validation_accuracy_without_ens1 = bandit.validate()
 
-    validation_accuracy_without_ens = bandit.validate()
     test_accuracy_without_ens = bandit.score(test_raw_data)
-    test_accuracy = ensemble_implementation_examples(bandit, test_raw_data, seed)
-    test_accuracy_1 = EnsembleBuilder(bandit).score(test_raw_data)
-    print('Validation score without ens', validation_accuracy_without_ens, validation_accuracy)
-    print("Test score without ensemble: %s - %f" % (dataset, test_accuracy_without_ens))
-    print("Test score With ensemble: %s - %f - %f" % (dataset, test_accuracy, test_accuracy_1))
+    test_accuracy_with_ens0 = ensemble_implementation_examples(bandit, test_raw_data)
+    test_accuracy_with_ens1 = EnsembleBuilder(bandit).score(test_raw_data)
+
+    print('Dataset                     : %s' % dataset)
+    print('Validation score without ens: %f - %f' % (validation_accuracy_without_ens0, validation_accuracy_without_ens1))
+    print("Test score without ensemble : %f" % test_accuracy_without_ens)
+    print("Test score with ensemble    : %f - %f" % (test_accuracy_with_ens0, test_accuracy_with_ens1))
 
     save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
     with open(save_path, 'wb') as f:
-        stats = [time_cost, test_accuracy, test_accuracy_1]
-        pickle.dump([validation_accuracy, test_accuracy, stats], f)
+        stats = [time_cost, test_accuracy_with_ens0, test_accuracy_with_ens1]
+        pickle.dump([validation_accuracy_without_ens0, test_accuracy_with_ens1, stats], f)
     return time_cost
 
 
