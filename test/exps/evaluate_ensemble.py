@@ -20,7 +20,7 @@ from automlToolkit.components.utils.constants import CATEGORICAL
 
 parser = argparse.ArgumentParser()
 dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \
-              'ionosphere,lymphography,messidor_features,winequality_red'
+              'ionosphere,lymphography,messidor_features,winequality_red,fri_c1,quake,satimage'
 parser.add_argument('--datasets', type=str, default=dataset_set)
 parser.add_argument('--mode', type=str, choices=['ausk', 'hmab', 'benchmark', 'plot'], default='benchmark')
 parser.add_argument('--algo_num', type=int, default=8)
