@@ -164,6 +164,17 @@ class FirstLayerBandit(object):
             _, tmp_test_data = self.train_valid_split(self.original_data)
             assert tmp_test_data == test_data
             train_data_node, tmp_valid_data = self.train_valid_split(train_data_node)
+            _test_data_node = fe_optimizer.apply(tmp_test_data, sub_bandit.inc['fe'])
+            assert _test_data_node == test_data_node
+
+            # print(train_data_node.shape, test_data_node.shape)
+            # print(tmp_valid_data.shape)
+            # print(test_data_node.data[0] == tmp_valid_data.data[0])
+            # print(test_data_node.data[1] == tmp_valid_data.data[1])
+            #
+            # print(sum(test_data_node.data[0] == tmp_valid_data.data[0]))
+            # print(sum(test_data_node.data[1] == tmp_valid_data.data[1]))
+
             assert test_data_node == tmp_valid_data
 
         # Build the ML estimator.

@@ -13,6 +13,7 @@ class QuantileTransformation(Transformer):
 
         self.output_distribution = output_distribution
         self.n_quantiles = n_quantiles
+        self.random_state = random_state
 
     @ease_trans
     def operate(self, input_datanode, target_fields=None):
@@ -23,7 +24,9 @@ class QuantileTransformation(Transformer):
 
         if not self.model:
             self.model = QuantileTransformer(output_distribution=self.output_distribution,
-                                             n_quantiles=self.n_quantiles)
+                                             n_quantiles=self.n_quantiles, copy=False,
+                                             random_state=self.random_state)
+
             self.model.fit(X_new)
 
         _X = self.model.transform(X_new)
