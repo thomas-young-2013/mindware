@@ -1,3 +1,4 @@
+import time
 import numpy as np
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedShuffleSplit
@@ -15,17 +16,20 @@ class EnsembleBuilder(object):
         self.ensemble_size = ensemble_size
 
     def fit_predict(self, test_data: DataNode):
-        n_best = 10
         test_size = 0.2
         stats = self.bandit.fetch_ensemble_members(test_data, mode=False)
         seed = stats['split_seed']
+
+        print('Start to train base models from %d algorithms!' % len(self.bandit.nbest_algo_ids))
+        start_time = time.time()
 
         train_predictions = []
         test_predictions = []
         for algo_id in self.bandit.nbest_algo_ids:
             best_configs = stats[algo_id]['configurations']
-
             train_list, test_list = stats[algo_id]['train_data_list'], stats[algo_id]['test_data_list']
+            print(algo_id, len(best_configs)*len(train_list))
+
             for idx in range(len(train_list)):
                 X, y = train_list[idx].data
                 sss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=1)
@@ -42,6 +46,9 @@ class EnsembleBuilder(object):
                     train_predictions.append(y_pred)
                     y_pred = estimator.predict_proba(X_test)
                     test_predictions.append(y_pred)
+
+        print('Training Base models ends!')
+        print('It took %.2f seconds!' % (time.time() - start_time))
 
         es = EnsembleSelection(ensemble_size=self.ensemble_size,
                                task_type=1, metric=accuracy,

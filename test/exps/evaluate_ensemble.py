@@ -231,6 +231,7 @@ if __name__ == "__main__":
                     _, test_acc, _ = data
                     results.append(test_acc)
                 if len(results) == rep:
+                    print(results)
                     mean_value = np.mean(results, axis=0)
                     std_value = np.std(results)
                     row_data.append('%.2f%%' % (100 * mean_value))

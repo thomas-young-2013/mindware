@@ -127,15 +127,16 @@ class FirstLayerBandit(object):
 
                 data['test_data_list'] = test_data_list
                 data['train_data_list'] = train_data_list
+                print(algo_id, len(train_data_list), len(test_data_list))
 
                 configs = hpo_optimizer.configs
                 perfs = hpo_optimizer.perfs
                 best_configs = [self.sub_bandits[algo_id].default_config, inc['hpo'], local_inc['hpo']]
                 best_configs = list(set(best_configs))
-                n_best = 20
-
+                n_best = 40
+                threshold = np.max(self.best_lower_bounds) * 0.
                 for idx in np.argsort(-np.array(perfs)):
-                    if configs[idx] not in best_configs:
+                    if perfs[idx] >= threshold and configs[idx] not in best_configs:
                         best_configs.append(configs[idx])
                     if len(best_configs) >= n_best:
                         break
@@ -462,11 +463,14 @@ class FirstLayerBandit(object):
                 _best_perf = _lower_bounds[algo_idx]
 
                 threshold = 0.96
+                idxs = np.argsort(-_lower_bounds)[:3]
+                _algo_ids = [self.arms[idx] for idx in idxs]
                 self.nbest_algo_ids = list()
-                for _idx, _arm in enumerate(self.arms):
+                for _idx, _arm in zip(idxs, _algo_ids):
                     if _lower_bounds[_idx] >= threshold * _best_perf:
                         self.nbest_algo_ids.append(_arm)
                 assert len(self.nbest_algo_ids) > 0
+
                 self.logger.info('='*50)
                 self.logger.info('Best_algo_perf:    %s' % str(_best_perf))
                 self.logger.info('Best_algo_id:      %s' % str(self.optimal_algo_id))
