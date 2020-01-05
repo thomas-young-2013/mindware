@@ -189,7 +189,8 @@ if __name__ == "__main__":
     if algo_num == 8:
         algorithms = ['lda', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
                       'adaboost', 'random_forest', 'extra_trees', 'decision_tree']
-    # algorithms.remove('lda')
+
+    algorithms.remove('lda')
 
     dataset_list = list()
     if dataset_str == 'all':
