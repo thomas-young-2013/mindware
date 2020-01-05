@@ -3,7 +3,7 @@ import time
 import numpy as np
 from scipy.stats import norm
 from typing import List
-from sklearn.metrics.classification import accuracy_score
+from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedShuffleSplit
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode, TransformationGraph
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit

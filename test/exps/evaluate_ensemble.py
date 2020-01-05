@@ -57,7 +57,7 @@ def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200
 
     test_accuracy_without_ens = bandit.score(test_raw_data)
     # For debug.
-    mode = False
+    mode = True
     if mode:
         test_accuracy_with_ens0 = ensemble_implementation_examples(bandit, test_raw_data)
         test_accuracy_with_ens1 = EnsembleBuilder(bandit).score(test_raw_data)
@@ -188,8 +188,7 @@ if __name__ == "__main__":
     if algo_num == 8:
         algorithms = ['lda', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
                       'adaboost', 'random_forest', 'extra_trees', 'decision_tree']
-    # For debug.
-    algorithms = ['random_forest']
+
     dataset_list = list()
     if dataset_str == 'all':
         dataset_list = dataset_set.split(',')

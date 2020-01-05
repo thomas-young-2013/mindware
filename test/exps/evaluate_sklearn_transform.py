@@ -26,20 +26,32 @@ def train_valid_split(node: DataNode):
     return train_data, valid_data
 
 
-if __name__ == "__main__":
-    raw_data, test_raw_data = load_train_test_data('yeast')
-    train_data, valid_data = train_valid_split(raw_data)
+def train_valid_split_X(X, y):
+    sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=1)
+    for train_index, test_index in sss.split(X, y):
+        X_train, X_val = X[train_index], X[test_index]
+        y_train, y_val = y[train_index], y[test_index]
+    return X_train, X_val, y_train, y_val
 
+
+if __name__ == "__main__":
     import numpy as np
     from sklearn.preprocessing import QuantileTransformer
 
+    raw_data, _ = load_train_test_data('yeast')
+    train_data, valid_data = train_valid_split(raw_data)
+
     X, y = raw_data.data
-    n = 300
-    qt = QuantileTransformer(n_quantiles=10, random_state=2, output_distribution='normal')
+    qt = QuantileTransformer()
     qt.fit(X, y)
     print(X.shape)
+
+    # Case1: transform and split.
     x1 = qt.transform(X)
-    x2 = X.copy()[-n:]
-    print(x2.shape)
-    x3 = qt.transform(x2)
-    print((x1[-n:] == x3).all())
+    _, x1_, _, _ = train_valid_split_X(x1, y)
+
+    # Case2: split and transform.
+    x2 = qt.transform(valid_data.data[0])
+
+    print(x1_ == x2)
+    print((x1_ == x2).all())

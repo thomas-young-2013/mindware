@@ -1,3 +1,4 @@
+import numpy as np
 from automlToolkit.components.utils.constants import CATEGORICAL
 
 
@@ -20,6 +21,14 @@ class DataNode(object):
                     and (self.data[1] == node.data[1]).all():
                 return True
         return False
+
+    def __add__(self, other):
+        X1, y1 = self.copy_().data
+        X2, y2 = other.copy_().data
+        feat_types = self.feature_types.copy()
+        X = np.vstack((X1, X2))
+        y = np.vstack((y1, y2))
+        return DataNode(data=[X, y], feature_type=feat_types)
 
     def copy_(self):
         new_data = [val.copy() for val in self.data]
