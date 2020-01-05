@@ -27,7 +27,7 @@ class FastIcaDecomposer(Transformer):
         X, y = input_datanode.data
 
         if self.model is None:
-            import sklearn.decomposition
+            from sklearn.decomposition import FastICA
 
             self.whiten = check_for_bool(self.whiten)
             if check_none(self.n_components):
@@ -35,7 +35,7 @@ class FastIcaDecomposer(Transformer):
             else:
                 n_components = int(X.shape[1] * self.n_components)
 
-            self.model = sklearn.decomposition.FastICA(
+            self.model = FastICA(
                 n_components=n_components, algorithm=self.algorithm,
                 fun=self.fun, whiten=self.whiten, random_state=self.random_state
             )

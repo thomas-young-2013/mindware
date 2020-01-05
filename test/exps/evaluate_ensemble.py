@@ -54,6 +54,7 @@ def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200
 
     validation_accuracy_without_ens0 = np.max(bandit.final_rewards)
     validation_accuracy_without_ens1 = bandit.validate()
+    assert np.isclose(validation_accuracy_without_ens0, validation_accuracy_without_ens1)
 
     test_accuracy_without_ens = bandit.score(test_raw_data)
     # For debug.
@@ -188,6 +189,7 @@ if __name__ == "__main__":
     if algo_num == 8:
         algorithms = ['lda', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
                       'adaboost', 'random_forest', 'extra_trees', 'decision_tree']
+    # algorithms.remove('lda')
 
     dataset_list = list()
     if dataset_str == 'all':

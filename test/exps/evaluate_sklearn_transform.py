@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
 
-from automlToolkit.datasets.utils import load_data, load_train_test_data
+from automlToolkit.datasets.utils import load_train_test_data
 from sklearn.model_selection import StratifiedShuffleSplit
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode, TransformationGraph
 
@@ -35,14 +35,44 @@ def train_valid_split_X(X, y):
 
 
 if __name__ == "__main__":
-    import numpy as np
-    from sklearn.preprocessing import QuantileTransformer
-
+    trans_id = 6
+    trans_types = ['fast_ica',
+                   'quantile',
+                   'variance_selector',
+                   'percentile_selector',
+                   'generic_selector',
+                   'svd',
+                   'feature_agg']
+    trans_name = trans_types[trans_id]
     raw_data, _ = load_train_test_data('yeast')
     train_data, valid_data = train_valid_split(raw_data)
 
     X, y = raw_data.data
-    qt = QuantileTransformer()
+    if trans_name == 'fast_ica':
+        from sklearn.decomposition import FastICA
+        qt = FastICA(n_components=7, random_state=1)
+    elif trans_name == 'quantile':
+        from sklearn.preprocessing import QuantileTransformer
+        qt = QuantileTransformer()
+    elif trans_name == 'variance_selector':
+        from sklearn.feature_selection import VarianceThreshold
+        qt = VarianceThreshold()
+    elif trans_name == 'percentile_selector':
+        from sklearn.feature_selection import SelectPercentile
+        qt = SelectPercentile()
+    elif trans_name == 'generic_selector':
+        from sklearn.feature_selection import f_classif
+        from sklearn.feature_selection import GenericUnivariateSelect
+        qt = GenericUnivariateSelect(score_func=f_classif)
+    elif trans_name == 'svd':
+        from sklearn.decomposition import TruncatedSVD
+        qt = TruncatedSVD(algorithm='randomized')
+    elif trans_name == 'feature_agg':
+        from sklearn.cluster import FeatureAgglomeration
+        qt = FeatureAgglomeration()
+    else:
+        raise ValueError('Unsupported transformation name: %!' % trans_name)
+
     qt.fit(X, y)
     print(X.shape)
 
@@ -52,6 +82,19 @@ if __name__ == "__main__":
 
     # Case2: split and transform.
     x2 = qt.transform(valid_data.data[0])
-
-    print(x1_ == x2)
-    print((x1_ == x2).all())
+    # flag = np.isclose(x1_, x2)
+    flag = (x1_ == x2)
+    print(flag)
+    print('='*50)
+    for idx, item in enumerate(flag):
+        if (item == False).any():
+            print('Line - %d' % idx)
+            print(item)
+            print(x1_[idx])
+            print(x2[idx])
+    print('='*50)
+    print(sum(flag))
+    print('='*50)
+    print('Transformation  :', trans_name)
+    print('Is close        :', np.isclose(x1_, x2).all())
+    print('Absolutely Same :', (x1_ == x2).all())

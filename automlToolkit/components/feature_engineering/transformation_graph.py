@@ -17,8 +17,9 @@ class DataNode(object):
         if isinstance(node, DataNode):
             if self.shape != node.shape:
                 return False
-            if (self.data[0] == node.data[0]).all() \
-                    and (self.data[1] == node.data[1]).all():
+            X_flag = np.isclose(self.data[0], node.data[0]).all()
+            y_flag = np.isclose(self.data[1], node.data[1]).all()
+            if X_flag and y_flag:
                 return True
         return False
 

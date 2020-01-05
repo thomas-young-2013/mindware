@@ -18,11 +18,11 @@ class SvdDecomposer(Transformer):
         X, y = input_datanode.data
 
         if self.model is None:
-            import sklearn.decomposition
+            from sklearn.decomposition import TruncatedSVD
 
             self.target_dim = int(self.target_dim)
             target_dim = min(self.target_dim, X.shape[1] - 1)
-            self.model = sklearn.decomposition.TruncatedSVD(
+            self.model = TruncatedSVD(
                 target_dim, algorithm='randomized')
             # TODO: remove when migrating to sklearn 0.16
             # Circumvents a bug in sklearn

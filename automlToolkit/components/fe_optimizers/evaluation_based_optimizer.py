@@ -32,7 +32,7 @@ class EvaluationBasedOptimizer(Optimizer):
         self.max_depth = 6  # old value=8
         self.trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
         # Debug Example:
-        # self.trans_types = [5]
+        # self.trans_types = [5, 9, 10]
 
         self.iteration_id = 0
         self.evaluation_count = 0
