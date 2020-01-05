@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser()
 dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \
               'ionosphere,lymphography,messidor_features,winequality_red,fri_c1,quake,satimage'
 parser.add_argument('--datasets', type=str, default=dataset_set)
-parser.add_argument('--mode', type=str, choices=['ausk', 'hmab', 'benchmark', 'plot'], default='benchmark')
+parser.add_argument('--mode', type=str, choices=['ausk', 'hmab', 'benchmark', 'plot'], default='hmab')
 parser.add_argument('--algo_num', type=int, default=8)
 parser.add_argument('--trial_num', type=int, default=100)
 parser.add_argument('--rep_num', type=int, default=5)
@@ -56,18 +56,21 @@ def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200
     validation_accuracy_without_ens1 = bandit.validate()
 
     test_accuracy_without_ens = bandit.score(test_raw_data)
-    test_accuracy_with_ens0 = ensemble_implementation_examples(bandit, test_raw_data)
-    test_accuracy_with_ens1 = EnsembleBuilder(bandit).score(test_raw_data)
+    # For debug.
+    mode = False
+    if mode:
+        test_accuracy_with_ens0 = ensemble_implementation_examples(bandit, test_raw_data)
+        test_accuracy_with_ens1 = EnsembleBuilder(bandit).score(test_raw_data)
 
-    print('Dataset                     : %s' % dataset)
-    print('Validation score without ens: %f - %f' % (validation_accuracy_without_ens0, validation_accuracy_without_ens1))
-    print("Test score without ensemble : %f" % test_accuracy_without_ens)
-    print("Test score with ensemble    : %f - %f" % (test_accuracy_with_ens0, test_accuracy_with_ens1))
+        print('Dataset                     : %s' % dataset)
+        print('Validation score without ens: %f - %f' % (validation_accuracy_without_ens0, validation_accuracy_without_ens1))
+        print("Test score without ensemble : %f" % test_accuracy_without_ens)
+        print("Test score with ensemble    : %f - %f" % (test_accuracy_with_ens0, test_accuracy_with_ens1))
 
-    save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
-    with open(save_path, 'wb') as f:
-        stats = [time_cost, test_accuracy_with_ens0, test_accuracy_with_ens1]
-        pickle.dump([validation_accuracy_without_ens0, test_accuracy_with_ens1, stats], f)
+        save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
+        with open(save_path, 'wb') as f:
+            stats = [time_cost, test_accuracy_with_ens0, test_accuracy_with_ens1]
+            pickle.dump([validation_accuracy_without_ens0, test_accuracy_with_ens1, stats], f)
     return time_cost
 
 
@@ -185,7 +188,8 @@ if __name__ == "__main__":
     if algo_num == 8:
         algorithms = ['lda', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
                       'adaboost', 'random_forest', 'extra_trees', 'decision_tree']
-
+    # For debug.
+    algorithms = ['random_forest']
     dataset_list = list()
     if dataset_str == 'all':
         dataset_list = dataset_set.split(',')
