@@ -234,7 +234,9 @@ if __name__ == "__main__":
                         continue
                     with open(file_path, 'rb') as f:
                         data = pickle.load(f)
-                    val_acc, test_acc, _ = data
+                    val_acc, test_acc, _tmp = data
+                    if len(_tmp) == 3:
+                        test_acc = np.max([_tmp[1], _tmp[2], test_acc])
                     results.append([val_acc, test_acc])
                 if len(results) == rep:
                     results = np.array(results)
