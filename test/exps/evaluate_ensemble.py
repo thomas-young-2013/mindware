@@ -184,13 +184,21 @@ if __name__ == "__main__":
     time_costs = [int(item) for item in args.time_costs.split(',')]
     np.random.seed(args.seed)
     seeds = np.random.randint(low=1, high=10000, size=start_id + args.rep_num)
+    """ Algorithm Set:
+    algorithms = ['liblinear_svc', 'k_nearest_neighbors', 
+                  'libsvm_svc', 'sgd',
+                  'adaboost', 'random_forest', 
+                  'extra_trees', 'decision_tree', 
+                  'passive_aggressive', 
+                  'lda', 'qda',
+                  'multinomial_nb', 'gaussian_nb']
+    
+    """
 
     algorithms = ['k_nearest_neighbors', 'libsvm_svc', 'random_forest', 'adaboost']
     if algo_num == 8:
-        algorithms = ['lda', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
+        algorithms = ['passive_aggressive', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
                       'adaboost', 'random_forest', 'extra_trees', 'decision_tree']
-
-    algorithms.remove('lda')
 
     dataset_list = list()
     if dataset_str == 'all':

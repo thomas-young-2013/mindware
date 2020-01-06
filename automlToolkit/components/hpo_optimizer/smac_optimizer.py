@@ -37,8 +37,13 @@ class SMACOptimizer(BaseHPOptimizer):
         self.incumbent_perf = -1.
         self.incumbent_config = self.config_space.get_default_configuration()
         # Estimate the size of the hyperparameter space.
-        self.config_num_threshold = int(len(set(
-            self.config_space.sample_configuration(12500))) * 0.8)
+        hp_num = len(self.config_space.get_hyperparameters())
+        if hp_num == 0:
+            self.config_num_threshold = 0
+        else:
+            _threshold = int(len(set(self.config_space.sample_configuration(12500))) * 0.8)
+            self.config_num_threshold = _threshold
+        self.logger.info('HP_THRESHOLD is: %d' % self.config_num_threshold)
 
     def run(self):
         while True:
