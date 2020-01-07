@@ -111,14 +111,17 @@ def ensemble_implementation_examples(bandit: FirstLayerBandit, test_data: DataNo
         best_configs = [configs[i] for i in best_index[:n_best]]
 
         for config in best_configs:
-            # Build the ML estimator.
-            _, estimator = get_estimator(config)
-            # print(X_train.shape, X_test.shape)
-            estimator.fit(X_train, y_train)
-            y_pred = estimator.predict_proba(X_valid)
-            train_predictions.append(y_pred)
-            y_pred = estimator.predict_proba(X_test)
-            test_predictions.append(y_pred)
+            try:
+                # Build the ML estimator.
+                _, estimator = get_estimator(config)
+                # print(X_train.shape, X_test.shape)
+                estimator.fit(X_train, y_train)
+                y_pred = estimator.predict_proba(X_valid)
+                train_predictions.append(y_pred)
+                y_pred = estimator.predict_proba(X_test)
+                test_predictions.append(y_pred)
+            except Exception as e:
+                print(str(e))
 
     es = EnsembleSelection(ensemble_size=50, task_type=1,
                            metric=accuracy, random_state=np.random.RandomState(seed))

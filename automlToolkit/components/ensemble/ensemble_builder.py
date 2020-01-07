@@ -40,12 +40,15 @@ class EnsembleBuilder(object):
 
                 for config in best_configs:
                     # Build the ML estimator.
-                    _, estimator = get_estimator(config)
-                    estimator.fit(X_train, y_train)
-                    y_pred = estimator.predict_proba(X_valid)
-                    train_predictions.append(y_pred)
-                    y_pred = estimator.predict_proba(X_test)
-                    test_predictions.append(y_pred)
+                    try:
+                        _, estimator = get_estimator(config)
+                        estimator.fit(X_train, y_train)
+                        y_pred = estimator.predict_proba(X_valid)
+                        train_predictions.append(y_pred)
+                        y_pred = estimator.predict_proba(X_test)
+                        test_predictions.append(y_pred)
+                    except Exception as e:
+                        print(str(e))
 
         print('Training Base models ends!')
         print('It took %.2f seconds!' % (time.time() - start_time))
