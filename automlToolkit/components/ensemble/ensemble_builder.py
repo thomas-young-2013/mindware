@@ -24,6 +24,7 @@ class EnsembleBuilder(object):
         start_time = time.time()
 
         train_predictions = []
+        train_labels = None
         test_predictions = []
         for algo_id in self.bandit.nbest_algo_ids:
             best_configs = stats[algo_id]['configurations']
@@ -32,11 +33,17 @@ class EnsembleBuilder(object):
 
             for idx in range(len(train_list)):
                 X, y = train_list[idx].data
+                X_test, y_test = test_list[idx].data
+
                 sss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=1)
                 for train_index, test_index in sss.split(X, y):
                     X_train, X_valid = X[train_index], X[test_index]
                     y_train, y_valid = y[train_index], y[test_index]
-                X_test, y_test = test_list[idx].data
+
+                if train_labels is not None:
+                    assert (train_labels == y_valid).all()
+                else:
+                    train_labels = y_valid
 
                 for config in best_configs:
                     # Build the ML estimator.
@@ -56,7 +63,7 @@ class EnsembleBuilder(object):
         es = EnsembleSelection(ensemble_size=self.ensemble_size,
                                task_type=1, metric=accuracy,
                                random_state=np.random.RandomState(seed))
-        es.fit(train_predictions, y_valid, identifiers=None)
+        es.fit(train_predictions, train_labels, identifiers=None)
         y_pred = es.predict(test_predictions)
         y_pred = np.argmax(y_pred, axis=-1)
         return y_pred
