@@ -17,9 +17,9 @@ class DataNode(object):
         if isinstance(node, DataNode):
             if self.shape != node.shape:
                 return False
-            self.data[0] = self.data[0].astype("float64")
-            node.data[0] = node.data[0].astype("float64")
-            X_flag = np.isclose(self.data[0], node.data[0]).all()
+            X1 = self.data[0].astype("float64")
+            X2 = node.data[0].astype("float64")
+            X_flag = np.isclose(X1, X2).all()
             y_flag = np.isclose(self.data[1], node.data[1]).all()
             if X_flag and y_flag:
                 return True
