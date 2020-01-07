@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser()
 dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \
               'ionosphere,lymphography,messidor_features,winequality_red,fri_c1,quake,satimage'
 parser.add_argument('--datasets', type=str, default=dataset_set)
-parser.add_argument('--mode', type=str, choices=['ausk', 'hmab', 'benchmark', 'plot'], default='hmab')
+parser.add_argument('--methods', type=str, default='hmab')
 parser.add_argument('--algo_num', type=int, default=8)
 parser.add_argument('--trial_num', type=int, default=100)
 parser.add_argument('--rep_num', type=int, default=5)
@@ -132,10 +132,18 @@ def ensemble_implementation_examples(bandit: FirstLayerBandit, test_data: DataNo
     return test_score
 
 
-def evaluate_autosklearn(algorithms, rep_id, trial_num=100, dataset='credit', time_limit=1200, seed=1):
+def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
+                         dataset='credit', time_limit=1200, seed=1,
+                         enable_ens=True):
     print('%s\nDataset: %s, Run_id: %d, Budget: %d.\n%s' % ('='*50, dataset, rep_id, time_limit, '='*50))
-    task_id = '%s-ausk-%d-%d' % (dataset, len(algorithms), trial_num)
+    ausk_id = 'ausk' if enable_ens else 'ausk-no-ens'
+    task_id = '%s-%s-%d-%d' % (dataset, ausk_id, len(algorithms), trial_num)
+    if enable_ens:
+        ensemble_size, ensemble_nbest = 50, 100
+    else:
+        ensemble_size, ensemble_nbest = 1, 1
     include_models = algorithms
+
     automl = autosklearn.classification.AutoSklearnClassifier(
         time_left_for_this_task=int(time_limit),
         per_run_time_limit=per_run_time_limit,
@@ -143,8 +151,8 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100, dataset='credit', ti
         include_estimators=include_models,
         ensemble_memory_limit=12288,
         ml_memory_limit=12288,
-        ensemble_size=50,
-        ensemble_nbest=len(algorithms)*20,
+        ensemble_size=ensemble_size,
+        ensemble_nbest=ensemble_nbest,
         initial_configurations_via_metalearning=0,
         seed=seed,
         resampling_strategy='holdout',
@@ -158,21 +166,23 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100, dataset='credit', ti
                  for _type in raw_data.feature_types]
     automl.fit(X.copy(), y.copy(), feat_type=feat_type)
     model_desc = automl.show_models()
-    test_results = automl.cv_results_['mean_test_score']
+    str_stats = automl.sprint_statistics()
+    valid_results = automl.cv_results_['mean_test_score']
     time_records = automl.cv_results_['mean_fit_time']
-    validation_accuracy = np.max(test_results)
+    validation_accuracy = np.max(valid_results)
+    # Test performance.
     predictions = automl.predict(X_test)
     test_accuracy = accuracy_score(y_test, predictions)
     # Print statistics about the auto-sklearn run such as number of
     # iterations, number of models failed with a time out.
-    print(automl.sprint_statistics())
+    print(str_stats)
     print(model_desc)
-    print('Validation Accuracy', validation_accuracy)
-    print("Test Accuracy", test_accuracy)
+    print('Validation Accuracy:', validation_accuracy)
+    print("Test Accuracy      :", test_accuracy)
 
     save_path = save_dir + '%s-%d.pkl' % (task_id, rep_id)
     with open(save_path, 'wb') as f:
-        stats = [model_desc, test_results, time_records, time_limit]
+        stats = [model_desc, str_stats, valid_results, time_records, time_limit]
         pickle.dump([validation_accuracy, test_accuracy, stats], f)
 
 
@@ -183,7 +193,7 @@ if __name__ == "__main__":
     trial_num = args.trial_num
     start_id = args.start_id
     rep = args.rep_num
-    mode = args.mode
+    methods = args.methods.split(',')
     time_costs = [int(item) for item in args.time_costs.split(',')]
     np.random.seed(args.seed)
     seeds = np.random.randint(low=1, high=10000, size=start_id + args.rep_num)
@@ -210,33 +220,43 @@ if __name__ == "__main__":
         dataset_list = dataset_str.split(',')
 
     for dataset in dataset_list:
-        if mode == 'ausk':
-            time_costs = load_hmab_time_costs(start_id, rep, dataset, len(algorithms), trial_num)
-            print(time_costs)
-            median = time_costs[np.argsort(time_costs)[rep//2]]
-            time_costs = [median] * rep
-            print(median, time_costs)
-
-        for run_id in range(start_id, start_id+rep):
-            seed = int(seeds[run_id])
-            if mode == 'hmab':
-                time_cost = evaluate_1stlayer_bandit(algorithms, run_id, dataset, trial_num=trial_num, seed=seed)
-            elif mode == 'ausk':
-                time_cost = time_costs[run_id-start_id]
-                evaluate_autosklearn(algorithms, run_id, trial_num, dataset, time_cost, seed=seed)
-            elif mode == 'benchmark':
-                time_cost = evaluate_1stlayer_bandit(algorithms, run_id, dataset, trial_num=trial_num, seed=seed)
-                evaluate_autosklearn(algorithms, run_id, trial_num, dataset, time_cost, seed=seed)
-
-    if mode == 'plot':
-        headers = ['dataset']
-        methods = ['hmab', 'ausk']
         for mth in methods:
-            headers.extend(['%s_mu_val' % mth, '%s_var_val' % mth, '%s_mu_test' % mth, '%s_var_test' % mth])
+            if mth == 'plot':
+                break
+
+            if mth == 'ausk':
+                time_costs = load_hmab_time_costs(start_id, rep, dataset, len(algorithms), trial_num)
+                print(time_costs)
+                median = time_costs[np.argsort(time_costs)[rep//2]]
+                time_costs = [median] * rep
+                print(median, time_costs)
+
+            for run_id in range(start_id, start_id+rep):
+                seed = int(seeds[run_id])
+                if mth == 'hmab':
+                    time_cost = evaluate_1stlayer_bandit(algorithms, run_id,
+                                                         dataset, trial_num=trial_num, seed=seed)
+                elif mth == 'ausk':
+                    time_cost = time_costs[run_id-start_id]
+                    evaluate_autosklearn(algorithms, run_id, trial_num,
+                                         dataset, time_cost, seed=seed)
+                elif mth == 'ausk-no-ens':
+                    time_cost = time_costs[run_id-start_id]
+                    evaluate_autosklearn(algorithms, run_id, trial_num, dataset,
+                                         time_cost, seed=seed, enable_ens=False)
+                else:
+                    raise ValueError('Invalid method name: %s.' % mth)
+
+    if methods[-1] == 'plot':
+        headers = ['dataset']
+        method_ids = ['hmab', 'ausk', 'ausk-no-ens']
+        for mth in method_ids:
+            headers.extend(['%s_mu1' % mth, '%s_var1' % mth, '%s_mu2' % mth, '%s_var2' % mth])
+
         tbl_data = list()
         for dataset in dataset_list:
             row_data = [dataset]
-            for mth in methods:
+            for mth in method_ids:
                 results = list()
                 for run_id in range(rep):
                     task_id = '%s-%s-%d-%d' % (dataset, mth, len(algorithms), trial_num)
@@ -246,7 +266,7 @@ if __name__ == "__main__":
                     with open(file_path, 'rb') as f:
                         data = pickle.load(f)
                     val_acc, test_acc, _tmp = data
-                    if len(_tmp) == 3:
+                    if mth == 'hmab':
                         test_acc = np.max([_tmp[1], _tmp[2], test_acc])
                     results.append([val_acc, test_acc])
                 if len(results) == rep:
@@ -260,7 +280,7 @@ if __name__ == "__main__":
                     row_data.append('%.4f' % std_value[1])
                     print('=' * 30)
                 else:
-                    row_data.extend(['-', '-', '-', '-'])
+                    row_data.extend(['-']*4)
 
             tbl_data.append(row_data)
         print(tabulate.tabulate(tbl_data, headers, tablefmt='github'))
