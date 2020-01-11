@@ -1,8 +1,10 @@
 import os
 import sys
 import numpy as np
+
 sys.path.append(os.getcwd())
-from automlToolkit.components.feature_engineering.transformations.selector.generic_univariate_selector import GenericUnivariateSelector
+from automlToolkit.components.feature_engineering.transformations.selector.generic_univariate_selector import \
+    GenericUnivariateSelector
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.utils.constants import *
 
@@ -46,7 +48,8 @@ def test_selector():
     print(output_datanode.data)
 
     # Test percentile selector.
-    from automlToolkit.components.feature_engineering.transformations.selector.percentile_selector import PercentileSelector
+    from automlToolkit.components.feature_engineering.transformations.selector.percentile_selector import \
+        PercentileSelector
     scaler = PercentileSelector(percentile=25)
     scaler.concatenate = False
     output_datanode = scaler.operate(datanode)
@@ -54,7 +57,8 @@ def test_selector():
     print(output_datanode.data)
 
     # Test model based selector.
-    from automlToolkit.components.feature_engineering.transformations.selector.model_based_selector import ModelBasedSelector
+    from automlToolkit.components.feature_engineering.transformations.selector.model_based_selector import \
+        ModelBasedSelector
     scaler = ModelBasedSelector(param='et')
     output_datanode = scaler.operate(datanode)
     print(output_datanode)
@@ -79,7 +83,8 @@ def test_additional_transformations():
     ]), np.array([1, 1, 2, 2, 3, 3]))
     feature_type = [NUMERICAL, NUMERICAL, DISCRETE, DISCRETE]
     datanode = DataNode(data, feature_type)
-    from automlToolkit.components.feature_engineering.transformations.generator.arithmetic_transformer import ArithmeticTransformation
+    from automlToolkit.components.feature_engineering.transformations.generator.arithmetic_transformer import \
+        ArithmeticTransformation
     from automlToolkit.components.feature_engineering.transformations.generator.lda_decomposer import LdaDecomposer
     from automlToolkit.components.feature_engineering.transformations.continous_discretizer import KBinsDiscretizer
     from automlToolkit.components.feature_engineering.transformations.discrete_categorizer import DiscreteCategorizer
@@ -111,7 +116,8 @@ def test_generator():
     print(output_datanode.data)
 
     # Test feature agglomerate.
-    from automlToolkit.components.feature_engineering.transformations.generator.feature_agglomeration_decomposer import FeatureAgglomerationDecomposer
+    from automlToolkit.components.feature_engineering.transformations.generator.feature_agglomeration_decomposer import \
+        FeatureAgglomerationDecomposer
     scaler = FeatureAgglomerationDecomposer()
     scaler.concatenate = False
     output_datanode = scaler.operate(datanode)
@@ -135,7 +141,8 @@ def test_generator():
     print(output_datanode.data)
 
     # Test fast ICA.
-    from automlToolkit.components.feature_engineering.transformations.generator.fast_ica_decomposer import FastIcaDecomposer
+    from automlToolkit.components.feature_engineering.transformations.generator.fast_ica_decomposer import \
+        FastIcaDecomposer
     scaler = FastIcaDecomposer()
     scaler.concatenate = False
     output_datanode = scaler.operate(datanode)
@@ -151,14 +158,27 @@ def test_generator():
     # print(output_datanode.data)
 
     # Test random trees embedding.
-    from automlToolkit.components.feature_engineering.transformations.generator.random_trees_embedding import RandomTreesEmbeddingTransformation
+    from automlToolkit.components.feature_engineering.transformations.generator.random_trees_embedding import \
+        RandomTreesEmbeddingTransformation
     scaler = RandomTreesEmbeddingTransformation()
     output_datanode = scaler.operate(datanode)
     print(output_datanode)
     print(output_datanode.data)
 
 
+def test_balancer():
+    data = (
+    np.random.random((25, 4)), np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2]))
+    feature_type = [NUMERICAL, NUMERICAL, DISCRETE, DISCRETE]
+    datanode = DataNode(data, feature_type)
+
+    from automlToolkit.components.feature_engineering.transformations.preprocessor.data_balancer import DataBalancer
+    balancer = DataBalancer()
+    balancer.operate(datanode)
+
+
 if __name__ == '__main__':
     # test_selector()
     # test_generator()
-    test_additional_transformations()
+    # test_additional_transformations()
+    test_balancer()
