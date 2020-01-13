@@ -30,7 +30,7 @@ class EvaluationBasedOptimizer(Optimizer):
         self.hpo_batch_size = batch_size
         self.beam_width = beam_width
         self.max_depth = 6  # old value=8
-        self.trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20]
+        self.trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
         # Debug Example:
         # self.trans_types = [5, 9, 10]
 

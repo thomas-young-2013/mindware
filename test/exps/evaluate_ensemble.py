@@ -34,7 +34,7 @@ save_dir = './data/ens_result/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
-per_run_time_limit = 150
+per_run_time_limit = 240
 
 
 def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200, seed=1):
@@ -134,14 +134,19 @@ def ensemble_implementation_examples(bandit: FirstLayerBandit, test_data: DataNo
 
 def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
                          dataset='credit', time_limit=1200, seed=1,
-                         enable_ens=True):
+                         enable_ens=True, enable_meta_learning=False):
     print('%s\nDataset: %s, Run_id: %d, Budget: %d.\n%s' % ('='*50, dataset, rep_id, time_limit, '='*50))
     ausk_id = 'ausk' if enable_ens else 'ausk-no-ens'
     task_id = '%s-%s-%d-%d' % (dataset, ausk_id, len(algorithms), trial_num)
     if enable_ens:
-        ensemble_size, ensemble_nbest = 50, 100
+        ensemble_size, ensemble_nbest = 50, 50
     else:
         ensemble_size, ensemble_nbest = 1, 1
+    if enable_meta_learning:
+        init_config_via_metalearning = 25
+    else:
+        init_config_via_metalearning = 0
+
     include_models = algorithms
 
     automl = autosklearn.classification.AutoSklearnClassifier(
@@ -153,7 +158,7 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
         ml_memory_limit=12288,
         ensemble_size=ensemble_size,
         ensemble_nbest=ensemble_nbest,
-        initial_configurations_via_metalearning=0,
+        initial_configurations_via_metalearning=init_config_via_metalearning,
         seed=seed,
         resampling_strategy='holdout',
         resampling_strategy_arguments={'train_size': 0.8}
@@ -224,10 +229,10 @@ if __name__ == "__main__":
             if mth == 'plot':
                 break
 
-            if mth == 'ausk':
+            if mth.startswith('ausk'):
                 time_costs = load_hmab_time_costs(start_id, rep, dataset, len(algorithms), trial_num)
                 print(time_costs)
-                median = time_costs[np.argsort(time_costs)[rep//2]]
+                median = np.median(time_costs)
                 time_costs = [median] * rep
                 print(median, time_costs)
 
@@ -244,6 +249,10 @@ if __name__ == "__main__":
                     time_cost = time_costs[run_id-start_id]
                     evaluate_autosklearn(algorithms, run_id, trial_num, dataset,
                                          time_cost, seed=seed, enable_ens=False)
+                elif mth == 'ausk-full':
+                    time_cost = time_costs[run_id-start_id]
+                    evaluate_autosklearn(algorithms, run_id, trial_num, dataset,
+                                         time_cost, seed=seed, enable_meta_learning=True)
                 else:
                     raise ValueError('Invalid method name: %s.' % mth)
 
@@ -287,7 +296,7 @@ if __name__ == "__main__":
                         if mean_ == 0.:
                             row_data.append('-')
                         else:
-                            row_data.append('%.3f-%.3f' % (mean_, std_))
+                            row_data.append('%.3f%s%.3f' % (mean_, u"\u00B1", std_))
                 else:
                     row_data.extend(['-']*3)
 
