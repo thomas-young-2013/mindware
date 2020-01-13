@@ -40,7 +40,7 @@ per_run_time_limit = 150
 def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200, seed=1):
     task_id = '%s-hmab-%d-%d' % (dataset, len(algorithms), trial_num)
     _start_time = time.time()
-    raw_data, test_raw_data = load_train_test_data(dataset)
+    raw_data, test_raw_data = load_train_test_data(dataset, random_state=seed)
     bandit = FirstLayerBandit(trial_num, algorithms, raw_data,
                               output_dir='logs/%s/' % task_id,
                               per_run_time_limit=per_run_time_limit,
@@ -70,7 +70,7 @@ def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200
 
         save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
         with open(save_path, 'wb') as f:
-            stats = [time_cost, test_accuracy_with_ens0, test_accuracy_with_ens1]
+            stats = [time_cost, test_accuracy_with_ens0, test_accuracy_with_ens1, test_accuracy_without_ens]
             pickle.dump([validation_accuracy_without_ens0, test_accuracy_with_ens1, stats], f)
     return time_cost
 
@@ -159,7 +159,7 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
         resampling_strategy_arguments={'train_size': 0.8}
     )
     print(automl)
-    raw_data, test_raw_data = load_train_test_data(dataset)
+    raw_data, test_raw_data = load_train_test_data(dataset, random_state=seed)
     X, y = raw_data.data
     X_test, y_test = test_raw_data.data
     feat_type = ['Categorical' if _type == CATEGORICAL else 'Numerical'
@@ -251,7 +251,7 @@ if __name__ == "__main__":
         headers = ['dataset']
         method_ids = ['hmab', 'ausk', 'ausk-no-ens']
         for mth in method_ids:
-            headers.extend(['%s_mu1' % mth, '%s_var1' % mth, '%s_mu2' % mth, '%s_var2' % mth])
+            headers.extend(['val-%s' % mth, 't1-%s' % mth, 't2-%s' % mth])
 
         tbl_data = list()
         for dataset in dataset_list:
@@ -265,22 +265,31 @@ if __name__ == "__main__":
                         continue
                     with open(file_path, 'rb') as f:
                         data = pickle.load(f)
-                    val_acc, test_acc, _tmp = data
+                    val_acc, test_acc_ens, _tmp = data
                     if mth == 'hmab':
-                        test_acc = np.max([_tmp[1], _tmp[2], test_acc])
-                    results.append([val_acc, test_acc])
+                        test_acc_no_ens = _tmp[3]
+                        test_acc_ens = np.max([_tmp[1], _tmp[2], test_acc_ens])
+                    elif mth == 'ausk':
+                        test_acc_no_ens = 0.
+                    elif mth == 'ausk-no-ens':
+                        test_acc_no_ens = test_acc_ens
+                        test_acc_ens = 0
+                    else:
+                        raise ValueError('invalid method: %s' % mth)
+
+                    results.append([val_acc, test_acc_no_ens, test_acc_ens])
                 if len(results) == rep:
                     results = np.array(results)
                     print(np.mean(results, axis=0))
-                    mean_value = np.mean(results, axis=0)
-                    std_value = [np.std(results[:, 0]), np.std(results[:, 1])]
-                    row_data.append('%.2f%%' % (100 * mean_value[0]))
-                    row_data.append('%.4f' % std_value[0])
-                    row_data.append('%.2f%%' % (100 * mean_value[1]))
-                    row_data.append('%.4f' % std_value[1])
-                    print('=' * 30)
+                    for idx in range(results.shape[1]):
+                        vals = results[:, idx]
+                        mean_, std_ = np.mean(vals), np.std(vals)
+                        if mean_ == 0.:
+                            row_data.append('-')
+                        else:
+                            row_data.append('%.3f-%.3f' % (mean_, std_))
                 else:
-                    row_data.extend(['-']*4)
+                    row_data.extend(['-']*3)
 
             tbl_data.append(row_data)
         print(tabulate.tabulate(tbl_data, headers, tablefmt='github'))
