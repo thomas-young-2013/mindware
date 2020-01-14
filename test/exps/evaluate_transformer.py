@@ -167,14 +167,25 @@ def test_generator():
 
 
 def test_balancer():
-    data = (
-    np.random.random((25, 4)), np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2]))
-    feature_type = [NUMERICAL, NUMERICAL, DISCRETE, DISCRETE]
-    datanode = DataNode(data, feature_type)
-
+    dataset = 'winequality_red'
+    sys.path.append(os.getcwd())
+    from automlToolkit.datasets.utils import load_data, load_train_test_data
+    raw_data, test_raw_data = load_train_test_data(dataset)
+    # data = (
+    # np.random.random((10, 4)), np.array([0, 0, 0, 0, 0, 2, 2, 2, 2, 2]))
+    # feature_type = [NUMERICAL, NUMERICAL, DISCRETE, DISCRETE]
+    # datanode = DataNode(data, feature_type)
+    print(raw_data, test_raw_data)
     from automlToolkit.components.feature_engineering.transformations.preprocessor.data_balancer import DataBalancer
     balancer = DataBalancer()
-    balancer.operate(datanode)
+    a = balancer.operate(raw_data)
+    b = balancer.operate(raw_data)
+    c = balancer.operate(raw_data)
+    assert a == b and b == c
+    print(balancer.operate(raw_data))
+    test_data = test_raw_data.copy_()
+    test_data.data[1] = None
+    print(balancer.operate(test_data))
 
 
 if __name__ == '__main__':
