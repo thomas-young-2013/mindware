@@ -296,7 +296,8 @@ if __name__ == "__main__":
                         if mean_ == 0.:
                             row_data.append('-')
                         else:
-                            row_data.append('%.3f%s%.3f' % (mean_, u"\u00B1", std_))
+                            sym = u"\u00B1".encode('utf-8')
+                            row_data.append('%.3f%s%.3f' % (mean_, sym, std_))
                 else:
                     row_data.extend(['-']*3)
 
