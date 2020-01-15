@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser()
 dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \
               'ionosphere,lymphography,messidor_features,winequality_red,fri_c1,quake,satimage'
 parser.add_argument('--datasets', type=str, default=dataset_set)
-parser.add_argument('--methods', type=str, default='hmab')
+parser.add_argument('--methods', type=str, default='hmab,ausk-full')
 parser.add_argument('--algo_num', type=int, default=8)
 parser.add_argument('--trial_num', type=int, default=100)
 parser.add_argument('--rep_num', type=int, default=5)
@@ -137,6 +137,7 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
                          enable_ens=True, enable_meta_learning=False):
     print('%s\nDataset: %s, Run_id: %d, Budget: %d.\n%s' % ('='*50, dataset, rep_id, time_limit, '='*50))
     ausk_id = 'ausk' if enable_ens else 'ausk-no-ens'
+    ausk_id += '-meta' if enable_meta_learning else ''
     task_id = '%s-%s-%d-%d' % (dataset, ausk_id, len(algorithms), trial_num)
     if enable_ens:
         ensemble_size, ensemble_nbest = 50, 50
@@ -258,7 +259,7 @@ if __name__ == "__main__":
 
     if methods[-1] == 'plot':
         headers = ['dataset']
-        method_ids = ['hmab', 'ausk', 'ausk-no-ens']
+        method_ids = ['hmab', 'ausk', 'ausk-no-ens', 'ausk-meta']
         for mth in method_ids:
             headers.extend(['val-%s' % mth, 't1-%s' % mth, 't2-%s' % mth])
 
@@ -297,7 +298,7 @@ if __name__ == "__main__":
                             row_data.append('-')
                         else:
                             sym = u"\u00B1".encode('utf-8')
-                            row_data.append('%.3f%s%.3f' % (mean_, sym, std_))
+                            row_data.append('%.3f%s%.3f' % (mean_, '+/-', std_))
                 else:
                     row_data.extend(['-']*3)
 
