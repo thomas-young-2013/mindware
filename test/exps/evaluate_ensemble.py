@@ -284,21 +284,29 @@ if __name__ == "__main__":
                     elif mth == 'ausk-no-ens':
                         test_acc_no_ens = test_acc_ens
                         test_acc_ens = 0
+                    elif mth == 'ausk-meta':
+                        test_acc_no_ens = 0
+                        test_acc_ens = test_acc_ens
                     else:
                         raise ValueError('invalid method: %s' % mth)
 
                     results.append([val_acc, test_acc_no_ens, test_acc_ens])
                 if len(results) == rep:
                     results = np.array(results)
-                    print(np.mean(results, axis=0))
+                    print('%s-%s' % (dataset, mth), '='*20)
+                    stats_ = zip(np.mean(results, axis=0), np.std(results, axis=0))
+                    string = ''
+                    for mean_t, std_t in stats_:
+                        string += u'%.3f\u00B1%.3f |' % (mean_t, std_t)
+                    print(string)
+                    print('%s-%s' % (dataset, mth), '=' * 20)
                     for idx in range(results.shape[1]):
                         vals = results[:, idx]
                         mean_, std_ = np.mean(vals), np.std(vals)
                         if mean_ == 0.:
                             row_data.append('-')
                         else:
-                            sym = u"\u00B1".encode('utf-8')
-                            row_data.append('%.3f%s%.3f' % (mean_, '+/-', std_))
+                            row_data.append(u'%.3f\u00B1%.3f' % (mean_, std_))
                 else:
                     row_data.extend(['-']*3)
 
