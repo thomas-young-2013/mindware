@@ -64,7 +64,8 @@ def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200
         test_accuracy_with_ens1 = EnsembleBuilder(bandit).score(test_raw_data)
 
         print('Dataset                     : %s' % dataset)
-        print('Validation score without ens: %f - %f' % (validation_accuracy_without_ens0, validation_accuracy_without_ens1))
+        print('Validation score without ens: %f - %f' % (
+            validation_accuracy_without_ens0, validation_accuracy_without_ens1))
         print("Test score without ensemble : %f" % test_accuracy_without_ens)
         print("Test score with ensemble    : %f - %f" % (test_accuracy_with_ens0, test_accuracy_with_ens1))
 
@@ -78,7 +79,7 @@ def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200
 def load_hmab_time_costs(start_id, rep, dataset, n_algo, trial_num):
     task_id = '%s-hmab-%d-%d' % (dataset, n_algo, trial_num)
     time_costs = list()
-    for run_id in range(start_id, start_id+rep):
+    for run_id in range(start_id, start_id + rep):
         save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
         with open(save_path, 'rb') as f:
             time_cost = pickle.load(f)[2][0]
@@ -135,7 +136,7 @@ def ensemble_implementation_examples(bandit: FirstLayerBandit, test_data: DataNo
 def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
                          dataset='credit', time_limit=1200, seed=1,
                          enable_ens=True, enable_meta_learning=False):
-    print('%s\nDataset: %s, Run_id: %d, Budget: %d.\n%s' % ('='*50, dataset, rep_id, time_limit, '='*50))
+    print('%s\nDataset: %s, Run_id: %d, Budget: %d.\n%s' % ('=' * 50, dataset, rep_id, time_limit, '=' * 50))
     ausk_id = 'ausk' if enable_ens else 'ausk-no-ens'
     ausk_id += '-meta' if enable_meta_learning else ''
     task_id = '%s-%s-%d-%d' % (dataset, ausk_id, len(algorithms), trial_num)
@@ -237,21 +238,21 @@ if __name__ == "__main__":
                 time_costs = [median] * rep
                 print(median, time_costs)
 
-            for run_id in range(start_id, start_id+rep):
+            for run_id in range(start_id, start_id + rep):
                 seed = int(seeds[run_id])
                 if mth == 'hmab':
                     time_cost = evaluate_1stlayer_bandit(algorithms, run_id,
                                                          dataset, trial_num=trial_num, seed=seed)
                 elif mth == 'ausk':
-                    time_cost = time_costs[run_id-start_id]
+                    time_cost = time_costs[run_id - start_id]
                     evaluate_autosklearn(algorithms, run_id, trial_num,
                                          dataset, time_cost, seed=seed)
                 elif mth == 'ausk-no-ens':
-                    time_cost = time_costs[run_id-start_id]
+                    time_cost = time_costs[run_id - start_id]
                     evaluate_autosklearn(algorithms, run_id, trial_num, dataset,
                                          time_cost, seed=seed, enable_ens=False)
                 elif mth == 'ausk-full':
-                    time_cost = time_costs[run_id-start_id]
+                    time_cost = time_costs[run_id - start_id]
                     evaluate_autosklearn(algorithms, run_id, trial_num, dataset,
                                          time_cost, seed=seed, enable_meta_learning=True)
                 else:
@@ -293,7 +294,7 @@ if __name__ == "__main__":
                     results.append([val_acc, test_acc_no_ens, test_acc_ens])
                 if len(results) == rep:
                     results = np.array(results)
-                    print('%s-%s' % (dataset, mth), '='*20)
+                    print('%s-%s' % (dataset, mth), '=' * 20)
                     stats_ = zip(np.mean(results, axis=0), np.std(results, axis=0))
                     string = ''
                     for mean_t, std_t in stats_:
@@ -308,7 +309,7 @@ if __name__ == "__main__":
                         else:
                             row_data.append(u'%.3f\u00B1%.3f' % (mean_, std_))
                 else:
-                    row_data.extend(['-']*3)
+                    row_data.extend(['-'] * 3)
 
             tbl_data.append(row_data)
         print(tabulate.tabulate(tbl_data, headers, tablefmt='github'))

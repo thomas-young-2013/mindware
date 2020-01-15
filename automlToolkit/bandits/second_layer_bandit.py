@@ -1,5 +1,6 @@
 import typing
 import numpy as np
+from timeout_decorator import timeout, TimeoutError
 from automlToolkit.components.evaluator import Evaluator
 from automlToolkit.utils.logging_utils import get_logger
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
@@ -7,7 +8,6 @@ from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from automlToolkit.components.hpo_optimizer.psmac_optimizer import PSMACOptimizer
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
-from automlToolkit.utils.decorators import timeout, TimeoutError
 from automlToolkit.utils.functions import get_increasing_sequence
 
 
