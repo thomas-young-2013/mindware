@@ -5,10 +5,16 @@ from scipy.stats import norm
 from typing import List
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedShuffleSplit
+from autosklearn.constants import *
+from ConfigSpace import ConfigurationSpace
+from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
+
+from automlToolkit.components.evaluator import Evaluator
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode, TransformationGraph
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 from automlToolkit.utils.logging_utils import setup_logger, get_logger
 from automlToolkit.components.evaluator import get_estimator
+from automlToolkit.utils.metalearning import get_meta_learning_configs, get_trans_from_str
 
 
 class FirstLayerBandit(object):
@@ -17,7 +23,9 @@ class FirstLayerBandit(object):
                  dataset_name='default_dataset_name',
                  tmp_directory='logs',
                  eval_type='cv',
-                 share_feature=False, logging_config=None, seed=1):
+                 share_feature=False,
+                 meta_configs=5,
+                 logging_config=None, seed=1):
         self.original_data = data.copy_()
         self.trial_num = trial_num
         self.alpha = 4
@@ -27,6 +35,21 @@ class FirstLayerBandit(object):
         np.random.seed(self.seed)
 
         self.dataset_name = dataset_name
+        self.meta_configs = None
+        self.meta_success = 0
+        if meta_configs is not None and isinstance(meta_configs, int) and meta_configs > 0:
+            if len(set(self.original_data.data[1])) == 2:
+                self.meta_configs = get_meta_learning_configs(self.original_data.data[0],
+                                                              self.original_data.data[1],
+                                                              BINARY_CLASSIFICATION,
+                                                              metric='accuracy',
+                                                              num_cfgs=meta_configs)
+            else:
+                self.meta_configs = get_meta_learning_configs(self.original_data.data[0],
+                                                              self.original_data.data[1],
+                                                              MULTICLASS_CLASSIFICATION,
+                                                              metric='accuracy',
+                                                              num_cfgs=meta_configs)
 
         # Best configuration.
         self.optimal_algo_id = None
@@ -40,7 +63,7 @@ class FirstLayerBandit(object):
             os.makedirs(self.tmp_directory)
         logger_name = "%s-%s" % (__class__.__name__, self.dataset_name)
         self.logger = self._get_logger(logger_name)
-        
+
         # Bandit settings.
         self.incumbent_perf = -1.
         self.arms = classifier_ids
@@ -48,6 +71,7 @@ class FirstLayerBandit(object):
         self.sub_bandits = dict()
         self.evaluation_cost = dict()
         self.fe_datanodes = dict()
+        self.eval_type = eval_type
 
         for arm in self.arms:
             self.rewards[arm] = list()
@@ -73,7 +97,98 @@ class FirstLayerBandit(object):
     def update_global_datanodes(self, arm):
         self.fe_datanodes[arm] = self.sub_bandits[arm].fetch_local_incumbents()
 
+    def apply_metalearning_fe(self, optimizer, configs):
+        rescaler_id = None
+        rescaler_dict = {}
+        preprocessor_id = None
+        preprocessor_dict = {}
+        for key in configs:
+            key_str = key.split(":")
+            # TODO: Imputation, Encoding and Balancing is required in fe_pipeline
+            if key_str[0] == 'rescaling':
+                if key_str[1] == '__choice__':
+                    rescaler_id = configs[key]
+                else:
+                    rescaler_dict[key_str[2]] = configs[key]
+            elif key_str[0] == 'preprocessor':
+                if key_str[1] == '__choice__':
+                    preprocessor_id = configs[key]
+                else:
+                    preprocessor_dict[key_str[2]] = configs[key]
+
+        preprocessor_tran = get_trans_from_str(preprocessor_id)(**preprocessor_dict)
+        rescaler_tran = get_trans_from_str(rescaler_id)(**rescaler_dict)
+        rescale_node = rescaler_tran.operate(optimizer.root_node)
+        depth = 2
+        if rescaler_tran.type != 0:
+            rescale_node.depth = depth
+            depth += 1
+            rescale_node.trans_hist.append(rescaler_tran.type)
+            rescale_node.score = 0
+            optimizer.temporary_nodes.append(rescale_node)
+            optimizer.graph.add_node(rescale_node)
+            # Avoid self-loop.
+            if rescaler_tran.type != 0 and optimizer.root_node.node_id != rescale_node.node_id:
+                optimizer.graph.add_trans_in_graph(optimizer.root_node, rescale_node, rescaler_tran)
+
+        preprocess_node = preprocessor_tran.operate(rescale_node)
+        if preprocessor_tran.type != 0:
+            preprocess_node.depth = depth
+            preprocess_node.trans_hist.append(preprocessor_tran.type)
+            preprocess_node.score = 0
+            optimizer.temporary_nodes.append(preprocess_node)
+            optimizer.graph.add_node(preprocess_node)
+            # Avoid self-loop.
+            if preprocessor_tran.type != 0 and rescale_node.node_id != preprocess_node.node_id:
+                optimizer.graph.add_trans_in_graph(rescale_node, preprocess_node, preprocessor_tran)
+
+        return preprocess_node
+
+    def evaluate_metalearning_configs(self):
+        meta_list = []
+        for config in self.meta_configs:
+            try:
+                config = config.get_dictionary()
+                print(config)
+                arm = None
+                cs = ConfigurationSpace()
+                for key in config:
+                    key_str = key.split(":")
+                    if key_str[0] == 'classifier':
+                        if key_str[1] == '__choice__':
+                            arm = config[key]
+                            cs.add_hyperparameter(UnParametrizedHyperparameter("estimator", config[key]))
+                        else:
+                            cs.add_hyperparameter(UnParametrizedHyperparameter(key_str[2], config[key]))
+
+                if arm in self.arms:
+                    transformed_node = self.apply_metalearning_fe(self.sub_bandits[arm].optimizer['fe'], config)
+                    default_config = cs.sample_configuration(1)
+                    hpo_evaluator = Evaluator(None,
+                                              data_node=transformed_node, name='hpo',
+                                              resampling_strategy=self.eval_type,
+                                              seed=self.seed)
+                    if arm not in meta_list:
+                        meta_list.append(arm)
+                        self.sub_bandits[arm].default_config = default_config
+
+                    start_time = time.time()
+                    score = 1 - hpo_evaluator(default_config)
+                    self.sub_bandits[arm].collect_iter_stats('hpo',
+                                                             (score, time.time() - start_time, default_config))
+                    self.sub_bandits[arm].inc['fe'] = transformed_node
+                    transformed_node.score = score
+                    self.final_rewards.append(score)
+                    self.action_sequence.append(arm)
+                    self.meta_success += 1
+            except Exception as e:
+                print(e)
+
     def optimize(self, strategy='explore_first'):
+        if self.meta_configs is not None:
+            self.evaluate_metalearning_configs()
+            self.trial_num -= self.meta_success
+
         if strategy == 'explore_first':
             self.optimize_explore_first()
         elif strategy == 'exp3':
@@ -190,9 +305,9 @@ class FirstLayerBandit(object):
         estimator.fit(X_train, y_train)
         y_pred = estimator.predict(test_data_node.data[0])
         if phase == 'validation':
-            print('='*50)
+            print('=' * 50)
             print(accuracy_score(y_pred, y_test))
-            print('='*50)
+            print('=' * 50)
         return y_pred
 
     def train_valid_split(self, node: DataNode):
@@ -227,14 +342,14 @@ class FirstLayerBandit(object):
         arm_cnts = np.zeros(K)
 
         for iter_id in range(1, 1 + self.trial_num):
-            if iter_id <= C*K:
-                arm_idx = (iter_id-1) % K
+            if iter_id <= C * K:
+                arm_idx = (iter_id - 1) % K
                 _arm = self.arms[arm_idx]
             else:
                 samples = list()
                 for _id in range(K):
                     idx = 2 * _id
-                    sample = norm.rvs(loc=params[idx], scale=params[idx+1])
+                    sample = norm.rvs(loc=params[idx], scale=params[idx + 1])
                     sample = params[idx] if sample < params[idx] else sample
                     samples.append(sample)
                 arm_idx = np.argmax(samples)
@@ -262,7 +377,7 @@ class FirstLayerBandit(object):
                 _mu = np.mean(_rewards)
                 _std = np.std(_rewards)
                 idx = 2 * _id
-                params[idx], params[idx+1] = _mu, _std
+                params[idx], params[idx + 1] = _mu, _std
 
     def optimize_sw_ucb(self):
         # Initialize the parameters.
@@ -278,7 +393,7 @@ class FirstLayerBandit(object):
 
         for iter_id in range(1, 1 + self.trial_num):
             if iter_id <= K:
-                arm_idx = iter_id-1
+                arm_idx = iter_id - 1
                 _arm = self.arms[arm_idx]
             else:
                 # Choose the arm according to SW-UCB.
@@ -288,7 +403,7 @@ class FirstLayerBandit(object):
                 for id in range(K):
                     past_rewards = [item for idx, item in zip(_action_ids, _rewards) if idx == id]
                     X_sum = 0. if len(past_rewards) == 0 else np.sum(past_rewards)
-                    X_t[id] = 1./N_t[id] * X_sum
+                    X_t[id] = 1. / N_t[id] * X_sum
                     c = np.log(np.min([iter_id, tau]))
                     c_t[id] = B * np.sqrt(epsilon * c / N_t[id])
                     _It[id] = X_t[id] + c_t[id]
@@ -333,14 +448,14 @@ class FirstLayerBandit(object):
 
         for iter_id in range(1, 1 + self.trial_num):
             if iter_id <= K:
-                arm_idx = iter_id-1
+                arm_idx = iter_id - 1
                 _arm = self.arms[arm_idx]
             else:
                 # Choose the arm according to D-UCB.
                 _It = np.zeros(K)
                 n_t = np.sum(N_t)
                 for id in range(K):
-                    X_t[id] = 1./N_t[id] * X_ac[id]
+                    X_t[id] = 1. / N_t[id] * X_ac[id]
                     c_t[id] = 2 * B * np.sqrt(epsilon * np.log(n_t) / N_t[id])
                     _It[id] = X_t[id] + c_t[id]
                 arm_idx = np.argmax(_It)
@@ -376,7 +491,7 @@ class FirstLayerBandit(object):
         estimated_cumulative_loss = np.zeros(K)
 
         for iter_id in range(1, 1 + self.trial_num):
-            eta = np.sqrt(np.log(K) / (iter_id*K))
+            eta = np.sqrt(np.log(K) / (iter_id * K))
             # Draw an arm according to p distribution.
             arm_idx = np.random.choice(K, 1, p=p_distri)[0]
             _arm = self.arms[arm_idx]
@@ -393,8 +508,8 @@ class FirstLayerBandit(object):
             estimated_loss = loss / p_distri[arm_idx]
             estimated_cumulative_loss[arm_idx] += estimated_loss
             # Update the probability distribution over arms.
-            tmp_weights = np.exp(-eta*estimated_cumulative_loss)
-            p_distri = tmp_weights/np.sum(tmp_weights)
+            tmp_weights = np.exp(-eta * estimated_cumulative_loss)
+            p_distri = tmp_weights / np.sum(tmp_weights)
         return self.rewards
 
     def optimize_explore_first(self):
@@ -403,7 +518,7 @@ class FirstLayerBandit(object):
         arm_candidate = self.arms.copy()
         self.best_lower_bounds = np.zeros(arm_num)
         _iter_id = 0
-        
+
         while _iter_id < self.trial_num:
             if _iter_id < arm_num * self.alpha:
                 _arm = self.arms[_iter_id % arm_num]
@@ -443,8 +558,8 @@ class FirstLayerBandit(object):
                 upper_bounds, lower_bounds = list(), list()
                 for _arm in arm_candidate:
                     rewards = self.rewards[_arm]
-                    slope = (rewards[-1] - rewards[-self.alpha])/self.alpha
-                    upper_bound = np.min([1.0, rewards[-1] + slope*(self.trial_num - _iter_id)])
+                    slope = (rewards[-1] - rewards[-self.alpha]) / self.alpha
+                    upper_bound = np.min([1.0, rewards[-1] + slope * (self.trial_num - _iter_id)])
                     upper_bounds.append(upper_bound)
                     lower_bounds.append(rewards[-1])
                     self.best_lower_bounds[self.arms.index(_arm)] = rewards[-1]
@@ -483,13 +598,13 @@ class FirstLayerBandit(object):
                         self.nbest_algo_ids.append(_arm)
                 assert len(self.nbest_algo_ids) > 0
 
-                self.logger.info('='*50)
+                self.logger.info('=' * 50)
                 self.logger.info('Best_algo_perf:    %s' % str(_best_perf))
                 self.logger.info('Best_algo_id:      %s' % str(self.optimal_algo_id))
                 self.logger.info('Arm candidates:    %s' % str(self.arms))
                 self.logger.info('Best_lower_bounds: %s' % str(self.best_lower_bounds))
                 self.logger.info('Nbest_algo_ids   : %s' % str(self.nbest_algo_ids))
-                self.logger.info('='*50)
+                self.logger.info('=' * 50)
 
             # Sync the features data nodes.
             if self.shared_mode and _iter_id >= arm_num * self.alpha \
