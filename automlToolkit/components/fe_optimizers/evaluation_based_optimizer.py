@@ -47,6 +47,9 @@ class EvaluationBasedOptimizer(Optimizer):
         self.global_datanodes = list()
         self.shared_mode = shared_mode
 
+        # Feature set for ensemble learning.
+        self.features_hist = list()
+
         # Avoid transformations, which would take too long
         # Combinations of non-linear models with feature learning.
         # feature_learning = ["kitchen_sinks", "kernel_pca", "nystroem_sampler"]
@@ -85,6 +88,7 @@ class EvaluationBasedOptimizer(Optimizer):
                                                      extra=extra))
             self.baseline_score = self.incumbent_score
             self.incumbent = self.root_node
+            self.features_hist.append(self.root_node)
             self.root_node.depth = 1
             _evaluation_cnt += 1
             self.beam_set.append(self.root_node)
@@ -141,6 +145,7 @@ class EvaluationBasedOptimizer(Optimizer):
                         if _score > self.incumbent_score:
                             self.incumbent_score = _score
                             self.incumbent = output_node
+                            self.features_hist.append(output_node)
                 except Exception as e:
                     extra.append(str(e))
                     self.logger.error('%s: %s' % (transformer.name, str(e)))

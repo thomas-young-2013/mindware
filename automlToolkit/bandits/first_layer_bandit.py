@@ -118,6 +118,10 @@ class FirstLayerBandit(object):
                 hpo_optimizer = self.sub_bandits[algo_id].optimizer['hpo']
 
                 train_data_candidates = [inc['fe'], local_inc['fe'], self.sub_bandits[algo_id].original_data]
+                for _feature_set in fe_optimizer.features_hist:
+                    if _feature_set not in train_data_candidates:
+                        train_data_candidates.append(_feature_set)
+
                 train_data_list, test_data_list = list(), list()
                 for item in train_data_candidates:
                     if item not in train_data_list:

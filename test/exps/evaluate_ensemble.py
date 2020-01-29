@@ -30,7 +30,7 @@ parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--time_costs', type=str, default='1200')
 parser.add_argument('--seed', type=int, default=1)
 
-save_dir = './data/ens_result/'
+save_dir = './data/ensemble_evaluation/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
