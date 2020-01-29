@@ -52,6 +52,9 @@ class EvaluationBasedOptimizer(Optimizer):
         self.global_datanodes = list()
         self.shared_mode = shared_mode
 
+        # Feature set for ensemble learning.
+        self.features_hist = list()
+
         # Avoid transformations, which would take too long
         # Combinations of non-linear models with feature learning.
         # feature_learning = ["kitchen_sinks", "kernel_pca", "nystroem_sampler"]
@@ -110,6 +113,7 @@ class EvaluationBasedOptimizer(Optimizer):
                 if _score > self.incumbent_score:
                     self.incumbent_score = _score
                     self.incumbent = output_node
+                    self.features_hist.append(output_node)
         except Exception as e:
             extra.append(str(e))
             self.logger.error('%s: %s' % (transformer.name, str(e)))
@@ -143,6 +147,7 @@ class EvaluationBasedOptimizer(Optimizer):
                                                           extra=extra))
             self.baseline_score = self.incumbent_score
             self.incumbent = self.root_node
+            self.features_hist.append(self.root_node)
             self.root_node.depth = 1
             self._evaluation_cnt += 1
             self.beam_set.append(self.root_node)
@@ -181,15 +186,15 @@ class EvaluationBasedOptimizer(Optimizer):
                         all_completed = False
                         time.sleep(0.1)
                         break
-                # # Cancel waited threads if budget runs out
-                # if (self.maximum_evaluation_num is not None and
-                #     self.evaluation_count > self.maximum_evaluation_num) or \
-                #         (self.time_budget is not None and
-                #          time.time() >= self.start_time + self.time_budget):
-                #     self.logger.debug('[Budget Runs Out]: %s, %s\n' % (self.maximum_evaluation_num, self.time_budget))
-                #     self.is_ended = True
-                #     for task in tasks:
-                #         task.cancel()
+                # Cancel waited threads if budget runs out
+                if (self.maximum_evaluation_num is not None and
+                    self.evaluation_count > self.maximum_evaluation_num) or \
+                        (self.time_budget is not None and
+                         time.time() >= self.start_time + self.time_budget):
+                    self.logger.debug('[Budget Runs Out]: %s, %s\n' % (self.maximum_evaluation_num, self.time_budget))
+                    self.is_ended = True
+                    for task in tasks:
+                        task.cancel()
 
         self.logger.info('\n [Current Inc]: %.4f, [Improvement]: %.5f' %
                          (self.incumbent_score, self.incumbent_score - self.baseline_score))
