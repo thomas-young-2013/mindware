@@ -76,7 +76,7 @@ class EvaluationBasedOptimizer(Optimizer):
         return self.incumbent
 
     def evaluate_tran(self, transformer, node_):
-        self.logger.info('[%s][%s]' % (self.model_id, transformer.name))
+        self.logger.debug('[%s][%s]' % (self.model_id, transformer.name))
 
         if transformer.type != 0:
             self.transformer_manager.add_execution_record(node_.node_id, transformer.type)

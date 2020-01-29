@@ -26,6 +26,11 @@ class FirstLayerBandit(object):
                  share_feature=False,
                  meta_configs=0,
                  logging_config=None, seed=1):
+        """
+        :param classifier_ids: subset of {'adaboost','bernoulli_nb','decision_tree','extra_trees','gaussian_nb','gradient_boosting',
+        'gradient_boosting','k_nearest_neighbors','lda','liblinear_svc','libsvm_svc','multinomial_nb','passive_aggressive','qda',
+        'random_forest','sgd'}
+        """
         self.original_data = data.copy_()
         self.trial_num = trial_num
         self.alpha = 4
