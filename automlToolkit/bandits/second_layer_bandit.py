@@ -6,7 +6,7 @@ from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
-from automlToolkit.utils.decorators import time_limit, TimeoutException
+from automlToolkit.utils.decorators import timeout, TimeoutError
 from automlToolkit.utils.functions import get_increasing_sequence
 
 
@@ -126,7 +126,8 @@ class SecondLayerBandit(object):
         if _arm == 'fe':
             if self.update_flag[_arm] is True:
                 # Build the Feature Engineering component.
-                fe_evaluator = Evaluator(self.inc['hpo'], name='fe', resampling_strategy=self.evaluation_type, seed=self.seed)
+                fe_evaluator = Evaluator(self.inc['hpo'], name='fe', resampling_strategy=self.evaluation_type,
+                                         seed=self.seed)
                 self.optimizer[_arm] = EvaluationBasedOptimizer(
                     self.inc['fe'], fe_evaluator,
                     self.classifier_id, self.per_run_time_limit, self.seed,
@@ -235,12 +236,18 @@ class SecondLayerBandit(object):
         if self.mth == 'rb':
             self.optimize()
             _perf = None
+
+            @timeout(300)
+            def evaluate():
+                perf = Evaluator(
+                    self.local_inc['hpo'], data_node=self.local_inc['fe'],
+                    name='fe', resampling_strategy=self.evaluation_type,
+                    seed=self.seed)(self.local_inc['hpo'])
+                return perf
+
             try:
-                with time_limit(300):
-                    _perf = Evaluator(
-                        self.local_inc['hpo'], data_node=self.local_inc['fe'],
-                        name='fe', resampling_strategy=self.evaluation_type,
-                        seed=self.seed)(self.local_inc['hpo'])
+                _perf = evaluate()
+
             except Exception as e:
                 self.logger.error(str(e))
             if _perf is None:
