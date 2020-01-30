@@ -20,12 +20,14 @@ from automlToolkit.utils.metalearning import get_meta_learning_configs, get_tran
 class FirstLayerBandit(object):
     def __init__(self, trial_num, classifier_ids: List[str], data: DataNode,
                  per_run_time_limit=300, output_dir=None,
-                 dataset_name='default_dataset_name',
+                 dataset_name='default_dataset',
                  tmp_directory='logs',
                  eval_type='cv',
                  share_feature=False,
                  meta_configs=0,
-                 logging_config=None, seed=1):
+                 n_jobs=1,
+                 logging_config=None,
+                 seed=1):
         """
         :param classifier_ids: subset of {'adaboost','bernoulli_nb','decision_tree','extra_trees','gaussian_nb','gradient_boosting',
         'gradient_boosting','k_nearest_neighbors','lda','liblinear_svc','libsvm_svc','multinomial_nb','passive_aggressive','qda',
@@ -33,6 +35,7 @@ class FirstLayerBandit(object):
         """
         self.original_data = data.copy_()
         self.trial_num = trial_num
+        self.n_jobs = n_jobs
         self.alpha = 4
         self.B = 0.01
         self.seed = seed
@@ -88,7 +91,8 @@ class FirstLayerBandit(object):
                 share_fe=self.shared_mode,
                 seed=self.seed,
                 eval_type=eval_type,
-                dataset_id=dataset_name
+                dataset_id=dataset_name,
+                n_jobs=self.n_jobs
             )
 
         self.action_sequence = list()

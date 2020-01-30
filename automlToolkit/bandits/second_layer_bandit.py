@@ -4,6 +4,7 @@ from automlToolkit.components.evaluator import Evaluator
 from automlToolkit.utils.logging_utils import get_logger
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
+from automlToolkit.components.hpo_optimizer.psmac_optimizer import PSMACOptimizer
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
 from automlToolkit.utils.decorators import timeout, TimeoutError
@@ -15,7 +16,7 @@ class SecondLayerBandit(object):
                  share_fe=False, output_dir='logs',
                  per_run_time_limit=120, seed=1,
                  eval_type='cv', dataset_id='default',
-                 mth='rb', sw_size=3, strategy='avg'):
+                 mth='rb', sw_size=3, strategy='avg', n_jobs=1):
         self.per_run_time_limit = per_run_time_limit
         self.classifier_id = classifier_id
         self.evaluation_type = eval_type
@@ -66,7 +67,7 @@ class SecondLayerBandit(object):
         self.optimizer['fe'] = EvaluationBasedOptimizer(
             self.original_data, fe_evaluator,
             classifier_id, per_run_time_limit, self.seed,
-            shared_mode=self.share_fe
+            shared_mode=self.share_fe, n_jobs=n_jobs
         )
         self.inc['fe'], self.local_inc['fe'] = self.original_data, self.original_data
 
@@ -76,9 +77,16 @@ class SecondLayerBandit(object):
                                   data_node=self.original_data, name='hpo',
                                   resampling_strategy=self.evaluation_type,
                                   seed=self.seed)
-        self.optimizer['hpo'] = SMACOptimizer(
-            hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
-            trials_per_iter=trials_per_iter // 2, seed=self.seed)
+        if n_jobs == 1:
+            self.optimizer['hpo'] = SMACOptimizer(
+                hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
+                trials_per_iter=trials_per_iter // 2, seed=self.seed)
+        else:
+            self.optimizer['hpo'] = PSMACOptimizer(
+                hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
+                trials_per_iter=trials_per_iter // 2, seed=self.seed,
+                n_jobs=n_jobs
+            )
         self.inc['hpo'], self.local_inc['hpo'] = self.default_config, self.default_config
 
     def collect_iter_stats(self, _arm, results):
