@@ -24,7 +24,7 @@ class FirstLayerBandit(object):
                  tmp_directory='logs',
                  eval_type='cv',
                  share_feature=False,
-                 meta_configs=5,
+                 meta_configs=0,
                  logging_config=None, seed=1):
         self.original_data = data.copy_()
         self.trial_num = trial_num
