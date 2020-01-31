@@ -39,7 +39,7 @@ if not os.path.exists(save_dir):
 per_run_time_limit = 240
 
 
-def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200, seed=1):
+def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200, n_jobs=1, meta_configs=0, seed=1):
     task_id = '%s-hmab-%d-%d' % (dataset, len(algorithms), trial_num)
     _start_time = time.time()
     raw_data, test_raw_data = load_train_test_data(dataset, random_state=seed)
@@ -47,8 +47,8 @@ def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200
                               output_dir='logs/%s/' % task_id,
                               per_run_time_limit=per_run_time_limit,
                               dataset_name='%s-%d' % (dataset, run_id),
-                              n_jobs=args.n,
-                              meta_configs=args.meta,
+                              n_jobs=n_jobs,
+                              meta_configs=meta_configs,
                               seed=seed,
                               eval_type='holdout')
     bandit.optimize()
@@ -205,6 +205,8 @@ if __name__ == "__main__":
     trial_num = args.trial_num
     start_id = args.start_id
     rep = args.rep_num
+    n_jobs = args.n
+    meta_configs = args.meta
     methods = args.methods.split(',')
     time_costs = [int(item) for item in args.time_costs.split(',')]
     np.random.seed(args.seed)
@@ -247,7 +249,8 @@ if __name__ == "__main__":
                 seed = int(seeds[run_id])
                 if mth == 'hmab':
                     time_cost = evaluate_1stlayer_bandit(algorithms, run_id,
-                                                         dataset, trial_num=trial_num, seed=seed)
+                                                         dataset, trial_num=trial_num, seed=seed, n_jobs=n_jobs,
+                                                         meta_configs=meta_configs)
                 elif mth == 'ausk':
                     time_cost = time_costs[run_id - start_id]
                     evaluate_autosklearn(algorithms, run_id, trial_num,
