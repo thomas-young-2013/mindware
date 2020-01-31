@@ -27,6 +27,8 @@ parser.add_argument('--algo_num', type=int, default=8)
 parser.add_argument('--trial_num', type=int, default=100)
 parser.add_argument('--rep_num', type=int, default=5)
 parser.add_argument('--start_id', type=int, default=0)
+parser.add_argument('--n', type=int, default=1)
+parser.add_argument('--meta', type=int, default=0)
 parser.add_argument('--time_costs', type=str, default='1200')
 parser.add_argument('--seed', type=int, default=1)
 
@@ -45,6 +47,8 @@ def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200
                               output_dir='logs/%s/' % task_id,
                               per_run_time_limit=per_run_time_limit,
                               dataset_name='%s-%d' % (dataset, run_id),
+                              n_jobs=args.n,
+                              meta_configs=args.meta,
                               seed=seed,
                               eval_type='holdout')
     bandit.optimize()
