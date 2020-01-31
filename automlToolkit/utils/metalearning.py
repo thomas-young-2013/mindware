@@ -1,4 +1,5 @@
 import os
+import functools
 
 from autosklearn.smbo import AutoMLSMBO
 from autosklearn.data.xy_data_manager import XYDataManager
@@ -14,6 +15,7 @@ from automlToolkit.components.feature_engineering.transformations.selector.perce
 from automlToolkit.components.feature_engineering.transformations.selector.extra_trees_based_selector import *
 
 from automlToolkit.components.feature_engineering.transformations.rescaler.quantile_transformer import *
+from automlToolkit.components.feature_engineering.transformations.rescaler.scaler import *
 
 from automlToolkit.components.feature_engineering.transformations.generator.kernel_pca import *
 from automlToolkit.components.feature_engineering.transformations.generator.kitchen_sinks import *
@@ -26,6 +28,13 @@ from automlToolkit.components.feature_engineering.transformations.generator.kitc
 from automlToolkit.components.feature_engineering.transformations.generator.random_trees_embedding import *
 from automlToolkit.components.feature_engineering.transformations.generator.svd_decomposer import *
 from automlToolkit.components.feature_engineering.transformations.generator.feature_agglomeration_decomposer import *
+
+
+def partialclass(cls, *args, **kwargs):
+    class NewCls(cls):
+        __init__ = functools.partialmethod(cls.__init__, *args, **kwargs)
+
+    return NewCls
 
 
 def get_meta_learning_configs(X, y, task_type, dataset_name='default', metric='accuracy', num_cfgs=5):
@@ -104,5 +113,11 @@ def get_trans_from_str(str):
         tran = PcaDecomposer
     elif str == 'polynomial':
         tran = PolynomialTransformation
+    elif str == 'standardize':
+        tran = partialclass(ScaleTransformation, 'standard')
+    elif str == 'minmax':
+        tran = partialclass(ScaleTransformation, 'min_max')
+    elif str == 'robust_scaler':
+        tran = partialclass(ScaleTransformation, 'robust')
 
     return tran

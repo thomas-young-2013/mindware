@@ -117,15 +117,16 @@ def ensemble_implementation_examples(bandit: FirstLayerBandit, test_data: DataNo
                 _, estimator = get_estimator(config)
                 # print(X_train.shape, X_test.shape)
                 estimator.fit(X_train, y_train)
-                y_pred = estimator.predict_proba(X_valid)
-                train_predictions.append(y_pred)
-                y_pred = estimator.predict_proba(X_test)
-                test_predictions.append(y_pred)
+                y_valid_pred = estimator.predict_proba(X_valid)
+                y_test_pred = estimator.predict_proba(X_test)
+                train_predictions.append(y_valid_pred)
+                test_predictions.append(y_test_pred)
             except Exception as e:
                 print(str(e))
 
     es = EnsembleSelection(ensemble_size=50, task_type=1,
                            metric=accuracy, random_state=np.random.RandomState(seed))
+    assert len(train_predictions) == len(test_predictions)
     es.fit(train_predictions, y_valid, identifiers=None)
     y_pred = es.predict(test_predictions)
     y_pred = np.argmax(y_pred, axis=-1)

@@ -4,7 +4,7 @@ from automlToolkit.components.feature_engineering.transformations.base_transform
 
 
 class ScaleTransformation(Transformer):
-    def __init__(self, scaler='min_max'):
+    def __init__(self, scaler='min_max', **kwargs):
         super().__init__("scaler", 3)
         self.input_type = [DISCRETE, NUMERICAL]
         self.compound_mode = 'in_place'
