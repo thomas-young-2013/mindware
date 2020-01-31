@@ -1,6 +1,6 @@
 import time
 import typing
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from collections import namedtuple
 from timeout_decorator import timeout, TimeoutError
 from automlToolkit.components.feature_engineering.transformation_graph import *
@@ -27,7 +27,7 @@ class EvaluationBasedOptimizer(Optimizer):
         self.start_time = time.time()
         self.hp_config = None
         self.n_jobs = n_jobs
-        self.pool = ProcessPoolExecutor(max_workers=n_jobs)
+        self.pool = ThreadPoolExecutor(max_workers=n_jobs)
 
         # Parameters in beam search.
         self.hpo_batch_size = batch_size
