@@ -17,7 +17,7 @@ handlers:
     level: DEBUG
     formatter: simple
     filename: automl_toolkit.log
-    delay: True
+    delay: true
 
 root:
   level: DEBUG
