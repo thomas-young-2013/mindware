@@ -21,7 +21,7 @@ dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \
 parser.add_argument('--datasets', type=str, default=dataset_set)
 parser.add_argument('--methods', type=str, default='hmab,ausk')
 parser.add_argument('--algo_num', type=int, default=15)
-parser.add_argument('--trial_num', type=int, default=150)
+parser.add_argument('--trial_num', type=int, default=100)
 parser.add_argument('--rep_num', type=int, default=5)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--time_costs', type=str, default='1200')
@@ -154,11 +154,11 @@ if __name__ == "__main__":
         algorithms = ['passive_aggressive', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
                       'adaboost', 'random_forest', 'extra_trees', 'decision_tree']
     elif algo_num == 15:
-        algorithms = ['adaboost', 'random_forest',
+        algorithms = ['gradient_boosting', 'adaboost', 'random_forest',
                       'libsvm_svc', 'sgd',
                       'extra_trees', 'decision_tree',
                       'liblinear_svc', 'k_nearest_neighbors',
-                      'passive_aggressive', 'gradient_boosting',
+                      'passive_aggressive',
                       'lda', 'qda',
                       'multinomial_nb', 'gaussian_nb', 'bernoulli_nb'
                       ]
