@@ -1,4 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 import time
 import datetime
@@ -22,7 +21,6 @@ class PSMACOptimizer(BaseHPOptimizer):
         self.trials_this_run = trials_per_iter
         self.per_run_time_limit = per_run_time_limit
         self.n_jobs = n_jobs
-        self.pool = ThreadPoolExecutor(max_workers=self.n_jobs)
 
         if not output_dir.endswith('/'):
             output_dir += '/'
