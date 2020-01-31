@@ -150,7 +150,7 @@ class EvaluationBasedOptimizer(Optimizer):
                         all_completed = False
                     else:
                         eval_cnt += 1
-                self.logger.info("Evaluated transformations: %d/%s" % (eval_cnt, len(tasks)))
+                self.logger.debug("Evaluated transformations: %d/%s" % (eval_cnt, len(tasks)))
                 # Cancel waited threads if budget runs out
                 if (self.maximum_evaluation_num is not None and
                     self.evaluation_count + eval_cnt > self.maximum_evaluation_num) or \
@@ -161,7 +161,7 @@ class EvaluationBasedOptimizer(Optimizer):
                     for task in tasks:
                         task.cancel()
                     break
-                time.sleep(2)
+                time.sleep(0.2)
 
             for i, task in enumerate(tasks):
                 duration, status, _score = -1, SUCCESS, -1
