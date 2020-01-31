@@ -222,7 +222,9 @@ if __name__ == "__main__":
     
     """
 
-    algorithms = ['k_nearest_neighbors', 'libsvm_svc', 'random_forest', 'adaboost']
+    # algorithms = ['k_nearest_neighbors', 'libsvm_svc', 'random_forest', 'adaboost']
+    algorithms = ['extra_trees', 'sgd',
+                  'decision_tree', 'passive_aggressive']
     if algo_num == 8:
         algorithms = ['passive_aggressive', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
                       'adaboost', 'random_forest', 'extra_trees', 'decision_tree']
