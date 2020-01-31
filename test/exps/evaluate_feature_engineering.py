@@ -34,7 +34,7 @@ mth = args.mth
 
 def evaluate_ausk_fe(dataset, time_limit, seed=1):
     print('==> Start to Evaluate', dataset, 'Budget', time_limit)
-    from automlToolkit.utils.default_random_forest import DefaultRandomForest
+    from automlToolkit.utils.models.default_random_forest import DefaultRandomForest
     # Add random forest classifier (with default hyperparameter) component to auto-sklearn.
     autosklearn.pipeline.components.classification.add_classifier(DefaultRandomForest)
     include_models = ['DefaultRandomForest']
