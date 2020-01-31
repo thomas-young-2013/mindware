@@ -13,6 +13,7 @@ sys.path.append(os.getcwd())
 from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 from automlToolkit.datasets.utils import load_train_test_data
 from automlToolkit.components.utils.constants import CATEGORICAL
+from automlToolkit.components.ensemble.ensemble_builder import EnsembleBuilder
 
 parser = argparse.ArgumentParser()
 dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \
@@ -50,13 +51,15 @@ def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200, seed=1):
 
     validation_accuracy = np.max(bandit.final_rewards)
     test_accuracy = bandit.score(test_raw_data)
+    test_accuracy_with_ens = EnsembleBuilder(bandit).score(test_raw_data)
 
     print('Dataset          : %s' % dataset)
     print('Validation/Test score : %f - %f' % (validation_accuracy, test_accuracy))
+    print('Test score with ensem : %f' % test_accuracy_with_ens)
 
     save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
     with open(save_path, 'wb') as f:
-        stats = [time_cost]
+        stats = [time_cost, test_accuracy_with_ens]
         pickle.dump([validation_accuracy, test_accuracy, stats], f)
     return time_cost
 
@@ -191,9 +194,9 @@ if __name__ == "__main__":
 
     if methods[-1] == 'plot':
         headers = ['dataset']
-        method_ids = ['hmab', 'ausk', 'ausk-no-ens', 'ausk-meta']
+        method_ids = ['hmab', 'ausk']
         for mth in method_ids:
-            headers.extend(['val-%s' % mth, 't1-%s' % mth, 't2-%s' % mth])
+            headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
         tbl_data = list()
         for dataset in dataset_list:
@@ -207,22 +210,8 @@ if __name__ == "__main__":
                         continue
                     with open(file_path, 'rb') as f:
                         data = pickle.load(f)
-                    val_acc, test_acc_ens, _tmp = data
-                    if mth == 'hmab':
-                        test_acc_no_ens = _tmp[3]
-                        test_acc_ens = np.max([_tmp[1], _tmp[2], test_acc_ens])
-                    elif mth == 'ausk':
-                        test_acc_no_ens = 0.
-                    elif mth == 'ausk-no-ens':
-                        test_acc_no_ens = test_acc_ens
-                        test_acc_ens = 0
-                    elif mth == 'ausk-meta':
-                        test_acc_no_ens = 0
-                        test_acc_ens = test_acc_ens
-                    else:
-                        raise ValueError('invalid method: %s' % mth)
-
-                    results.append([val_acc, test_acc_no_ens, test_acc_ens])
+                    val_acc, test_acc, _tmp = data
+                    results.append([val_acc, test_acc])
                 if len(results) == rep:
                     results = np.array(results)
                     print('%s-%s' % (dataset, mth), '=' * 20)
@@ -240,7 +229,7 @@ if __name__ == "__main__":
                         else:
                             row_data.append(u'%.3f\u00B1%.3f' % (mean_, std_))
                 else:
-                    row_data.extend(['-'] * 3)
+                    row_data.extend(['-'] * 2)
 
             tbl_data.append(row_data)
         print(tabulate.tabulate(tbl_data, headers, tablefmt='github'))
