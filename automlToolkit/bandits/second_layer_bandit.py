@@ -4,10 +4,9 @@ from automlToolkit.components.evaluator import Evaluator
 from automlToolkit.utils.logging_utils import get_logger
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
-from automlToolkit.components.hpo_optimizer.psmac_optimizer import PSMACOptimizer
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
-from automlToolkit.utils.decorators import timeout, TimeoutError
+from automlToolkit.utils.decorators import time_limit, TimeoutException
 from automlToolkit.utils.functions import get_increasing_sequence
 
 
@@ -67,7 +66,7 @@ class SecondLayerBandit(object):
         self.optimizer['fe'] = EvaluationBasedOptimizer(
             self.original_data, fe_evaluator,
             classifier_id, per_run_time_limit, self.seed,
-            shared_mode=self.share_fe, n_jobs=n_jobs
+            shared_mode=self.share_fe
         )
         self.inc['fe'], self.local_inc['fe'] = self.original_data, self.original_data
 
@@ -77,16 +76,9 @@ class SecondLayerBandit(object):
                                   data_node=self.original_data, name='hpo',
                                   resampling_strategy=self.evaluation_type,
                                   seed=self.seed)
-        if n_jobs == 1:
-            self.optimizer['hpo'] = SMACOptimizer(
-                hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
-                trials_per_iter=trials_per_iter // 2, seed=self.seed)
-        else:
-            self.optimizer['hpo'] = PSMACOptimizer(
-                hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
-                trials_per_iter=trials_per_iter // 2, seed=self.seed,
-                n_jobs=n_jobs
-            )
+        self.optimizer['hpo'] = SMACOptimizer(
+            hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
+            trials_per_iter=trials_per_iter // 2, seed=self.seed)
         self.inc['hpo'], self.local_inc['hpo'] = self.default_config, self.default_config
 
     def collect_iter_stats(self, _arm, results):
@@ -134,8 +126,7 @@ class SecondLayerBandit(object):
         if _arm == 'fe':
             if self.update_flag[_arm] is True:
                 # Build the Feature Engineering component.
-                fe_evaluator = Evaluator(self.inc['hpo'], name='fe', resampling_strategy=self.evaluation_type,
-                                         seed=self.seed)
+                fe_evaluator = Evaluator(self.inc['hpo'], name='fe', resampling_strategy=self.evaluation_type, seed=self.seed)
                 self.optimizer[_arm] = EvaluationBasedOptimizer(
                     self.inc['fe'], fe_evaluator,
                     self.classifier_id, self.per_run_time_limit, self.seed,
@@ -244,18 +235,12 @@ class SecondLayerBandit(object):
         if self.mth == 'rb':
             self.optimize()
             _perf = None
-
-            @timeout(300)
-            def evaluate():
-                perf = Evaluator(
-                    self.local_inc['hpo'], data_node=self.local_inc['fe'],
-                    name='fe', resampling_strategy=self.evaluation_type,
-                    seed=self.seed)(self.local_inc['hpo'])
-                return perf
-
             try:
-                _perf = evaluate()
-
+                with time_limit(300):
+                    _perf = Evaluator(
+                        self.local_inc['hpo'], data_node=self.local_inc['fe'],
+                        name='fe', resampling_strategy=self.evaluation_type,
+                        seed=self.seed)(self.local_inc['hpo'])
             except Exception as e:
                 self.logger.error(str(e))
             if _perf is None:

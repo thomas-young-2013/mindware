@@ -10,34 +10,30 @@ from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
 
-from automlToolkit.components.evaluator import get_estimator
 from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
-from automlToolkit.datasets.utils import load_data, load_train_test_data
-from automlToolkit.components.ensemble.ensemble_selection import EnsembleSelection
-from automlToolkit.components.feature_engineering.transformation_graph import DataNode
-from automlToolkit.components.ensemble.ensemble_builder import EnsembleBuilder
+from automlToolkit.datasets.utils import load_train_test_data
 from automlToolkit.components.utils.constants import CATEGORICAL
 
 parser = argparse.ArgumentParser()
 dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \
               'ionosphere,lymphography,messidor_features,winequality_red,fri_c1,quake,satimage'
 parser.add_argument('--datasets', type=str, default=dataset_set)
-parser.add_argument('--methods', type=str, default='hmab,ausk-full')
-parser.add_argument('--algo_num', type=int, default=8)
-parser.add_argument('--trial_num', type=int, default=100)
+parser.add_argument('--methods', type=str, default='hmab,ausk')
+parser.add_argument('--algo_num', type=int, default=15)
+parser.add_argument('--trial_num', type=int, default=150)
 parser.add_argument('--rep_num', type=int, default=5)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--time_costs', type=str, default='1200')
 parser.add_argument('--seed', type=int, default=1)
 
-save_dir = './data//'
+save_dir = './data/exp_results/exp1/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
-per_run_time_limit = 240
+per_run_time_limit = 300
 
 
-def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200, seed=1):
+def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200, seed=1):
     task_id = '%s-hmab-%d-%d' % (dataset, len(algorithms), trial_num)
     _start_time = time.time()
     raw_data, test_raw_data = load_train_test_data(dataset, random_state=seed)
@@ -52,27 +48,16 @@ def evaluate_1stlayer_bandit(algorithms, run_id, dataset='credit', trial_num=200
     print(bandit.final_rewards)
     print(bandit.action_sequence)
 
-    validation_accuracy_without_ens0 = np.max(bandit.final_rewards)
-    validation_accuracy_without_ens1 = bandit.validate()
-    assert np.isclose(validation_accuracy_without_ens0, validation_accuracy_without_ens1)
+    validation_accuracy = np.max(bandit.final_rewards)
+    test_accuracy = bandit.score(test_raw_data)
 
-    test_accuracy_without_ens = bandit.score(test_raw_data)
-    # For debug.
-    mode = True
-    if mode:
-        test_accuracy_with_ens0 = ensemble_implementation_examples(bandit, test_raw_data)
-        test_accuracy_with_ens1 = EnsembleBuilder(bandit).score(test_raw_data)
+    print('Dataset          : %s' % dataset)
+    print('Validation/Test score : %f - %f' % (validation_accuracy, test_accuracy))
 
-        print('Dataset                     : %s' % dataset)
-        print('Validation score without ens: %f - %f' % (
-        validation_accuracy_without_ens0, validation_accuracy_without_ens1))
-        print("Test score without ensemble : %f" % test_accuracy_without_ens)
-        print("Test score with ensemble    : %f - %f" % (test_accuracy_with_ens0, test_accuracy_with_ens1))
-
-        save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
-        with open(save_path, 'wb') as f:
-            stats = [time_cost, test_accuracy_with_ens0, test_accuracy_with_ens1, test_accuracy_without_ens]
-            pickle.dump([validation_accuracy_without_ens0, test_accuracy_with_ens1, stats], f)
+    save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
+    with open(save_path, 'wb') as f:
+        stats = [time_cost]
+        pickle.dump([validation_accuracy, test_accuracy, stats], f)
     return time_cost
 
 
@@ -88,58 +73,11 @@ def load_hmab_time_costs(start_id, rep, dataset, n_algo, trial_num):
     return time_costs
 
 
-def ensemble_implementation_examples(bandit: FirstLayerBandit, test_data: DataNode):
-    from sklearn.model_selection import StratifiedShuffleSplit
-    from sklearn.metrics import accuracy_score
-    from autosklearn.metrics import accuracy
-    n_best = 20
-    stats = bandit.fetch_ensemble_members(test_data)
-    seed = stats['split_seed']
-    test_size = 0.2
-    train_predictions = []
-    test_predictions = []
-    for algo_id in bandit.nbest_algo_ids:
-        X, y = stats[algo_id]['train_dataset'].data
-        sss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=1)
-        for train_index, test_index in sss.split(X, y):
-            X_train, X_valid = X[train_index], X[test_index]
-            y_train, y_valid = y[train_index], y[test_index]
-
-        X_test, y_test = stats[algo_id]['test_dataset'].data
-        configs = stats[algo_id]['configurations']
-        performance = stats[algo_id]['performance']
-        best_index = np.argsort(-np.array(performance))
-        best_configs = [configs[i] for i in best_index[:n_best]]
-
-        for config in best_configs:
-            try:
-                # Build the ML estimator.
-                _, estimator = get_estimator(config)
-                # print(X_train.shape, X_test.shape)
-                estimator.fit(X_train, y_train)
-                y_pred = estimator.predict_proba(X_valid)
-                train_predictions.append(y_pred)
-                y_pred = estimator.predict_proba(X_test)
-                test_predictions.append(y_pred)
-            except Exception as e:
-                print(str(e))
-
-    es = EnsembleSelection(ensemble_size=50, task_type=1,
-                           metric=accuracy, random_state=np.random.RandomState(seed))
-    es.fit(train_predictions, y_valid, identifiers=None)
-    y_pred = es.predict(test_predictions)
-    y_pred = np.argmax(y_pred, axis=-1)
-    test_score = accuracy_score(y_test, y_pred)
-    return test_score
-
-
 def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
                          dataset='credit', time_limit=1200, seed=1,
                          enable_ens=True, enable_meta_learning=False):
     print('%s\nDataset: %s, Run_id: %d, Budget: %d.\n%s' % ('=' * 50, dataset, rep_id, time_limit, '=' * 50))
-    ausk_id = 'ausk' if enable_ens else 'ausk-no-ens'
-    ausk_id += '-meta' if enable_meta_learning else ''
-    task_id = '%s-%s-%d-%d' % (dataset, ausk_id, len(algorithms), trial_num)
+    task_id = '%s-%s-%d-%d' % (dataset, 'ausk', len(algorithms), trial_num)
     if enable_ens:
         ensemble_size, ensemble_nbest = 50, 50
     else:
@@ -202,29 +140,29 @@ if __name__ == "__main__":
     rep = args.rep_num
     methods = args.methods.split(',')
     time_costs = [int(item) for item in args.time_costs.split(',')]
+
+    # Prepare random seeds.
     np.random.seed(args.seed)
     seeds = np.random.randint(low=1, high=10000, size=start_id + args.rep_num)
-    """ Algorithm Set:
-    algorithms = ['liblinear_svc', 'k_nearest_neighbors', 
-                  'libsvm_svc', 'sgd',
-                  'adaboost', 'random_forest', 
-                  'extra_trees', 'decision_tree', 
-                  'passive_aggressive', 
-                  'lda', 'qda',
-                  'multinomial_nb', 'gaussian_nb']
 
-    """
-
-    algorithms = ['k_nearest_neighbors', 'libsvm_svc', 'random_forest', 'adaboost']
-    if algo_num == 8:
+    if algo_num == 4:
+        algorithms = ['k_nearest_neighbors', 'libsvm_svc', 'random_forest', 'adaboost']
+    elif algo_num == 8:
         algorithms = ['passive_aggressive', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
                       'adaboost', 'random_forest', 'extra_trees', 'decision_tree']
-
-    dataset_list = list()
-    if dataset_str == 'all':
-        dataset_list = dataset_set.split(',')
+    elif algo_num == 15:
+        algorithms = ['adaboost', 'random_forest',
+                      'libsvm_svc', 'sgd',
+                      'extra_trees', 'decision_tree',
+                      'liblinear_svc', 'k_nearest_neighbors',
+                      'passive_aggressive', 'gradient_boosting',
+                      'lda', 'qda',
+                      'multinomial_nb', 'gaussian_nb', 'bernoulli_nb'
+                      ]
     else:
-        dataset_list = dataset_str.split(',')
+        raise ValueError('Invalid algorithm num - %d!' % algo_num)
+
+    dataset_list = dataset_str.split(',')
 
     for dataset in dataset_list:
         for mth in methods:
@@ -241,20 +179,13 @@ if __name__ == "__main__":
             for run_id in range(start_id, start_id + rep):
                 seed = int(seeds[run_id])
                 if mth == 'hmab':
-                    time_cost = evaluate_1stlayer_bandit(algorithms, run_id,
-                                                         dataset, trial_num=trial_num, seed=seed)
+                    time_cost = evaluate_hmab(algorithms, run_id, dataset,
+                                              trial_num=trial_num, seed=seed)
                 elif mth == 'ausk':
                     time_cost = time_costs[run_id - start_id]
                     evaluate_autosklearn(algorithms, run_id, trial_num,
-                                         dataset, time_cost, seed=seed)
-                elif mth == 'ausk-no-ens':
-                    time_cost = time_costs[run_id - start_id]
-                    evaluate_autosklearn(algorithms, run_id, trial_num, dataset,
-                                         time_cost, seed=seed, enable_ens=False)
-                elif mth == 'ausk-full':
-                    time_cost = time_costs[run_id - start_id]
-                    evaluate_autosklearn(algorithms, run_id, trial_num, dataset,
-                                         time_cost, seed=seed, enable_meta_learning=True)
+                                         dataset, time_cost, seed=seed,
+                                         enable_ens=False, enable_meta_learning=False)
                 else:
                     raise ValueError('Invalid method name: %s.' % mth)
 

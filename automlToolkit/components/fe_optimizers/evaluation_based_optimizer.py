@@ -1,11 +1,10 @@
 import time
 import typing
-from concurrent.futures import ThreadPoolExecutor
 from collections import namedtuple
 from automlToolkit.components.feature_engineering.transformation_graph import *
 from automlToolkit.components.fe_optimizers.base_optimizer import Optimizer
 from automlToolkit.components.fe_optimizers.transformer_manager import TransformerManager
-from automlToolkit.utils.decorators import timeout, TimeoutError
+from automlToolkit.utils.decorators import time_limit, TimeoutException
 from automlToolkit.components.evaluator import Evaluator
 from automlToolkit.components.utils.constants import SUCCESS, ERROR, TIMEOUT
 
@@ -16,11 +15,8 @@ class EvaluationBasedOptimizer(Optimizer):
     def __init__(self, input_data: DataNode, evaluator: Evaluator,
                  model_id: str, time_limit_per_trans: int,
                  seed: int, shared_mode: bool = False,
-                 batch_size: int = 2, beam_width: int = 3,
-                 n_jobs: int = 4):
+                 batch_size: int = 2, beam_width: int = 3, n_jobs=1):
         super().__init__(str(__class__.__name__), input_data, seed)
-        self._evaluation_cnt = 0
-        self.execution_status = list()
         self.transformer_manager = TransformerManager()
         self.time_limit_per_trans = time_limit_per_trans
         self.evaluator = evaluator
@@ -29,7 +25,6 @@ class EvaluationBasedOptimizer(Optimizer):
         self.baseline_score = -1.
         self.start_time = time.time()
         self.hp_config = None
-        self.n_jobs = n_jobs
 
         # Parameters in beam search.
         self.hpo_batch_size = batch_size
@@ -52,9 +47,6 @@ class EvaluationBasedOptimizer(Optimizer):
         self.global_datanodes = list()
         self.shared_mode = shared_mode
 
-        # Feature set for ensemble learning.
-        self.features_hist = list()
-
         # Avoid transformations, which would take too long
         # Combinations of non-linear models with feature learning.
         # feature_learning = ["kitchen_sinks", "kernel_pca", "nystroem_sampler"]
@@ -69,87 +61,32 @@ class EvaluationBasedOptimizer(Optimizer):
 
     def optimize(self):
         while not self.is_ended:
-            self.logger.debug('=' * 50)
+            self.logger.debug('='*50)
             self.logger.debug('Start the ITERATION: %d' % self.iteration_id)
-            self.logger.debug('=' * 50)
+            self.logger.debug('='*50)
             self.iterate()
         return self.incumbent
 
-    def evaluate_tran(self, transformer, node_):
-        self.logger.debug('[%s][%s]' % (self.model_id, transformer.name))
-
-        if transformer.type != 0:
-            self.transformer_manager.add_execution_record(node_.node_id, transformer.type)
-
-        _start_time, status, _score = time.time(), SUCCESS, -1
-        extra = ['%d' % self._evaluation_cnt, self.model_id, transformer.name]
-
-        @timeout(self.time_limit_per_trans, use_signals=False)
-        def evaluate():
-            output = transformer.operate(node_)
-
-            # Evaluate this node.
-            if transformer.type != 0:
-                output.depth = node_.depth + 1
-                output.trans_hist.append(transformer.type)
-                score = self.evaluator(self.hp_config, data_node=output, name='fe')
-                output.score = score
-            else:
-                score = output.score
-            return output, score
-
-        try:
-            # Limit the execution and evaluation time for each transformation.
-            output_node, _score = evaluate()
-
-            if _score is None:
-                status = ERROR
-            else:
-                self.temporary_nodes.append(output_node)
-                self.graph.add_node(output_node)
-                # Avoid self-loop.
-                if transformer.type != 0 and node_.node_id != output_node.node_id:
-                    self.graph.add_trans_in_graph(node_, output_node, transformer)
-                if _score > self.incumbent_score:
-                    self.incumbent_score = _score
-                    self.incumbent = output_node
-                    self.features_hist.append(output_node)
-        except Exception as e:
-            extra.append(str(e))
-            self.logger.error('%s: %s' % (transformer.name, str(e)))
-            status = ERROR
-            if isinstance(e, TimeoutError):
-                status = TIMEOUT
-
-        self.execution_status.append(
-            EvaluationResult(status=status,
-                             duration=time.time() - _start_time,
-                             score=_score,
-                             extra=extra))
-        self._evaluation_cnt += 1
-        self.evaluation_count += 1
-
     def iterate(self):
         _iter_start_time = time.time()
-        self._evaluation_cnt = 0
-        self.execution_status = list()
+        _evaluation_cnt = 0
+        execution_status = list()
 
         if self.iteration_id == 0:
             # Evaluate the original features.
-            _start_time, status, extra = time.time(), SUCCESS, '%d,root_node' % self._evaluation_cnt
+            _start_time, status, extra = time.time(), SUCCESS, '%d,root_node' % _evaluation_cnt
             self.incumbent_score = self.evaluator(self.hp_config, data_node=self.root_node, name='fe')
             if self.incumbent_score is None:
                 self.incumbent_score = 0.
                 status = ERROR
-            self.execution_status.append(EvaluationResult(status=status,
-                                                          duration=time.time() - _start_time,
-                                                          score=self.incumbent_score,
-                                                          extra=extra))
+            execution_status.append(EvaluationResult(status=status,
+                                                     duration=time.time()-_start_time,
+                                                     score=self.incumbent_score,
+                                                     extra=extra))
             self.baseline_score = self.incumbent_score
             self.incumbent = self.root_node
-            self.features_hist.append(self.root_node)
             self.root_node.depth = 1
-            self._evaluation_cnt += 1
+            _evaluation_cnt += 1
             self.beam_set.append(self.root_node)
 
         # Get one node in the beam set.
@@ -171,35 +108,66 @@ class EvaluationBasedOptimizer(Optimizer):
                 node_, trans_types=_trans_types, batch_size=self.hpo_batch_size
             )
             self.logger.info('The number of transformations is: %d' % len(trans_set))
-            self.n_jobs = int(self.n_jobs) if int(self.n_jobs) > 1 else 1
-            pool = ThreadPoolExecutor(max_workers=self.n_jobs)
-            tasks = list()
             for transformer in trans_set:
-                tasks.append(pool.submit(EvaluationBasedOptimizer.evaluate_tran, self, transformer, node_))
+                self.logger.debug('[%s][%s]' % (self.model_id, transformer.name))
 
-            # Wait until all tasks finish
-            all_completed = False
-            while not all_completed:
-                all_completed = True
-                for task in tasks:
-                    if not task.done():
-                        all_completed = False
-                        time.sleep(0.1)
-                        break
-                # Cancel waited threads if budget runs out
-                if (self.maximum_evaluation_num is not None and
-                    self.evaluation_count > self.maximum_evaluation_num) or \
-                        (self.time_budget is not None and
-                         time.time() >= self.start_time + self.time_budget):
+                if transformer.type != 0:
+                    self.transformer_manager.add_execution_record(node_.node_id, transformer.type)
+
+                _start_time, status, _score = time.time(), SUCCESS, -1
+                extra = ['%d' % _evaluation_cnt, self.model_id, transformer.name]
+                try:
+                    # Limit the execution and evaluation time for each transformation.
+                    with time_limit(self.time_limit_per_trans):
+                        output_node = transformer.operate(node_)
+
+                        # Evaluate this node.
+                        if transformer.type != 0:
+                            output_node.depth = node_.depth + 1
+                            output_node.trans_hist.append(transformer.type)
+                            _score = self.evaluator(self.hp_config, data_node=output_node, name='fe')
+                            output_node.score = _score
+                        else:
+                            _score = output_node.score
+
+                    if _score is None:
+                        status = ERROR
+                    else:
+                        self.temporary_nodes.append(output_node)
+                        self.graph.add_node(output_node)
+                        # Avoid self-loop.
+                        if transformer.type != 0 and node_.node_id != output_node.node_id:
+                            self.graph.add_trans_in_graph(node_, output_node, transformer)
+                        if _score > self.incumbent_score:
+                            self.incumbent_score = _score
+                            self.incumbent = output_node
+                except Exception as e:
+                    extra.append(str(e))
+                    self.logger.error('%s: %s' % (transformer.name, str(e)))
+                    status = ERROR
+                    if isinstance(e, TimeoutException):
+                        status = TIMEOUT
+
+                execution_status.append(
+                    EvaluationResult(status=status,
+                                     duration=time.time() - _start_time,
+                                     score=_score,
+                                     extra=extra))
+                _evaluation_cnt += 1
+
+                self.evaluation_count += 1
+                if (self.maximum_evaluation_num is not None
+                    and self.evaluation_count > self.maximum_evaluation_num) or \
+                        (self.time_budget is not None
+                         and time.time() >= self.start_time + self.time_budget):
                     self.logger.debug('[Budget Runs Out]: %s, %s\n' % (self.maximum_evaluation_num, self.time_budget))
                     self.is_ended = True
-                    for task in tasks:
-                        task.cancel()
+                    break
 
         self.logger.info('\n [Current Inc]: %.4f, [Improvement]: %.5f' %
                          (self.incumbent_score, self.incumbent_score - self.baseline_score))
 
-        self.evaluation_num_last_iteration = max(self.evaluation_num_last_iteration, self._evaluation_cnt)
+        self.evaluation_num_last_iteration = max(self.evaluation_num_last_iteration, _evaluation_cnt)
 
         # Update the beam set according to their performance.
         if len(self.beam_set) == 0:
@@ -228,7 +196,7 @@ class EvaluationBasedOptimizer(Optimizer):
                 self.local_datanodes = TransformationGraph.sort_nodes_by_score(self.local_datanodes)[:self.beam_width]
 
         self.iteration_id += 1
-        self.execution_history[self.iteration_id] = self.execution_status
+        self.execution_history[self.iteration_id] = execution_status
         iteration_cost = time.time() - _iter_start_time
         return self.incumbent.score, iteration_cost, self.incumbent
 
@@ -236,7 +204,7 @@ class EvaluationBasedOptimizer(Optimizer):
         if len(self.global_datanodes) > 0:
             self.logger.info('Sync the global nodes!')
             # Add local nodes.
-            self.beam_set = self.local_datanodes[:self.beam_width - 1]
+            self.beam_set = self.local_datanodes[:self.beam_width-1]
             # Add Beam_size - 1 global nodes.
             for node in self.global_datanodes[:self.beam_width - 1]:
                 self.beam_set.append(node)
