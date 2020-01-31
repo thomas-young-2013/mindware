@@ -64,13 +64,7 @@ class SecondLayerBandit(object):
         fe_evaluator = Evaluator(self.default_config,
                                  name='fe', resampling_strategy=self.evaluation_type,
                                  seed=self.seed)
-        if classifier_id in ['sgd', 'passive_aggressive']:
-            self.optimizer['fe'] = EvaluationBasedOptimizer(
-                self.original_data, fe_evaluator,
-                classifier_id, per_run_time_limit, self.seed,
-                shared_mode=self.share_fe, n_jobs=1)
-        else:
-            self.optimizer['fe'] = EvaluationBasedOptimizer(
+        self.optimizer['fe'] = EvaluationBasedOptimizer(
                 self.original_data, fe_evaluator,
                 classifier_id, per_run_time_limit, self.seed,
                 shared_mode=self.share_fe, n_jobs=n_jobs)
