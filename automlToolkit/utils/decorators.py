@@ -2,9 +2,7 @@ import sys
 import signal
 import resource
 import platform
-import time
-import multiprocessing
-from functools import wraps
+from contextlib import contextmanager
 
 
 def memory_limit(percentage: float):
@@ -50,8 +48,6 @@ def main():
 """
 
 
-
-
 class TimeoutException(Exception):
     pass
 
@@ -59,11 +55,6 @@ class TimeoutException(Exception):
 """
 https://stackoverflow.com/questions/366682/how-to-limit-execution-time-of-a-function-call-in-python
 """
-
-import signal
-import resource
-import platform
-from contextlib import contextmanager
 
 
 @contextmanager

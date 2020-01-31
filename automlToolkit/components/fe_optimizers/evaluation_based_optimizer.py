@@ -1,10 +1,11 @@
 import time
 import typing
+from concurrent.futures import ProcessPoolExecutor
 from collections import namedtuple
+from timeout_decorator import timeout, TimeoutError
 from automlToolkit.components.feature_engineering.transformation_graph import *
 from automlToolkit.components.fe_optimizers.base_optimizer import Optimizer
 from automlToolkit.components.fe_optimizers.transformer_manager import TransformerManager
-from automlToolkit.utils.decorators import time_limit, TimeoutException
 from automlToolkit.components.evaluator import Evaluator
 from automlToolkit.components.utils.constants import SUCCESS, ERROR, TIMEOUT
 
@@ -25,6 +26,8 @@ class EvaluationBasedOptimizer(Optimizer):
         self.baseline_score = -1.
         self.start_time = time.time()
         self.hp_config = None
+        self.n_jobs = n_jobs
+        self.pool = ProcessPoolExecutor(max_workers=n_jobs)
 
         # Parameters in beam search.
         self.hpo_batch_size = batch_size
@@ -41,6 +44,9 @@ class EvaluationBasedOptimizer(Optimizer):
         self.evaluation_num_last_iteration = -1
         self.temporary_nodes = list()
         self.execution_history = dict()
+
+        # Feature set for ensemble learning.
+        self.features_hist = list()
 
         # Used to share new feature set.
         self.local_datanodes = list()
@@ -71,6 +77,7 @@ class EvaluationBasedOptimizer(Optimizer):
         _iter_start_time = time.time()
         _evaluation_cnt = 0
         execution_status = list()
+        tasks = list()
 
         if self.iteration_id == 0:
             # Evaluate the original features.
@@ -80,7 +87,7 @@ class EvaluationBasedOptimizer(Optimizer):
                 self.incumbent_score = 0.
                 status = ERROR
             execution_status.append(EvaluationResult(status=status,
-                                                     duration=time.time()-_start_time,
+                                                     duration=time.time() - _start_time,
                                                      score=self.incumbent_score,
                                                      extra=extra))
             self.baseline_score = self.incumbent_score
@@ -163,6 +170,81 @@ class EvaluationBasedOptimizer(Optimizer):
                     self.logger.debug('[Budget Runs Out]: %s, %s\n' % (self.maximum_evaluation_num, self.time_budget))
                     self.is_ended = True
                     break
+
+                #@timeout(self.time_limit_per_trans, use_signals=True)
+                def evaluate(tran, node):
+                    start_time = time.time()
+                    output = tran.operate(node)
+
+                    # Evaluate this node.
+                    if tran.type != 0:
+                        output.depth = node.depth + 1
+                        output.trans_hist.append(tran.type)
+                        score = self.evaluator(self.hp_config, data_node=output, name='fe')
+                        output.score = score
+                    else:
+                        score = output.score
+                    return output, score, time.time() - start_time
+
+                # Limit the execution and evaluation time for each transformation.
+                tasks.append(self.pool.submit(evaluate, transformer, node_))
+
+            # Wait until all tasks finish
+            all_completed = False
+            while not all_completed:
+                all_completed = True
+                eval_cnt = 0
+                for task in tasks:
+                    if not task.done():
+                        all_completed = False
+                    else:
+                        eval_cnt += 1
+                self.logger.info("Evaluated transformations: %d/%s" % (eval_cnt, len(tasks)))
+                # Cancel waited threads if budget runs out
+                if (self.maximum_evaluation_num is not None and
+                    self.evaluation_count + eval_cnt > self.maximum_evaluation_num) or \
+                        (self.time_budget is not None and
+                         time.time() >= self.start_time + self.time_budget):
+                    self.logger.debug('[Budget Runs Out]: %s, %s\n' % (self.maximum_evaluation_num, self.time_budget))
+                    self.is_ended = True
+                    for task in tasks:
+                        task.cancel()
+                    break
+                time.sleep(2)
+
+            for i, task in enumerate(tasks):
+                duration, status, _score = -1, SUCCESS, -1
+                transformer = trans_set[i]
+                extra = ['%d' % _evaluation_cnt, self.model_id, transformer.name]
+                try:
+                    output_node, _score, duration = task.result()
+                    if _score is None:
+                        status = ERROR
+                    else:
+                        self.temporary_nodes.append(output_node)
+                        self.graph.add_node(output_node)
+                        # Avoid self-loop.
+                        if transformer.type != 0 and node_.node_id != output_node.node_id:
+                            self.graph.add_trans_in_graph(node_, output_node, transformer)
+                        if _score > self.incumbent_score:
+                            self.incumbent_score = _score
+                            self.incumbent = output_node
+                            self.features_hist.append(output_node)
+
+                except Exception as e:
+                    extra.append(str(e))
+                    self.logger.error('%s: %s' % (transformer.name, str(e)))
+                    status = ERROR
+                    if isinstance(e, TimeoutError):
+                        status = TIMEOUT
+
+                execution_status.append(
+                    EvaluationResult(status=status,
+                                     duration=duration if duration != -1 else self.time_limit_per_trans,
+                                     score=_score,
+                                     extra=extra))
+                _evaluation_cnt += 1
+                self.evaluation_count += 1
 
         self.logger.info('\n [Current Inc]: %.4f, [Improvement]: %.5f' %
                          (self.incumbent_score, self.incumbent_score - self.baseline_score))

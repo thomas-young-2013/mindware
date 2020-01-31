@@ -1,5 +1,6 @@
 import typing
 import numpy as np
+from timeout_decorator import timeout, TimeoutError
 from automlToolkit.components.evaluator import Evaluator
 from automlToolkit.utils.logging_utils import get_logger
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
