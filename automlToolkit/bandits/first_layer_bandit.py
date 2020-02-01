@@ -303,7 +303,10 @@ class FirstLayerBandit(object):
             # print(sum(test_data_node.data[0] == tmp_valid_data.data[0]))
             # print(sum(test_data_node.data[1] == tmp_valid_data.data[1]))
 
-            assert test_data_node == tmp_valid_data
+            if not (test_data_node == tmp_valid_data):
+                flag = (test_data_node.data[0] == tmp_valid_data.data[0])
+                print(flag)
+                print(sum(flag))
 
         # Build the ML estimator.
         _, estimator = get_estimator(config)

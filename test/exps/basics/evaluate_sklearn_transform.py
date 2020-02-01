@@ -35,7 +35,7 @@ def train_valid_split_X(X, y):
 
 
 if __name__ == "__main__":
-    trans_id = 20
+    trans_id = 4
     trans_types = ['fast_ica',
                    'quantile',
                    'variance_selector',
@@ -155,7 +155,7 @@ if __name__ == "__main__":
 
         qt = LinearDiscriminantAnalysis()
     else:
-        raise ValueError('Unsupported transformation name: %!' % trans_name)
+        raise ValueError('Unsupported transformation name: %s!' % trans_name)
 
     qt.fit(X, y)
     print(X.shape)
