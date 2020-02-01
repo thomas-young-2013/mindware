@@ -4,9 +4,10 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedKFold, train_test_split, StratifiedShuffleSplit
 from automlToolkit.utils.logging_utils import get_logger
 from sklearn.utils.testing import ignore_warnings
-from sklearn.exceptions import ConvergenceWarning
+from sklearn.exceptions import ConvergenceWarning, ChangedBehaviorWarning
 
 
+@ignore_warnings(category=ChangedBehaviorWarning)
 @ignore_warnings(category=ConvergenceWarning)
 def cross_validation(clf, X, y, n_fold=5, shuffle=True, random_state=1):
     kfold = StratifiedKFold(n_splits=n_fold, random_state=1, shuffle=shuffle)
@@ -22,6 +23,7 @@ def cross_validation(clf, X, y, n_fold=5, shuffle=True, random_state=1):
     return np.mean(scores)
 
 
+@ignore_warnings(category=ChangedBehaviorWarning)
 @ignore_warnings(category=ConvergenceWarning)
 def holdout_validation(clf, X, y, test_size=0.2, random_state=1):
     sss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=1)
