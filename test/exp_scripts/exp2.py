@@ -175,7 +175,7 @@ if __name__ == "__main__":
         algorithms = ['adaboost', 'random_forest',
                       'libsvm_svc', 'sgd',
                       'extra_trees', 'decision_tree',
-                      'k_nearest_neighbors',
+                      'k_nearest_neighbors', 'liblinear_svc'
                       'passive_aggressive', 'xgradient_boosting',
                       'lda', 'qda',
                       'multinomial_nb', 'gaussian_nb', 'bernoulli_nb']

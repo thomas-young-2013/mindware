@@ -103,6 +103,8 @@ class PSMACOptimizer(BaseHPOptimizer):
                 p.join()
 
             for i in range(self.n_jobs):
+                if not return_hist:
+                    break
                 runhistory = return_hist[i]
                 runkeys = list(runhistory.data.keys())
                 for key in runkeys:
@@ -141,6 +143,8 @@ class PSMACOptimizer(BaseHPOptimizer):
             p.join()
 
         for i in range(self.n_jobs):
+            if not return_hist:
+                break
             runhistory = return_hist[i]
             runkeys = list(runhistory.data.keys())
             for key in runkeys:
@@ -185,5 +189,5 @@ def _iterate(optimizer, runcount_left, return_hist):
         configuration_space=optimizer.solver.config_space,
         logger=optimizer.solver.logger,
     )
-    print(optimizer.solver.runhistory.data)
+    # print(optimizer.solver.runhistory.data)
     return_hist.append(optimizer.solver.runhistory)
