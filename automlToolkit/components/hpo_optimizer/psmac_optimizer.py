@@ -102,10 +102,7 @@ class PSMACOptimizer(BaseHPOptimizer):
             for p in processes:
                 p.join()
 
-            for i in range(self.n_jobs):
-                if not return_hist:
-                    break
-                runhistory = return_hist[i]
+            for runhistory in return_hist:
                 runkeys = list(runhistory.data.keys())
                 for key in runkeys:
                     _reward = 1. - runhistory.data[key][0]
@@ -142,10 +139,7 @@ class PSMACOptimizer(BaseHPOptimizer):
         for p in processes:
             p.join()
 
-        for i in range(self.n_jobs):
-            if not return_hist:
-                break
-            runhistory = return_hist[i]
+        for runhistory in return_hist:
             runkeys = list(runhistory.data.keys())
             for key in runkeys:
                 _reward = 1. - runhistory.data[key][0]
