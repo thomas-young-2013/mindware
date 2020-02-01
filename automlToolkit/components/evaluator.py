@@ -90,8 +90,10 @@ class Evaluator(object):
             else:
                 raise ValueError('Invalid resampling strategy: %s!' % self.resampling_strategy)
         except Exception as e:
+            if self.name == 'fe':
+                raise e
             self.logger.info('%s-evaluator: %s' % (self.name, str(e)))
-            score = 0. if self.name == 'fe' else 1.0
+            score = 0.
 
         fmt_str = '\n'+' '*5 + '==> '
         self.logger.debug('%s%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
