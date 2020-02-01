@@ -51,15 +51,15 @@ def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200, seed=1):
 
     validation_accuracy = np.max(bandit.final_rewards)
     test_accuracy = bandit.score(test_raw_data)
-    test_accuracy_with_ens = EnsembleBuilder(bandit).score(test_raw_data)
+    # test_accuracy_with_ens = EnsembleBuilder(bandit).score(test_raw_data)
 
     print('Dataset          : %s' % dataset)
     print('Validation/Test score : %f - %f' % (validation_accuracy, test_accuracy))
-    print('Test score with ensem : %f' % test_accuracy_with_ens)
+    # print('Test score with ensem : %f' % test_accuracy_with_ens)
 
     save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
     with open(save_path, 'wb') as f:
-        stats = [time_cost, test_accuracy_with_ens]
+        stats = [time_cost]
         pickle.dump([validation_accuracy, test_accuracy, stats], f)
     return time_cost
 
