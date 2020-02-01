@@ -144,6 +144,14 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
         pickle.dump([validation_accuracy, test_accuracy, stats], f)
 
 
+def check_datasets(datasets):
+    for _dataset in datasets:
+        try:
+            _, _ = load_train_test_data(_dataset, random_state=1)
+        except Exception as e:
+            raise ValueError('Dataset - %s does not exist!' % _dataset)
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
     dataset_str = args.datasets
@@ -175,6 +183,7 @@ if __name__ == "__main__":
         raise ValueError('Invalid algo num: %d' % algo_num)
 
     dataset_list = dataset_str.split(',')
+    check_datasets(dataset_list)
 
     for dataset in dataset_list:
         for mth in methods:
