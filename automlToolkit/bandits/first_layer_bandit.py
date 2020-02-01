@@ -639,3 +639,8 @@ class FirstLayerBandit(object):
                      self.logging_config,
                      )
         return get_logger(logger_name)
+
+    def __del__(self):
+        del self.logger
+        for _arm in self.arms:
+            del self.sub_bandits[_arm].optimizer

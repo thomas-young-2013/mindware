@@ -50,10 +50,10 @@ class EnsembleBuilder(object):
                     try:
                         _, estimator = get_estimator(config)
                         estimator.fit(X_train, y_train)
-                        y_pred = estimator.predict_proba(X_valid)
-                        train_predictions.append(y_pred)
-                        y_pred = estimator.predict_proba(X_test)
-                        test_predictions.append(y_pred)
+                        y_valid_pred = estimator.predict_proba(X_valid)
+                        y_test_pred = estimator.predict_proba(X_test)
+                        train_predictions.append(y_valid_pred)
+                        test_predictions.append(y_test_pred)
                     except Exception as e:
                         print(str(e))
 
