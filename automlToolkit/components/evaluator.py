@@ -10,17 +10,21 @@ from sklearn.exceptions import ConvergenceWarning
 
 @ignore_warnings(category=ConvergenceWarning)
 def cross_validation(clf, X, y, n_fold=5, shuffle=True, random_state=1):
-    kfold = StratifiedKFold(n_splits=n_fold, random_state=1, shuffle=shuffle)
-    scores = list()
-    for train_idx, valid_idx in kfold.split(X, y):
-        train_x = X[train_idx]
-        valid_x = X[valid_idx]
-        train_y = y[train_idx]
-        valid_y = y[valid_idx]
-        clf.fit(train_x, train_y)
-        pred = clf.predict(valid_x)
-        scores.append(accuracy_score(pred, valid_y))
-    return np.mean(scores)
+    with warnings.catch_warnings():
+        # ignore all caught warnings
+        warnings.filterwarnings("ignore")
+
+        kfold = StratifiedKFold(n_splits=n_fold, random_state=1, shuffle=shuffle)
+        scores = list()
+        for train_idx, valid_idx in kfold.split(X, y):
+            train_x = X[train_idx]
+            valid_x = X[valid_idx]
+            train_y = y[train_idx]
+            valid_y = y[valid_idx]
+            clf.fit(train_x, train_y)
+            pred = clf.predict(valid_x)
+            scores.append(accuracy_score(pred, valid_y))
+        return np.mean(scores)
 
 
 @ignore_warnings(category=ConvergenceWarning)
@@ -78,12 +82,16 @@ class Evaluator(object):
             data_node = self.data_node
 
         X_train, y_train = data_node.data
-        if self.resampling_strategy == 'cv':
-            score = cross_validation(clf, X_train, y_train, n_fold=self.cv, random_state=self.seed)
-        elif self.resampling_strategy == 'holdout':
-            score = holdout_validation(clf, X_train, y_train, random_state=self.seed)
-        else:
-            raise ValueError('Invalid resampling strategy: %s!' % self.resampling_strategy)
+        try:
+            if self.resampling_strategy == 'cv':
+                score = cross_validation(clf, X_train, y_train, n_fold=self.cv, random_state=self.seed)
+            elif self.resampling_strategy == 'holdout':
+                score = holdout_validation(clf, X_train, y_train, random_state=self.seed)
+            else:
+                raise ValueError('Invalid resampling strategy: %s!' % self.resampling_strategy)
+        except Exception as e:
+            self.logger.info('%s-evaluator: %s' % (self.name, str(e)))
+            score = 0. if self.name == 'fe' else 1.0
 
         fmt_str = '\n'+' '*5 + '==> '
         self.logger.debug('%s%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
