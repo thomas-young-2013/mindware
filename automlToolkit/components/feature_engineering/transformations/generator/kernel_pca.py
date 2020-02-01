@@ -27,14 +27,14 @@ class KernelPCA(Transformer):
 
         if self.model is None:
             import scipy.sparse
-            import sklearn.decomposition
+            from automlToolkit.components.feature_engineering.transformations.utils import KernelPCA
 
             n_components = min(2000, max(3, int(self.n_components * X.shape[1])))
             self.degree = int(self.degree)
             self.gamma = float(self.gamma)
             self.coef0 = float(self.coef0)
 
-            self.model = sklearn.decomposition.KernelPCA(
+            self.model = KernelPCA(
                 n_components=n_components, kernel=self.kernel,
                 degree=self.degree, gamma=self.gamma, coef0=self.coef0,
                 remove_zero_eig=True, random_state=self.random_state)

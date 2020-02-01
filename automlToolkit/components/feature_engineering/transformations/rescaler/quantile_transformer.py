@@ -17,7 +17,7 @@ class QuantileTransformation(Transformer):
 
     @ease_trans
     def operate(self, input_datanode, target_fields=None):
-        from sklearn.preprocessing import QuantileTransformer
+        from automlToolkit.components.feature_engineering.transformations.utils import QuantileTransformer
 
         X, y = input_datanode.data
         X_new = X[:, target_fields]

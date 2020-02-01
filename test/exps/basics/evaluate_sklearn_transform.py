@@ -35,14 +35,29 @@ def train_valid_split_X(X, y):
 
 
 if __name__ == "__main__":
-    trans_id = 6
+    trans_id = 20
     trans_types = ['fast_ica',
                    'quantile',
                    'variance_selector',
                    'percentile_selector',
                    'generic_selector',
                    'svd',
-                   'feature_agg']
+                   'feature_agg',
+                   'extra_tree_selector',
+                   'liblinear_based_selector',
+                   'rfe_selector',
+                   'normalizer',
+                   'scaler1',
+                   'scaler2',
+                   'scaler3',
+                   'random_tree_embedding',
+                   'polynomial',
+                   'pca',
+                   'nystronem',
+                   'lda',
+                   'kitchen_sink',
+                   'kernel_pca',
+                   'cross']
     trans_name = trans_types[trans_id]
     raw_data, _ = load_train_test_data('yeast')
     train_data, valid_data = train_valid_split(raw_data)
@@ -50,26 +65,95 @@ if __name__ == "__main__":
     X, y = raw_data.data
     if trans_name == 'fast_ica':
         from sklearn.decomposition import FastICA
+
         qt = FastICA(n_components=7, random_state=1)
     elif trans_name == 'quantile':
-        from sklearn.preprocessing import QuantileTransformer
+        from automlToolkit.components.feature_engineering.transformations.utils import QuantileTransformer
+
         qt = QuantileTransformer()
     elif trans_name == 'variance_selector':
         from sklearn.feature_selection import VarianceThreshold
+
         qt = VarianceThreshold()
     elif trans_name == 'percentile_selector':
         from sklearn.feature_selection import SelectPercentile
+
         qt = SelectPercentile()
     elif trans_name == 'generic_selector':
         from sklearn.feature_selection import f_classif
         from sklearn.feature_selection import GenericUnivariateSelect
+
         qt = GenericUnivariateSelect(score_func=f_classif)
     elif trans_name == 'svd':
         from sklearn.decomposition import TruncatedSVD
+
         qt = TruncatedSVD(algorithm='randomized')
     elif trans_name == 'feature_agg':
         from sklearn.cluster import FeatureAgglomeration
+
         qt = FeatureAgglomeration()
+    elif trans_name == 'extra_tree_selector':
+        from sklearn.feature_selection import SelectFromModel
+        from sklearn.ensemble import ExtraTreesClassifier
+
+        model = ExtraTreesClassifier()
+        qt = SelectFromModel(model)
+    elif trans_name == 'liblinear_based_selector':
+        from sklearn.feature_selection import SelectFromModel
+        from sklearn.svm import LinearSVC
+
+        model = LinearSVC()
+        qt = SelectFromModel(model)
+    elif trans_name == 'rfe_selector':
+        from sklearn.feature_selection import RFECV
+        from sklearn.linear_model import LogisticRegression
+
+        model = LogisticRegression()
+        qt = RFECV(LogisticRegression())
+    elif trans_name == 'normalizer':
+        from sklearn.preprocessing import Normalizer
+
+        qt = Normalizer()
+    elif trans_name == 'scaler1':
+        from sklearn.preprocessing import MinMaxScaler
+
+        qt = MinMaxScaler()
+    elif trans_name == 'scaler2':
+        from sklearn.preprocessing import StandardScaler
+
+        qt = StandardScaler()
+    elif trans_name == 'scaler3':
+        from sklearn.preprocessing import RobustScaler
+
+        qt = RobustScaler()
+    elif trans_name == 'random_tree_embedding':
+        from sklearn.ensemble import RandomTreesEmbedding
+
+        qt = RandomTreesEmbedding()
+    elif trans_name == 'polynomial':
+        from sklearn.preprocessing import PolynomialFeatures
+
+        qt = PolynomialFeatures()
+    elif trans_name == 'pca':
+        from sklearn.decomposition import PCA
+
+        qt = PCA()
+    elif trans_name == 'nystronem':
+        from sklearn.kernel_approximation import Nystroem
+
+        qt = Nystroem()
+    elif trans_name == 'kernel_pca':
+        from automlToolkit.components.feature_engineering.transformations.utils import KernelPCA
+
+        qt = KernelPCA()
+    elif trans_name == 'kitchen_sink':
+        from sklearn.kernel_approximation import RBFSampler
+
+        qt = RBFSampler()
+    elif trans_name == 'lda':
+        from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+
+        qt = LinearDiscriminantAnalysis()
     else:
         raise ValueError('Unsupported transformation name: %!' % trans_name)
 
@@ -85,16 +169,16 @@ if __name__ == "__main__":
     # flag = np.isclose(x1_, x2)
     flag = (x1_ == x2)
     print(flag)
-    print('='*50)
+    print('=' * 50)
     for idx, item in enumerate(flag):
         if (item == False).any():
             print('Line - %d' % idx)
             print(item)
             print(x1_[idx])
             print(x2[idx])
-    print('='*50)
+    print('=' * 50)
     print(sum(flag))
-    print('='*50)
+    print('=' * 50)
     print('Transformation  :', trans_name)
     print('Is close        :', np.isclose(x1_, x2).all())
     print('Absolutely Same :', (x1_ == x2).all())
