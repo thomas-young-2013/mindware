@@ -36,7 +36,7 @@ class FirstLayerBandit(object):
         self.original_data = data.copy_()
         self.trial_num = trial_num
         self.n_jobs = n_jobs
-        self.alpha = 4
+        self.alpha = 3
         self.B = 0.01
         self.seed = seed
         self.shared_mode = share_feature
@@ -527,6 +527,7 @@ class FirstLayerBandit(object):
         arm_candidate = self.arms.copy()
         self.best_lower_bounds = np.zeros(arm_num)
         _iter_id = 0
+        assert arm_num * self.alpha <= self.trial_num
 
         while _iter_id < self.trial_num:
             if _iter_id < arm_num * self.alpha:
@@ -563,6 +564,7 @@ class FirstLayerBandit(object):
                     self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
                     _iter_id += 1
 
+            if _iter_id >= arm_num * self.alpha:
                 # Update the upper/lower bound estimation.
                 upper_bounds, lower_bounds = list(), list()
                 for _arm in arm_candidate:
