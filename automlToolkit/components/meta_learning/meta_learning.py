@@ -101,11 +101,13 @@ def evaluate_metalearning_configs(first_bandit):
     for arm_score_config in score_list:
         if arm_score_config[0] in meta_arms:
             continue
+
+        first_bandit.sub_bandits[arm_score_config[0]].default_config = arm_score_config[2]
         first_bandit.sub_bandits[arm_score_config[0]].collect_iter_stats('fe', (
             arm_score_config[1], arm_score_config[4], arm_score_config[3]))
-        first_bandit.sub_bandits[arm_score_config[0]].collect_iter_stats('hpo',
-                                                                         (arm_score_config[1], arm_score_config[4],
-                                                                          arm_score_config[2]))
+        # first_bandit.sub_bandits[arm_score_config[0]].collect_iter_stats('hpo',
+        #                                                                  (arm_score_config[1], arm_score_config[4],
+        #                                                                   arm_score_config[2]))
         first_bandit.sub_bandits[arm_score_config[0]].optimizer['fe'].hp_config = arm_score_config[2]
         meta_arms.append(arm_score_config[0])
     for arm in first_bandit.arms:
