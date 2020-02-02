@@ -99,6 +99,7 @@ class EvaluationBasedOptimizer(Optimizer):
             self.incumbent = self.root_node
             self.features_hist.append(self.root_node)
             self.root_node.depth = 1
+            self.root_node.score = self.incumbent_score
             _evaluation_cnt += 1
             self.beam_set.append(self.root_node)
 
@@ -209,7 +210,7 @@ class EvaluationBasedOptimizer(Optimizer):
 
             else:
                 for transformer in trans_set:
-                    self.logger.info('[%s][%s]' % (self.model_id, transformer.name))
+                    self.logger.debug('[%s][%s]' % (self.model_id, transformer.name))
 
                     if transformer.type != 0:
                         self.transformer_manager.add_execution_record(node_.node_id, transformer.type)
