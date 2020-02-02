@@ -81,10 +81,13 @@ class EvaluationBasedOptimizer(Optimizer):
         if self.iteration_id == 0:
             # Evaluate the original features.
             _start_time, status, extra = time.time(), SUCCESS, '%d,root_node' % _evaluation_cnt
-            self.incumbent_score = self.evaluator(self.hp_config, data_node=self.root_node, name='fe')
-            if self.incumbent_score is None:
+            try:
+                self.incumbent_score = self.evaluator(self.hp_config, data_node=self.root_node, name='fe')
+            except Exception as e:
+                self.logger.error('evaluating root node: %s' % str(e))
                 self.incumbent_score = 0.
                 status = ERROR
+
             execution_status.append(EvaluationResult(status=status,
                                                      duration=time.time() - _start_time,
                                                      score=self.incumbent_score,
