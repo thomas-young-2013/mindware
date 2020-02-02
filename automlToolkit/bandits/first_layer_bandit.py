@@ -154,7 +154,6 @@ class FirstLayerBandit(object):
 
     def evaluate_metalearning_configs(self):
         score_list = []
-        arm_list = []
         for config in self.meta_configs:
             try:
                 config = config.get_dictionary()
@@ -179,10 +178,7 @@ class FirstLayerBandit(object):
                                               seed=self.seed)
                     start_time = time.time()
                     score = 1 - hpo_evaluator(default_config)
-                    score_list.append((arm, score))
-                    if arm not in arm_list:
-                        arm_list.append(arm)
-                        self.sub_bandits[arm].default_config = default_config
+                    score_list.append((arm, score, default_config))
                     self.sub_bandits[arm].collect_iter_stats('hpo',
                                                              (score, time.time() - start_time, default_config))
                     self.sub_bandits[arm].inc['fe'] = transformed_node
@@ -194,12 +190,12 @@ class FirstLayerBandit(object):
 
         # Sort the meta-configs
         score_list.sort(key=lambda x: x[1], reverse=True)
-        arm_list = [x[0] for x in score_list]
         meta_arms = list()
-        for arm in arm_list:
-            if arm in meta_arms:
+        for arm_score_config in score_list:
+            if arm_score_config[0] in meta_arms:
                 continue
-            meta_arms.append(arm)
+            self.sub_bandits[arm_score_config[0]].optimizer['fe'].hp_config = arm_score_config[2]
+            meta_arms.append(arm_score_config[0])
         for arm in self.arms:
             if arm not in meta_arms:
                 meta_arms.append(arm)
