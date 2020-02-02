@@ -15,7 +15,7 @@ class SecondLayerBandit(object):
     def __init__(self, classifier_id: str, data: DataNode,
                  share_fe=False, output_dir='logs',
                  per_run_time_limit=120,
-                 per_run_mem_limit=1024,
+                 per_run_mem_limit=5120,
                  eval_type='cv', dataset_id='default',
                  mth='rb', sw_size=3, strategy='avg',
                  n_jobs=1, seed=1):
