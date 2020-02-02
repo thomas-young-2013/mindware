@@ -1,14 +1,14 @@
 from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import UniformIntegerHyperparameter, \
-    UnParametrizedHyperparameter, Constant
+    UnParametrizedHyperparameter, Constant, CategoricalHyperparameter
 from automlToolkit.components.feature_engineering.transformations.base_transformer import *
-from automlToolkit.components.utils.configspace_utils import check_none
+from automlToolkit.components.utils.configspace_utils import check_none, check_for_bool
 
 
 class RandomTreesEmbeddingTransformation(Transformer):
     def __init__(self, n_estimators=10, max_depth=5, min_samples_split=2,
                  min_samples_leaf=1, min_weight_fraction_leaf=1.0, max_leaf_nodes='None',
-                 sparse_output=True, n_jobs=1, random_state=None):
+                 sparse_output=True, bootstrap='False', n_jobs=1, random_state=None):
         super().__init__("random_trees_embedding", 18)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
@@ -20,6 +20,7 @@ class RandomTreesEmbeddingTransformation(Transformer):
         self.min_samples_leaf = min_samples_leaf
         self.max_leaf_nodes = max_leaf_nodes
         self.min_weight_fraction_leaf = min_weight_fraction_leaf
+        self.bootstrap = bootstrap
         self.sparse_output = sparse_output
         self.n_jobs = n_jobs
         self.random_state = random_state
@@ -46,6 +47,7 @@ class RandomTreesEmbeddingTransformation(Transformer):
             else:
                 self.max_leaf_nodes = int(self.max_leaf_nodes)
             self.min_weight_fraction_leaf = float(self.min_weight_fraction_leaf)
+            self.bootstrap = check_for_bool(self.bootstrap)
 
             self.model = RandomTreesEmbedding(
                 n_estimators=self.n_estimators,
@@ -81,8 +83,9 @@ class RandomTreesEmbeddingTransformation(Transformer):
         min_weight_fraction_leaf = Constant('min_weight_fraction_leaf', 1.0)
         max_leaf_nodes = UnParametrizedHyperparameter(name="max_leaf_nodes",
                                                       value="None")
+        bootstrap = CategoricalHyperparameter('bootstrap', ['True', 'False'])
         cs = ConfigurationSpace()
         cs.add_hyperparameters([n_estimators, max_depth, min_samples_split,
                                 min_samples_leaf, min_weight_fraction_leaf,
-                                max_leaf_nodes])
+                                max_leaf_nodes, bootstrap])
         return cs
