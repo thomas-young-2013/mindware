@@ -36,8 +36,7 @@ class PSMACOptimizer(BaseHPOptimizer):
                               "shared-model": True,  # PSMAC Entry
                               "runcount-limit": self.evaluation_num_limit,
                               "output_dir": output_dir,
-                              "cutoff_time": self.per_run_time_limit,
-                              "memory_limit": self.per_run_mem_limit
+                              "cutoff_time": self.per_run_time_limit
                               }
         self.optimizer_list = list()
         for _ in range(self.n_jobs):

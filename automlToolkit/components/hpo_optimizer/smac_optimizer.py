@@ -26,8 +26,7 @@ class SMACOptimizer(BaseHPOptimizer):
             "cs": self.config_space,
             "deterministic": "true",
             "cutoff_time": self.per_run_time_limit,
-            'output_dir': output_dir,
-            'memory_limit': self.per_run_mem_limit
+            'output_dir': output_dir
         }
 
         self.optimizer = SMAC(scenario=Scenario(self.scenario_dict),
