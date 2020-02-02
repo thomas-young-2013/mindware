@@ -14,10 +14,13 @@ from automlToolkit.utils.functions import get_increasing_sequence
 class SecondLayerBandit(object):
     def __init__(self, classifier_id: str, data: DataNode,
                  share_fe=False, output_dir='logs',
-                 per_run_time_limit=120, seed=1,
+                 per_run_time_limit=120,
+                 per_run_mem_limit=512,
                  eval_type='cv', dataset_id='default',
-                 mth='rb', sw_size=3, strategy='avg', n_jobs=1):
+                 mth='rb', sw_size=3, strategy='avg',
+                 n_jobs=1, seed=1):
         self.per_run_time_limit = per_run_time_limit
+        self.per_run_mem_limit = per_run_mem_limit
         self.classifier_id = classifier_id
         self.evaluation_type = eval_type
         self.original_data = data.copy_()
@@ -66,7 +69,7 @@ class SecondLayerBandit(object):
                                  seed=self.seed)
         self.optimizer['fe'] = EvaluationBasedOptimizer(
                 self.original_data, fe_evaluator,
-                classifier_id, per_run_time_limit, self.seed,
+                classifier_id, per_run_time_limit, per_run_mem_limit, self.seed,
                 shared_mode=self.share_fe, n_jobs=n_jobs)
         self.inc['fe'], self.local_inc['fe'] = self.original_data, self.original_data
 
@@ -137,7 +140,7 @@ class SecondLayerBandit(object):
                                          seed=self.seed)
                 self.optimizer[_arm] = EvaluationBasedOptimizer(
                     self.inc['fe'], fe_evaluator,
-                    self.classifier_id, self.per_run_time_limit, self.seed,
+                    self.classifier_id, self.per_run_time_limit, self.per_run_mem_limit, self.seed,
                     shared_mode=self.share_fe
                 )
             else:
