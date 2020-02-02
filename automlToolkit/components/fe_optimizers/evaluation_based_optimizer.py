@@ -262,6 +262,14 @@ class EvaluationBasedOptimizer(Optimizer):
                         self.is_ended = True
                         break
 
+            # Memory Save: free the data in the unpromising nodes.
+            _scores = list()
+            for tmp_node in self.temporary_nodes:
+                _score = tmp_node.score if tmp_node.score is not None else 0.0
+                _scores.append(_score)
+            _idxs = np.argsort(-np.array(_scores))[:self.beam_width+1]
+            self.temporary_nodes = [self.temporary_nodes[_idx] for _idx in _idxs]
+
         self.logger.info('\n [Current Inc]: %.4f, [Improvement]: %.5f' %
                          (self.incumbent_score, self.incumbent_score - self.baseline_score))
 
