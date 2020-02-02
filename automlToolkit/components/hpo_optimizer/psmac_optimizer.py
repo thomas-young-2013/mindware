@@ -13,13 +13,14 @@ from automlToolkit.components.hpo_optimizer.base_optimizer import BaseHPOptimize
 
 class PSMACOptimizer(BaseHPOptimizer):
     def __init__(self, evaluator, config_space, n_jobs=4, time_limit=None, evaluation_limit=200,
-                 per_run_time_limit=600, output_dir='./', trials_per_iter=1, seed=1):
+                 per_run_time_limit=600, per_run_mem_limit=1024, output_dir='./', trials_per_iter=1, seed=1):
         super().__init__(evaluator, config_space, seed)
         self.time_limit = time_limit
         self.evaluation_num_limit = evaluation_limit
         self.trials_per_iter = trials_per_iter
         self.trials_this_run = trials_per_iter
         self.per_run_time_limit = per_run_time_limit
+        self.per_run_mem_limit = per_run_mem_limit
         self.n_jobs = n_jobs
 
         if not output_dir.endswith('/'):
@@ -35,7 +36,8 @@ class PSMACOptimizer(BaseHPOptimizer):
                               "shared-model": True,  # PSMAC Entry
                               "runcount-limit": self.evaluation_num_limit,
                               "output_dir": output_dir,
-                              "cutoff_time": self.per_run_time_limit
+                              "cutoff_time": self.per_run_time_limit,
+                              "memory_limit": self.per_run_mem_limit
                               }
         self.optimizer_list = list()
         for _ in range(self.n_jobs):

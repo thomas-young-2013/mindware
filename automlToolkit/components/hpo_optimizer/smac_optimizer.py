@@ -8,12 +8,13 @@ from automlToolkit.components.hpo_optimizer.base_optimizer import BaseHPOptimize
 
 class SMACOptimizer(BaseHPOptimizer):
     def __init__(self, evaluator, config_space, time_limit=None, evaluation_limit=None,
-                 per_run_time_limit=600, output_dir='./', trials_per_iter=1, seed=1):
+                 per_run_time_limit=600, per_run_mem_limit=1024, output_dir='./', trials_per_iter=1, seed=1):
         super().__init__(evaluator, config_space, seed)
         self.time_limit = time_limit
         self.evaluation_num_limit = evaluation_limit
         self.trials_per_iter = trials_per_iter
         self.per_run_time_limit = per_run_time_limit
+        self.per_run_mem_limit = per_run_mem_limit
 
         if not output_dir.endswith('/'):
             output_dir += '/'
@@ -25,7 +26,8 @@ class SMACOptimizer(BaseHPOptimizer):
             "cs": self.config_space,
             "deterministic": "true",
             "cutoff_time": self.per_run_time_limit,
-            'output_dir': output_dir
+            'output_dir': output_dir,
+            'memory_limit': self.per_run_mem_limit
         }
 
         self.optimizer = SMAC(scenario=Scenario(self.scenario_dict),
