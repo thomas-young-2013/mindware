@@ -10,17 +10,15 @@ from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
 
-from automlToolkit.components.evaluator import get_estimator
 from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 from automlToolkit.datasets.utils import load_data, load_train_test_data
-from automlToolkit.components.ensemble.ensemble_selection import EnsembleSelection
-from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.ensemble.ensemble_builder import EnsembleBuilder
 from automlToolkit.components.utils.constants import CATEGORICAL
 
 parser = argparse.ArgumentParser()
 dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \
               'ionosphere,lymphography,messidor_features,winequality_red,fri_c1,quake,satimage'
+parser.add_argument('--eval_type', type=str, choices=['cv', 'holdout'], default='holdout')
 parser.add_argument('--datasets', type=str, default=dataset_set)
 parser.add_argument('--methods', type=str, default='hmab,ausk')
 parser.add_argument('--algo_num', type=int, default=15)
@@ -39,7 +37,8 @@ if not os.path.exists(save_dir):
 per_run_time_limit = 240
 
 
-def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200, n_jobs=1, meta_configs=0, seed=1):
+def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200,
+                  n_jobs=1, meta_configs=0, seed=1, eval_type='holdout'):
     task_id = '%s-hmab-%d-%d' % (dataset, len(algorithms), trial_num)
     _start_time = time.time()
     raw_data, test_raw_data = load_train_test_data(dataset, random_state=seed)
@@ -50,7 +49,7 @@ def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200, n_jobs=1,
                               n_jobs=n_jobs,
                               meta_configs=meta_configs,
                               seed=seed,
-                              eval_type='holdout')
+                              eval_type=eval_type)
     bandit.optimize()
     time_cost = int(time.time() - _start_time)
     print(bandit.final_rewards)
@@ -86,9 +85,9 @@ def load_hmab_time_costs(start_id, rep, dataset, n_algo, trial_num):
 
 
 def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
-                         dataset='credit', time_limit=1200,
+                         dataset='credit', time_limit=1200, seed=1,
                          enable_ens=True, enable_meta_learning=False,
-                         n_jobs=1, seed=1):
+                         eval_type='holdout', n_jobs=1):
     print('%s\nDataset: %s, Run_id: %d, Budget: %d.\n%s' % ('=' * 50, dataset, rep_id, time_limit, '=' * 50))
     task_id = '%s-%s-%d-%d' % (dataset, 'ausk-full', len(algorithms), trial_num)
     if enable_ens:
@@ -102,20 +101,37 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
 
     include_models = algorithms
 
-    automl = autosklearn.classification.AutoSklearnClassifier(
-        time_left_for_this_task=int(time_limit),
-        per_run_time_limit=per_run_time_limit,
-        n_jobs=n_jobs,
-        include_estimators=include_models,
-        ensemble_memory_limit=12288,
-        ml_memory_limit=12288,
-        ensemble_size=ensemble_size,
-        ensemble_nbest=ensemble_nbest,
-        initial_configurations_via_metalearning=init_config_via_metalearning,
-        seed=seed,
-        resampling_strategy='holdout',
-        resampling_strategy_arguments={'train_size': 0.8}
-    )
+    if eval_type == 'holdout':
+        automl = autosklearn.classification.AutoSklearnClassifier(
+            time_left_for_this_task=int(time_limit),
+            per_run_time_limit=per_run_time_limit,
+            n_jobs=n_jobs,
+            include_estimators=include_models,
+            ensemble_memory_limit=12288,
+            ml_memory_limit=12288,
+            ensemble_size=ensemble_size,
+            ensemble_nbest=ensemble_nbest,
+            initial_configurations_via_metalearning=init_config_via_metalearning,
+            seed=seed,
+            resampling_strategy='holdout',
+            resampling_strategy_arguments={'train_size': 0.8}
+        )
+    else:
+        automl = autosklearn.classification.AutoSklearnClassifier(
+            time_left_for_this_task=int(time_limit),
+            per_run_time_limit=per_run_time_limit,
+            n_jobs=n_jobs,
+            include_estimators=include_models,
+            ensemble_memory_limit=16384,
+            ml_memory_limit=16384,
+            ensemble_size=ensemble_size,
+            ensemble_nbest=ensemble_nbest,
+            initial_configurations_via_metalearning=init_config_via_metalearning,
+            seed=seed,
+            resampling_strategy='cv',
+            resampling_strategy_arguments={'folds': 5}
+        )
+
     print(automl)
     raw_data, test_raw_data = load_train_test_data(dataset, random_state=seed)
     X, y = raw_data.data
@@ -128,9 +144,13 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
     valid_results = automl.cv_results_['mean_test_score']
     time_records = automl.cv_results_['mean_fit_time']
     validation_accuracy = np.max(valid_results)
+
     # Test performance.
+    if eval_type == 'cv':
+        automl.refit(X.copy(), y.copy())
     predictions = automl.predict(X_test)
     test_accuracy = accuracy_score(y_test, predictions)
+
     # Print statistics about the auto-sklearn run such as number of
     # iterations, number of models failed with a time out.
     print(str_stats)
@@ -163,6 +183,8 @@ if __name__ == "__main__":
     meta_configs = args.meta
     methods = args.methods.split(',')
     time_costs = [int(item) for item in args.time_costs.split(',')]
+    eval_type = args.eval_type
+
     np.random.seed(args.seed)
     seeds = np.random.randint(low=1, high=10000, size=start_id + args.rep_num)
 
@@ -202,13 +224,14 @@ if __name__ == "__main__":
                 if mth == 'hmab':
                     time_cost = evaluate_hmab(algorithms, run_id, dataset,
                                               trial_num=trial_num, seed=seed,
-                                              n_jobs=n_jobs, meta_configs=meta_configs)
+                                              n_jobs=n_jobs, meta_configs=meta_configs,
+                                              eval_type=eval_type)
                 elif mth == 'ausk':
                     time_cost = time_costs[run_id - start_id]
                     evaluate_autosklearn(algorithms, run_id, trial_num, dataset,
                                          time_cost, seed=seed,
                                          enable_meta_learning=True, enable_ens=True,
-                                         n_jobs=n_jobs)
+                                         n_jobs=n_jobs, eval_type=eval_type)
                 else:
                     raise ValueError('Invalid method name: %s.' % mth)
 
