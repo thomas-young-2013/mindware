@@ -26,6 +26,10 @@ class FastIcaDecomposer(Transformer):
     def operate(self, input_datanode, target_fields=None):
         X, y = input_datanode.data
 
+        # Skip high-dimensional features.
+        if X.shape[1] > 100:
+            return X.copy()
+
         if self.model is None:
             from sklearn.decomposition import FastICA
 

@@ -24,6 +24,10 @@ class PolynomialTransformation(Transformer):
         X_new = X[:, target_fields]
         ori_length = X_new.shape[1]
 
+        # Skip high-dimensional features.
+        if X_new.shape[1] > 100:
+            return X_new.copy()
+
         if not self.model:
             self.degree = int(self.degree)
             self.interaction_only = check_for_bool(self.interaction_only)
