@@ -1,5 +1,4 @@
 import time
-import pynisher
 from concurrent.futures import ThreadPoolExecutor
 from collections import namedtuple
 from automlToolkit.components.feature_engineering.transformation_graph import *
@@ -8,7 +7,6 @@ from automlToolkit.components.fe_optimizers.transformer_manager import Transform
 from automlToolkit.components.evaluator import Evaluator
 from automlToolkit.components.utils.constants import SUCCESS, ERROR, TIMEOUT, MEMORYOUT, CRASHED
 from automlToolkit.utils.decorators import time_limit, TimeoutException
-from automlToolkit.utils.logging_utils import get_logger
 
 EvaluationResult = namedtuple('EvaluationResult', 'status duration score extra')
 
@@ -220,7 +218,9 @@ class EvaluationBasedOptimizer(Optimizer):
                     try:
                         # Limit the execution and evaluation time for each transformation.
                         with time_limit(self.time_limit_per_trans):
+                            self.logger.debug('%s - %s' % (transformer.name, str(node_.shape)))
                             output_node = transformer.operate(node_)
+                            self.logger.debug('after %s - %s' % (transformer.name, str(output_node.shape)))
 
                             # Evaluate this node.
                             if transformer.type != 0:

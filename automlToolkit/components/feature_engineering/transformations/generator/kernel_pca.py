@@ -25,6 +25,10 @@ class KernelPCA(Transformer):
     def operate(self, input_datanode, target_fields=None):
         X, y = input_datanode.data
 
+        # Skip large matrix computation in obtaining the kernel matrix.
+        if X.shape[0] > 10000:
+            return X.copy()
+
         if self.model is None:
             import scipy.sparse
             from automlToolkit.components.feature_engineering.transformations.utils import KernelPCA
