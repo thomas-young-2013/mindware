@@ -210,64 +210,48 @@ class EvaluationBasedOptimizer(Optimizer):
 
             else:
                 for transformer in trans_set:
-                    self.logger.info('[%s][%s]' % (self.model_id, transformer.name))
+                    self.logger.debug('[%s][%s]' % (self.model_id, transformer.name))
 
                     if transformer.type != 0:
                         self.transformer_manager.add_execution_record(node_.node_id, transformer.type)
 
                     _start_time, status, _score = time.time(), SUCCESS, -1
                     extra = ['%d' % _evaluation_cnt, self.model_id, transformer.name]
+                    try:
+                        # Limit the execution and evaluation time for each transformation.
+                        with time_limit(self.time_limit_per_trans):
+                            output_node = transformer.operate(node_)
 
-                    def evaluate(tran, node):
-                        output = tran.operate(node)
-                        # Evaluate this node.
-                        if tran.type != 0:
-                            output.depth = node.depth + 1
-                            output.trans_hist.append(tran.type)
-                            score = self.evaluator(self.hp_config, data_node=output, name='fe')
-                            output.score = score
-                        return output
+                            # Evaluate this node.
+                            if transformer.type != 0:
+                                output_node.depth = node_.depth + 1
+                                output_node.trans_hist.append(transformer.type)
+                                _score = self.evaluator(self.hp_config, data_node=output_node, name='fe')
+                                output_node.score = _score
+                            else:
+                                _score = output_node.score
 
-                    arguments = {'logger': get_logger("pynisher"),
-                                 'wall_time_in_s': self.time_limit_per_trans,
-                                 'mem_in_mb': None}
-
-                    self.logger.info('%s starts: %s' % (transformer.name, node_.shape))
-                    obj = pynisher.enforce_limits(**arguments)(evaluate)
-                    rval = obj(transformer, node_)
-
-                    if isinstance(rval, tuple):
-                        output_node = rval
-                    else:
-                        output_node = rval
-
-                    if obj.exit_status is pynisher.TimeoutException:
-                        status = TIMEOUT
-                        self.logger.info('%s - TIMEOUT' % transformer.name)
-                    elif obj.exit_status is pynisher.MemorylimitException:
-                        status = MEMORYOUT
-                        self.logger.info('%s - MEMOUT' % transformer.name)
-                    elif obj.exit_status == 0 and output_node is not None:
-                        status = SUCCESS
-                    else:
-                        status = CRASHED
-
-                    runtime = float(obj.wall_clock_time)
-
-                    if status == SUCCESS:
-                        _score = output_node.score
-                        self.temporary_nodes.append(output_node)
-                        self.graph.add_node(output_node)
-                        # Avoid self-loop.
-                        if transformer.type != 0 and node_.node_id != output_node.node_id:
-                            self.graph.add_trans_in_graph(node_, output_node, transformer)
-                        if _score > self.incumbent_score:
-                            self.incumbent_score = _score
-                            self.incumbent = output_node
+                        if _score is None:
+                            status = ERROR
+                        else:
+                            self.temporary_nodes.append(output_node)
+                            self.graph.add_node(output_node)
+                            # Avoid self-loop.
+                            if transformer.type != 0 and node_.node_id != output_node.node_id:
+                                self.graph.add_trans_in_graph(node_, output_node, transformer)
+                            if _score > self.incumbent_score:
+                                self.incumbent_score = _score
+                                self.incumbent = output_node
+                    except Exception as e:
+                        extra.append(str(e))
+                        self.logger.error('%s: %s' % (transformer.name, str(e)))
+                        status = ERROR
+                        if isinstance(e, TimeoutException):
+                            status = TIMEOUT
 
                     execution_status.append(
                         EvaluationResult(status=status,
-                                         duration=runtime,
+                                         duration=time.time() - _start_time,
                                          score=_score,
                                          extra=extra))
                     _evaluation_cnt += 1
