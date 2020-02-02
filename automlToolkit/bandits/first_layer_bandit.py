@@ -6,15 +6,12 @@ from typing import List
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedShuffleSplit
 from autosklearn.constants import *
-from ConfigSpace import ConfigurationSpace
-from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
-
-from automlToolkit.components.evaluator import Evaluator
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode, TransformationGraph
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 from automlToolkit.utils.logging_utils import setup_logger, get_logger
 from automlToolkit.components.evaluator import get_estimator
-from automlToolkit.utils.metalearning import get_meta_learning_configs, get_trans_from_str
+from automlToolkit.components.meta_learning.meta_learning import evaluate_metalearning_configs
+from automlToolkit.utils.metalearning import get_meta_learning_configs
 
 
 class FirstLayerBandit(object):
@@ -105,106 +102,9 @@ class FirstLayerBandit(object):
     def update_global_datanodes(self, arm):
         self.fe_datanodes[arm] = self.sub_bandits[arm].fetch_local_incumbents()
 
-    def apply_metalearning_fe(self, optimizer, configs):
-        rescaler_id = None
-        rescaler_dict = {}
-        preprocessor_id = None
-        preprocessor_dict = {}
-        for key in configs:
-            key_str = key.split(":")
-            # TODO: Imputation, Encoding and Balancing is required in fe_pipeline
-            if key_str[0] == 'rescaling':
-                if key_str[1] == '__choice__':
-                    rescaler_id = configs[key]
-                else:
-                    rescaler_dict[key_str[2]] = configs[key]
-            elif key_str[0] == 'preprocessor':
-                if key_str[1] == '__choice__':
-                    preprocessor_id = configs[key]
-                else:
-                    preprocessor_dict[key_str[2]] = configs[key]
-
-        preprocessor_tran = get_trans_from_str(preprocessor_id)(**preprocessor_dict)
-        rescaler_tran = get_trans_from_str(rescaler_id)(**rescaler_dict)
-        rescale_node = rescaler_tran.operate(optimizer.root_node)
-        depth = 2
-        if rescaler_tran.type != 0:
-            rescale_node.depth = depth
-            depth += 1
-            rescale_node.trans_hist.append(rescaler_tran.type)
-            rescale_node.score = 0
-            optimizer.temporary_nodes.append(rescale_node)
-            optimizer.graph.add_node(rescale_node)
-            # Avoid self-loop.
-            if rescaler_tran.type != 0 and optimizer.root_node.node_id != rescale_node.node_id:
-                optimizer.graph.add_trans_in_graph(optimizer.root_node, rescale_node, rescaler_tran)
-
-        preprocess_node = preprocessor_tran.operate(rescale_node)
-        if preprocessor_tran.type != 0:
-            preprocess_node.depth = depth
-            preprocess_node.trans_hist.append(preprocessor_tran.type)
-            preprocess_node.score = 0
-            optimizer.temporary_nodes.append(preprocess_node)
-            optimizer.graph.add_node(preprocess_node)
-            # Avoid self-loop.
-            if preprocessor_tran.type != 0 and rescale_node.node_id != preprocess_node.node_id:
-                optimizer.graph.add_trans_in_graph(rescale_node, preprocess_node, preprocessor_tran)
-
-        return preprocess_node
-
-    def evaluate_metalearning_configs(self):
-        score_list = []
-        for config in self.meta_configs:
-            try:
-                config = config.get_dictionary()
-                # print(config)
-                arm = None
-                cs = ConfigurationSpace()
-                for key in config:
-                    key_str = key.split(":")
-                    if key_str[0] == 'classifier':
-                        if key_str[1] == '__choice__':
-                            arm = config[key]
-                            cs.add_hyperparameter(UnParametrizedHyperparameter("estimator", config[key]))
-                        else:
-                            cs.add_hyperparameter(UnParametrizedHyperparameter(key_str[2], config[key]))
-
-                if arm in self.arms:
-                    transformed_node = self.apply_metalearning_fe(self.sub_bandits[arm].optimizer['fe'], config)
-                    default_config = cs.sample_configuration(1)
-                    hpo_evaluator = Evaluator(None,
-                                              data_node=transformed_node, name='hpo',
-                                              resampling_strategy=self.eval_type,
-                                              seed=self.seed)
-                    start_time = time.time()
-                    score = 1 - hpo_evaluator(default_config)
-                    score_list.append((arm, score, default_config))
-                    self.sub_bandits[arm].collect_iter_stats('hpo',
-                                                             (score, time.time() - start_time, default_config))
-                    self.sub_bandits[arm].inc['fe'] = transformed_node
-                    transformed_node.score = score
-                    self.final_rewards.append(score)
-                    self.action_sequence.append(arm)
-            except Exception as e:
-                print(e)
-
-        # Sort the meta-configs
-        score_list.sort(key=lambda x: x[1], reverse=True)
-        meta_arms = list()
-        for arm_score_config in score_list:
-            if arm_score_config[0] in meta_arms:
-                continue
-            self.sub_bandits[arm_score_config[0]].optimizer['fe'].hp_config = arm_score_config[2]
-            meta_arms.append(arm_score_config[0])
-        for arm in self.arms:
-            if arm not in meta_arms:
-                meta_arms.append(arm)
-        self.arms = meta_arms
-        self.logger.info("Arms after evaluating meta-configs: " + str(self.arms))
-
     def optimize(self, strategy='explore_first'):
         if self.meta_configs is not None:
-            self.evaluate_metalearning_configs()
+            evaluate_metalearning_configs(self)
             self.trial_num -= 1
 
         if strategy == 'explore_first':
