@@ -70,7 +70,7 @@ class RandomTreesEmbeddingTransformation(Transformer):
                                                     lower=10, upper=100,
                                                     default_value=10)
         max_depth = UniformIntegerHyperparameter(name="max_depth",
-                                                 lower=2, upper=7,
+                                                 lower=2, upper=6,
                                                  default_value=5)
         min_samples_split = UniformIntegerHyperparameter(name="min_samples_split",
                                                          lower=2, upper=20,

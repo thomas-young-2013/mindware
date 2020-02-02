@@ -1,6 +1,7 @@
 from automlToolkit.components.feature_engineering.transformations.base_transformer import *
 
 
+@DeprecationWarning
 class CrossFeatureTransformation(Transformer):
     def __init__(self, random_state=None):
         super().__init__("cross_features", 17)

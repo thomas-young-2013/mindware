@@ -210,7 +210,7 @@ class EvaluationBasedOptimizer(Optimizer):
 
             else:
                 for transformer in trans_set:
-                    self.logger.debug('[%s][%s]' % (self.model_id, transformer.name))
+                    self.logger.info('[%s][%s]' % (self.model_id, transformer.name))
 
                     if transformer.type != 0:
                         self.transformer_manager.add_execution_record(node_.node_id, transformer.type)
@@ -230,9 +230,9 @@ class EvaluationBasedOptimizer(Optimizer):
 
                     arguments = {'logger': get_logger("pynisher"),
                                  'wall_time_in_s': self.time_limit_per_trans,
-                                 'mem_in_mb': self.mem_limit_per_trans}
+                                 'mem_in_mb': None}
 
-                    self.logger.debug('%s starts: %s' % (transformer.name, node_.shape))
+                    self.logger.info('%s starts: %s' % (transformer.name, node_.shape))
                     obj = pynisher.enforce_limits(**arguments)(evaluate)
                     rval = obj(transformer, node_)
 

@@ -29,13 +29,13 @@ class KernelPCA(Transformer):
             import scipy.sparse
             from automlToolkit.components.feature_engineering.transformations.utils import KernelPCA
 
-            n_components = min(2000, max(3, int(self.n_components * X.shape[1])))
+            self.n_components = int(self.n_components)
             self.degree = int(self.degree)
             self.gamma = float(self.gamma)
             self.coef0 = float(self.coef0)
 
             self.model = KernelPCA(
-                n_components=n_components, kernel=self.kernel,
+                n_components=self.n_components, kernel=self.kernel,
                 degree=self.degree, gamma=self.gamma, coef0=self.coef0,
                 remove_zero_eig=True, random_state=self.random_state)
             if scipy.sparse.issparse(X):
@@ -54,8 +54,8 @@ class KernelPCA(Transformer):
 
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None):
-        n_components = UniformFloatHyperparameter(
-            "n_components", 0.01, 1.0, log=True, default_value=0.3)
+        n_components = UniformIntegerHyperparameter(
+            "n_components", 10, 2000, default_value=100)
         kernel = CategoricalHyperparameter('kernel',
                                            ['poly', 'rbf', 'sigmoid', 'cosine'], 'rbf')
         gamma = UniformFloatHyperparameter("gamma", 3.0517578125e-05, 8,

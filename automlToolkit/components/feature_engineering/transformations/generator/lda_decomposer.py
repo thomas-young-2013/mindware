@@ -6,6 +6,7 @@ from automlToolkit.components.feature_engineering.transformations.base_transform
 from automlToolkit.components.utils.configspace_utils import check_none
 
 
+@DeprecationWarning
 class LdaDecomposer(Transformer):
     def __init__(self, shrinkage="None", n_components=None):
         super().__init__("lda_decomposer", 14)

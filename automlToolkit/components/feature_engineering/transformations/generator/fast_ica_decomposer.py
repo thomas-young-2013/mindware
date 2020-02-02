@@ -2,7 +2,7 @@ import warnings
 from automlToolkit.components.feature_engineering.transformations.base_transformer import *
 from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter, \
-    UniformFloatHyperparameter
+    UniformIntegerHyperparameter
 from ConfigSpace.conditions import EqualsCondition
 from automlToolkit.components.utils.configspace_utils import check_for_bool, check_none
 
@@ -26,21 +26,17 @@ class FastIcaDecomposer(Transformer):
     def operate(self, input_datanode, target_fields=None):
         X, y = input_datanode.data
 
-        # Skip high-dimensional features.
-        if X.shape[1] > 100:
-            return X.copy()
-
         if self.model is None:
             from sklearn.decomposition import FastICA
 
             self.whiten = check_for_bool(self.whiten)
             if check_none(self.n_components):
-                n_components = None
+                self.n_components = None
             else:
-                n_components = int(X.shape[1] * self.n_components)
+                self.n_components = int(self.n_components)
 
             self.model = FastICA(
-                n_components=n_components, algorithm=self.algorithm,
+                n_components=self.n_components, algorithm=self.algorithm,
                 fun=self.fun, whiten=self.whiten, random_state=self.random_state
             )
             # Make the RuntimeWarning an Exception!
@@ -60,8 +56,8 @@ class FastIcaDecomposer(Transformer):
     def get_hyperparameter_search_space(dataset_properties=None):
         cs = ConfigurationSpace()
 
-        n_components = UniformFloatHyperparameter(
-            "n_components", 0.05, 1., q=0.05, default_value=0.3)
+        n_components = UniformIntegerHyperparameter(
+            "n_components", 10, 2000, default_value=100)
         algorithm = CategoricalHyperparameter('algorithm',
                                               ['parallel', 'deflation'], 'parallel')
         whiten = CategoricalHyperparameter('whiten',
