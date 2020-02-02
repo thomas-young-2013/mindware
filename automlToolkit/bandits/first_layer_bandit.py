@@ -44,7 +44,6 @@ class FirstLayerBandit(object):
 
         self.dataset_name = dataset_name
         self.meta_configs = None
-        self.meta_success = 0
         if meta_configs is not None and isinstance(meta_configs, int) and meta_configs > 0:
             if len(set(self.original_data.data[1])) == 2:
                 self.meta_configs = get_meta_learning_configs(self.original_data.data[0],
@@ -154,7 +153,8 @@ class FirstLayerBandit(object):
         return preprocess_node
 
     def evaluate_metalearning_configs(self):
-        meta_list = []
+        score_list = []
+        arm_list = []
         for config in self.meta_configs:
             try:
                 config = config.get_dictionary()
@@ -177,26 +177,39 @@ class FirstLayerBandit(object):
                                               data_node=transformed_node, name='hpo',
                                               resampling_strategy=self.eval_type,
                                               seed=self.seed)
-                    if arm not in meta_list:
-                        meta_list.append(arm)
-                        self.sub_bandits[arm].default_config = default_config
-
                     start_time = time.time()
                     score = 1 - hpo_evaluator(default_config)
+                    score_list.append((arm, score))
+                    if arm not in arm_list:
+                        arm_list.append(arm)
+                        self.sub_bandits[arm].default_config = default_config
                     self.sub_bandits[arm].collect_iter_stats('hpo',
                                                              (score, time.time() - start_time, default_config))
                     self.sub_bandits[arm].inc['fe'] = transformed_node
                     transformed_node.score = score
                     self.final_rewards.append(score)
                     self.action_sequence.append(arm)
-                    self.meta_success += 1
             except Exception as e:
                 print(e)
+
+        # Sort the meta-configs
+        score_list.sort(key=lambda x: x[1], reverse=True)
+        arm_list = [x[0] for x in score_list]
+        meta_arms = list()
+        for arm in arm_list:
+            if arm in meta_arms:
+                continue
+            meta_arms.append(arm)
+        for arm in self.arms:
+            if arm not in meta_arms:
+                meta_arms.append(arm)
+        self.arms = meta_arms
+        self.logger.info("Arms after evaluating meta-configs: " + str(self.arms))
 
     def optimize(self, strategy='explore_first'):
         if self.meta_configs is not None:
             self.evaluate_metalearning_configs()
-            self.trial_num -= self.meta_success
+            self.trial_num -= 1
 
         if strategy == 'explore_first':
             self.optimize_explore_first()
