@@ -229,7 +229,7 @@ class EvaluationBasedOptimizer(Optimizer):
 
                     arguments = {'logger': get_logger("pynisher"),
                                  'wall_time_in_s': self.time_limit_per_trans,
-                                 'mem_in_mb': 512}
+                                 'mem_in_mb': self.mem_limit_per_trans}
 
                     self.logger.debug('%s starts: %s' % (transformer.name, node_.shape))
                     obj = pynisher.enforce_limits(**arguments)(evaluate)
