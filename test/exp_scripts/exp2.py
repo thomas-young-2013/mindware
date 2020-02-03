@@ -26,7 +26,7 @@ parser.add_argument('--trial_num', type=int, default=100)
 parser.add_argument('--rep_num', type=int, default=5)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--n', type=int, default=4)
-parser.add_argument('--meta', type=int, default=0)
+parser.add_argument('--enable_meta', type=bool, default=True)
 parser.add_argument('--time_costs', type=str, default='1200')
 parser.add_argument('--seed', type=int, default=1)
 
@@ -180,10 +180,10 @@ if __name__ == "__main__":
     start_id = args.start_id
     rep = args.rep_num
     n_jobs = args.n
-    meta_configs = args.meta
     methods = args.methods.split(',')
     time_costs = [int(item) for item in args.time_costs.split(',')]
     eval_type = args.eval_type
+    enable_meta = args.enable_meta
 
     np.random.seed(args.seed)
     seeds = np.random.randint(low=1, high=10000, size=start_id + args.rep_num)
@@ -222,6 +222,7 @@ if __name__ == "__main__":
             for run_id in range(start_id, start_id + rep):
                 seed = int(seeds[run_id])
                 if mth == 'hmab':
+                    meta_configs = 25 if enable_meta else 0
                     time_cost = evaluate_hmab(algorithms, run_id, dataset,
                                               trial_num=trial_num, seed=seed,
                                               n_jobs=n_jobs, meta_configs=meta_configs,
@@ -230,7 +231,7 @@ if __name__ == "__main__":
                     time_cost = time_costs[run_id - start_id]
                     evaluate_autosklearn(algorithms, run_id, trial_num, dataset,
                                          time_cost, seed=seed,
-                                         enable_meta_learning=True, enable_ens=True,
+                                         enable_meta_learning=enable_meta, enable_ens=True,
                                          n_jobs=n_jobs, eval_type=eval_type)
                 else:
                     raise ValueError('Invalid method name: %s.' % mth)
