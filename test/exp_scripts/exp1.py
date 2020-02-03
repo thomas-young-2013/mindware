@@ -253,6 +253,8 @@ if __name__ == "__main__":
                     with open(file_path, 'rb') as f:
                         data = pickle.load(f)
                     val_acc, test_acc, _tmp = data
+                    if enable_ensemble:
+                        test_acc = _tmp[1]
                     results.append([val_acc, test_acc])
                 if len(results) == rep:
                     results = np.array(results)
