@@ -27,7 +27,7 @@ class FastIcaDecomposer(Transformer):
         X, y = input_datanode.data
 
         # Skip heavy computation in fast ica.
-        if X.shape[0] > 10000:
+        if X.shape[0] > 10000 or X.shape[1] > 200:
             return X.copy()
 
         if self.model is None:
@@ -38,7 +38,7 @@ class FastIcaDecomposer(Transformer):
                 self.n_components = None
             else:
                 self.n_components = int(self.n_components)
-
+            self.n_components = min(self.n_components, X.shape[0])
             self.model = FastICA(
                 n_components=self.n_components, algorithm=self.algorithm,
                 fun=self.fun, whiten=self.whiten, random_state=self.random_state
@@ -51,6 +51,7 @@ class FastIcaDecomposer(Transformer):
                 except ValueError as e:
                     if 'array must not contain infs or NaNs' in e.args[0]:
                         raise ValueError("Bug in scikit-learn: https://github.com/scikit-learn/scikit-learn/pull/2738")
+                    raise e
 
         X_new = self.model.transform(X)
 
