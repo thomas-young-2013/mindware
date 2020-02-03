@@ -25,7 +25,7 @@ parser.add_argument('--trial_num', type=int, default=100)
 parser.add_argument('--rep_num', type=int, default=5)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--time_costs', type=str, default='1200')
-parser.add_argument('--ensemble', type=bool, default=False)
+parser.add_argument('--ensemble', type=int, choices=[0, 1], default=0)
 parser.add_argument('--eval_type', type=str, choices=['cv', 'holdout'], default='holdout')
 parser.add_argument('--seed', type=int, default=1)
 
@@ -83,7 +83,7 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
                          enable_ens=False, enable_meta_learning=False,
                          eval_type='holdout'):
     print('%s\nDataset: %s, Run_id: %d, Budget: %d.\n%s' % ('=' * 50, dataset, rep_id, time_limit, '=' * 50))
-    mth_id = 'ausk-ens%d' % enable_ensemble
+    mth_id = 'ausk-ens%d' % enable_ens
     task_id = '%s-%s-%d-%d' % (dataset, mth_id, len(algorithms), trial_num)
     if enable_ens:
         ensemble_size, ensemble_nbest = 50, 50
@@ -177,7 +177,7 @@ if __name__ == "__main__":
     methods = args.methods.split(',')
     time_costs = [int(item) for item in args.time_costs.split(',')]
     eval_type = args.eval_type
-    enable_ensemble = args.ensemble
+    enable_ensemble = bool(args.ensemble)
 
     # Prepare random seeds.
     np.random.seed(args.seed)
