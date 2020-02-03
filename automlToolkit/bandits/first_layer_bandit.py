@@ -33,7 +33,7 @@ class FirstLayerBandit(object):
         self.original_data = data.copy_()
         self.trial_num = trial_num
         self.n_jobs = n_jobs
-        self.alpha = 3
+        self.alpha = 4
         self.B = 0.01
         self.seed = seed
         self.shared_mode = share_feature
