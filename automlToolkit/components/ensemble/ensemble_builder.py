@@ -1,5 +1,6 @@
 import time
 import numpy as np
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedShuffleSplit
 from autosklearn.metrics import accuracy
@@ -11,9 +12,10 @@ from automlToolkit.components.feature_engineering.transformation_graph import Da
 
 
 class EnsembleBuilder(object):
-    def __init__(self, bandit: FirstLayerBandit, ensemble_size=50):
+    def __init__(self, bandit: FirstLayerBandit, ensemble_size=50, n_jobs=1):
         self.bandit = bandit
         self.ensemble_size = ensemble_size
+        self.n_jobs = n_jobs
 
     def fit_predict(self, test_data: DataNode):
         test_size = 0.2
@@ -26,36 +28,46 @@ class EnsembleBuilder(object):
         train_predictions = []
         train_labels = None
         test_predictions = []
-        for algo_id in self.bandit.nbest_algo_ids:
-            best_configs = stats[algo_id]['configurations']
-            train_list, test_list = stats[algo_id]['train_data_list'], stats[algo_id]['test_data_list']
-            print(algo_id, len(best_configs)*len(train_list))
 
-            for idx in range(len(train_list)):
-                X, y = train_list[idx].data
-                X_test, y_test = test_list[idx].data
+        def evaluate(_config, train_X, train_y, valid_X, test_X):
+            # Build the ML estimator.
+            _, estimator = get_estimator(_config)
+            estimator.fit(train_X, train_y)
+            y_valid_pred = estimator.predict_proba(valid_X)
+            y_test_pred = estimator.predict_proba(test_X)
+            return y_valid_pred, y_test_pred
 
-                sss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=1)
-                for train_index, test_index in sss.split(X, y):
-                    X_train, X_valid = X[train_index], X[test_index]
-                    y_train, y_valid = y[train_index], y[test_index]
+        with ThreadPoolExecutor(max_workers=self.n_jobs) as pool:
+            for algo_id in self.bandit.nbest_algo_ids:
+                best_configs = stats[algo_id]['configurations']
+                train_list, test_list = stats[algo_id]['train_data_list'], stats[algo_id]['test_data_list']
+                print(algo_id, len(best_configs) * len(train_list))
 
-                if train_labels is not None:
-                    assert (train_labels == y_valid).all()
-                else:
-                    train_labels = y_valid
+                for idx in range(len(train_list)):
+                    X, y = train_list[idx].data
+                    X_test, y_test = test_list[idx].data
 
-                for config in best_configs:
-                    # Build the ML estimator.
-                    try:
-                        _, estimator = get_estimator(config)
-                        estimator.fit(X_train, y_train)
-                        y_valid_pred = estimator.predict_proba(X_valid)
-                        y_test_pred = estimator.predict_proba(X_test)
-                        train_predictions.append(y_valid_pred)
-                        test_predictions.append(y_test_pred)
-                    except Exception as e:
-                        print(str(e))
+                    sss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=1)
+                    for train_index, test_index in sss.split(X, y):
+                        X_train, X_valid = X[train_index], X[test_index]
+                        y_train, y_valid = y[train_index], y[test_index]
+
+                    if train_labels is not None:
+                        assert (train_labels == y_valid).all()
+                    else:
+                        train_labels = y_valid
+
+                    task_list = []
+                    for config in best_configs:
+                        task_list.append(pool.submit(evaluate, config, X_train, y_train, X_valid, X_test))
+
+                    for task in as_completed(task_list):
+                        try:
+                            y_valid_pred, y_test_pred = task.result()
+                            train_predictions.append(y_valid_pred)
+                            test_predictions.append(y_test_pred)
+                        except Exception as e:
+                            print(e)
 
         print('Training Base models ends!')
         print('It took %.2f seconds!' % (time.time() - start_time))
