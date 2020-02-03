@@ -42,7 +42,7 @@ class SMACOptimizer(BaseHPOptimizer):
         if hp_num == 0:
             self.config_num_threshold = 0
         else:
-            _threshold = int(len(set(self.config_space.sample_configuration(12500))) * 0.8)
+            _threshold = int(len(set(self.config_space.sample_configuration(10000))) * 0.75)
             self.config_num_threshold = _threshold
         self.logger.info('HP_THRESHOLD is: %d' % self.config_num_threshold)
 

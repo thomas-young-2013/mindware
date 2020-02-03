@@ -18,7 +18,7 @@ class EvaluationBasedOptimizer(Optimizer):
                  seed: int, shared_mode: bool = False,
                  batch_size: int = 2, beam_width: int = 3, n_jobs=1):
         super().__init__(str(__class__.__name__), input_data, seed)
-        self.transformer_manager = TransformerManager()
+        self.transformer_manager = TransformerManager(random_state=seed)
         self.time_limit_per_trans = time_limit_per_trans
         self.mem_limit_per_trans = mem_limit_per_trans
         self.evaluator = evaluator

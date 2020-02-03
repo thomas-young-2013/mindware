@@ -49,7 +49,7 @@ def get_estimator(config):
     classifier_type = config['estimator']
     config_ = config.get_dictionary().copy()
     config_.pop('estimator', None)
-    config_['random_state'] = 1
+    # config_['random_state'] = 1
     estimator = _classifiers[classifier_type](**config_)
     return classifier_type, estimator
 
