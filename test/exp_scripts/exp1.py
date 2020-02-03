@@ -17,7 +17,7 @@ from automlToolkit.components.ensemble.ensemble_builder import EnsembleBuilder
 
 parser = argparse.ArgumentParser()
 dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \
-              'ionosphere,lymphography,messidor_features,winequality_red,fri_c1,quake,satimage'
+              'ionosphere,lymphography,messidor_features,winequality_red,fri_c1'
 parser.add_argument('--datasets', type=str, default=dataset_set)
 parser.add_argument('--methods', type=str, default='hmab,ausk')
 parser.add_argument('--algo_num', type=int, default=15)
@@ -25,6 +25,7 @@ parser.add_argument('--trial_num', type=int, default=100)
 parser.add_argument('--rep_num', type=int, default=5)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--time_costs', type=str, default='1200')
+parser.add_argument('--ensemble', type=bool, default=False)
 parser.add_argument('--eval_type', type=str, choices=['cv', 'holdout'], default='holdout')
 parser.add_argument('--seed', type=int, default=1)
 
@@ -35,7 +36,7 @@ if not os.path.exists(save_dir):
 per_run_time_limit = 240
 
 
-def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200, seed=1, eval_type='holdout'):
+def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200, seed=1, eval_type='holdout', enable_ens=False):
     task_id = '%s-hmab-%d-%d' % (dataset, len(algorithms), trial_num)
     _start_time = time.time()
     raw_data, test_raw_data = load_train_test_data(dataset, random_state=seed)
@@ -52,15 +53,18 @@ def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200, seed=1, e
 
     validation_accuracy = np.max(bandit.final_rewards)
     test_accuracy = bandit.score(test_raw_data)
-    # test_accuracy_with_ens = EnsembleBuilder(bandit).score(test_raw_data)
+    if enable_ens:
+        test_accuracy_with_ens = EnsembleBuilder(bandit).score(test_raw_data)
+    else:
+        test_accuracy_with_ens = -1.
 
     print('Dataset          : %s' % dataset)
     print('Validation/Test score : %f - %f' % (validation_accuracy, test_accuracy))
-    # print('Test score with ensem : %f' % test_accuracy_with_ens)
+    print('Test score with ensem : %f' % test_accuracy_with_ens)
 
     save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
     with open(save_path, 'wb') as f:
-        stats = [time_cost]
+        stats = [time_cost, test_accuracy_with_ens]
         pickle.dump([validation_accuracy, test_accuracy, stats], f)
     return time_cost
 
@@ -79,7 +83,7 @@ def load_hmab_time_costs(start_id, rep, dataset, n_algo, trial_num):
 
 def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
                          dataset='credit', time_limit=1200, seed=1,
-                         enable_ens=True, enable_meta_learning=False,
+                         enable_ens=False, enable_meta_learning=False,
                          eval_type='holdout'):
     print('%s\nDataset: %s, Run_id: %d, Budget: %d.\n%s' % ('=' * 50, dataset, rep_id, time_limit, '=' * 50))
     task_id = '%s-%s-%d-%d' % (dataset, 'ausk', len(algorithms), trial_num)
@@ -175,6 +179,7 @@ if __name__ == "__main__":
     methods = args.methods.split(',')
     time_costs = [int(item) for item in args.time_costs.split(',')]
     eval_type = args.eval_type
+    enable_ensemble = args.ensemble
 
     # Prepare random seeds.
     np.random.seed(args.seed)
@@ -217,12 +222,14 @@ if __name__ == "__main__":
                 if mth == 'hmab':
                     time_cost = evaluate_hmab(algorithms, run_id, dataset,
                                               trial_num=trial_num, seed=seed,
-                                              eval_type=eval_type)
+                                              eval_type=eval_type,
+                                              enable_ens=enable_ensemble)
                 elif mth == 'ausk':
                     time_cost = time_costs[run_id - start_id]
                     evaluate_autosklearn(algorithms, run_id, trial_num,
                                          dataset, time_cost, seed=seed,
-                                         enable_ens=False, enable_meta_learning=False,
+                                         enable_ens=enable_ensemble,
+                                         enable_meta_learning=False,
                                          eval_type=eval_type)
                 else:
                     raise ValueError('Invalid method name: %s.' % mth)
