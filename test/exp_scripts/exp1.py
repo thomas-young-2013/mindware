@@ -25,7 +25,7 @@ parser.add_argument('--trial_num', type=int, default=100)
 parser.add_argument('--rep_num', type=int, default=5)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--time_costs', type=str, default='1200')
-parser.add_argument('--ensemble', type=bool, default=True)
+parser.add_argument('--ensemble', type=bool, default=False)
 parser.add_argument('--eval_type', type=str, choices=['cv', 'holdout'], default='holdout')
 parser.add_argument('--seed', type=int, default=1)
 
