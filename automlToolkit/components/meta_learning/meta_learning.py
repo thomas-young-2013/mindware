@@ -1,4 +1,5 @@
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 
@@ -54,44 +55,54 @@ def apply_metalearning_fe(optimizer, configs):
     return preprocess_node
 
 
-def evaluate_metalearning_configs(first_bandit):
+def evaluate_metalearning_configs(first_bandit, n_jobs=1):
     score_list = []
-    for config in first_bandit.meta_configs:
+
+    def evaluate(_config):
+        _config = _config.get_dictionary()
+        # print(_config)
+        arm = None
+        cs = ConfigurationSpace()
+        for key in _config:
+            key_str = key.split(":")
+            if key_str[0] == 'classifier':
+                if key_str[1] == '__choice__':
+                    arm = _config[key]
+                    cs.add_hyperparameter(UnParametrizedHyperparameter("estimator", _config[key]))
+                else:
+                    cs.add_hyperparameter(UnParametrizedHyperparameter(key_str[2], _config[key]))
+
+        if arm in first_bandit.arms:
+            transformed_node = apply_metalearning_fe(first_bandit.sub_bandits[arm].optimizer['fe'], _config)
+            default_config = cs.sample_configuration(1)
+            hpo_evaluator = Evaluator(None,
+                                      data_node=transformed_node, name='hpo',
+                                      resampling_strategy=first_bandit.eval_type,
+                                      seed=first_bandit.seed)
+
+            start_time = time.time()
+            score1 = 1 - hpo_evaluator(default_config)
+            time_cost1 = time.time() - start_time
+
+            # Evaluate the default config
+            start_time = time.time()
+            score2 = 1 - hpo_evaluator(first_bandit.sub_bandits[arm].default_config)
+            time_cost2 = time.time() - start_time
+            transformed_node.score2 = max(score1, score2)
+
+            return (arm, score1, default_config, transformed_node, time_cost1), (
+                arm, score2, first_bandit.sub_bandits[arm].default_config, transformed_node, time_cost2)
+
+    task_list = []
+    with ThreadPoolExecutor(max_workers=n_jobs) as pool:
+        for config in first_bandit.meta_configs:
+            task_list.append(pool.submit(evaluate, config))
+
+    for task in as_completed(task_list):
         try:
-            config = config.get_dictionary()
-            # print(config)
-            arm = None
-            cs = ConfigurationSpace()
-            for key in config:
-                key_str = key.split(":")
-                if key_str[0] == 'classifier':
-                    if key_str[1] == '__choice__':
-                        arm = config[key]
-                        cs.add_hyperparameter(UnParametrizedHyperparameter("estimator", config[key]))
-                    else:
-                        cs.add_hyperparameter(UnParametrizedHyperparameter(key_str[2], config[key]))
-
-            if arm in first_bandit.arms:
-                transformed_node = apply_metalearning_fe(first_bandit.sub_bandits[arm].optimizer['fe'], config)
-                default_config = cs.sample_configuration(1)
-                hpo_evaluator = Evaluator(None,
-                                          data_node=transformed_node, name='hpo',
-                                          resampling_strategy=first_bandit.eval_type,
-                                          seed=first_bandit.seed)
-
-                start_time = time.time()
-                score = 1 - hpo_evaluator(default_config)
-                time_cost = time.time() - start_time
-                score_list.append((arm, score, default_config, transformed_node, time_cost))
-                transformed_node.score = score
-
-                # Evaluate the default config
-                start_time = time.time()
-                score = 1 - hpo_evaluator(first_bandit.sub_bandits[arm].default_config)
-                time_cost = time.time() - start_time
-                score_list.append(
-                    (arm, score, first_bandit.sub_bandits[arm].default_config, transformed_node, time_cost))
-                transformed_node.score = score
+            result = task.result()
+            score_list.append(result[0])
+            score_list.append(result[1])
         except Exception as e:
             print(e)
 
@@ -102,7 +113,6 @@ def evaluate_metalearning_configs(first_bandit):
         if arm_score_config[0] in meta_arms:
             continue
 
-        first_bandit.sub_bandits[arm_score_config[0]].default_config = arm_score_config[2]
         first_bandit.sub_bandits[arm_score_config[0]].collect_iter_stats('fe', (
             arm_score_config[1], arm_score_config[4], arm_score_config[3]))
         # first_bandit.sub_bandits[arm_score_config[0]].collect_iter_stats('hpo',
