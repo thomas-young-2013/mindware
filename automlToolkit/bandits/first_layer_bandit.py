@@ -39,34 +39,38 @@ class FirstLayerBandit(object):
         self.shared_mode = share_feature
         np.random.seed(self.seed)
 
-        self.dataset_name = dataset_name
-        self.meta_configs = None
-        if meta_configs is not None and isinstance(meta_configs, int) and meta_configs > 0:
-            if len(set(self.original_data.data[1])) == 2:
-                self.meta_configs = get_meta_learning_configs(self.original_data.data[0],
-                                                              self.original_data.data[1],
-                                                              BINARY_CLASSIFICATION,
-                                                              metric='accuracy',
-                                                              num_cfgs=meta_configs)
-            else:
-                self.meta_configs = get_meta_learning_configs(self.original_data.data[0],
-                                                              self.original_data.data[1],
-                                                              MULTICLASS_CLASSIFICATION,
-                                                              metric='accuracy',
-                                                              num_cfgs=meta_configs)
-
         # Best configuration.
         self.optimal_algo_id = None
         self.nbest_algo_ids = None
         self.best_lower_bounds = None
 
         # Set up backend.
+        self.dataset_name = dataset_name
         self.tmp_directory = tmp_directory
         self.logging_config = logging_config
         if not os.path.exists(self.tmp_directory):
             os.makedirs(self.tmp_directory)
         logger_name = "%s-%s" % (__class__.__name__, self.dataset_name)
         self.logger = self._get_logger(logger_name)
+
+        # Meta-learning setting
+        self.meta_configs = None
+        if meta_configs is not None and isinstance(meta_configs, int) and meta_configs > 0:
+            try:
+                if len(set(self.original_data.data[1])) == 2:
+                    self.meta_configs = get_meta_learning_configs(self.original_data.data[0],
+                                                                  self.original_data.data[1],
+                                                                  BINARY_CLASSIFICATION,
+                                                                  metric='accuracy',
+                                                                  num_cfgs=meta_configs)
+                else:
+                    self.meta_configs = get_meta_learning_configs(self.original_data.data[0],
+                                                                  self.original_data.data[1],
+                                                                  MULTICLASS_CLASSIFICATION,
+                                                                  metric='accuracy',
+                                                                  num_cfgs=meta_configs)
+            except Exception as e:
+                self.logger.info('Meta-configs not found!')
 
         # Bandit settings.
         self.incumbent_perf = -1.
@@ -104,7 +108,7 @@ class FirstLayerBandit(object):
 
     def optimize(self, strategy='explore_first'):
         if self.meta_configs is not None:
-            evaluate_metalearning_configs(self)
+            evaluate_metalearning_configs(self, n_jobs=self.n_jobs)
             self.trial_num -= 1
 
         if strategy == 'explore_first':
