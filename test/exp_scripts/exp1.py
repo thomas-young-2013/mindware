@@ -53,10 +53,7 @@ def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200, seed=1, e
 
     validation_accuracy = np.max(bandit.final_rewards)
     test_accuracy = bandit.score(test_raw_data)
-    if enable_ens:
-        test_accuracy_with_ens = EnsembleBuilder(bandit).score(test_raw_data)
-    else:
-        test_accuracy_with_ens = -1.
+    test_accuracy_with_ens = EnsembleBuilder(bandit).score(test_raw_data)
 
     print('Dataset          : %s' % dataset)
     print('Validation/Test score : %f - %f' % (validation_accuracy, test_accuracy))
@@ -86,7 +83,8 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
                          enable_ens=False, enable_meta_learning=False,
                          eval_type='holdout'):
     print('%s\nDataset: %s, Run_id: %d, Budget: %d.\n%s' % ('=' * 50, dataset, rep_id, time_limit, '=' * 50))
-    task_id = '%s-%s-%d-%d' % (dataset, 'ausk', len(algorithms), trial_num)
+    mth_id = 'ausk-ens%d' % enable_ensemble
+    task_id = '%s-%s-%d-%d' % (dataset, mth_id, len(algorithms), trial_num)
     if enable_ens:
         ensemble_size, ensemble_nbest = 50, 50
     else:
@@ -236,7 +234,8 @@ if __name__ == "__main__":
 
     if methods[-1] == 'plot':
         headers = ['dataset']
-        method_ids = ['hmab', 'ausk']
+        ausk_id = 'ausk-ens%d' % enable_ensemble
+        method_ids = ['hmab', ausk_id]
         for mth in method_ids:
             headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
