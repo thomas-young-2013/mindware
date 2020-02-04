@@ -26,7 +26,7 @@ parser.add_argument('--trial_num', type=int, default=100)
 parser.add_argument('--rep_num', type=int, default=5)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--n', type=int, default=4)
-parser.add_argument('--enable_meta', type=bool, default=True)
+parser.add_argument('--enable_meta', type=int, choices=[0, 1], default=0)
 parser.add_argument('--time_costs', type=str, default='1200')
 parser.add_argument('--seed', type=int, default=1)
 
@@ -41,7 +41,7 @@ def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200,
                   n_jobs=1, meta_configs=0, seed=1, eval_type='holdout'):
     task_id = '%s-hmab-%d-%d' % (dataset, len(algorithms), trial_num)
     _start_time = time.time()
-    raw_data, test_raw_data = load_train_test_data(dataset, random_state=seed)
+    raw_data, test_raw_data = load_train_test_data(dataset)
     bandit = FirstLayerBandit(trial_num, algorithms, raw_data,
                               output_dir='logs/%s/' % task_id,
                               per_run_time_limit=per_run_time_limit,
@@ -133,7 +133,7 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
         )
 
     print(automl)
-    raw_data, test_raw_data = load_train_test_data(dataset, random_state=seed)
+    raw_data, test_raw_data = load_train_test_data(dataset)
     X, y = raw_data.data
     X_test, y_test = test_raw_data.data
     feat_type = ['Categorical' if _type == CATEGORICAL else 'Numerical'
@@ -183,7 +183,7 @@ if __name__ == "__main__":
     methods = args.methods.split(',')
     time_costs = [int(item) for item in args.time_costs.split(',')]
     eval_type = args.eval_type
-    enable_meta = args.enable_meta
+    enable_meta = bool(args.enable_meta)
 
     np.random.seed(args.seed)
     seeds = np.random.randint(low=1, high=10000, size=start_id + args.rep_num)

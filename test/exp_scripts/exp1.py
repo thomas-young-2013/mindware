@@ -39,7 +39,7 @@ per_run_time_limit = 240
 def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200, seed=1, eval_type='holdout', enable_ens=False):
     task_id = '%s-hmab-%d-%d' % (dataset, len(algorithms), trial_num)
     _start_time = time.time()
-    raw_data, test_raw_data = load_train_test_data(dataset, random_state=seed)
+    raw_data, test_raw_data = load_train_test_data(dataset)
     bandit = FirstLayerBandit(trial_num, algorithms, raw_data,
                               output_dir='logs/%s/' % task_id,
                               per_run_time_limit=per_run_time_limit,
@@ -128,7 +128,7 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
         )
 
     print(automl)
-    raw_data, test_raw_data = load_train_test_data(dataset, random_state=seed)
+    raw_data, test_raw_data = load_train_test_data(dataset)
     X, y = raw_data.data
     X_test, y_test = test_raw_data.data
     feat_type = ['Categorical' if _type == CATEGORICAL else 'Numerical'
