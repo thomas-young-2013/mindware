@@ -11,6 +11,7 @@ class DataNode(object):
         self.depth = None
         self.score = None
         self.trans_hist = list()
+        self.enable_balance = False
 
     def __eq__(self, node):
         """Overrides the default implementation"""

@@ -221,13 +221,14 @@ class FirstLayerBandit(object):
                 print(flag)
                 print(sum(flag))
 
-        # Build the ML estimator.
-        _, estimator = get_estimator(config)
         X_train, y_train = train_data_node.data
         X_test, y_test = test_data_node.data
         self.logger.info('X_train/test shapes: %s, %s' % (str(X_train.shape), str(X_test.shape)))
 
-        estimator.fit(X_train, y_train)
+        # Build the ML estimator.
+        from automlToolkit.components.evaluator import fetch_predict_estimator
+        estimator = fetch_predict_estimator(config, X_train, y_train)
+
         y_pred = estimator.predict(test_data_node.data[0])
         if phase == 'validation':
             print('=' * 50)

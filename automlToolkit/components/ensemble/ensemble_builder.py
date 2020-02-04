@@ -9,6 +9,7 @@ from automlToolkit.components.evaluator import get_estimator
 from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 from automlToolkit.components.ensemble.ensemble_selection import EnsembleSelection
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
+from automlToolkit.components.evaluator import fetch_predict_estimator
 
 
 class EnsembleBuilder(object):
@@ -31,8 +32,7 @@ class EnsembleBuilder(object):
 
         def evaluate(_config, train_X, train_y, valid_X, test_X):
             # Build the ML estimator.
-            _, estimator = get_estimator(_config)
-            estimator.fit(train_X, train_y)
+            estimator = fetch_predict_estimator(_config, train_X, train_y)
             y_valid_pred = estimator.predict_proba(valid_X)
             y_test_pred = estimator.predict_proba(test_X)
             return y_valid_pred, y_test_pred
