@@ -258,7 +258,12 @@ if __name__ == "__main__":
                 if len(results) == rep:
                     results = np.array(results)
                     print('%s-%s' % (dataset, mth), '=' * 20)
-                    print('==', np.median(results, axis=0))
+                    stats_ = zip(np.mean(results, axis=0), np.std(results, axis=0))
+                    string = 'mean\u00B1std: '
+                    for mean_t, std_t in stats_:
+                        string += u'%.3f\u00B1%.3f |' % (mean_t, std_t)
+                    print(string)
+                    print('median', np.median(results, axis=0))
                     print('%s-%s' % (dataset, mth), '=' * 20)
                     for idx in range(results.shape[1]):
                         vals = results[:, idx]
