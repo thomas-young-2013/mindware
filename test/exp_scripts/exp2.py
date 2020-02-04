@@ -56,7 +56,7 @@ def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200,
     print(bandit.action_sequence)
 
     validation_accuracy = np.max(bandit.final_rewards)
-    validation_accuracy_without_ens = bandit.validate()
+    # validation_accuracy_without_ens = bandit.validate()
     # assert np.isclose(validation_accuracy, validation_accuracy_without_ens)
     test_accuracy_with_ens = EnsembleBuilder(bandit, n_jobs=n_jobs).score(test_raw_data)
 
