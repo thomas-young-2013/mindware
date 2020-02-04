@@ -34,7 +34,7 @@ save_dir = './data/exp_results/exp2/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
-per_run_time_limit = 240
+per_run_time_limit = 1200
 
 
 def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200,
