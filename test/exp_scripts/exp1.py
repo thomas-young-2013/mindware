@@ -61,7 +61,7 @@ def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200, seed=1, e
 
     save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
     with open(save_path, 'wb') as f:
-        stats = [time_cost, test_accuracy_with_ens]
+        stats = [time_cost, test_accuracy_with_ens, bandit.time_records, bandit.final_rewards]
         pickle.dump([validation_accuracy, test_accuracy, stats], f)
     return time_cost
 
@@ -102,8 +102,8 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
             per_run_time_limit=per_run_time_limit,
             n_jobs=1,
             include_estimators=include_models,
-            ensemble_memory_limit=12288,
-            ml_memory_limit=12288,
+            ensemble_memory_limit=16384,
+            ml_memory_limit=16384,
             ensemble_size=ensemble_size,
             ensemble_nbest=ensemble_nbest,
             initial_configurations_via_metalearning=init_config_via_metalearning,
