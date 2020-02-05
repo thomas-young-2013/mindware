@@ -20,6 +20,7 @@ class KernelPCA(Transformer):
         self.gamma = gamma
         self.coef0 = coef0
         self.random_state = random_state
+        self.error_flag = False
 
     @ease_trans
     def operate(self, input_datanode, target_fields=None):
@@ -27,6 +28,9 @@ class KernelPCA(Transformer):
 
         # Skip large matrix computation in obtaining the kernel matrix.
         if X.shape[0] > 10000:
+            self.error_flag = True
+
+        if self.error_flag:
             return X.copy()
 
         if self.model is None:
