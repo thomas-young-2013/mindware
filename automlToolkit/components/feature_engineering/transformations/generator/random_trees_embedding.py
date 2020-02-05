@@ -70,7 +70,7 @@ class RandomTreesEmbeddingTransformation(Transformer):
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None):
         n_estimators = UniformIntegerHyperparameter(name="n_estimators",
-                                                    lower=10, upper=500,
+                                                    lower=10, upper=100,
                                                     default_value=10)
         max_depth = UniformIntegerHyperparameter(name="max_depth",
                                                  lower=2, upper=5,
