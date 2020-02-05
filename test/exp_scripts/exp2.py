@@ -258,20 +258,21 @@ if __name__ == "__main__":
                     results.append([val_acc, test_acc])
                 if len(results) == rep:
                     results = np.array(results)
-                    print('%s-%s' % (dataset, mth), '=' * 20)
                     stats_ = zip(np.mean(results, axis=0), np.std(results, axis=0))
                     string = ''
                     for mean_t, std_t in stats_:
                         string += u'%.3f\u00B1%.3f |' % (mean_t, std_t)
-                    print(string)
-                    print('%s-%s' % (dataset, mth), '=' * 20)
+                    print(dataset, mth, '=' * 30)
+                    print('%s-%s: mean\u00B1std' % (dataset, mth), string)
+                    print('%s-%s: median' % (dataset, mth), np.median(results, axis=0))
+
                     for idx in range(results.shape[1]):
                         vals = results[:, idx]
-                        mean_, std_ = np.mean(vals), np.std(vals)
-                        if mean_ == 0.:
+                        median = np.median(vals)
+                        if median == 0.:
                             row_data.append('-')
                         else:
-                            row_data.append(u'%.3f\u00B1%.3f' % (mean_, std_))
+                            row_data.append(u'%.4f' % median)
                 else:
                     row_data.extend(['-'] * 2)
 
