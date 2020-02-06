@@ -4,6 +4,7 @@ import time
 import pickle
 import argparse
 import tabulate
+import shutil
 import numpy as np
 import autosklearn.classification
 from sklearn.metrics import accuracy_score
@@ -233,7 +234,7 @@ if __name__ == "__main__":
                     for root, dirs, files in os.walk(del_dir):
                         for dir in dirs:
                             if 'autosklearn' in dir:
-                                os.rmdir(os.path.join(root, dir))
+                                shutil.rmtree(os.path.join(root, dir))
                 else:
                     raise ValueError('Invalid method name: %s.' % mth)
 
