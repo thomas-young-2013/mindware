@@ -233,6 +233,12 @@ if __name__ == "__main__":
                                          time_cost, seed=seed,
                                          enable_meta_learning=enable_meta, enable_ens=True,
                                          n_jobs=n_jobs, eval_type=eval_type)
+                    del_dir = '/tmp'
+                    for root, dirs, files in os.walk(del_dir):
+                        for dir in dirs:
+                            if 'autosklearn' in dir:
+                                os.rmdir(os.path.join(root, dir))
+
                 else:
                     raise ValueError('Invalid method name: %s.' % mth)
 

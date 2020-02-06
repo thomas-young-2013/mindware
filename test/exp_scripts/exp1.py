@@ -229,6 +229,11 @@ if __name__ == "__main__":
                                          enable_ens=enable_ensemble,
                                          enable_meta_learning=False,
                                          eval_type=eval_type)
+                    del_dir = '/tmp'
+                    for root, dirs, files in os.walk(del_dir):
+                        for dir in dirs:
+                            if 'autosklearn' in dir:
+                                os.rmdir(os.path.join(root, dir))
                 else:
                     raise ValueError('Invalid method name: %s.' % mth)
 
@@ -261,7 +266,7 @@ if __name__ == "__main__":
                     string = ''
                     for mean_t, std_t in stats_:
                         string += u'%.3f\u00B1%.3f |' % (mean_t, std_t)
-                    print(dataset, mth, '='*30)
+                    print(dataset, mth, '=' * 30)
                     print('%s-%s: mean\u00B1std' % (dataset, mth), string)
                     print('%s-%s: median' % (dataset, mth), np.median(results, axis=0))
 
