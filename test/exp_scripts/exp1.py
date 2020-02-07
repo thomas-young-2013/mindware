@@ -230,11 +230,6 @@ if __name__ == "__main__":
                                          enable_ens=enable_ensemble,
                                          enable_meta_learning=False,
                                          eval_type=eval_type)
-                    del_dir = '/tmp'
-                    for root, dirs, files in os.walk(del_dir):
-                        for dir in dirs:
-                            if 'autosklearn' in dir:
-                                shutil.rmtree(os.path.join(root, dir))
                 else:
                     raise ValueError('Invalid method name: %s.' % mth)
 
