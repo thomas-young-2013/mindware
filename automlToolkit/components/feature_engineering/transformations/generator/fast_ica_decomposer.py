@@ -42,7 +42,10 @@ class FastIcaDecomposer(Transformer):
                 self.n_components = None
             else:
                 self.n_components = int(self.n_components)
-            self.n_components = min(self.n_components, X.shape[0])
+
+            if self.n_components is not None:
+                self.n_components = min(self.n_components, X.shape[0])
+
             self.model = FastICA(
                 n_components=self.n_components, algorithm=self.algorithm,
                 fun=self.fun, whiten=self.whiten, random_state=self.random_state
