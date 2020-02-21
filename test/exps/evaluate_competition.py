@@ -58,10 +58,31 @@ class LightGBMRegressor():
         return self.estimator.predict(X)
 
 
-def preprocess_data():
+def create_csv(task_id=3):
+    import pandas as pd
+    data_dir = '/Users/thomasyoung/PycharmProjects/AI_anti_plague/'
+    train_data = pd.read_csv(data_dir + 'data/candidate_train.csv')
+    train_answer = pd.read_csv(data_dir + 'data/train_answer.csv')
+    test_data = pd.read_csv(data_dir + 'data/candidate_val.csv')
+
+    print('complete dataset loading...')
+    train_data = train_data.merge(train_answer, on='id', how='left')
+    train_raw_data = train_data.iloc[:, 0:3177]
+    test_raw_data = test_data.iloc[:, 0:3177]
+    label = train_data['p%d' % task_id]
+    result = pd.concat([train_raw_data, label], axis=1).reset_index(drop=True)
+    result.to_csv(data_dir + 'data/p%s.csv' % task_id, index=False)
+    print(result.head())
+    test_raw_data.to_csv(data_dir + 'data/test_data.csv', index=False)
+    print(test_raw_data.head())
+
+
+def preprocess_data(task_id=3):
     data_dir = '/Users/thomasyoung/PycharmProjects/AI_anti_plague/'
     dm = DataManager()
-    data_path = data_dir + 'data/p3.csv'
+    data_path = data_dir + 'data/p%d.csv' % task_id
+    if not os.path.exists(data_path):
+        create_csv(task_id)
     dm.load_train_csv(data_path, label_col=-1, header='infer', sep=',')
     pipeline = FEPipeline(fe_enabled=False)
     raw_data = pipeline.fit_transform(dm)
