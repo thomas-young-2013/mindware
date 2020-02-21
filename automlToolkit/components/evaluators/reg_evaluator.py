@@ -23,12 +23,40 @@ def cross_validation(reg, scorer, X, y, n_fold=5, shuffle=True, random_state=1):
         return np.mean(scores)
 
 
+def load_holdout_data(data_dir, task_id=3):
+    import os
+    import pandas as pd
+    train_data = pd.read_csv(os.path.join(data_dir, 'train_feature.csv'))
+    train_data = train_data.drop(columns=["Unnamed: 0", "id"])
+    train_data = train_data.values
+    valid_data = pd.read_csv(os.path.join(data_dir, 'valid_feature.csv'))
+    valid_data = valid_data.drop(columns=["Unnamed: 0", "id"])
+    valid_data = valid_data.values
+    train_label = pd.read_csv(os.path.join(data_dir, 'train_label.csv'))
+    train_label = train_label.drop(columns=["Unnamed: 0"])
+    train_label = train_label['p%d' % task_id].values
+    valid_label = pd.read_csv(os.path.join(data_dir, 'valid_label.csv'))
+    valid_label = valid_label.drop(columns=["Unnamed: 0"])
+    valid_label = valid_label['p%d' % task_id].values
+    test_data = pd.read_csv(os.path.join(data_dir, 'test_feature.csv'))
+    test_id = test_data['id'].values
+    test_data = test_data.drop(columns=["Unnamed: 0"])
+    print('complete dataset loading...')
+
+    return train_data, valid_data, train_label, valid_label, test_data, test_id
+
+
+X_train, X_test, y_train, y_test, _, _ = load_holdout_data(
+    data_dir='../AI_anti_plague/data/',
+    task_id=3)
+
+
 @ignore_warnings(category=ConvergenceWarning)
 def holdout_validation(reg, scorer, X, y, test_size=0.3, random_state=1):
     with warnings.catch_warnings():
         # ignore all caught warnings
         warnings.filterwarnings("ignore")
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=9)
+        # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=9)
         reg.fit(X_train, y_train)
         y_pred = reg.predict(X_test)
         return -scorer(y_test, y_pred)
