@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.model_selection import StratifiedKFold, StratifiedShuffleSplit
+from sklearn.model_selection import KFold, train_test_split
 from automlToolkit.utils.logging_utils import get_logger
 from automlToolkit.components.metrics.metric import fetch_scorer
 
@@ -13,14 +13,10 @@ def cross_validation(reg, scorer, X, y, n_fold=5, shuffle=True, random_state=1):
     with warnings.catch_warnings():
         # ignore all caught warnings
         warnings.filterwarnings("ignore")
-
-        kfold = StratifiedKFold(n_splits=n_fold, random_state=1, shuffle=shuffle)
+        kfold = KFold(n_splits=n_fold, random_state=1, shuffle=shuffle)
         scores = list()
         for train_idx, valid_idx in kfold.split(X, y):
-            train_x = X[train_idx]
-            valid_x = X[valid_idx]
-            train_y = y[train_idx]
-            valid_y = y[valid_idx]
+            train_x, train_y, valid_x, valid_y = X[train_idx], y[train_idx], X[valid_idx], y[valid_idx]
             reg.fit(train_x, train_y)
             pred = reg.predict(valid_x)
             scores.append(scorer(pred, valid_y))
@@ -28,18 +24,14 @@ def cross_validation(reg, scorer, X, y, n_fold=5, shuffle=True, random_state=1):
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def holdout_validation(reg, scorer, X, y, test_size=0.2, random_state=1):
+def holdout_validation(reg, scorer, X, y, test_size=0.3, random_state=1):
     with warnings.catch_warnings():
         # ignore all caught warnings
         warnings.filterwarnings("ignore")
-
-        sss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=1)
-        for train_index, test_index in sss.split(X, y):
-            X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index], y[test_index]
-            reg.fit(X_train, y_train)
-            y_pred = reg.predict(X_test)
-            return scorer(y_test, y_pred)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=9)
+        reg.fit(X_train, y_train)
+        y_pred = reg.predict(X_test)
+        return scorer(y_test, y_pred)
 
 
 def get_estimator(config):
@@ -54,7 +46,7 @@ def get_estimator(config):
 
 class RegressionEvaluator(object):
     def __init__(self, reg_config, scorer, data_node=None, name=None,
-                 resampling_strategy='cv', cv=5, seed=1,
+                 resampling_strategy='holdout', cv=5, seed=1,
                  estimator=None):
         self.reg_config = reg_config
         self.scorer = fetch_scorer(scorer, 'regression')
@@ -91,7 +83,7 @@ class RegressionEvaluator(object):
         else:
             reg = self.estimator
             regressor_id = self.estimator.__class__.__name__
-
+        print('start to evaluate model.')
         try:
             if self.resampling_strategy == 'cv':
                 score = cross_validation(reg, self.scorer, X_train, y_train,
@@ -106,7 +98,7 @@ class RegressionEvaluator(object):
                 raise e
             self.logger.info('%s-evaluator: %s' % (self.name, str(e)))
             return np.inf
-
+        print('-'*10, score)
         fmt_str = '\n'+' '*5 + '==> '
         self.logger.debug('%s%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
                           (fmt_str, self.eval_id, regressor_id,

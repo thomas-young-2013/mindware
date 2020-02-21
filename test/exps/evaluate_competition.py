@@ -1,6 +1,5 @@
 import os
 import sys
-import pickle
 import argparse
 import numpy as np
 from lightgbm import LGBMRegressor
@@ -9,13 +8,14 @@ sys.path.append(os.getcwd())
 from automlToolkit.utils.data_manager import DataManager
 from automlToolkit.components.evaluators.reg_evaluator import RegressionEvaluator
 from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
-from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--time_limit', type=int, default=1200)
+parser.add_argument('--data_dir', type=str, default='/Users/thomasyoung/PycharmProjects/AI_anti_plague/')
 args = parser.parse_args()
 proj_dir = './'
 time_limit = args.time_limit
+data_dir = args.data_dir
 
 
 def smape(y_true, y_pred):
@@ -60,7 +60,6 @@ class LightGBMRegressor():
 
 def create_csv(task_id=3):
     import pandas as pd
-    data_dir = '/Users/thomasyoung/PycharmProjects/AI_anti_plague/'
     train_data = pd.read_csv(data_dir + 'data/candidate_train.csv')
     train_answer = pd.read_csv(data_dir + 'data/train_answer.csv')
     test_data = pd.read_csv(data_dir + 'data/candidate_val.csv')
@@ -78,15 +77,34 @@ def create_csv(task_id=3):
 
 
 def preprocess_data(task_id=3):
-    data_dir = '/Users/thomasyoung/PycharmProjects/AI_anti_plague/'
     dm = DataManager()
     data_path = data_dir + 'data/p%d.csv' % task_id
     if not os.path.exists(data_path):
         create_csv(task_id)
+    print('load train csv.')
     dm.load_train_csv(data_path, label_col=-1, header='infer', sep=',')
     pipeline = FEPipeline(fe_enabled=False)
     raw_data = pipeline.fit_transform(dm)
+    print('raw data processing finished.')
     return raw_data
+
+
+def test_evaluator():
+    config = {'colsample_bytree': 0.7214005546233202,
+              'estimator': 'lightgbm',
+              'learning_rate': 0.20740875048979773,
+              'min_child_weight': 5,
+              'n_estimators': 424,
+              'num_leaves': 82,
+              'reg_alpha': 0.001268145413023973,
+              'reg_lambda': 0.15002466116267585,
+              'subsample': 0.8110820196868197}
+    config.pop('estimator', None)
+    gbm = LightGBMRegressor(**config)
+    scorer = make_scorer(smape, greater_is_better=False)
+    raw_data = preprocess_data()
+    evaluator = RegressionEvaluator(None, smape, data_node=raw_data, name='fe', seed=1, estimator=gbm)
+    print(evaluator(None))
 
 
 def evaluation_based_feature_engineering(time_limit, seed=1):
@@ -99,10 +117,10 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
               'reg_alpha': 0.001268145413023973,
               'reg_lambda': 0.15002466116267585,
               'subsample': 0.8110820196868197}
-
+    config.pop('estimator', None)
     gbm = LightGBMRegressor(**config)
-    scorer = make_scorer('smape', smape, greater_is_better=False)
-    evaluator = RegressionEvaluator(None, scorer, name='fe', seed=seed, estimator=gbm)
+    scorer = make_scorer(smape, greater_is_better=False)
+    evaluator = RegressionEvaluator(None, smape, name='fe', seed=seed, estimator=gbm)
     raw_data = preprocess_data()
     pipeline = FEPipeline(task_type='regression', task_id='anti_plague',
                           fe_enabled=True, optimizer_type='eval_base',
@@ -111,7 +129,9 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
                           time_limit_per_trans=300
                           )
     train_data = pipeline.fit_transform(raw_data)
+    print(train_data.score)
 
 
 if __name__ == "__main__":
+    # test_evaluator()
     evaluation_based_feature_engineering(time_limit)

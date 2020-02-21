@@ -1,4 +1,5 @@
 import time
+import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 from collections import namedtuple
 from automlToolkit.components.feature_engineering.transformation_graph import *
@@ -24,8 +25,8 @@ class EvaluationBasedOptimizer(Optimizer):
         self.mem_limit_per_trans = mem_limit_per_trans
         self.evaluator = evaluator
         self.model_id = model_id
-        self.incumbent_score = -1.
-        self.baseline_score = -1.
+        self.incumbent_score = -np.inf
+        self.baseline_score = -np.inf
         self.start_time = time.time()
         self.hp_config = None
         self.n_jobs = n_jobs
@@ -89,7 +90,7 @@ class EvaluationBasedOptimizer(Optimizer):
                 self.incumbent_score = self.evaluator(self.hp_config, data_node=self.root_node, name='fe')
             except Exception as e:
                 self.logger.error('evaluating root node: %s' % str(e))
-                self.incumbent_score = 0.
+                self.incumbent_score = -np.inf
                 status = ERROR
 
             execution_status.append(EvaluationResult(status=status,
