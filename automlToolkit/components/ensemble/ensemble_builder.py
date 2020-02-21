@@ -5,11 +5,10 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedShuffleSplit
 from autosklearn.metrics import accuracy
 
-from automlToolkit.components.evaluator import get_estimator
 from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 from automlToolkit.components.ensemble.ensemble_selection import EnsembleSelection
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
-from automlToolkit.components.evaluator import fetch_predict_estimator
+from automlToolkit.components.evaluators.evaluator import fetch_predict_estimator
 
 
 class EnsembleBuilder(object):

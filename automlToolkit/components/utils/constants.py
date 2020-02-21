@@ -12,3 +12,6 @@ TIMEOUT = 1
 ERROR = 2
 MEMORYOUT = 3
 CRASHED = 4
+
+CLASSIFICATION = 'classification'
+REGRESSION = 'regression'

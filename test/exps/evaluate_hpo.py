@@ -5,7 +5,7 @@ from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 sys.path.append(os.getcwd())
 from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from automlToolkit.datasets.utils import load_data
-from automlToolkit.components.evaluator import Evaluator
+from automlToolkit.components.evaluators.evaluator import Evaluator
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \

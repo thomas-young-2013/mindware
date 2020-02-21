@@ -6,11 +6,12 @@ from automlToolkit.utils.logging_utils import get_logger
 
 
 class Optimizer(object, metaclass=abc.ABCMeta):
-    def __init__(self, name, datanode, seed=1):
+    def __init__(self, name, task_type, datanode, seed=1):
         self.name = name
         self._seed = seed
         self.incumbent = datanode
         self.root_node = datanode
+        self.task_type = task_type
         self.graph = TransformationGraph()
         self.graph.add_node(self.root_node)
         self.time_budget = None

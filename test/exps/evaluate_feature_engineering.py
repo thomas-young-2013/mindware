@@ -6,7 +6,7 @@ import numpy as np
 import autosklearn.classification
 sys.path.append(os.getcwd())
 from automlToolkit.datasets.utils import load_data
-from automlToolkit.components.evaluator import Evaluator
+from automlToolkit.components.evaluators.evaluator import Evaluator
 from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
 
 parser = argparse.ArgumentParser()

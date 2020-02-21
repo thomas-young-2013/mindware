@@ -4,20 +4,21 @@ from collections import namedtuple
 from automlToolkit.components.feature_engineering.transformation_graph import *
 from automlToolkit.components.fe_optimizers.base_optimizer import Optimizer
 from automlToolkit.components.fe_optimizers.transformer_manager import TransformerManager
-from automlToolkit.components.evaluator import Evaluator
-from automlToolkit.components.utils.constants import SUCCESS, ERROR, TIMEOUT, MEMORYOUT, CRASHED
+from automlToolkit.components.evaluators.evaluator import Evaluator
+from automlToolkit.components.utils.constants import SUCCESS, ERROR, TIMEOUT, CLASSIFICATION, REGRESSION
 from automlToolkit.utils.decorators import time_limit, TimeoutException
+from automlToolkit.components.feature_engineering import TRANS_CANDIDATES
 
 EvaluationResult = namedtuple('EvaluationResult', 'status duration score extra')
 
 
 class EvaluationBasedOptimizer(Optimizer):
-    def __init__(self, input_data: DataNode, evaluator: Evaluator,
+    def __init__(self, task_type, input_data: DataNode, evaluator: Evaluator,
                  model_id: str, time_limit_per_trans: int,
                  mem_limit_per_trans: int,
                  seed: int, shared_mode: bool = False,
                  batch_size: int = 2, beam_width: int = 3, n_jobs=1):
-        super().__init__(str(__class__.__name__), input_data, seed)
+        super().__init__(str(__class__.__name__), task_type, input_data, seed)
         self.transformer_manager = TransformerManager(random_state=seed)
         self.time_limit_per_trans = time_limit_per_trans
         self.mem_limit_per_trans = mem_limit_per_trans
@@ -33,10 +34,10 @@ class EvaluationBasedOptimizer(Optimizer):
         self.hpo_batch_size = batch_size
         self.beam_width = beam_width
         self.max_depth = 6  # old value=8
-        self.trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
+        # self.trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
         # Debug Example:
         # self.trans_types = [5, 9, 10]
-
+        self.trans_types = TRANS_CANDIDATES[self.task_type]
         self.iteration_id = 0
         self.evaluation_count = 0
         self.beam_set = list()
@@ -56,14 +57,16 @@ class EvaluationBasedOptimizer(Optimizer):
         # Avoid transformations, which would take too long
         # Combinations of non-linear models with feature learning.
         # feature_learning = ["kitchen_sinks", "kernel_pca", "nystroem_sampler"]
-        classifier_set = ["adaboost", "decision_tree", "extra_trees",
-                          "gradient_boosting", "k_nearest_neighbors",
-                          "libsvm_svc", "random_forest", "gaussian_nb", "decision_tree"]
+        if self.task_type == 'classification':
+            classifier_set = ["adaboost", "decision_tree", "extra_trees",
+                              "gradient_boosting", "k_nearest_neighbors",
+                              "libsvm_svc", "random_forest", "gaussian_nb", "decision_tree"]
 
-        if model_id in classifier_set:
-            for tran_id in [12, 13, 15]:
-                if tran_id in self.trans_types:
-                    self.trans_types.remove(tran_id)
+            if model_id in classifier_set:
+                for tran_id in [12, 13, 15]:
+                    if tran_id in self.trans_types:
+                        self.trans_types.remove(tran_id)
+        # TODO: for regression task, the trans types should be elaborated.
 
     def optimize(self):
         while not self.is_ended:

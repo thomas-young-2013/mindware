@@ -10,17 +10,22 @@ from automlToolkit.components.feature_engineering.transformations.preprocessor.o
 from automlToolkit.components.feature_engineering.transformations.selector.variance_selector import VarianceSelector
 from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
 from automlToolkit.utils.logging_utils import setup_logger, get_logger
+from automlToolkit.components.utils.constants import CLASSIFICATION
 
 
 class FEPipeline(object, metaclass=abc.ABCMeta):
     """
     This controls the whole pipeline for feature engineering.
     """
-    def __init__(self, optimizer_type='eval_base', time_budget=None,
+    def __init__(self, task_type='classification',
+                 optimizer_type='eval_base',
+                 metric=None,
+                 time_budget=None,
                  maximum_evaluation_num=None,
                  time_limit_per_trans=600,
                  fe_enabled=True, evaluator=None, debug=False, seed=1,
                  tmp_directory='logs', logging_config=None, model_id=None, task_id='Default'):
+        self.task_type = task_type
         self.maximum_evaluation_num = maximum_evaluation_num
         self.time_budget = time_budget
         self.time_limit_per_trans = time_limit_per_trans
@@ -53,7 +58,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         # print(raw_dataframe.shape)
         # print(types)
 
-        # Filter the uninformative columns.
+        # Remove the uninformative columns.
         uninformative_columns, uninformative_idx = list(), list()
         for idx, column in enumerate(list(raw_dataframe)):
             if raw_dataframe[column].isnull().values.all():
@@ -96,14 +101,14 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         variance_selector = VarianceSelector()
         input_node = variance_selector.operate(input_node)
 
-        # Label encoding.
-        self.encode_label(input_node)
+        if self.task_type == CLASSIFICATION:
+            # Label encoding.
+            self.encode_label(input_node)
         self.cleaned_node = input_node
 
     def encode_label(self, input_node):
         import pandas as pd
         from sklearn.preprocessing import LabelEncoder
-
         X, y = input_node.data
         if isinstance(X, pd.DataFrame):
             X = X.values
@@ -143,13 +148,13 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         else:
             raise ValueError('Invalid object type!')
 
-        print('After preprocessing', self.cleaned_node.data[0].shape)
+        print('After preprocessing', self.cleaned_node.shape)
 
         # TODO: dtype is object.
         if self.fe_enabled:
             if self.optimizer_type == 'eval_base':
                 self.optimizer = EvaluationBasedOptimizer(
-                    self.cleaned_node, self.evaluator,
+                    self.task_type, self.cleaned_node, self.evaluator,
                     self.model_id, self.time_limit_per_trans, self._seed
                 )
             else:

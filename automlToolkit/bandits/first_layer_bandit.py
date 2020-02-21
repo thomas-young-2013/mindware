@@ -9,7 +9,6 @@ from autosklearn.constants import *
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode, TransformationGraph
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 from automlToolkit.utils.logging_utils import setup_logger, get_logger
-from automlToolkit.components.evaluator import get_estimator
 from automlToolkit.components.meta_learning.meta_learning import evaluate_metalearning_configs
 from automlToolkit.utils.metalearning import get_meta_learning_configs
 
@@ -226,7 +225,7 @@ class FirstLayerBandit(object):
         self.logger.info('X_train/test shapes: %s, %s' % (str(X_train.shape), str(X_test.shape)))
 
         # Build the ML estimator.
-        from automlToolkit.components.evaluator import fetch_predict_estimator
+        from automlToolkit.components.evaluators.evaluator import fetch_predict_estimator
         estimator = fetch_predict_estimator(config, X_train, y_train)
 
         y_pred = estimator.predict(test_data_node.data[0])

@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 
-from automlToolkit.components.evaluator import Evaluator
+from automlToolkit.components.evaluators.evaluator import Evaluator
 from automlToolkit.utils.metalearning import get_trans_from_str
 
 

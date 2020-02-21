@@ -3,7 +3,7 @@ import time
 import numpy as np
 from automlToolkit.utils.constant import MAX_INT
 from automlToolkit.utils.logging_utils import get_logger
-from automlToolkit.components.evaluator import Evaluator
+from automlToolkit.components.evaluators.evaluator import Evaluator
 
 
 class BaseHPOptimizer(object):

@@ -6,7 +6,7 @@ sys.path.append(os.getcwd())
 from automlToolkit.datasets.utils import load_train_test_data
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from autosklearn.pipeline.components.classification import _classifiers
-from automlToolkit.components.evaluator import get_estimator
+from automlToolkit.components.evaluators.evaluator import get_estimator
 
 
 if __name__ == '__main__':
