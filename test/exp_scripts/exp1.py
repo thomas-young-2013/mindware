@@ -4,6 +4,7 @@ import time
 import pickle
 import argparse
 import tabulate
+import shutil
 import numpy as np
 import autosklearn.classification
 from sklearn.metrics import accuracy_score
@@ -33,7 +34,7 @@ save_dir = './data/exp_results/exp1/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
-per_run_time_limit = 240
+per_run_time_limit = 1200
 
 
 def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200, seed=1, eval_type='holdout', enable_ens=False):
@@ -261,7 +262,7 @@ if __name__ == "__main__":
                     string = ''
                     for mean_t, std_t in stats_:
                         string += u'%.3f\u00B1%.3f |' % (mean_t, std_t)
-                    print(dataset, mth, '='*30)
+                    print(dataset, mth, '=' * 30)
                     print('%s-%s: mean\u00B1std' % (dataset, mth), string)
                     print('%s-%s: median' % (dataset, mth), np.median(results, axis=0))
 

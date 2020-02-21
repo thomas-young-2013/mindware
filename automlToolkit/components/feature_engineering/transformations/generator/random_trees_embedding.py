@@ -33,13 +33,14 @@ class RandomTreesEmbeddingTransformation(Transformer):
         if target_fields is None:
             target_fields = collect_fields(input_datanode.feature_types, self.input_type)
         X_new = X[:, target_fields]
-
         if not self.model:
             self.n_estimators = int(self.n_estimators)
             if check_none(self.max_depth):
                 self.max_depth = None
             else:
                 self.max_depth = int(self.max_depth)
+            if X.shape[0] > 5000:
+                self.max_depth = min(4, self.max_depth)
             self.min_samples_split = int(self.min_samples_split)
             self.min_samples_leaf = int(self.min_samples_leaf)
             if check_none(self.max_leaf_nodes):
@@ -72,7 +73,7 @@ class RandomTreesEmbeddingTransformation(Transformer):
                                                     lower=10, upper=100,
                                                     default_value=10)
         max_depth = UniformIntegerHyperparameter(name="max_depth",
-                                                 lower=2, upper=6,
+                                                 lower=2, upper=5,
                                                  default_value=5)
         min_samples_split = UniformIntegerHyperparameter(name="min_samples_split",
                                                          lower=2, upper=20,

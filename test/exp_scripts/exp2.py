@@ -4,6 +4,7 @@ import time
 import pickle
 import argparse
 import tabulate
+import shutil
 import numpy as np
 import autosklearn.classification
 from sklearn.metrics import accuracy_score
@@ -34,7 +35,7 @@ save_dir = './data/exp_results/exp2/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
-per_run_time_limit = 240
+per_run_time_limit = 1200
 
 
 def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200,
@@ -233,6 +234,12 @@ if __name__ == "__main__":
                                          time_cost, seed=seed,
                                          enable_meta_learning=enable_meta, enable_ens=True,
                                          n_jobs=n_jobs, eval_type=eval_type)
+                    del_dir = '/tmp'
+                    for root, dirs, files in os.walk(del_dir):
+                        for dir in dirs:
+                            if 'autosklearn' in dir:
+                                shutil.rmtree(os.path.join(root, dir))
+
                 else:
                     raise ValueError('Invalid method name: %s.' % mth)
 
@@ -258,20 +265,21 @@ if __name__ == "__main__":
                     results.append([val_acc, test_acc])
                 if len(results) == rep:
                     results = np.array(results)
-                    print('%s-%s' % (dataset, mth), '=' * 20)
                     stats_ = zip(np.mean(results, axis=0), np.std(results, axis=0))
                     string = ''
                     for mean_t, std_t in stats_:
                         string += u'%.3f\u00B1%.3f |' % (mean_t, std_t)
-                    print(string)
-                    print('%s-%s' % (dataset, mth), '=' * 20)
+                    print(dataset, mth, '=' * 30)
+                    print('%s-%s: mean\u00B1std' % (dataset, mth), string)
+                    print('%s-%s: median' % (dataset, mth), np.median(results, axis=0))
+
                     for idx in range(results.shape[1]):
                         vals = results[:, idx]
-                        mean_, std_ = np.mean(vals), np.std(vals)
-                        if mean_ == 0.:
+                        median = np.median(vals)
+                        if median == 0.:
                             row_data.append('-')
                         else:
-                            row_data.append(u'%.3f\u00B1%.3f' % (mean_, std_))
+                            row_data.append(u'%.4f' % median)
                 else:
                     row_data.extend(['-'] * 2)
 
