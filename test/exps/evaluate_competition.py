@@ -51,8 +51,7 @@ class LightGBMRegressor():
                                        colsample_bytree=self.colsample_bytree,
                                        reg_alpha=self.reg_alpha,
                                        reg_lambda=self.reg_lambda,
-                                       n_jobs=self.n_jobs,
-                                       silent=False
+                                       n_jobs=self.n_jobs
                                        )
         self.estimator.fit(X, y)
         return self
@@ -86,7 +85,7 @@ def preprocess_data(task_id=3):
         create_csv(task_id)
     print('load train csv.')
     dm.load_train_csv(data_path, label_col=-1, header='infer', sep=',')
-    pipeline = FEPipeline(fe_enabled=False)
+    pipeline = FEPipeline(fe_enabled=False, task_type='regression')
     raw_data = pipeline.fit_transform(dm)
     print('raw data processing finished.')
     return raw_data
