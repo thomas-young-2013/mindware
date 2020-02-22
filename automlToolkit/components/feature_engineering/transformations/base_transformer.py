@@ -41,7 +41,8 @@ class Transformer(object, metaclass=abc.ABCMeta):
         25: discrete_categorizer.
         ----
         26: merger.
-
+        30: percentile_selector_regression.
+        31: extra_trees_based_selector_regression
     """
     def __init__(self, name, type, random_state=1):
         self.name = name

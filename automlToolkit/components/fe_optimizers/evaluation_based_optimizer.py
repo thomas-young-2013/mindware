@@ -39,6 +39,7 @@ class EvaluationBasedOptimizer(Optimizer):
         # Debug Example:
         # self.trans_types = [5, 9, 10]
         self.trans_types = TRANS_CANDIDATES[self.task_type]
+        # self.trans_types = [30, 31]
         self.iteration_id = 0
         self.evaluation_count = 0
         self.beam_set = list()
@@ -222,9 +223,9 @@ class EvaluationBasedOptimizer(Optimizer):
                     try:
                         # Limit the execution and evaluation time for each transformation.
                         with time_limit(self.time_limit_per_trans):
-                            self.logger.debug('%s - %s' % (transformer.name, str(node_.shape)))
+                            self.logger.info('%s - %s' % (transformer.name, str(node_.shape)))
                             output_node = transformer.operate(node_)
-                            self.logger.debug('after %s - %s' % (transformer.name, str(output_node.shape)))
+                            self.logger.info('after %s - %s' % (transformer.name, str(output_node.shape)))
 
                             # Evaluate this node.
                             if transformer.type != 0:
