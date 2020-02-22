@@ -4,6 +4,7 @@ import argparse
 import numpy as np
 from lightgbm import LGBMRegressor
 from sklearn.metrics import make_scorer
+
 sys.path.append(os.getcwd())
 from automlToolkit.utils.data_manager import DataManager
 from automlToolkit.components.evaluators.reg_evaluator import RegressionEvaluator
@@ -50,7 +51,9 @@ class LightGBMRegressor():
                                        colsample_bytree=self.colsample_bytree,
                                        reg_alpha=self.reg_alpha,
                                        reg_lambda=self.reg_lambda,
-                                       n_jobs=self.n_jobs)
+                                       n_jobs=self.n_jobs,
+                                       silent=False
+                                       )
         self.estimator.fit(X, y)
         return self
 
@@ -102,8 +105,8 @@ def test_evaluator():
     config.pop('estimator', None)
     gbm = LightGBMRegressor(**config)
     scorer = make_scorer(smape, greater_is_better=False)
-    raw_data = preprocess_data()
-    evaluator = RegressionEvaluator(None, smape, data_node=raw_data, name='fe', seed=1, estimator=gbm)
+    # raw_data = preprocess_data()
+    evaluator = RegressionEvaluator(None, scorer, data_node=None, name='fe', seed=1, estimator=gbm)
     print(evaluator(None))
 
 
@@ -133,5 +136,5 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
 
 
 if __name__ == "__main__":
-    # test_evaluator()
-    evaluation_based_feature_engineering(time_limit)
+    test_evaluator()
+    # evaluation_based_feature_engineering(time_limit)

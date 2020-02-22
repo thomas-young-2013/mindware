@@ -1,6 +1,7 @@
 from typing import Callable
 from sklearn.metrics.scorer import r2_score, mean_absolute_error, mean_squared_error, median_absolute_error
 from sklearn.metrics.scorer import accuracy_score, f1_score, roc_auc_score, precision_score, recall_score
+from sklearn.metrics.scorer import make_scorer, _BaseScorer
 
 # Standard regression scores
 reg_metric_names = ['r2_score', 'mean_squared_error', 'mean_absolute_error', 'median_absolute_error']
@@ -19,7 +20,11 @@ def fetch_scorer(_scorer: [str, Callable], task_type: str):
             return CLASSIFICATION_METRICS[_scorer]
         elif task_type == 'regression' and _scorer in REGRESSION_METRICS.keys():
             return REGRESSION_METRICS[_scorer]
-    elif isinstance(_scorer, Callable):
+    elif isinstance(_scorer, _BaseScorer):
         return _scorer
+    elif isinstance(_scorer, Callable):
+        # If _scorer is not a _BaseScorer, we convert it into a Scorer.
+        # However, since we do not know whether to maximize or minimize it, we maximize it as default.
+        return make_scorer(_scorer)
     else:
         raise ValueError('Unsupported metric.')

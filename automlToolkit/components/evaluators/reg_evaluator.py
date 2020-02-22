@@ -19,7 +19,7 @@ def cross_validation(reg, scorer, X, y, n_fold=5, shuffle=True, random_state=1):
             train_x, train_y, valid_x, valid_y = X[train_idx], y[train_idx], X[valid_idx], y[valid_idx]
             reg.fit(train_x, train_y)
             pred = reg.predict(valid_x)
-            scores.append(-scorer(pred, valid_y))
+            scores.append(scorer(pred, valid_y))
         return np.mean(scores)
 
 
@@ -59,7 +59,7 @@ def holdout_validation(reg, scorer, X, y, test_size=0.3, random_state=1):
         # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=9)
         reg.fit(X_train, y_train)
         y_pred = reg.predict(X_test)
-        return -scorer(y_test, y_pred)
+        return scorer(y_test, y_pred)
 
 
 def get_estimator(config):
@@ -80,7 +80,6 @@ class RegressionEvaluator(object):
         self.scorer = fetch_scorer(scorer, 'regression')
         self.data_node = data_node
         self.name = name
-        self.scorer = scorer
         self.estimator = estimator
         self.resampling_strategy = resampling_strategy
         self.cv = cv
@@ -104,7 +103,8 @@ class RegressionEvaluator(object):
         else:
             data_node = self.data_node
 
-        X_train, y_train = data_node.data
+        # X_train, y_train = data_node.data
+
         if self.estimator is None:
             config_dict = config.get_dictionary().copy()
             regressor_id, reg = get_estimator(config_dict)
@@ -126,11 +126,11 @@ class RegressionEvaluator(object):
                 raise e
             self.logger.info('%s-evaluator: %s' % (self.name, str(e)))
             return np.inf
-        print('-'*10, score)
-        fmt_str = '\n'+' '*5 + '==> '
+        print('-' * 10, self.scorer._sign * score)
+        fmt_str = '\n' + ' ' * 5 + '==> '
         self.logger.debug('%s%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
                           (fmt_str, self.eval_id, regressor_id,
-                           score, time.time() - start_time, X_train.shape))
+                           self.scorer._sign * score, time.time() - start_time, X_train.shape))
         self.eval_id += 1
         if self.name == 'hpo':
             score = -score
