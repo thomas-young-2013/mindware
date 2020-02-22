@@ -105,8 +105,8 @@ def test_evaluator():
     config.pop('estimator', None)
     gbm = LightGBMRegressor(**config)
     scorer = make_scorer(smape, greater_is_better=False)
-    # raw_data = preprocess_data()
-    evaluator = RegressionEvaluator(None, scorer, data_node=None, name='fe', seed=1, estimator=gbm)
+    raw_data = preprocess_data()
+    evaluator = RegressionEvaluator(None, scorer, data_node=raw_data, name='fe', seed=1, estimator=gbm)
     print(evaluator(None))
 
 
@@ -123,7 +123,7 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
     config.pop('estimator', None)
     gbm = LightGBMRegressor(**config)
     scorer = make_scorer(smape, greater_is_better=False)
-    evaluator = RegressionEvaluator(None, smape, name='fe', seed=seed, estimator=gbm)
+    evaluator = RegressionEvaluator(None, scorer, name='fe', seed=seed, estimator=gbm)
     raw_data = preprocess_data()
     pipeline = FEPipeline(task_type='regression', task_id='anti_plague',
                           fe_enabled=True, optimizer_type='eval_base',
