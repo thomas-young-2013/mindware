@@ -18,8 +18,7 @@ def cross_validation(reg, scorer, X, y, n_fold=5, shuffle=True, random_state=1):
         for train_idx, valid_idx in kfold.split(X, y):
             train_x, train_y, valid_x, valid_y = X[train_idx], y[train_idx], X[valid_idx], y[valid_idx]
             reg.fit(train_x, train_y)
-            pred = reg.predict(valid_x)
-            scores.append(scorer(pred, valid_y))
+            scores.append(scorer(reg, valid_x, valid_y))
         return np.mean(scores)
 
 
@@ -58,8 +57,7 @@ def holdout_validation(reg, scorer, X, y, test_size=0.3, random_state=1):
         warnings.filterwarnings("ignore")
         # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=9)
         reg.fit(X_train, y_train)
-        y_pred = reg.predict(X_test)
-        return scorer(y_test, y_pred)
+        return scorer(reg, X_test, y_test)
 
 
 def get_estimator(config):
