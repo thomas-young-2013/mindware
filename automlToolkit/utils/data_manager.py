@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from automlToolkit.components.utils.constants import *
-from automlToolkit.components.utils.utils import is_discrete, detect_abnormal_type
+from automlToolkit.components.utils.utils import is_discrete, detect_abnormal_type, detect_categorical_type
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 
 default_missing_values = ["n/a", "na", "--", "-", "?"]
@@ -46,9 +46,12 @@ class DataManager(object):
                 cleaned_vals = np.array([val for val in col_vals if not pd.isnull(val)])
 
             if dtype in [np.int, np.int16, np.int32, np.int64]:
-                feat_type = DISCRETE
+                feat_type = CATEGORICAL if detect_categorical_type(cleaned_vals) else DISCRETE
             elif dtype in [np.float, np.float16, np.float32, np.float64, np.double]:
-                feat_type = DISCRETE if is_discrete(cleaned_vals) else NUMERICAL
+                if detect_categorical_type(cleaned_vals):
+                    feat_type = CATEGORICAL
+                else:
+                    feat_type = DISCRETE if is_discrete(cleaned_vals) else NUMERICAL
             else:
                 flag, cand_values, ab_idx, is_str = detect_abnormal_type(col_vals)
                 if flag:

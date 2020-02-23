@@ -10,16 +10,17 @@ sys.path.append(os.getcwd())
 from automlToolkit.utils.data_manager import DataManager
 from automlToolkit.components.evaluators.reg_evaluator import RegressionEvaluator
 from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
-from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--time_limit', type=int, default=1800)
 parser.add_argument('--task_id', type=int, default=3)
+parser.add_argument('--train_size', type=float, default=1.0)
 parser.add_argument('--data_dir', type=str, default='/Users/thomasyoung/PycharmProjects/AI_anti_plague/')
 args = parser.parse_args()
 time_limit = args.time_limit
 data_dir = args.data_dir
 task_id = args.task_id
+train_size = args.train_size
 
 
 def smape(y_true, y_pred):
@@ -135,26 +136,37 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
     X, y = train_data.data
     idxs = np.arange(X.shape[0])
     np.random.shuffle(idxs)
-    subset_ids = idxs[:1000]
+    sample_size = int(X.shape[0]*train_size)
+    subset_ids = idxs[:sample_size]
     X, y = X.iloc[subset_ids, :], y[subset_ids]
     train_data.data = [X, y]
+    print(train_data)
     """
-    nystronem_sampler
-    kitchen_sinks
-    random_trees_embedding
+    nystronem_sampler: 15
+    kitchen_sinks: 13
+    random_trees_embedding: 18
     """
+    # TODO: fast_ica, kernel_pca, and polynomial_features.
+    # trans_used = [0, 3, 4, 5, 9, 10, 11, 12, 16, 17, 19, 30, 31]
+    trans_used = [0, 3, 4, 5, 9, 10, 11, 12, 16, 17, 19]
+    # trans_used = [17, 30, 31]
+    # trans_used = [32]
     pipeline = FEPipeline(task_type='regression', task_id='anti_plague',
                           fe_enabled=True, optimizer_type='eval_base',
                           time_budget=time_limit, evaluator=evaluator,
                           seed=seed, model_id='lightgbm',
-                          time_limit_per_trans=600
+                          time_limit_per_trans=900,
+                          trans_set=trans_used
                           )
     transformed_train_data = pipeline.fit_transform(train_data)
     print('final train data shape & score', transformed_train_data.shape, transformed_train_data.score)
-
     transformed_test_datanode = pipeline.transform(test_data)
     print('final test data shape', transformed_test_datanode.shape)
-    np.save(data_dir+'data/transformed_test-%d.csv' % task_id, transformed_test_datanode.data[0])
+
+    # Save results.
+    np.save(data_dir + 'data/transformed_train_x-%d.csv' % task_id, transformed_train_data.data[0])
+    np.save(data_dir + 'data/transformed_train_y-%d.csv' % task_id, transformed_train_data.data[1])
+    np.save(data_dir + 'data/transformed_test-%d.csv' % task_id, transformed_test_datanode.data[0])
 
 
 if __name__ == "__main__":

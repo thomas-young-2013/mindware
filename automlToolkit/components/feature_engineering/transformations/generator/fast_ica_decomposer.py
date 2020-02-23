@@ -21,7 +21,8 @@ class FastIcaDecomposer(Transformer):
         self.n_components = n_components
 
         self.random_state = random_state
-        self.error_flag = False
+        self.skip_flag = False
+        self.pre_trained = False
 
     @ease_trans
     def operate(self, input_datanode, target_fields=None):
@@ -29,9 +30,10 @@ class FastIcaDecomposer(Transformer):
 
         # Skip heavy computation in fast ica.
         if X.shape[0] > 10000 or X.shape[1] > 200:
-            self.error_flag = True
-
-        if self.error_flag:
+            if not self.pre_trained:
+                self.skip_flag = True
+        self.pre_trained = True
+        if self.skip_flag:
             return X.copy()
 
         if self.model is None:
@@ -61,7 +63,6 @@ class FastIcaDecomposer(Transformer):
                     raise e
 
         X_new = self.model.transform(X)
-
         return X_new
 
     @staticmethod

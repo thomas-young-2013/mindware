@@ -75,8 +75,13 @@ class DataNode(object):
     def __str__(self):
         from tabulate import tabulate
         tabular_data = list()
-        tabular_data.append(['Feature types', self.feature_types])
-        tabular_data.append(['Data shape', self.shape])
+        if len(self.feature_types) > 8:
+            types_summary = ','.join(self.feature_types[:4])
+            types_summary += ',...,' + ','.join(self.feature_types[-4:])
+        else:
+            types_summary = ','.join(self.feature_types)
+        tabular_data.append(['feature types', types_summary])
+        tabular_data.append(['data shape', '%d, %d' % self.shape])
         tabular_data.append(['#Cat-feature', self.cat_num])
         tabular_data.append(['#NonCat-feature', self.shape[1] - self.cat_num])
         return tabulate(tabular_data, tablefmt="github")

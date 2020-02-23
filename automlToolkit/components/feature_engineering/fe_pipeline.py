@@ -20,6 +20,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
     def __init__(self, task_type='classification',
                  optimizer_type='eval_base',
                  metric=None,
+                 trans_set=None,
                  time_budget=None,
                  maximum_evaluation_num=None,
                  time_limit_per_trans=600,
@@ -28,6 +29,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
                  tmp_directory='logs', logging_config=None, model_id=None,
                  task_id='Default'):
         self.fe_enabled = fe_enabled
+        self.trans_set = trans_set
         self.maximum_evaluation_num = maximum_evaluation_num
         self.time_budget = time_budget
         self.time_limit_per_trans = time_limit_per_trans
@@ -143,7 +145,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
                 self.optimizer = EvaluationBasedOptimizer(
                     self.task_type, preprocessed_node, self.evaluator,
                     self.model_id, self.time_limit_per_trans,
-                    self.mem_limit_per_trans, self._seed
+                    self.mem_limit_per_trans, self._seed, trans_set=self.trans_set
                 )
             else:
                 raise ValueError('invalid optimizer type!')

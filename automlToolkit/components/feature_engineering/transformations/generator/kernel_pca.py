@@ -20,7 +20,8 @@ class KernelPCA(Transformer):
         self.gamma = gamma
         self.coef0 = coef0
         self.random_state = random_state
-        self.error_flag = False
+        self.skip_flag = False
+        self.pre_trained = False
 
     @ease_trans
     def operate(self, input_datanode, target_fields=None):
@@ -28,9 +29,11 @@ class KernelPCA(Transformer):
 
         # Skip large matrix computation in obtaining the kernel matrix.
         if X.shape[0] > 10000:
-            self.error_flag = True
+            if not self.pre_trained:
+                self.skip_flag = True
 
-        if self.error_flag:
+        self.pre_trained = True
+        if self.skip_flag:
             return X.copy()
 
         if self.model is None:
@@ -55,7 +58,6 @@ class KernelPCA(Transformer):
             # kernel_pca.py in scikit-learn
             if len(self.model.alphas_ / self.model.lambdas_) == 0:
                 raise ValueError('KernelPCA removed all features!')
-
         X_new = self.model.transform(X)
 
         return X_new
