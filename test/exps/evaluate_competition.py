@@ -147,15 +147,15 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
     random_trees_embedding: 18
     """
     # TODO: fast_ica, kernel_pca, and polynomial_features.
-    # trans_used = [0, 3, 4, 5, 9, 10, 11, 12, 16, 17, 19, 30, 31]
-    trans_used = [0, 3, 4, 5, 9, 10, 11, 12, 16, 17, 19]
+    trans_used = [0, 3, 4, 5, 9, 10, 11, 12, 16, 17, 19, 30, 31, 32]
+    # trans_used = [0, 3, 4, 5, 9, 10, 11, 12, 16, 17, 19]
     # trans_used = [17, 30, 31]
     # trans_used = [32]
     pipeline = FEPipeline(task_type='regression', task_id='anti_plague',
                           fe_enabled=True, optimizer_type='eval_base',
                           time_budget=time_limit, evaluator=evaluator,
                           seed=seed, model_id='lightgbm',
-                          time_limit_per_trans=900,
+                          time_limit_per_trans=1200,
                           trans_set=trans_used
                           )
     transformed_train_data = pipeline.fit_transform(train_data)
