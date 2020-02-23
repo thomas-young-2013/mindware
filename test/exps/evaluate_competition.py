@@ -11,7 +11,7 @@ from automlToolkit.components.evaluators.reg_evaluator import RegressionEvaluato
 from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--time_limit', type=int, default=1200)
+parser.add_argument('--time_limit', type=int, default=1800)
 parser.add_argument('--data_dir', type=str, default='/Users/thomasyoung/PycharmProjects/AI_anti_plague/')
 args = parser.parse_args()
 proj_dir = './'
@@ -124,16 +124,24 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
     scorer = make_scorer(smape, greater_is_better=False)
     evaluator = RegressionEvaluator(None, scorer, name='fe', seed=seed, estimator=gbm)
     raw_data = preprocess_data()
+
+    # X, y = raw_data.data
+    # idxs = np.arange(X.shape[0])
+    # np.random.shuffle(idxs)
+    # subset_ids = idxs[:7500]
+    # X, y = X[subset_ids], y[subset_ids]
+    # raw_data.data = (X, y)
+
     pipeline = FEPipeline(task_type='regression', task_id='anti_plague',
                           fe_enabled=True, optimizer_type='eval_base',
                           time_budget=time_limit, evaluator=evaluator,
                           seed=seed, model_id='lightgbm',
-                          time_limit_per_trans=300
+                          time_limit_per_trans=600
                           )
     train_data = pipeline.fit_transform(raw_data)
     print(train_data.score)
 
 
 if __name__ == "__main__":
-    test_evaluator()
-    # evaluation_based_feature_engineering(time_limit)
+    # test_evaluator()
+    evaluation_based_feature_engineering(time_limit)

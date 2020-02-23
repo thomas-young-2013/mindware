@@ -45,17 +45,17 @@ def load_holdout_data(data_dir, task_id=3):
     return train_data, valid_data, train_label, valid_label, test_data, test_id
 
 
-# X_train, X_test, y_train, y_test, _, _ = load_holdout_data(
-#     data_dir='../AI_anti_plague/data/',
-#     task_id=3)
+X_train, X_test, y_train, y_test, _, _ = load_holdout_data(
+    data_dir='../AI_anti_plague/data/',
+    task_id=3)
 
 
+@ignore_warnings(category=ConvergenceWarning)
 def holdout_validation(reg, scorer, X, y, test_size=0.3, random_state=1):
     with warnings.catch_warnings():
         # ignore all caught warnings
         warnings.filterwarnings("ignore")
-        X_train, X_test, y_train, y_test = \
-            train_test_split(X, y, test_size=test_size, random_state=9)
+        # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=9)
         reg.fit(X_train, y_train)
         return scorer(reg, X_test, y_test)
 
@@ -101,7 +101,7 @@ class RegressionEvaluator(object):
         else:
             data_node = self.data_node
 
-        X_train, y_train = data_node.data
+        # X_train, y_train = data_node.data
 
         if self.estimator is None:
             config_dict = config.get_dictionary().copy()
