@@ -27,10 +27,10 @@ def load_data(dataset, proj_dir='./', datanode_returned=False):
     else:
         sep = ','
 
-    dm.load_train_csv(data_path, label_col=label_column, header=header, sep=sep)
+    train_data_node = dm.load_train_csv(data_path, label_col=label_column, header=header, sep=sep)
 
     pipeline = FEPipeline(fe_enabled=False)
-    train_data = pipeline.fit_transform(dm)
+    train_data = pipeline.fit_transform(train_data_node)
     if datanode_returned:
         return train_data
     else:

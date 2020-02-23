@@ -68,6 +68,7 @@ class SecondLayerBandit(object):
                                  name='fe', resampling_strategy=self.evaluation_type,
                                  seed=self.seed)
         self.optimizer['fe'] = EvaluationBasedOptimizer(
+                'classification',
                 self.original_data, fe_evaluator,
                 classifier_id, per_run_time_limit, per_run_mem_limit, self.seed,
                 shared_mode=self.share_fe, n_jobs=n_jobs)
@@ -139,6 +140,7 @@ class SecondLayerBandit(object):
                 fe_evaluator = Evaluator(self.inc['hpo'], name='fe', resampling_strategy=self.evaluation_type,
                                          seed=self.seed)
                 self.optimizer[_arm] = EvaluationBasedOptimizer(
+                    'classification',
                     self.inc['fe'], fe_evaluator,
                     self.classifier_id, self.per_run_time_limit, self.per_run_mem_limit, self.seed,
                     shared_mode=self.share_fe

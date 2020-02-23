@@ -3,6 +3,7 @@ import pandas as pd
 
 from automlToolkit.components.utils.constants import *
 from automlToolkit.components.utils.utils import is_discrete, detect_abnormal_type
+from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 
 default_missing_values = ["n/a", "na", "--", "-", "?"]
 
@@ -39,6 +40,7 @@ class DataManager(object):
             col_vals = df[col_name].values
             dtype = df[col_name].dtype
 
+            # Filter the element with missing value.
             cleaned_vals = col_vals
             if col_name in columns_missed:
                 cleaned_vals = np.array([val for val in col_vals if not pd.isnull(val)])
@@ -65,32 +67,32 @@ class DataManager(object):
     def clean_data_with_nan(self, df, label_col, phase='train', drop_index=None, has_label=True):
         columns_missed = df.columns[df.isnull().any()].tolist()
 
-        if self.label_name is None:
-            if phase != 'train':
-                print('Warning: Label is not specified! set label_col=%d by default.' % label_col)
-            label_colname = df.columns[label_col]
-        else:
-            label_colname = self.label_name
+        if has_label:
+            if self.label_name is None:
+                if phase != 'train':
+                    print('Warning: Label is not specified! set label_col=%d by default.' % label_col)
+                label_colname = df.columns[label_col]
+            else:
+                label_colname = self.label_name
 
-        self.label_name = label_colname
-        if label_colname in columns_missed:
-            labels = df[label_colname].values
-            row_idx = [idx for idx, val in enumerate(labels) if np.isnan(val)]
-            # Delete the row with NaN label.
-            df.drop(df.index[row_idx], inplace=True)
+            self.label_name = label_colname
+            if label_colname in columns_missed:
+                labels = df[label_colname].values
+                row_idx = [idx for idx, val in enumerate(labels) if np.isnan(val)]
+                # Delete the row with NaN label.
+                df.drop(df.index[row_idx], inplace=True)
 
-        if phase == 'train':
-            self.train_y = df[label_colname].values
-        else:
-            self.test_y = df[label_colname].values
+            if phase == 'train':
+                self.train_y = df[label_colname].values
+            else:
+                self.test_y = df[label_colname].values
+
+            # Delete the label column.
+            df.drop(label_colname, axis=1, inplace=True)
 
         if drop_index:
             drop_col = [df.columns[index] for index in drop_index]
             df.drop(drop_col, axis=1, inplace=True)
-
-        # Delete the label column.
-        if has_label:
-            df.drop(label_colname, axis=1, inplace=True)
 
     def load_train_csv(self, file_location, label_col=-1, drop_index=None,
                        keep_default_na=True, na_values=None, header='infer',
@@ -113,14 +115,19 @@ class DataManager(object):
 
         # Drop the row with all NaNs.
         df.dropna(how='all')
-        columns_missed = df.columns[df.isnull().any()].tolist()
 
+        # Clean the data where the label columns have nans.
         self.clean_data_with_nan(df, label_col, drop_index=drop_index)
 
-        # set the feature types
+        # The columns with missing values.
+        columns_missed = df.columns[df.isnull().any()].tolist()
+
+        # Identify the feature types
         self.set_feat_types(df, columns_missed)
+
         self.train_X = df
-        return df, self.train_y
+        data = [self.train_X, self.train_y]
+        return DataNode(data, self.feature_types)
 
     def load_test_csv(self, file_location, has_label=False, label_col=-1,
                       drop_index=None, keep_default_na=True, header='infer',
@@ -129,8 +136,8 @@ class DataManager(object):
                          na_values=self.na_values, header=header, sep=sep)
         # Drop the row with all NaNs.
         df.dropna(how='all')
-        columns_missed = df.columns[df.isnull().any()].tolist()
         self.clean_data_with_nan(df, label_col, phase='test', drop_index=drop_index, has_label=has_label)
-        self.set_feat_types(df, columns_missed)
         self.test_X = df
-        return df
+
+        data = [self.test_X, self.test_y]
+        return DataNode(data, self.feature_types)

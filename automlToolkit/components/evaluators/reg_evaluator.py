@@ -124,7 +124,7 @@ class RegressionEvaluator(object):
                 raise e
             self.logger.info('%s-evaluator: %s' % (self.name, str(e)))
             return np.inf
-        print('-' * 10, self.scorer._sign * score)
+        print('=' * 6+'>', self.scorer._sign * score)
         fmt_str = '\n' + ' ' * 5 + '==> '
         self.logger.debug('%s%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
                           (fmt_str, self.eval_id, regressor_id,

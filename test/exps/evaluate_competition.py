@@ -2,6 +2,7 @@ import os
 import sys
 import argparse
 import numpy as np
+import pandas as pd
 from lightgbm import LGBMRegressor
 from sklearn.metrics import make_scorer
 
@@ -9,14 +10,16 @@ sys.path.append(os.getcwd())
 from automlToolkit.utils.data_manager import DataManager
 from automlToolkit.components.evaluators.reg_evaluator import RegressionEvaluator
 from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
+from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--time_limit', type=int, default=1800)
+parser.add_argument('--task_id', type=int, default=3)
 parser.add_argument('--data_dir', type=str, default='/Users/thomasyoung/PycharmProjects/AI_anti_plague/')
 args = parser.parse_args()
-proj_dir = './'
 time_limit = args.time_limit
 data_dir = args.data_dir
+task_id = args.task_id
 
 
 def smape(y_true, y_pred):
@@ -64,31 +67,35 @@ def create_csv(task_id=3):
     import pandas as pd
     train_data = pd.read_csv(data_dir + 'data/candidate_train.csv')
     train_answer = pd.read_csv(data_dir + 'data/train_answer.csv')
-    test_data = pd.read_csv(data_dir + 'data/candidate_val.csv')
-
     print('complete dataset loading...')
     train_data = train_data.merge(train_answer, on='id', how='left')
     train_raw_data = train_data.iloc[:, 0:3177]
-    test_raw_data = test_data.iloc[:, 0:3177]
+
     label = train_data['p%d' % task_id]
     result = pd.concat([train_raw_data, label], axis=1).reset_index(drop=True)
     result.to_csv(data_dir + 'data/p%s.csv' % task_id, index=False)
     print(result.head())
-    test_raw_data.to_csv(data_dir + 'data/test_data.csv', index=False)
-    print(test_raw_data.head())
+
+    if not os.path.exists(data_dir + 'data/test_data.csv'):
+        test_data = pd.read_csv(data_dir + 'data/candidate_val.csv')
+        test_raw_data = test_data.iloc[:, 0:3177]
+        test_raw_data.to_csv(data_dir + 'data/test_data.csv', index=False)
+        print(test_raw_data.head())
 
 
-def preprocess_data(task_id=3):
+def fetch_data(task_id):
     dm = DataManager()
-    data_path = data_dir + 'data/p%d.csv' % task_id
-    if not os.path.exists(data_path):
+    train_data_path = data_dir + 'data/p%d.csv' % task_id
+    test_data_path = data_dir + 'data/test_data.csv'
+    if not os.path.exists(train_data_path) or not os.path.exists(test_data_path):
         create_csv(task_id)
-    print('load train csv.')
-    dm.load_train_csv(data_path, label_col=-1, header='infer', sep=',')
-    pipeline = FEPipeline(fe_enabled=False, task_type='regression')
-    raw_data = pipeline.fit_transform(dm)
-    print('raw data processing finished.')
-    return raw_data
+
+    train_data_node = dm.load_train_csv(train_data_path, label_col=-1, header='infer', sep=',')
+    print('loading train data finished.')
+
+    test_data_node = dm.load_test_csv(test_data_path, has_label=False, header='infer', sep=',')
+    print('loading test data finished.')
+    return train_data_node, test_data_node
 
 
 def test_evaluator():
@@ -104,7 +111,7 @@ def test_evaluator():
     config.pop('estimator', None)
     gbm = LightGBMRegressor(**config)
     scorer = make_scorer(smape, greater_is_better=False)
-    raw_data = preprocess_data()
+    raw_data, _ = fetch_data(task_id)
     evaluator = RegressionEvaluator(None, scorer, data_node=raw_data, name='fe', seed=1, estimator=gbm)
     print(evaluator(None))
 
@@ -123,23 +130,31 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
     gbm = LightGBMRegressor(**config)
     scorer = make_scorer(smape, greater_is_better=False)
     evaluator = RegressionEvaluator(None, scorer, name='fe', seed=seed, estimator=gbm)
-    raw_data = preprocess_data()
+    train_data, test_data = fetch_data(task_id)
 
-    # X, y = raw_data.data
-    # idxs = np.arange(X.shape[0])
-    # np.random.shuffle(idxs)
-    # subset_ids = idxs[:7500]
-    # X, y = X[subset_ids], y[subset_ids]
-    # raw_data.data = (X, y)
-
+    X, y = train_data.data
+    idxs = np.arange(X.shape[0])
+    np.random.shuffle(idxs)
+    subset_ids = idxs[:1000]
+    X, y = X.iloc[subset_ids, :], y[subset_ids]
+    train_data.data = [X, y]
+    """
+    nystronem_sampler
+    kitchen_sinks
+    random_trees_embedding
+    """
     pipeline = FEPipeline(task_type='regression', task_id='anti_plague',
                           fe_enabled=True, optimizer_type='eval_base',
                           time_budget=time_limit, evaluator=evaluator,
                           seed=seed, model_id='lightgbm',
                           time_limit_per_trans=600
                           )
-    train_data = pipeline.fit_transform(raw_data)
-    print(train_data.score)
+    transformed_train_data = pipeline.fit_transform(train_data)
+    print('final train data shape & score', transformed_train_data.shape, transformed_train_data.score)
+
+    transformed_test_datanode = pipeline.transform(test_data)
+    print('final test data shape', transformed_test_datanode.shape)
+    np.save(data_dir+'data/transformed_test-%d.csv' % task_id, transformed_test_datanode.data[0])
 
 
 if __name__ == "__main__":
