@@ -4,14 +4,15 @@ from automlToolkit.components.feature_engineering.transformations.base_transform
 
 
 class CrossFeatureTransformation(Transformer):
-    def __init__(self, random_seed=1):
+    def __init__(self, random_state=1):
         super().__init__("cross_features", 32)
         self.input_type = [CATEGORICAL]
         self.compound_mode = 'concatenate'
-
         self.output_type = CATEGORICAL
         self.features_ids = None
         self._model = None
+
+        self.random_state = random_state
 
     @ease_trans
     def operate(self, input_datanode, target_fields):
@@ -24,6 +25,7 @@ class CrossFeatureTransformation(Transformer):
 
         if not self.model:
             idxs = np.arange(X_new.shape[1])
+            np.random.seed(self.random_state)
             np.random.shuffle(idxs)
             self.features_ids = idxs[:200]
 
@@ -45,4 +47,6 @@ class CrossFeatureTransformation(Transformer):
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None):
         cs = ConfigurationSpace()
+        random_state = UniformIntegerHyperparameter("random_state", 1, 100000, default_value=1)
+        cs.add_hyperparameter(random_state)
         return cs

@@ -150,7 +150,7 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
     trans_used = [0, 3, 4, 5, 9, 10, 11, 12, 16, 17, 19, 30, 31, 32]
     # trans_used = [0, 3, 4, 5, 9, 10, 11, 12, 16, 17, 19]
     # trans_used = [17, 30, 31]
-    # trans_used = [32]
+    trans_used = [32]
     pipeline = FEPipeline(task_type='regression', task_id='anti_plague',
                           fe_enabled=True, optimizer_type='eval_base',
                           time_budget=time_limit, evaluator=evaluator,
