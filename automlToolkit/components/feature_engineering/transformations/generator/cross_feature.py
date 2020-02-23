@@ -33,13 +33,11 @@ class CrossFeatureTransformation(Transformer):
             self.model.fit(X_new[:, self.features_ids])
 
         print(X_new.shape)
-        X_new = X_new[:, self.features_ids]
-        _X = self.model.transform(X_new)
+        _X = self.model.transform(X_new[:, self.features_ids])
+        print(_X.shape)
         if not self._model:
             self._model = VarianceThreshold()
             self._model.fit(_X)
-
-        print(_X.shape)
         _X = self._model.transform(_X)
         print(_X.shape)
         return _X
