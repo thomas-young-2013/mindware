@@ -142,12 +142,13 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
     train_data.data = [X, y]
     print(train_data)
     """
-    nystronem_sampler: 15
-    kitchen_sinks: 13
-    random_trees_embedding: 18
+    nystronem_sampler: 15 bad
+    kitchen_sinks: 13 bad
+    random_trees_embedding: 18 bad
+    feature_agglomeration_decomposer: 11 timeout.
     """
     # TODO: fast_ica, kernel_pca, and polynomial_features.
-    trans_used = [0, 3, 4, 5, 9, 10, 11, 12, 16, 17, 19, 30, 31, 32]
+    trans_used = [0, 3, 4, 5, 9, 12, 16, 19, 30, 31, 32]
     # trans_used = [0, 3, 4, 5, 9, 10, 11, 12, 16, 17, 19]
     # trans_used = [17, 30, 31]
     # trans_used = [32]
