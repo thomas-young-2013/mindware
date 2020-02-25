@@ -4,8 +4,8 @@ from automlToolkit.components.feature_engineering.transformations.base_transform
 
 
 class PercentileSelectorRegression(Transformer):
-    def __init__(self, percentile=50, score_func='f_regression', random_state=None):
-        super().__init__("percentile_selector_reg", 30)
+    def __init__(self, percentile=10, score_func='f_regression', random_state=None):
+        super().__init__("percentile_selector_reg", 10)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
 
@@ -55,7 +55,7 @@ class PercentileSelectorRegression(Transformer):
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None):
         percentile = UniformFloatHyperparameter(
-            "percentile", lower=1, upper=99, default_value=50)
+            "percentile", lower=5, upper=75, default_value=10, q=5)
 
         score_func = CategoricalHyperparameter(
             name="score_func", choices=["f_regression", "mutual_info"])

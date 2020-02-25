@@ -10,16 +10,16 @@ data_dir = '/Users/thomasyoung/Desktop/overfitting/overfit/'
 
 
 def get_avg(dataset, algo, arm_type):
-    val_fe, test_fe = list(), list()
-    for id in range(5):
-        data_path = data_dir + '%s-%s-%s-100-%d.pkl' % (arm_type, dataset, algo, id)
+    val_result, test_result = list(), list()
+    for _id in range(5):
+        data_path = data_dir + '%s-%s-%s-100-%d.pkl' % (arm_type, dataset, algo, _id)
         if os.path.exists(data_path):
             with open(data_path, 'rb') as f:
                 data = pickle.load(f)
-                val_fe.append(data[0])
-                test_fe.append(data[1])
-    val_fe, test_fe = np.mean(val_fe, axis=0), np.mean(test_fe, axis=0)
-    return val_fe, test_fe
+                val_result.append(data[0])
+                test_result.append(data[1])
+    val_result, test_result = np.mean(val_result, axis=0), np.mean(test_result, axis=0)
+    return val_result, test_result
 
 
 if __name__ == "__main__":

@@ -1,10 +1,7 @@
 import os
 import abc
-from typing import Optional
-from automlToolkit.utils.data_manager import DataManager
 from automlToolkit.components.utils.constants import *
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
-from automlToolkit.components.feature_engineering.transformation_graph import TransformationGraph
 from automlToolkit.components.feature_engineering.transformations.preprocessor.imputer import ImputationTransformation
 from automlToolkit.components.feature_engineering.transformations.preprocessor.onehot_encoder import OneHotTransformation
 from automlToolkit.components.feature_engineering.transformations.selector.variance_selector import VarianceSelector
@@ -52,6 +49,8 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
 
         # For data preprocessing.
         self.uninformative_columns, self.uninformative_idx = list(), list()
+        self.variance_selector = None
+        self.onehot_encoder = None
 
     def remove_uninf_cols(self, input_node: DataNode, train_phase=True):
         raw_dataframe = input_node.data[0]
@@ -97,13 +96,15 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         # One-hot encoding TO categorical features.
         categorical_fields = [idx for idx, type in enumerate(input_node.feature_types) if type == CATEGORICAL]
         if len(categorical_fields) > 0:
-            onehot_encoder = OneHotTransformation()
-            input_node = onehot_encoder.operate(input_node, categorical_fields)
+            if self.onehot_encoder is None:
+                self.onehot_encoder = OneHotTransformation()
+            input_node = self.onehot_encoder.operate(input_node, categorical_fields)
         return input_node
 
     def remove_cols_with_same_values(self, input_node: DataNode):
-        variance_selector = VarianceSelector()
-        input_node = variance_selector.operate(input_node)
+        if self.variance_selector is None:
+            self.variance_selector = VarianceSelector()
+        input_node = self.variance_selector.operate(input_node)
         return input_node
 
     def encode_label(self, input_node):
@@ -118,10 +119,17 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         return input_node
 
     def preprocess(self, input_node: DataNode, train_phase=True):
+        print('='*20)
+        print(input_node.shape)
         input_node = self.remove_uninf_cols(input_node, train_phase)
+        print(input_node.shape)
         input_node = self.impute_cols(input_node)
+        print(input_node.shape)
         input_node = self.one_hot(input_node)
+        print(input_node.shape)
         input_node = self.remove_cols_with_same_values(input_node)
+        print(input_node.shape)
+        print('='*20)
         if self.task_type == CLASSIFICATION:
             # Label encoding.
             input_node = self.encode_label(input_node)
