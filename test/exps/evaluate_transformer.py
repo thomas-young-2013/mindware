@@ -20,11 +20,13 @@ def evaluate_feature_selectors():
     datanode = DataNode(data, feature_type)
 
     scaler = GenericUnivariateSelector()
+    print(dir(scaler))
     scaler.concatenate = False
     output_datanode = scaler.operate(datanode)
     # transformer = VarianceSelector()
     # transformer = ModelBasedSelector(param='rf')
     # output_datanode = transformer.operate([datanode])
+    print(scaler.get_attributes())
     print(output_datanode)
     print(output_datanode.data)
     print(output_datanode.feature_types)
@@ -189,7 +191,7 @@ def test_balancer():
 
 
 if __name__ == '__main__':
-    # test_selector()
+    evaluate_feature_selectors()
     # test_generator()
     # test_additional_transformations()
-    test_balancer()
+    # test_balancer()

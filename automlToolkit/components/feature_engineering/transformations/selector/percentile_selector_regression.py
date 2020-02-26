@@ -5,7 +5,7 @@ from automlToolkit.components.feature_engineering.transformations.base_transform
 
 class PercentileSelectorRegression(Transformer):
     def __init__(self, percentile=10, score_func='f_regression', random_state=None):
-        super().__init__("percentile_selector_reg", 10)
+        super().__init__("percentile_selector_reg", 30)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
 
@@ -30,7 +30,7 @@ class PercentileSelectorRegression(Transformer):
         irrevalent_fields = list(range(n_fields))
         for field_id in target_fields:
             irrevalent_fields.remove(field_id)
-
+        print(self.score_func)
         if self.model is None:
             from sklearn.feature_selection import SelectPercentile
             self.model = SelectPercentile(self.score_func, percentile=self.percentile)
@@ -55,11 +55,12 @@ class PercentileSelectorRegression(Transformer):
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None):
         percentile = UniformFloatHyperparameter(
-            "percentile", lower=5, upper=75, default_value=10, q=5)
+            "percentile", lower=5, upper=60, default_value=10, q=5)
 
+        # score_func = CategoricalHyperparameter(
+        #     name="score_func", choices=["f_regression", "mutual_info"], default_value='f_regression')
         score_func = CategoricalHyperparameter(
-            name="score_func", choices=["f_regression", "mutual_info"])
-
+            name="score_func", choices=["f_regression"], default_value='f_regression')
         cs = ConfigurationSpace()
         cs.add_hyperparameters([percentile, score_func])
         return cs

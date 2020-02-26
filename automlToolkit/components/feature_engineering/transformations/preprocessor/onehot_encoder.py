@@ -22,7 +22,7 @@ class OneHotTransformation(Transformer):
         X_input = X[:, target_fields]
 
         if self.model is None:
-            self.model = OneHotEncoder()
+            self.model = OneHotEncoder(handle_unknown='ignore')
             self.model.fit(X_input)
         new_X = self.model.transform(X_input).toarray()
         X_output = X.copy()

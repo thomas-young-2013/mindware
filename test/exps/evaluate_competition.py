@@ -148,18 +148,19 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
     feature_agglomeration_decomposer: 11 timeout.
     """
     # TODO: fast_ica, kernel_pca, and polynomial_features.
-    trans_used = [0, 3, 4, 5, 9, 12, 16, 19, 30, 31, 32]
-    # trans_used = [0, 3, 4, 5, 9, 10, 11, 12, 16, 17, 19]
+    trans_used = [0, 3, 4, 5, 12, 16, 19, 30, 31, 32]
+    # trans_used = [0, 3, 4, 5, 10, 11, 12, 16, 17, 19]
     # trans_used = [17, 30, 31]
-    # trans_used = [32]
+    # trans_used = [30]
     pipeline = FEPipeline(task_type='regression', task_id='anti_plague',
                           fe_enabled=True, optimizer_type='eval_base',
                           time_budget=time_limit, evaluator=evaluator,
                           seed=seed, model_id='lightgbm',
-                          time_limit_per_trans=1200,
+                          time_limit_per_trans=900,
                           trans_set=trans_used
                           )
     transformed_train_data = pipeline.fit_transform(train_data)
+    print(pipeline.optimizer.get_incumbent_path())
     print('final train data shape & score', transformed_train_data.shape, transformed_train_data.score)
     transformed_test_datanode = pipeline.transform(test_data)
     print('final test data shape', transformed_test_datanode.shape)

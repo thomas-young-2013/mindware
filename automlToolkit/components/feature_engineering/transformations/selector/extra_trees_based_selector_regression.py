@@ -9,8 +9,8 @@ from automlToolkit.components.utils.configspace_utils import check_none, check_f
 class ExtraTreeBasedSelectorRegression(Transformer):
     def __init__(self, n_estimators=100, criterion='mse', min_samples_leaf=1,
                  min_samples_split=2, max_features=1., bootstrap='False', max_leaf_nodes='None',
-                 max_depth='None', min_weight_fraction_leaf=0.,
-                 oob_score=False, n_jobs=1, random_state=None, verbose=0):
+                 max_depth='15', min_weight_fraction_leaf=0.,
+                 oob_score=False, n_jobs=-1, random_state=None, verbose=0):
         super().__init__("extra_trees_based_selector_regression", 31)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
@@ -113,11 +113,11 @@ class ExtraTreeBasedSelectorRegression(Transformer):
 
         n_estimators = Constant("n_estimators", 100)
         criterion = CategoricalHyperparameter("criterion",
-                                              ["mse", 'friedman_mse', 'mae'])
+                                              ["mse", "friedman_mse"])
         max_features = UniformFloatHyperparameter(
-            "max_features", 0.1, 1.0, default_value=1.0)
+            "max_features", 0.1, 1.0, default_value=1.0, q=0.05)
 
-        max_depth = UnParametrizedHyperparameter(name="max_depth", value="None")
+        max_depth = UnParametrizedHyperparameter(name="max_depth", value="15")
         max_leaf_nodes = UnParametrizedHyperparameter("max_leaf_nodes", "None")
 
         min_samples_split = UniformIntegerHyperparameter(

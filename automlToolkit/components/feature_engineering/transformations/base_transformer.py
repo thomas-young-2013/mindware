@@ -95,6 +95,16 @@ class Transformer(object, metaclass=abc.ABCMeta):
                 target_fields: None or typing.List):
         raise NotImplementedError()
 
+    def get_attributes(self):
+        attributes = dict()
+        for attr in dir(self):
+            if attr.startswith('_abc_') or attr.startswith('__'):
+                continue
+            attr_val = getattr(self, attr)
+            if type(attr_val) in [None, str, float, int]:
+                attributes[attr] = attr_val
+        return attributes
+
 
 def ease_trans(func):
     def dec(*args, **kwargs):
