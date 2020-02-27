@@ -110,8 +110,8 @@ if __name__ == '__main__':
     mode_list = ['hpo', 'fe']
     algo_list = ['random_forest', 'xgradient_boosting', 'libsvm_svc', 'k_nearest_neighbors']
     for dataset in dataset_list:
-        for algo in algo_list:
-            for run_id in range(rep):
+        for run_id in range(rep):
+            for algo in algo_list:
                 for mode in mode_list:
                     if mode == 'hpo':
                         conduct_hpo(dataset=dataset, classifier_id=algo, iter_num=iter_num, run_id=run_id)
