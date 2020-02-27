@@ -46,12 +46,9 @@ class DataManager(object):
                 cleaned_vals = np.array([val for val in col_vals if not pd.isnull(val)])
 
             if dtype in [np.int, np.int16, np.int32, np.int64]:
-                feat_type = CATEGORICAL if detect_categorical_type(cleaned_vals) else DISCRETE
+                feat_type = DISCRETE
             elif dtype in [np.float, np.float16, np.float32, np.float64, np.double]:
-                if detect_categorical_type(cleaned_vals):
-                    feat_type = CATEGORICAL
-                else:
-                    feat_type = DISCRETE if is_discrete(cleaned_vals) else NUMERICAL
+                feat_type = DISCRETE if is_discrete(cleaned_vals) else NUMERICAL
             else:
                 flag, cand_values, ab_idx, is_str = detect_abnormal_type(col_vals)
                 if flag:

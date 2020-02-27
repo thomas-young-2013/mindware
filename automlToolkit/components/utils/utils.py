@@ -84,7 +84,7 @@ def is_discrete(values):
 def detect_categorical_type(values, threshold=0.001):
     total_cnts = len(values)
     unique_cnts = len(set(values))
-    return bool(unique_cnts/total_cnts < threshold or unique_cnts <= 10)
+    return bool(unique_cnts/total_cnts < threshold)
 
 
 def detect_abnormal_type(column_values):
