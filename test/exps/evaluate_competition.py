@@ -4,6 +4,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMRegressor
+from catboost import CatBoostRegressor as CBR
 from sklearn.metrics import make_scorer
 
 sys.path.append(os.getcwd())
@@ -13,6 +14,7 @@ from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--time_limit', type=int, default=1800)
+parser.add_argument('--algo', type=str, default='lightgbm', choices=['lightgbm', 'catboost_gpu', 'catboost_cpu'])
 parser.add_argument('--task_id', type=int, default=3)
 parser.add_argument('--train_size', type=float, default=1.0)
 parser.add_argument('--data_dir', type=str, default='/Users/thomasyoung/PycharmProjects/AI_anti_plague/')
@@ -21,6 +23,7 @@ time_limit = args.time_limit
 data_dir = args.data_dir
 task_id = args.task_id
 train_size = args.train_size
+regressor_id = args.algo
 
 
 def smape(y_true, y_pred):
@@ -58,6 +61,40 @@ class LightGBMRegressor():
                                        n_jobs=self.n_jobs
                                        )
         self.estimator.fit(X, y)
+        return self
+
+    def predict(self, X):
+        return self.estimator.predict(X)
+
+
+class CatBoostRegressor():
+    def __init__(self, n_estimators, learning_rate, max_depth,
+                 subsample, colsample_bylevel, reg_lambda, loss_function, random_state, **kwargs):
+        self.n_estimators = n_estimators
+        self.learning_rate = learning_rate
+        self.max_depth = max_depth
+        self.subsample = subsample
+        self.reg_lambda = reg_lambda
+        self.colsample_bylevel = colsample_bylevel
+        self.loss_function = loss_function
+
+        self.thread_count = -1
+        self.random_state = random_state
+        self.other_configs = kwargs
+        self.estimator = None
+
+    def fit(self, X, y, metric=smape):
+        self.estimator = CBR(max_depth=self.max_depth,
+                             learning_rate=self.learning_rate,
+                             n_estimators=self.n_estimators,
+                             objective='regression',
+                             subsample=self.subsample,
+                             colsample_bylevel=self.colsample_bylevel,
+                             reg_lambda=self.reg_lambda,
+                             thread_count=self.thread_count,
+                             loss_function=self.loss_function,
+                             random_state=self.random_state, **self.other_configs)
+        self.estimator.fit(X, y, eval_metric=metric)
         return self
 
     def predict(self, X):
@@ -118,25 +155,53 @@ def test_evaluator():
 
 
 def evaluation_based_feature_engineering(time_limit, seed=1):
-    config = {'colsample_bytree': 0.7214005546233202,
-              'estimator': 'lightgbm',
-              'learning_rate': 0.20740875048979773,
-              'min_child_weight': 5,
-              'n_estimators': 424,
-              'num_leaves': 82,
-              'reg_alpha': 0.001268145413023973,
-              'reg_lambda': 0.15002466116267585,
-              'subsample': 0.8110820196868197}
+    if task_id == 3 and regressor_id == 'lightgbm':
+        config = {'colsample_bytree': 0.556390018826356,
+                  'estimator': 'lightgbm',
+                  'learning_rate': 0.027650212980431577,
+                  'min_child_weight': 4,
+                  'n_estimators': 2493,
+                  'num_leaves': 818,
+                  'reg_alpha': 0.00012695064964599962,
+                  'reg_lambda': 0.0006320421481400761,
+                  'subsample': 0.5611631795995178}
+    elif task_id == 1 and regressor_id == 'lightgbm':
+        config = {'colsample_bytree': 0.5836692544286752,
+                  'estimator': 'lightgbm',
+                  'learning_rate': 0.025011125056624308,
+                  'min_child_weight': 3,
+                  'n_estimators': 2000,
+                  'num_leaves': 958,
+                  'reg_alpha': 0.00025307513851761005,
+                  'reg_lambda': 0.01911305077512719,
+                  'subsample': 0.7850946965061745
+                  }
+    elif task_id == 3 and regressor_id == 'catboost_gpu':
+        config = {'loss_function': 'RMSE',
+                  'task_type': 'GPU',
+                  'bootstrap_type': 'Poisson',
+                  'learning_rate': 0.017348700696840158,
+                  'n_estimators': 10000,
+                  'max_depth': 10,
+                  'reg_lambda': 0.11183329007870368,
+                  'subsample': 0.769105407466627
+                  }
+    else:
+        raise ValueError("Hyperparameters not available!")
+
     config.pop('estimator', None)
-    gbm = LightGBMRegressor(**config)
+    if regressor_id == 'lightgbm':
+        estimator = LightGBMRegressor(**config)
+    elif 'catboost' in regressor_id:
+        estimator = CatBoostRegressor(**config)
     scorer = make_scorer(smape, greater_is_better=False)
-    evaluator = RegressionEvaluator(None, scorer, name='fe', seed=seed, estimator=gbm)
+    evaluator = RegressionEvaluator(None, scorer, name='fe', seed=seed, estimator=estimator)
     train_data, test_data = fetch_data(task_id)
 
     X, y = train_data.data
     idxs = np.arange(X.shape[0])
     np.random.shuffle(idxs)
-    sample_size = int(X.shape[0]*train_size)
+    sample_size = int(X.shape[0] * train_size)
     subset_ids = idxs[:sample_size]
     X, y = X.iloc[subset_ids, :], y[subset_ids]
     train_data.data = [X, y]
