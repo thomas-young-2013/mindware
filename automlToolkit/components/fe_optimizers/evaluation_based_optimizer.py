@@ -129,6 +129,9 @@ class EvaluationBasedOptimizer(Optimizer):
                 node_, trans_types=_trans_types, batch_size=self.hpo_batch_size
             )
             self.logger.info('The number of transformations is: %d' % len(trans_set))
+            if len(trans_set) == 1 and trans_set[0].type == 0:
+                return self.incumbent.score, 0, self.incumbent
+
             if self.n_jobs > 1:
                 pool = ThreadPoolExecutor(max_workers=self.n_jobs)
                 for transformer in trans_set:
