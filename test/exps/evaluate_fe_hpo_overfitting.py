@@ -31,7 +31,7 @@ if __name__ == "__main__":
     algos = args.algo.split(',')
     fig = plt.figure(figsize=(10, 6))
 
-    for i in range(4):
+    for i in range(len(algos)):
         algo = algos[i]
         plt.subplot(2, 2, i + 1)
         train_fe, val_fe, test_fe = get_avg(dataset, algo, 'fe')
