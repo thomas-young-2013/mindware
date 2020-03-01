@@ -58,7 +58,7 @@ def conduct_hpo(dataset='pc4', classifier_id='random_forest', iter_num=100, run_
     with open(save_path, 'wb') as f:
         pickle.dump([train_acc_list, val_acc_list, test_acc_list], f)
 
-    train_iter_list, val_acc_list = [], []
+    train_iter_list, val_iter_list = [], []
     configs = optimizer.configs
     perfs = optimizer.perfs
     for i, config in enumerate(configs):
@@ -70,7 +70,7 @@ def conduct_hpo(dataset='pc4', classifier_id='random_forest', iter_num=100, run_
 
     save_path = save_dir + 'iter-%s-%d.pkl' % (task_id, run_id)
     with open(save_path, 'wb') as f:
-        pickle.dump([train_acc_list, val_acc_list, test_acc_list], f)
+        pickle.dump([train_iter_list, val_iter_list], f)
 
 
 def conduct_fe(dataset='pc4', classifier_id='random_forest', iter_num=100, run_id=0, seed=1):
