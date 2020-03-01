@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, default='cmc')
-parser.add_argument('--algo', type=str, default='adaboost,libsvm_svc,random_forest,xgradient_boosting')
+parser.add_argument('--algo', type=str, default='k_nearest_neighbors,libsvm_svc,random_forest,xgradient_boosting')
 data_dir = '/Users/thomasyoung/Desktop/overfitting/overfit/'
 
 
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     algos = args.algo.split(',')
     fig = plt.figure(figsize=(10, 6))
 
-    for i in range(4):
+    for i in range(len(algos)):
         algo = algos[i]
         plt.subplot(2, 2, i+1)
         val_fe, test_fe = get_avg(dataset, algo, 'fe')
