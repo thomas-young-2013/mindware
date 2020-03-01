@@ -62,7 +62,7 @@ def conduct_hpo(dataset='pc4', classifier_id='random_forest', iter_num=100, run_
     configs = optimizer.configs
     perfs = optimizer.perfs
     for i, config in enumerate(configs):
-        val_acc_list.append(perfs[i])
+        val_iter_list.append(perfs[i])
         estimator = fetch_predict_estimator(config, raw_data.data[0], raw_data.data[1])
         pred = estimator.predict(raw_data.data[0])
         train_perf = accuracy_score(raw_data.data[1], pred)
