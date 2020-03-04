@@ -2,6 +2,7 @@ import time
 import warnings
 import numpy as np
 from sklearn.metrics import accuracy_score
+from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
 from sklearn.model_selection import StratifiedKFold, train_test_split, StratifiedShuffleSplit
 from automlToolkit.utils.logging_utils import get_logger
 from sklearn.utils.testing import ignore_warnings
@@ -27,7 +28,7 @@ def cross_validation(clf, X, y, n_fold=5, shuffle=True,
                 _fit_params['sample_weight'] = fit_params['sample_weight'][train_idx]
             clf.fit(train_x, train_y, **_fit_params)
             pred = clf.predict(valid_x)
-            scores.append(accuracy_score(pred, valid_y))
+            scores.append(balanced_accuracy(pred, valid_y))
         return np.mean(scores)
 
 
@@ -37,7 +38,7 @@ def holdout_validation(clf, X, y, test_size=0.2,
     with warnings.catch_warnings():
         # ignore all caught warnings
         warnings.filterwarnings("ignore")
-
+        test_size = 0.33
         sss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=1)
         # X_train, X_test, y_train, y_test = train_test_split(
         #     X, y, test_size=test_size, random_state=random_state, stratify=y)
@@ -49,7 +50,7 @@ def holdout_validation(clf, X, y, test_size=0.2,
                 _fit_params['sample_weight'] = fit_params['sample_weight'][train_index]
             clf.fit(X_train, y_train, **_fit_params)
             y_pred = clf.predict(X_test)
-            return accuracy_score(y_test, y_pred)
+            return balanced_accuracy(y_test, y_pred)
 
 
 def get_estimator(config):

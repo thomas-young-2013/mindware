@@ -59,7 +59,7 @@ class SMACOptimizer(BaseHPOptimizer):
     def iterate(self):
         _start_time = time.time()
         _flag = False
-        self.trials_per_iter = 2
+        self.trials_per_iter = 4
         for _ in range(self.trials_per_iter):
             if len(self.configs) >= self.config_num_threshold:
                 _flag = True

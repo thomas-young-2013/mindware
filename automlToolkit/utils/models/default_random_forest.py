@@ -126,7 +126,7 @@ class DefaultRandomForest(
 
         n_estimators = Constant("n_estimators", 100)
         criterion = UnParametrizedHyperparameter("criterion", "gini")
-        max_features = UnParametrizedHyperparameter("max_features", "auto")
+        max_features = UnParametrizedHyperparameter("max_features", "0.5")
 
         max_depth = UnParametrizedHyperparameter("max_depth", "None")
         min_samples_split = UnParametrizedHyperparameter("min_samples_split", 2)
