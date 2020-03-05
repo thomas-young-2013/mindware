@@ -10,8 +10,7 @@ from sklearn.exceptions import ConvergenceWarning
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def cross_validation(clf, X, y, n_fold=5, shuffle=True,
-                     random_state=1, fit_params=None):
+def cross_validation(clf, X, y, n_fold=5, shuffle=True, fit_params=None, random_state=1):
     with warnings.catch_warnings():
         # ignore all caught warnings
         warnings.filterwarnings("ignore")
@@ -33,15 +32,11 @@ def cross_validation(clf, X, y, n_fold=5, shuffle=True,
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def holdout_validation(clf, X, y, test_size=0.2,
-                       random_state=1, fit_params=None):
+def holdout_validation(clf, X, y, test_size=0.33, fit_params=None, random_state=1):
     with warnings.catch_warnings():
         # ignore all caught warnings
         warnings.filterwarnings("ignore")
-        test_size = 0.33
         sss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=1)
-        # X_train, X_test, y_train, y_test = train_test_split(
-        #     X, y, test_size=test_size, random_state=random_state, stratify=y)
         for train_index, test_index in sss.split(X, y):
             X_train, X_test = X[train_index], X[test_index]
             y_train, y_test = y[train_index], y[test_index]
@@ -80,12 +75,13 @@ def fetch_predict_estimator(config, X_train, y_train):
 
 class Evaluator(object):
     def __init__(self, clf_config, data_node=None, name=None,
-                 resampling_strategy='cv', cv=5, seed=1):
+                 resampling_strategy='cv', resampling_params=None, seed=1):
+        self.resampling_strategy = resampling_strategy
+        self.resampling_params = resampling_params
         self.clf_config = clf_config
         self.data_node = data_node
         self.name = name
-        self.resampling_strategy = resampling_strategy
-        self.cv = cv
+
         self.seed = seed
         self.eval_id = 0
         self.logger = get_logger('Evaluator-%s' % self.name)
@@ -130,13 +126,20 @@ class Evaluator(object):
 
         try:
             if self.resampling_strategy == 'cv':
+                if self.resampling_params is None or 'folds' not in self.resampling_params:
+                    folds = 5
+                else:
+                    folds = self.resampling_params['folds']
                 score = cross_validation(clf, X_train, y_train,
-                                         n_fold=self.cv, random_state=self.seed,
+                                         n_fold=folds, random_state=self.seed,
                                          fit_params=self.fit_params)
             elif self.resampling_strategy == 'holdout':
-                score = holdout_validation(clf, X_train, y_train,
-                                           random_state=self.seed,
-                                           fit_params=self.fit_params)
+                if self.resampling_params is None or 'test_size' not in self.resampling_params:
+                    test_size = 0.33
+                else:
+                    test_size = self.resampling_params['test_size']
+                score = holdout_validation(clf, X_train, y_train, test_size=test_size,
+                                           random_state=self.seed, fit_params=self.fit_params)
             else:
                 raise ValueError('Invalid resampling strategy: %s!' % self.resampling_strategy)
         except Exception as e:
