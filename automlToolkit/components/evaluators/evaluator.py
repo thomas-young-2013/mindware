@@ -55,8 +55,8 @@ def get_estimator(config):
     config_.pop('estimator', None)
     config_['random_state'] = 1
     estimator = _classifiers[classifier_type](**config_)
-    if hasattr(estimator, 'n_jobs'):
-        setattr(estimator, 'n_jobs', -1)
+    # if hasattr(estimator, 'n_jobs'):
+    #     setattr(estimator, 'n_jobs', -1)
     return classifier_type, estimator
 
 
