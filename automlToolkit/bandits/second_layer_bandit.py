@@ -71,7 +71,8 @@ class SecondLayerBandit(object):
         self.inc['fe'], self.local_inc['fe'] = self.original_data, self.original_data
 
         # Build the HPO component.
-        trials_per_iter = len(self.optimizer['fe'].trans_types)
+        # trials_per_iter = len(self.optimizer['fe'].trans_types)
+        trials_per_iter = 4
         hpo_evaluator = Evaluator(self.default_config,
                                   data_node=self.original_data, name='hpo',
                                   resampling_strategy=self.evaluation_type,
@@ -79,11 +80,11 @@ class SecondLayerBandit(object):
         if n_jobs == 1:
             self.optimizer['hpo'] = SMACOptimizer(
                 hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
-                trials_per_iter=trials_per_iter // 2, seed=self.seed)
+                trials_per_iter=trials_per_iter, seed=self.seed)
         else:
             self.optimizer['hpo'] = PSMACOptimizer(
                 hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
-                trials_per_iter=trials_per_iter // 2, seed=self.seed,
+                trials_per_iter=trials_per_iter, seed=self.seed,
                 n_jobs=n_jobs
             )
         self.inc['hpo'], self.local_inc['hpo'] = self.default_config, self.default_config
@@ -112,9 +113,9 @@ class SecondLayerBandit(object):
                 self.inc['fe'] = self.original_data
             self.incumbent_perf = score
 
-        if _arm == 'fe':
-            _num_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
-            self.optimizer['hpo'].trials_per_iter = max(_num_iter, 1)
+        # if _arm == 'fe':
+        #     _num_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
+        #     self.optimizer['hpo'].trials_per_iter = max(_num_iter, 1)
 
     def optimize(self):
         # First pull each arm #sliding_window_size times.
