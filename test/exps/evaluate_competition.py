@@ -213,7 +213,7 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
     feature_agglomeration_decomposer: 11 timeout.
     """
     # TODO: fast_ica, kernel_pca, and polynomial_features.
-    trans_used = [0, 3, 4, 5, 12, 16, 19, 30, 31, 32]
+    # trans_used = [0, 3, 4, 5, 12, 16, 19, 30, 31, 32]
     # trans_used = [0, 3, 4, 5, 10, 11, 12, 16, 17, 19]
     # trans_used = [17, 30, 31]
     # trans_used = [30]
@@ -222,7 +222,7 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
                           time_budget=time_limit, evaluator=evaluator,
                           seed=seed, model_id='lightgbm',
                           time_limit_per_trans=900,
-                          trans_set=trans_used
+                          trans_set=None
                           )
     transformed_train_data = pipeline.fit_transform(train_data)
     print(pipeline.optimizer.get_incumbent_path())
