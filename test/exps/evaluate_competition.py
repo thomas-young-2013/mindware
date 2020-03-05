@@ -82,7 +82,7 @@ class CatBoostRegressor():
         self.other_configs = kwargs
         self.estimator = None
 
-    def fit(self, X, y, metric=smape):
+    def fit(self, X, y):
         self.estimator = CBR(max_depth=self.max_depth,
                              learning_rate=self.learning_rate,
                              n_estimators=self.n_estimators,
@@ -92,7 +92,7 @@ class CatBoostRegressor():
                              thread_count=self.thread_count,
                              loss_function=self.loss_function,
                              random_state=self.random_state, **self.other_configs)
-        self.estimator.fit(X, y, eval_metric=metric)
+        self.estimator.fit(X, y)
         return self
 
     def predict(self, X):
