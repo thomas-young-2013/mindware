@@ -180,11 +180,23 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
         config = {'loss_function': 'RMSE',
                   'task_type': 'GPU',
                   'bootstrap_type': 'Poisson',
-                  'learning_rate': 0.017348700696840158,
+                  'learning_rate': 0.07215105304885769,
                   'n_estimators': 10000,
-                  'max_depth': 10,
-                  'reg_lambda': 0.11183329007870368,
-                  'subsample': 0.769105407466627
+                  'min_child_samples': 7,
+                  'max_depth': 8,
+                  'reg_lambda': 4.084654778260157e-06,
+                  'subsample': 0.9998568450178255
+                  }
+    elif task_id == 1 and regressor_id == 'catboost_gpu':
+        config = {'loss_function': 'RMSE',
+                  'task_type': 'GPU',
+                  'bootstrap_type': 'Poisson',
+                  'learning_rate': 0.030167431274216235,
+                  'n_estimators': 10000,
+                  'min_child_samples': 2,
+                  'max_depth': 11,
+                  'reg_lambda': 0.00010924008880152775,
+                  'subsample': 0.9996005646983249
                   }
     else:
         raise ValueError("Hyperparameters not available!")
