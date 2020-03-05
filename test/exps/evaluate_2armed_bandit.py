@@ -36,9 +36,10 @@ if not os.path.exists(save_dir):
 
 
 def evaluate_2rd_bandit(dataset, algo, time_limit, run_id, seed):
-    print('HMAB', dataset, algo, run_id)
+    print('HMAB-%s-%s: run_id=%d' % (dataset, algo, run_id))
+    print('==> Start to Evaluate', dataset, 'Budget', time_limit)
     train_data, test_data = load_train_test_data(dataset)
-    bandit = SecondLayerBandit(algo, train_data, per_run_time_limit=300, seed=seed)
+    bandit = SecondLayerBandit(algo, train_data, per_run_time_limit=300, seed=seed, eval_type='holdout')
 
     _start_time = time.time()
     _iter_id = 0
@@ -48,7 +49,7 @@ def evaluate_2rd_bandit(dataset, algo, time_limit, run_id, seed):
         if time.time() > time_limit + _start_time:
             break
         res = bandit.play_once()
-        print('%d - %.4f' % (_iter_id, res))
+        print('Iteration %d - %.4f' % (_iter_id, res))
         stats.append([_iter_id, time.time() - _start_time, res])
         _iter_id += 1
 
@@ -81,6 +82,7 @@ def evaluate_2rd_bandit(dataset, algo, time_limit, run_id, seed):
 
 
 def evaluate_ausk(dataset, algo, time_limit, run_id, seed):
+    print('AUSK-%s-%s: run_id=%d' % (dataset, algo, run_id))
     print('==> Start to Evaluate', dataset, 'Budget', time_limit)
     include_models = [algo]
     automl = autosklearn.classification.AutoSklearnClassifier(

@@ -1,12 +1,12 @@
 import time
 import warnings
 import numpy as np
-from sklearn.metrics import accuracy_score
 from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
 from sklearn.model_selection import StratifiedKFold, train_test_split, StratifiedShuffleSplit
 from automlToolkit.utils.logging_utils import get_logger
 from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
+from sklearn.metrics import accuracy_score, balanced_accuracy_score
 
 
 @ignore_warnings(category=ConvergenceWarning)
