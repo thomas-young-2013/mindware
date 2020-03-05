@@ -109,9 +109,12 @@ class EvaluationBasedOptimizer(Optimizer):
             _evaluation_cnt += 1
             self.beam_set.append(self.root_node)
 
-        # Get one node in the beam set.
-        node_ = self.beam_set[0]
-        del self.beam_set[0]
+        if len(self.beam_set) == 0:
+            return self.incumbent.score, time.time() - _iter_start_time, self.incumbent
+        else:
+            # Get one node in the beam set.
+            node_ = self.beam_set[0]
+            del self.beam_set[0]
 
         self.logger.debug('=' * 50)
         self.logger.info('Start %d-th FE iteration.' % self.iteration_id)
