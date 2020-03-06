@@ -48,6 +48,7 @@ class SecondLayerBandit(object):
         self.action_sequence = list()
         self.final_rewards = list()
         self.incumbent_perf = -1.
+        self.early_stopped_flag = False
 
         # Fetch hyperparameter space.
         from autosklearn.pipeline.components.classification import _classifiers
@@ -143,8 +144,15 @@ class SecondLayerBandit(object):
                 arm_picked = 'fe' if self.action_sequence[-1] == 'hpo' else 'hpo'
             else:
                 arm_picked = self.arms[np.argmax(imp_values)]
-            self.action_sequence.append(arm_picked)
 
+            # Early stopping scenario.
+            if self.optimizer[arm_picked].early_stopped_flag is True:
+                arm_picked = 'hpo' if arm_picked == 'fe' else 'fe'
+                if self.optimizer[arm_picked].early_stopped_flag is True:
+                    self.early_stopped_flag = True
+                    return
+
+            self.action_sequence.append(arm_picked)
             self.logger.info('Pulling arm: %s for %s at %d-th round' % (arm_picked, self.classifier_id, self.pull_cnt))
             results = self.optimizer[arm_picked].iterate()
             self.collect_iter_stats(arm_picked, results)
@@ -162,6 +170,9 @@ class SecondLayerBandit(object):
         self.pull_cnt += 1
 
     def play_once(self):
+        if self.early_stopped_flag:
+            return self.incumbent_perf
+
         if self.mth == 'rb':
             self.optimize()
             # Update join incumbent from FE and HPO.

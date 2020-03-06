@@ -44,7 +44,9 @@ class SMACOptimizer(BaseHPOptimizer):
         else:
             _threshold = int(len(set(self.config_space.sample_configuration(10000))) * 0.75)
             self.config_num_threshold = _threshold
-        self.logger.info('HP_THRESHOLD is: %d' % self.config_num_threshold)
+        self.logger.debug('HP_THRESHOLD is: %d' % self.config_num_threshold)
+        self.maximum_config_num = min(500, self.config_num_threshold)
+        self.early_stopped_flag = False
 
     def run(self):
         while True:
@@ -58,12 +60,11 @@ class SMACOptimizer(BaseHPOptimizer):
 
     def iterate(self):
         _start_time = time.time()
-        _flag = False
         for _ in range(self.trials_per_iter):
-            if len(self.configs) >= self.config_num_threshold:
-                _flag = True
+            if len(self.configs) >= self.maximum_config_num:
+                self.early_stopped_flag = True
                 self.logger.warning('Already explored 70 percentage of the '
-                                    'hp space: %d!' % self.config_num_threshold)
+                                    'hp space or maximum configuration number: %d!' % self.maximum_config_num)
                 break
 
             self.optimizer.iterate()
@@ -80,10 +81,7 @@ class SMACOptimizer(BaseHPOptimizer):
                     self.incumbent_config = _config
 
             self.trial_cnt = len(runhistory.data.keys())
-        if not _flag:
-            iteration_cost = time.time() - _start_time
-        else:
-            iteration_cost = None
+        iteration_cost = time.time() - _start_time
         return self.incumbent_perf, iteration_cost, self.incumbent_config
 
     def optimize(self):

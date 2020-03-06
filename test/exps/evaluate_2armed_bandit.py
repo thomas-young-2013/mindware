@@ -46,7 +46,7 @@ def evaluate_2rd_bandit(dataset, algo, time_limit, run_id, seed):
     stats = list()
 
     while True:
-        if time.time() > time_limit + _start_time:
+        if time.time() > time_limit + _start_time or bandit.early_stopped_flag:
             break
         res = bandit.play_once()
         print('Iteration %d - %.4f' % (_iter_id, res))
@@ -64,16 +64,16 @@ def evaluate_2rd_bandit(dataset, algo, time_limit, run_id, seed):
     final_test_data = fe_optimizer.apply(test_data, bandit.inc['fe'])
     config = bandit.inc['hpo']
 
-    evaluator = Evaluator(config, name='fe', seed=1)
-    val_score = evaluator(None, data_node=final_train_data, resampling_strategy='holdout')
+    evaluator = Evaluator(config, name='fe', seed=seed, resampling_strategy='holdout')
+    val_score = evaluator(None, data_node=final_train_data)
     print('==> Best validation score', val_score, res)
 
     X_train, y_train = final_train_data.data
     clf = fetch_predict_estimator(config, X_train, y_train)
     X_test, y_test = final_test_data.data
     y_pred = clf.predict(X_test)
-    from sklearn.metrics import accuracy_score
-    test_score = accuracy_score(y_test, y_pred)
+    from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
+    test_score = balanced_accuracy(y_test, y_pred)
     print('==> Test score', test_score)
 
     save_path = save_dir + 'hmab_2rd_bandit_%s_%d_%d_%s.pkl' % (dataset, time_limit, run_id, algo)

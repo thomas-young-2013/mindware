@@ -120,7 +120,7 @@ def evaluate_evaluation_based_fe(dataset, time_limit, run_id, seed):
     _start_time = time.time()
     _iter_id = 0
     while True:
-        if time.time() > _start_time + time_limit:
+        if time.time() > _start_time + time_limit or optimizer.early_stopped_flag:
             break
         score, iteration_cost, inc = optimizer.iterate()
         print('%d - %.4f' % (_iter_id, score))
@@ -135,8 +135,9 @@ def evaluate_evaluation_based_fe(dataset, time_limit, run_id, seed):
     clf = fetch_predict_estimator(cs.get_default_configuration(), X_train, y_train)
     X_test, y_test = final_test_data.data
     y_pred = clf.predict(X_test)
-    from sklearn.metrics import accuracy_score
-    test_score = accuracy_score(y_test, y_pred)
+
+    from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
+    test_score = balanced_accuracy(y_test, y_pred)
     print('==> Test score', test_score)
 
     save_path = save_dir + 'hmab_fe_%s_%d_%d.pkl' % (dataset, time_limit, run_id)

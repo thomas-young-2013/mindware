@@ -30,11 +30,12 @@ class EvaluationBasedOptimizer(Optimizer):
         self.start_time = time.time()
         self.hp_config = None
         self.n_jobs = n_jobs
+        self.early_stopped_flag = False
 
         # Parameters in beam search.
         self.hpo_batch_size = batch_size
         self.beam_width = beam_width
-        self.max_depth = 6  # old value=8
+        self.max_depth = 8
         if trans_set is None:
             self.trans_types = TRANS_CANDIDATES[self.task_type]
         else:
@@ -75,6 +76,8 @@ class EvaluationBasedOptimizer(Optimizer):
 
     def optimize(self):
         while not self.is_ended:
+            if self.early_stopped_flag:
+                break
             self.logger.debug('=' * 50)
             self.logger.debug('Start the ITERATION: %d' % self.iteration_id)
             self.logger.debug('=' * 50)
@@ -109,7 +112,8 @@ class EvaluationBasedOptimizer(Optimizer):
             _evaluation_cnt += 1
             self.beam_set.append(self.root_node)
 
-        if len(self.beam_set) == 0:
+        if len(self.beam_set) == 0 or self.early_stopped_flag:
+            self.early_stopped_flag = True
             return self.incumbent.score, time.time() - _iter_start_time, self.incumbent
         else:
             # Get one node in the beam set.
