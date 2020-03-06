@@ -8,7 +8,9 @@ import autosklearn.classification
 from tabulate import tabulate
 sys.path.append(os.getcwd())
 from automlToolkit.components.evaluators.evaluator import Evaluator, fetch_predict_estimator
+from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
+from automlToolkit.components.utils.constants import CATEGORICAL
 from automlToolkit.datasets.utils import load_train_test_data
 
 parser = argparse.ArgumentParser()
@@ -72,13 +74,21 @@ def evaluate_2rd_bandit(dataset, algo, time_limit, run_id, seed):
     clf = fetch_predict_estimator(config, X_train, y_train)
     X_test, y_test = final_test_data.data
     y_pred = clf.predict(X_test)
-    from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
     test_score = balanced_accuracy(y_test, y_pred)
     print('==> Test score', test_score)
 
+    # Alleviate overfitting.
+    y_pred1 = bandit.predict(test_data.data[0])
+    test_score1 = balanced_accuracy(y_test, y_pred1)
+    print('==> Test score with average ensemble', test_score1)
+
+    y_pred2 = bandit.predict(test_data.data[0], is_weighted=True)
+    test_score2 = balanced_accuracy(y_test, y_pred2)
+    print('==> Test score with weighted ensemble', test_score2)
+
     save_path = save_dir + 'hmab_2rd_bandit_%s_%d_%d_%s.pkl' % (dataset, time_limit, run_id, algo)
     with open(save_path, 'wb') as f:
-        pickle.dump([dataset, val_score, test_score], f)
+        pickle.dump([dataset, val_score, test_score, test_score1, test_score2], f)
 
 
 def evaluate_ausk(dataset, algo, time_limit, run_id, seed):
@@ -104,17 +114,20 @@ def evaluate_ausk(dataset, algo, time_limit, run_id, seed):
 
     train_data, test_data = load_train_test_data(dataset)
     X, y = train_data.data
+    feat_type = ['Categorical' if _type == CATEGORICAL else 'Numerical'
+                 for _type in train_data.feature_types]
 
     from autosklearn.metrics import balanced_accuracy
-    automl.fit(X.copy(), y.copy(), metric=balanced_accuracy)
+    automl.fit(X.copy(), y.copy(), metric=balanced_accuracy, feat_type=feat_type)
     model_desc = automl.show_models()
     print(model_desc)
     val_result = np.max(automl.cv_results_['mean_test_score'])
     print('Best validation accuracy', val_result)
 
     X_test, y_test = test_data.data
-    # automl.refit(X.copy(), y.copy())
-    test_result = automl.score(X_test, y_test)
+    automl.refit(X.copy(), y.copy())
+    y_pred = automl.predict(X_test)
+    test_result = balanced_accuracy(y_test, y_pred)
     print('Test accuracy', test_result)
 
     save_path = save_dir + 'ausk_2rd_bandit_%s_%d_%d_%s.pkl' % (dataset, time_limit, run_id, algo)

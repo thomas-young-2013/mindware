@@ -248,9 +248,11 @@ class SecondLayerBandit(object):
             print("weights " + str(weights))
 
         # Make sure that the estimator has "predict_proba"
-        pred1 = model1_clf.predict_proba(X_test)
+        _test_node = DataNode(data=[X_test, None], feature_type=self.original_data.feature_types.copy())
+        _X_test = self.optimizer['fe'].apply(_test_node, self.local_inc['fe']).data[0]
+        pred1 = model1_clf.predict_proba(_X_test)
         pred2 = model2_clf.predict_proba(X_test)
-        pred3 = model3_clf.predict_proba(X_test)
+        pred3 = model3_clf.predict_proba(_X_test)
 
         if is_weighted:
             final_pred = weights[0] * pred1 + weights[1] * pred2 + weights[2] * pred3
