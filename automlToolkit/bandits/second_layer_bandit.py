@@ -7,7 +7,7 @@ from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from automlToolkit.components.hpo_optimizer.psmac_optimizer import PSMACOptimizer
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
-from automlToolkit.components.evaluators.evaluator import get_estimator
+from automlToolkit.components.evaluators.evaluator import fetch_predict_estimator
 from automlToolkit.utils.decorators import time_limit, TimeoutException
 from automlToolkit.utils.functions import get_increasing_sequence
 
@@ -224,14 +224,11 @@ class SecondLayerBandit(object):
         X_train_ori, y_train_ori = self.original_data.data
         X_train_inc, y_train_inc = self.local_inc['fe'].data
 
-        _, model1_clf = get_estimator(self.default_config.get_dictionary().copy())
-        model1_clf.fit(X_train_inc, y_train_inc)
-        _, model2_clf = get_estimator(self.local_inc['hpo'].get_dictionary().copy())
-        model2_clf.fit(X_train_ori, y_train_ori)
-        _, model3_clf = get_estimator(self.local_inc['hpo'].get_dictionary().copy())
-        model3_clf.fit(X_train_inc, y_train_inc)
+        model1_clf = fetch_predict_estimator(self.default_config, X_train_inc, y_train_inc)
+        model2_clf = fetch_predict_estimator(self.local_inc['hpo'], X_train_ori, y_train_ori)
+        model3_clf = fetch_predict_estimator(self.local_inc['hpo'], X_train_inc, y_train_inc)
 
-        #TODO: Calculate weights if necessary
+        # TODO: Calculate weights if necessary
 
         # Make sure that the estimator has "predict_proba"
         pred1 = model1_clf.predict_proba(X_test)
