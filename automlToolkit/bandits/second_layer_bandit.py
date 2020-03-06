@@ -209,3 +209,15 @@ class SecondLayerBandit(object):
             _node.depth = node.depth
             fe_optimizer.global_datanodes.append(_node)
         fe_optimizer.refresh_beam_set()
+
+    def predict(self, X_test, is_weighted=False):
+        """
+            weight source: ...
+            model 1: local_inc['fe'], default_hpo
+            model 2: defaultt_fe, local_inc['hpo']
+            model 3: local_inc['fe'], local_inc['hpo']
+        :param X_test:
+        :param is_weighted:
+        :return:
+        """
+        pass
