@@ -17,7 +17,7 @@ class SecondLayerBandit(object):
                  share_fe=False, output_dir='logs',
                  per_run_time_limit=120,
                  per_run_mem_limit=5120,
-                 eval_type='cv', dataset_id='default',
+                 eval_type='holdout', dataset_id='default',
                  mth='rb', sw_size=3,
                  n_jobs=1, seed=1):
         self.per_run_time_limit = per_run_time_limit
