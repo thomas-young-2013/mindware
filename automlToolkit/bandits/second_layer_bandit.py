@@ -228,7 +228,24 @@ class SecondLayerBandit(object):
         model2_clf = fetch_predict_estimator(self.local_inc['hpo'], X_train_ori, y_train_ori)
         model3_clf = fetch_predict_estimator(self.local_inc['hpo'], X_train_inc, y_train_inc)
 
-        # TODO: Calculate weights if necessary
+        if is_weighted:
+            # Based on performance on the validation set
+            # TODO: Save the results so that the models will not be trained again
+            from sklearn.model_selection import train_test_split
+            from sklearn.metrics import balanced_accuracy_score
+            X_train_ori, X_valid_ori, y_train_ori, y_valid_ori = train_test_split(X_train_ori, y_train_ori,
+                                                                                  test_size=0.33, stratify=y_train_ori)
+            X_train_inc, X_valid_inc, y_train_inc, y_valid_inc = train_test_split(X_train_inc, y_train_inc,
+                                                                                  test_size=0.33, stratify=y_train_inc)
+            model1_clf_temp = fetch_predict_estimator(self.default_config, X_train_inc, y_train_inc)
+            model2_clf_temp = fetch_predict_estimator(self.local_inc['hpo'], X_train_ori, y_train_ori)
+            model3_clf_temp = fetch_predict_estimator(self.local_inc['hpo'], X_train_inc, y_train_inc)
+            score1 = balanced_accuracy_score(model1_clf_temp.predict(X_valid_inc), y_valid_inc)
+            score2 = balanced_accuracy_score(model2_clf_temp.predict(X_valid_ori), y_valid_ori)
+            score3 = balanced_accuracy_score(model3_clf_temp.predict(X_valid_inc), y_valid_inc)
+
+            weights = np.array([score1, score2, score3]) / (score1 + score2 + score3)  # Maybe softmax?
+            print("weights " + str(weights))
 
         # Make sure that the estimator has "predict_proba"
         pred1 = model1_clf.predict_proba(X_test)
@@ -236,7 +253,7 @@ class SecondLayerBandit(object):
         pred3 = model3_clf.predict_proba(X_test)
 
         if is_weighted:
-            pass
+            final_pred = weights[0] * pred1 + weights[1] * pred2 + weights[2] * pred3
         else:
             final_pred = (pred1 + pred2 + pred3) / 3
 
