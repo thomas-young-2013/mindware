@@ -184,7 +184,7 @@ class SecondLayerBandit(object):
                         self.local_inc['hpo'], data_node=self.local_inc['fe'],
                         name='fe', resampling_strategy=self.evaluation_type,
                         seed=self.seed)(self.local_inc['hpo'])
-            except TimeoutException as e:
+            except Exception as e:
                 self.logger.error(str(e))
             # Update INC.
             if _perf is not None and _perf > self.incumbent_perf:
