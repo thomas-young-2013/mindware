@@ -69,13 +69,12 @@ class LightGBMRegressor():
 
 class CatBoostRegressor():
     def __init__(self, n_estimators, learning_rate, max_depth,
-                 subsample, colsample_bylevel, reg_lambda, loss_function, random_state, **kwargs):
+                 subsample, reg_lambda, loss_function, random_state=1, **kwargs):
         self.n_estimators = n_estimators
         self.learning_rate = learning_rate
         self.max_depth = max_depth
         self.subsample = subsample
         self.reg_lambda = reg_lambda
-        self.colsample_bylevel = colsample_bylevel
         self.loss_function = loss_function
 
         self.thread_count = -1
@@ -83,18 +82,17 @@ class CatBoostRegressor():
         self.other_configs = kwargs
         self.estimator = None
 
-    def fit(self, X, y, metric=smape):
+    def fit(self, X, y):
         self.estimator = CBR(max_depth=self.max_depth,
                              learning_rate=self.learning_rate,
                              n_estimators=self.n_estimators,
                              objective='regression',
                              subsample=self.subsample,
-                             colsample_bylevel=self.colsample_bylevel,
                              reg_lambda=self.reg_lambda,
                              thread_count=self.thread_count,
                              loss_function=self.loss_function,
                              random_state=self.random_state, **self.other_configs)
-        self.estimator.fit(X, y, eval_metric=metric)
+        self.estimator.fit(X, y)
         return self
 
     def predict(self, X):
@@ -180,11 +178,23 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
         config = {'loss_function': 'RMSE',
                   'task_type': 'GPU',
                   'bootstrap_type': 'Poisson',
-                  'learning_rate': 0.017348700696840158,
+                  'learning_rate': 0.07215105304885769,
                   'n_estimators': 10000,
-                  'max_depth': 10,
-                  'reg_lambda': 0.11183329007870368,
-                  'subsample': 0.769105407466627
+                  'min_child_samples': 7,
+                  'max_depth': 8,
+                  'reg_lambda': 4.084654778260157e-06,
+                  'subsample': 0.9998568450178255
+                  }
+    elif task_id == 1 and regressor_id == 'catboost_gpu':
+        config = {'loss_function': 'RMSE',
+                  'task_type': 'GPU',
+                  'bootstrap_type': 'Poisson',
+                  'learning_rate': 0.030167431274216235,
+                  'n_estimators': 10000,
+                  'min_child_samples': 2,
+                  'max_depth': 11,
+                  'reg_lambda': 0.00010924008880152775,
+                  'subsample': 0.9996005646983249
                   }
     else:
         raise ValueError("Hyperparameters not available!")
@@ -213,7 +223,7 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
     feature_agglomeration_decomposer: 11 timeout.
     """
     # TODO: fast_ica, kernel_pca, and polynomial_features.
-    trans_used = [0, 3, 4, 5, 12, 16, 19, 30, 31, 32]
+    # trans_used = [0, 3, 4, 5, 12, 16, 19, 30, 31, 32]
     # trans_used = [0, 3, 4, 5, 10, 11, 12, 16, 17, 19]
     # trans_used = [17, 30, 31]
     # trans_used = [30]
@@ -222,7 +232,7 @@ def evaluation_based_feature_engineering(time_limit, seed=1):
                           time_budget=time_limit, evaluator=evaluator,
                           seed=seed, model_id='lightgbm',
                           time_limit_per_trans=900,
-                          trans_set=trans_used
+                          trans_set=None
                           )
     transformed_train_data = pipeline.fit_transform(train_data)
     print(pipeline.optimizer.get_incumbent_path())
