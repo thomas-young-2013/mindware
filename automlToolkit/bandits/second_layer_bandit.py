@@ -7,6 +7,7 @@ from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from automlToolkit.components.hpo_optimizer.psmac_optimizer import PSMACOptimizer
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
+from automlToolkit.components.evaluators.evaluator import get_estimator
 from automlToolkit.utils.decorators import time_limit, TimeoutException
 from automlToolkit.utils.functions import get_increasing_sequence
 
@@ -65,10 +66,10 @@ class SecondLayerBandit(object):
                                  name='fe', resampling_strategy=self.evaluation_type,
                                  seed=self.seed)
         self.optimizer['fe'] = EvaluationBasedOptimizer(
-                'classification',
-                self.original_data, fe_evaluator,
-                classifier_id, per_run_time_limit, per_run_mem_limit, self.seed,
-                shared_mode=self.share_fe, n_jobs=n_jobs)
+            'classification',
+            self.original_data, fe_evaluator,
+            classifier_id, per_run_time_limit, per_run_mem_limit, self.seed,
+            shared_mode=self.share_fe, n_jobs=n_jobs)
         self.inc['fe'], self.local_inc['fe'] = self.original_data, self.original_data
 
         # Build the HPO component.
@@ -210,14 +211,40 @@ class SecondLayerBandit(object):
             fe_optimizer.global_datanodes.append(_node)
         fe_optimizer.refresh_beam_set()
 
-    def predict(self, X_test, is_weighted=False):
+    def predict_proba(self, X_test, is_weighted=False):
         """
             weight source: ...
             model 1: local_inc['fe'], default_hpo
-            model 2: defaultt_fe, local_inc['hpo']
+            model 2: default_fe, local_inc['hpo']
             model 3: local_inc['fe'], local_inc['hpo']
         :param X_test:
         :param is_weighted:
         :return:
         """
-        pass
+        X_train_ori, y_train_ori = self.original_data.data
+        X_train_inc, y_train_inc = self.local_inc['fe'].data
+
+        _, model1_clf = get_estimator(self.default_config.get_dictionary().copy())
+        model1_clf.fit(X_train_inc, y_train_inc)
+        _, model2_clf = get_estimator(self.local_inc['hpo'].get_dictionary().copy())
+        model2_clf.fit(X_train_ori, y_train_ori)
+        _, model3_clf = get_estimator(self.local_inc['hpo'].get_dictionary().copy())
+        model3_clf.fit(X_train_inc, y_train_inc)
+
+        #TODO: Calculate weights if necessary
+
+        # Make sure that the estimator has "predict_proba"
+        pred1 = model1_clf.predict_proba(X_test)
+        pred2 = model2_clf.predict_proba(X_test)
+        pred3 = model3_clf.predict_proba(X_test)
+
+        if is_weighted:
+            pass
+        else:
+            final_pred = (pred1 + pred2 + pred3) / 3
+
+        return final_pred
+
+    def predict(self, X_test, is_weighted=False):
+        proba_pred = self.predict_proba(X_test, is_weighted)
+        return np.argmax(proba_pred, axis=-1)
