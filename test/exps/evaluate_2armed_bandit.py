@@ -41,8 +41,10 @@ def evaluate_2rd_bandit(dataset, algo, time_limit, run_id, seed):
     print('HMAB-%s-%s: run_id=%d' % (dataset, algo, run_id))
     print('==> Start to Evaluate', dataset, 'Budget', time_limit)
     train_data, test_data = load_train_test_data(dataset)
+    enable_intersect = False
     bandit = SecondLayerBandit(algo, train_data, per_run_time_limit=300,
-                               seed=seed, eval_type='holdout', enable_intersection=False)
+                               seed=seed, eval_type='holdout', enable_intersection=enable_intersect)
+    mth_id = 'hmab' if enable_intersect else 'hmab0'
     _start_time = time.time()
     _iter_id = 0
     stats = list()
@@ -86,7 +88,7 @@ def evaluate_2rd_bandit(dataset, algo, time_limit, run_id, seed):
     test_score2 = balanced_accuracy(y_test, y_pred2)
     print('==> Test score with weighted ensemble', test_score2)
 
-    save_path = save_dir + 'hmab_2rd_bandit_%s_%d_%d_%s.pkl' % (dataset, time_limit, run_id, algo)
+    save_path = save_dir + '%s_2rd_bandit_%s_%d_%d_%s.pkl' % (mth_id, dataset, time_limit, run_id, algo)
     with open(save_path, 'wb') as f:
         pickle.dump([dataset, val_score, test_score, test_score1, test_score2], f)
 
