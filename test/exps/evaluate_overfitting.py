@@ -3,18 +3,19 @@ import sys
 import argparse
 import pickle
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
-from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
 from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
 from automlToolkit.datasets.utils import load_train_test_data
 from automlToolkit.components.evaluators.evaluator import Evaluator, fetch_predict_estimator
+from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--datasets', type=str, default='credit')
+parser.add_argument('--algos', type=str, default='random_forest')
 parser.add_argument('--iter_num', type=int, default=100)
-parser.add_argument('--rep_num', type=int, default=5)
+parser.add_argument('--rep_num', type=int, default=10)
 parser.add_argument('--seed', type=int, default=1)
 
 save_dir = './data/exp_results/overfit/'
@@ -34,18 +35,28 @@ def conduct_hpo(dataset='pc4', classifier_id='random_forest', iter_num=100, run_
     evaluator = Evaluator(cs.get_default_configuration(), name='hpo', data_node=raw_data,
                           resampling_strategy='holdout', seed=seed)
 
+    default_config = cs.get_default_configuration()
+    val_acc = 1. - evaluator(default_config)
+    estimator = fetch_predict_estimator(default_config, raw_data.data[0], raw_data.data[1])
+    pred = estimator.predict(test_raw_data.data[0])
+    test_acc = balanced_accuracy(test_raw_data.data[1], pred)
+
     optimizer = SMACOptimizer(
         evaluator, cs, trials_per_iter=2,
         output_dir='logs', per_run_time_limit=180
     )
     task_id = 'hpo-%s-%s-%d' % (dataset, classifier_id, iter_num)
+
     val_acc_list, test_acc_list = [], []
+    val_acc_list.append(val_acc)
+    test_acc_list.append(test_acc)
+
     for _iter in range(iter_num):
         perf, _, config = optimizer.iterate()
         val_acc_list.append(perf)
         estimator = fetch_predict_estimator(config, raw_data.data[0], raw_data.data[1])
         pred = estimator.predict(test_raw_data.data[0])
-        test_perf = accuracy_score(test_raw_data.data[1], pred)
+        test_perf = balanced_accuracy(test_raw_data.data[1], pred)
         test_acc_list.append(test_perf)
         print(val_acc_list)
         print(test_acc_list)
@@ -68,11 +79,20 @@ def conduct_fe(dataset='pc4', classifier_id='random_forest', iter_num=100, run_i
     evaluator = Evaluator(default_config, name='fe', data_node=raw_data,
                           resampling_strategy='holdout', seed=seed)
 
+    val_acc = evaluator(default_config)
+    estimator = fetch_predict_estimator(default_config, raw_data.data[0], raw_data.data[1])
+    pred = estimator.predict(test_raw_data.data[0])
+    test_acc = balanced_accuracy(test_raw_data.data[1], pred)
+
     optimizer = EvaluationBasedOptimizer(task_type='classification', input_data=raw_data, evaluator=evaluator, model_id=classifier_id,
                                          time_limit_per_trans=240, mem_limit_per_trans=10000, seed=seed)
 
     task_id = 'fe-%s-%s-%d' % (dataset, classifier_id, iter_num)
     val_acc_list, test_acc_list = [], []
+
+    val_acc_list.append(val_acc)
+    test_acc_list.append(test_acc)
+
     for _iter in range(iter_num):
         perf, _, incubent = optimizer.iterate()
         val_acc_list.append(perf)
@@ -80,7 +100,7 @@ def conduct_fe(dataset='pc4', classifier_id='random_forest', iter_num=100, run_i
         test_node = optimizer.apply(test_raw_data, incubent)
         estimator = fetch_predict_estimator(default_config, train_node.data[0], train_node.data[1])
         pred = estimator.predict(test_node.data[0])
-        test_perf = accuracy_score(test_node.data[1], pred)
+        test_perf = balanced_accuracy(test_node.data[1], pred)
         test_acc_list.append(test_perf)
         print(val_acc_list)
         print(test_acc_list)
@@ -108,7 +128,7 @@ if __name__ == '__main__':
     check_datasets(dataset_list)
 
     mode_list = ['hpo', 'fe']
-    algo_list = ['random_forest', 'xgradient_boosting', 'libsvm_svc', 'k_nearest_neighbors']
+    algo_list = args.algos.split(',')
     for dataset in dataset_list:
         for run_id in range(rep):
             for algo in algo_list:

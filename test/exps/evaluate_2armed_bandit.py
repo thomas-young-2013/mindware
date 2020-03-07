@@ -171,6 +171,7 @@ if __name__ == "__main__":
                     results.append([val_acc, test_acc])
                     if mth == 'ausk':
                         print(data)
+                print(mth, results)
                 if len(results) == rep:
                     results = np.array(results)
                     stats_ = zip(np.mean(results, axis=0), np.std(results, axis=0))
