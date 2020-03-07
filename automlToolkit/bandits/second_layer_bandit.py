@@ -17,7 +17,7 @@ class SecondLayerBandit(object):
                  share_fe=False, output_dir='logs',
                  per_run_time_limit=120,
                  per_run_mem_limit=5120,
-                 eval_type='cv', dataset_id='default',
+                 eval_type='holdout', dataset_id='default',
                  mth='rb', sw_size=3,
                  n_jobs=1, seed=1):
         self.per_run_time_limit = per_run_time_limit
@@ -184,7 +184,7 @@ class SecondLayerBandit(object):
                         self.local_inc['hpo'], data_node=self.local_inc['fe'],
                         name='fe', resampling_strategy=self.evaluation_type,
                         seed=self.seed)(self.local_inc['hpo'])
-            except TimeoutException as e:
+            except Exception as e:
                 self.logger.error(str(e))
             # Update INC.
             if _perf is not None and _perf > self.incumbent_perf:
@@ -256,9 +256,11 @@ class SecondLayerBandit(object):
             print("weights " + str(weights))
 
         # Make sure that the estimator has "predict_proba"
-        pred1 = model1_clf.predict_proba(X_test)
+        _test_node = DataNode(data=[X_test, None], feature_type=self.original_data.feature_types.copy())
+        _X_test = self.optimizer['fe'].apply(_test_node, self.local_inc['fe']).data[0]
+        pred1 = model1_clf.predict_proba(_X_test)
         pred2 = model2_clf.predict_proba(X_test)
-        pred3 = model3_clf.predict_proba(X_test)
+        pred3 = model3_clf.predict_proba(_X_test)
 
         if is_weighted:
             final_pred = weights[0] * pred1 + weights[1] * pred2 + weights[2] * pred3

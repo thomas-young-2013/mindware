@@ -4,17 +4,15 @@ import time
 import pickle
 import argparse
 import tabulate
-import shutil
 import numpy as np
 import autosklearn.classification
-from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
-
 from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 from automlToolkit.datasets.utils import load_train_test_data
 from automlToolkit.components.utils.constants import CATEGORICAL
 from automlToolkit.components.ensemble.ensemble_builder import EnsembleBuilder
+from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
 
 parser = argparse.ArgumentParser()
 dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \
@@ -22,8 +20,8 @@ dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \
 parser.add_argument('--datasets', type=str, default=dataset_set)
 parser.add_argument('--methods', type=str, default='hmab,ausk')
 parser.add_argument('--algo_num', type=int, default=15)
-parser.add_argument('--trial_num', type=int, default=100)
-parser.add_argument('--rep_num', type=int, default=5)
+parser.add_argument('--trial_num', type=int, default=200)
+parser.add_argument('--rep_num', type=int, default=10)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--time_costs', type=str, default='1200')
 parser.add_argument('--ensemble', type=int, choices=[0, 1], default=0)
@@ -34,7 +32,7 @@ save_dir = './data/exp_results/exp1/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
-per_run_time_limit = 1200
+per_run_time_limit = 300
 
 
 def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200, seed=1, eval_type='holdout', enable_ens=False):
@@ -53,8 +51,8 @@ def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200, seed=1, e
     print(bandit.action_sequence)
 
     validation_accuracy = np.max(bandit.final_rewards)
-    test_accuracy = bandit.score(test_raw_data)
-    test_accuracy_with_ens = EnsembleBuilder(bandit).score(test_raw_data)
+    test_accuracy = bandit.score(test_raw_data, metric_func=balanced_accuracy)
+    test_accuracy_with_ens = EnsembleBuilder(bandit).score(test_raw_data, metric_func=balanced_accuracy)
 
     print('Dataset          : %s' % dataset)
     print('Validation/Test score : %f - %f' % (validation_accuracy, test_accuracy))
@@ -108,9 +106,9 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
             ensemble_size=ensemble_size,
             ensemble_nbest=ensemble_nbest,
             initial_configurations_via_metalearning=init_config_via_metalearning,
-            seed=seed,
+            seed=int(seed),
             resampling_strategy='holdout',
-            resampling_strategy_arguments={'train_size': 0.8}
+            resampling_strategy_arguments={'train_size': 0.67}
         )
     else:
         automl = autosklearn.classification.AutoSklearnClassifier(
@@ -134,7 +132,8 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
     X_test, y_test = test_raw_data.data
     feat_type = ['Categorical' if _type == CATEGORICAL else 'Numerical'
                  for _type in raw_data.feature_types]
-    automl.fit(X.copy(), y.copy(), feat_type=feat_type)
+    from autosklearn.metrics import balanced_accuracy as balanced_acc
+    automl.fit(X.copy(), y.copy(), feat_type=feat_type, metric=balanced_acc)
     model_desc = automl.show_models()
     str_stats = automl.sprint_statistics()
     valid_results = automl.cv_results_['mean_test_score']
@@ -142,10 +141,9 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
     validation_accuracy = np.max(valid_results)
 
     # Test performance.
-    if eval_type == 'cv':
-        automl.refit(X.copy(), y.copy())
+    automl.refit(X.copy(), y.copy())
     predictions = automl.predict(X_test)
-    test_accuracy = accuracy_score(y_test, predictions)
+    test_accuracy = balanced_accuracy(y_test, predictions)
 
     # Print statistics about the auto-sklearn run such as number of
     # iterations, number of models failed with a time out.

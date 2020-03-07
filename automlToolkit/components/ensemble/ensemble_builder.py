@@ -3,7 +3,7 @@ import numpy as np
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedShuffleSplit
-from autosklearn.metrics import accuracy
+from autosklearn.metrics import balanced_accuracy
 
 from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 from automlToolkit.components.ensemble.ensemble_selection import EnsembleSelection
@@ -18,7 +18,7 @@ class EnsembleBuilder(object):
         self.n_jobs = n_jobs
 
     def fit_predict(self, test_data: DataNode):
-        test_size = 0.2
+        test_size = 0.33
         stats = self.bandit.fetch_ensemble_members(test_data, mode=False)
         seed = stats['split_seed']
 
@@ -72,13 +72,15 @@ class EnsembleBuilder(object):
         print('It took %.2f seconds!' % (time.time() - start_time))
 
         es = EnsembleSelection(ensemble_size=self.ensemble_size,
-                               task_type=1, metric=accuracy,
+                               task_type=1, metric=balanced_accuracy,
                                random_state=np.random.RandomState(seed))
         es.fit(train_predictions, train_labels, identifiers=None)
         y_pred = es.predict(test_predictions)
         y_pred = np.argmax(y_pred, axis=-1)
         return y_pred
 
-    def score(self, test_data: DataNode):
+    def score(self, test_data: DataNode, metric_func=None):
+        if metric_func is None:
+            metric_func = accuracy_score
         y_pred = self.fit_predict(test_data)
-        return accuracy_score(test_data.data[1], y_pred)
+        return metric_func(test_data.data[1], y_pred)
