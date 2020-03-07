@@ -232,19 +232,27 @@ class SecondLayerBandit(object):
             # Based on performance on the validation set
             # TODO: Save the results so that the models will not be trained again
             from sklearn.model_selection import train_test_split
-            from sklearn.metrics import balanced_accuracy_score
+            from automlToolkit.components.ensemble.ensemble_selection import EnsembleSelection
+            from autosklearn.metrics import balanced_accuracy
             X_train_ori, X_valid_ori, y_train_ori, y_valid_ori = train_test_split(X_train_ori, y_train_ori,
-                                                                                  test_size=0.33, stratify=y_train_ori)
+                                                                                  test_size=0.33, stratify=y_train_ori,
+                                                                                  random_state=1)
             X_train_inc, X_valid_inc, y_train_inc, y_valid_inc = train_test_split(X_train_inc, y_train_inc,
-                                                                                  test_size=0.33, stratify=y_train_inc)
+                                                                                  test_size=0.33, stratify=y_train_inc,
+                                                                                  random_state=1)
+            assert all(y_valid_inc == y_valid_ori)
             model1_clf_temp = fetch_predict_estimator(self.default_config, X_train_inc, y_train_inc)
             model2_clf_temp = fetch_predict_estimator(self.local_inc['hpo'], X_train_ori, y_train_ori)
             model3_clf_temp = fetch_predict_estimator(self.local_inc['hpo'], X_train_inc, y_train_inc)
-            score1 = balanced_accuracy_score(model1_clf_temp.predict(X_valid_inc), y_valid_inc)
-            score2 = balanced_accuracy_score(model2_clf_temp.predict(X_valid_ori), y_valid_ori)
-            score3 = balanced_accuracy_score(model3_clf_temp.predict(X_valid_inc), y_valid_inc)
+            pred1 = model1_clf_temp.predict_proba(X_valid_inc)
+            pred2 = model2_clf_temp.predict_proba(X_valid_ori)
+            pred3 = model3_clf_temp.predict_proba(X_valid_inc)
 
-            weights = np.array([score1, score2, score3]) / (score1 + score2 + score3)  # Maybe softmax?
+            # Ensemble size is a hyperparameter
+            es = EnsembleSelection(ensemble_size=15, task_type=1, metric=balanced_accuracy,
+                                   random_state=np.random.RandomState(self.seed))
+            es.fit([pred1, pred2, pred3], y_valid_inc, None)
+            weights = es.weights_
             print("weights " + str(weights))
 
         # Make sure that the estimator has "predict_proba"
