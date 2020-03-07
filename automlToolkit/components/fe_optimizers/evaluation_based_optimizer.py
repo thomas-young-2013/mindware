@@ -35,7 +35,7 @@ class EvaluationBasedOptimizer(Optimizer):
         # Parameters in beam search.
         self.hpo_batch_size = batch_size
         self.beam_width = beam_width
-        self.max_depth = 8
+        self.max_depth = 6
         if trans_set is None:
             self.trans_types = TRANS_CANDIDATES[self.task_type]
         else:

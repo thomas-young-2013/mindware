@@ -239,7 +239,7 @@ class FirstLayerBandit(object):
 
     def train_valid_split(self, node: DataNode):
         X, y = node.copy_().data
-        sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=1)
+        sss = StratifiedShuffleSplit(n_splits=1, test_size=0.33, random_state=1)
         for train_index, test_index in sss.split(X, y):
             X_train, X_val = X[train_index], X[test_index]
             y_train, y_val = y[train_index], y[test_index]
