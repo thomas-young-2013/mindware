@@ -1,5 +1,6 @@
 import typing
 import numpy as np
+from sklearn.model_selection import StratifiedShuffleSplit
 from automlToolkit.components.evaluators.evaluator import Evaluator
 from automlToolkit.utils.logging_utils import get_logger
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
@@ -19,7 +20,8 @@ class SecondLayerBandit(object):
                  per_run_mem_limit=5120,
                  eval_type='holdout', dataset_id='default',
                  mth='rb', sw_size=3,
-                 n_jobs=1, seed=1):
+                 n_jobs=1, seed=1,
+                 enable_intersection=True):
         self.per_run_time_limit = per_run_time_limit
         self.per_run_mem_limit = per_run_mem_limit
         self.classifier_id = classifier_id
@@ -50,6 +52,7 @@ class SecondLayerBandit(object):
         self.final_rewards = list()
         self.incumbent_perf = -1.
         self.early_stopped_flag = False
+        self.enable_intersection = enable_intersection
 
         # Fetch hyperparameter space.
         from autosklearn.pipeline.components.classification import _classifiers
@@ -176,21 +179,22 @@ class SecondLayerBandit(object):
 
         if self.mth == 'rb':
             self.optimize()
-            # Update join incumbent from FE and HPO.
-            _perf = None
-            try:
-                with time_limit(600):
-                    _perf = Evaluator(
-                        self.local_inc['hpo'], data_node=self.local_inc['fe'],
-                        name='fe', resampling_strategy=self.evaluation_type,
-                        seed=self.seed)(self.local_inc['hpo'])
-            except Exception as e:
-                self.logger.error(str(e))
-            # Update INC.
-            if _perf is not None and _perf > self.incumbent_perf:
-                self.inc['hpo'] = self.local_inc['hpo']
-                self.inc['fe'] = self.local_inc['fe']
-                self.incumbent_perf = _perf
+            if self.enable_intersection:
+                # Update join incumbent from FE and HPO.
+                _perf = None
+                try:
+                    with time_limit(600):
+                        _perf = Evaluator(
+                            self.local_inc['hpo'], data_node=self.local_inc['fe'],
+                            name='fe', resampling_strategy=self.evaluation_type,
+                            seed=self.seed)(self.local_inc['hpo'])
+                except Exception as e:
+                    self.logger.error(str(e))
+                # Update INC.
+                if _perf is not None and _perf > self.incumbent_perf:
+                    self.inc['hpo'] = self.local_inc['hpo']
+                    self.inc['fe'] = self.local_inc['fe']
+                    self.incumbent_perf = _perf
         elif self.mth == 'alter':
             self.optimize_alternatedly()
         else:
@@ -227,6 +231,7 @@ class SecondLayerBandit(object):
         model1_clf = fetch_predict_estimator(self.default_config, X_train_inc, y_train_inc)
         model2_clf = fetch_predict_estimator(self.local_inc['hpo'], X_train_ori, y_train_ori)
         model3_clf = fetch_predict_estimator(self.local_inc['hpo'], X_train_inc, y_train_inc)
+        model4_clf = fetch_predict_estimator(self.default_config, X_train_ori, y_train_ori)
 
         if is_weighted:
             # Based on performance on the validation set
@@ -234,24 +239,27 @@ class SecondLayerBandit(object):
             from sklearn.model_selection import train_test_split
             from automlToolkit.components.ensemble.ensemble_selection import EnsembleSelection
             from autosklearn.metrics import balanced_accuracy
-            X_train_ori, X_valid_ori, y_train_ori, y_valid_ori = train_test_split(X_train_ori, y_train_ori,
-                                                                                  test_size=0.33, stratify=y_train_ori,
-                                                                                  random_state=1)
-            X_train_inc, X_valid_inc, y_train_inc, y_valid_inc = train_test_split(X_train_inc, y_train_inc,
-                                                                                  test_size=0.33, stratify=y_train_inc,
-                                                                                  random_state=1)
-            assert all(y_valid_inc == y_valid_ori)
-            model1_clf_temp = fetch_predict_estimator(self.default_config, X_train_inc, y_train_inc)
-            model2_clf_temp = fetch_predict_estimator(self.local_inc['hpo'], X_train_ori, y_train_ori)
-            model3_clf_temp = fetch_predict_estimator(self.local_inc['hpo'], X_train_inc, y_train_inc)
-            pred1 = model1_clf_temp.predict_proba(X_valid_inc)
-            pred2 = model2_clf_temp.predict_proba(X_valid_ori)
-            pred3 = model3_clf_temp.predict_proba(X_valid_inc)
+            sss = StratifiedShuffleSplit(n_splits=1, test_size=0.33, random_state=1)
+            X, y = X_train_ori.copy(), y_train_ori.copy()
+            _X, _y = X_train_inc.copy(), y_train_inc.copy()
+            for train_index, test_index in sss.split(X, y):
+                X_train, X_val, y_train, y_val = X[train_index], X[test_index], y[train_index], y[test_index]
+                _X_train, _X_val, _y_train, _y_val = _X[train_index], _X[test_index], _y[train_index], _y[test_index]
+
+            assert (y_val == _y_val).all()
+            model1_clf_temp = fetch_predict_estimator(self.default_config, _X_train, _y_train)
+            model2_clf_temp = fetch_predict_estimator(self.local_inc['hpo'], X_train, y_train)
+            model3_clf_temp = fetch_predict_estimator(self.local_inc['hpo'], _X_train, _y_train)
+            model4_clf_temp = fetch_predict_estimator(self.default_config, X_train, y_train)
+            pred1 = model1_clf_temp.predict_proba(_X_val)
+            pred2 = model2_clf_temp.predict_proba(X_val)
+            pred3 = model3_clf_temp.predict_proba(_X_val)
+            pred4 = model4_clf_temp.predict_proba(X_val)
 
             # Ensemble size is a hyperparameter
-            es = EnsembleSelection(ensemble_size=15, task_type=1, metric=balanced_accuracy,
+            es = EnsembleSelection(ensemble_size=20, task_type=1, metric=balanced_accuracy,
                                    random_state=np.random.RandomState(self.seed))
-            es.fit([pred1, pred2, pred3], y_valid_inc, None)
+            es.fit([pred1, pred2, pred3, pred4], y_val, None)
             weights = es.weights_
             print("weights " + str(weights))
 
@@ -261,11 +269,12 @@ class SecondLayerBandit(object):
         pred1 = model1_clf.predict_proba(_X_test)
         pred2 = model2_clf.predict_proba(X_test)
         pred3 = model3_clf.predict_proba(_X_test)
+        pred4 = model4_clf.predict_proba(X_test)
 
         if is_weighted:
-            final_pred = weights[0] * pred1 + weights[1] * pred2 + weights[2] * pred3
+            final_pred = weights[0] * pred1 + weights[1] * pred2 + weights[2] * pred3 + weights[3] * pred4
         else:
-            final_pred = (pred1 + pred2 + pred3) / 3
+            final_pred = (pred1 + pred2 + pred3 + pred4) / 4
 
         return final_pred
 

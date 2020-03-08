@@ -39,7 +39,7 @@ def load_data(dataset, proj_dir='./', datanode_returned=False):
         return X, y, feature_types
 
 
-def load_train_test_data(dataset, proj_dir='./', test_size=0.1, random_state=45):
+def load_train_test_data(dataset, proj_dir='./', test_size=0.2, random_state=45):
     X, y, feature_type = load_data(dataset, proj_dir, False)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=test_size, random_state=random_state, stratify=y)
