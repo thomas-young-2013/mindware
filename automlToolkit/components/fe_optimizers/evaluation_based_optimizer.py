@@ -1,3 +1,4 @@
+import gc
 import time
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
@@ -283,6 +284,7 @@ class EvaluationBasedOptimizer(Optimizer):
                             '[Budget Runs Out]: %s, %s\n' % (self.maximum_evaluation_num, self.time_budget))
                         self.is_ended = True
                         break
+                    gc.collect()
 
             # Memory Save: free the data in the unpromising nodes.
             _scores = list()
@@ -296,6 +298,7 @@ class EvaluationBasedOptimizer(Optimizer):
                          (self.incumbent_score, self.incumbent_score - self.baseline_score))
 
         self.evaluation_num_last_iteration = max(self.evaluation_num_last_iteration, _evaluation_cnt)
+        gc.collect()
 
         # Update the beam set according to their performance.
         if len(self.beam_set) == 0:
