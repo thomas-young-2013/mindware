@@ -44,6 +44,7 @@ class Transformer(object, metaclass=abc.ABCMeta):
         30: percentile_selector_regression.
         31: extra_trees_based_selector_regression
     """
+
     def __init__(self, name, type, random_state=1):
         self.name = name
         self.type = type
@@ -63,7 +64,7 @@ class Transformer(object, metaclass=abc.ABCMeta):
 
     @compound_mode.setter
     def compound_mode(self, mode):
-        if mode not in ['only_new', 'concatenate', 'in_place']:
+        if mode not in ['only_new', 'concatenate', 'in_place', 'replace']:
             raise ValueError('Invalid compound mode: %s!' % mode)
         self._compound_mode = mode
 
@@ -143,6 +144,13 @@ def ease_trans(func):
             new_X = np.hstack((X, _X))
             new_types = input.feature_types.copy()
             new_types.extend(_types)
+        elif trans.compound_mode == 'replace':
+            new_X = np.hstack((X, _X))
+            new_types = input.feature_types.copy()
+            new_types.extend(_types)
+            new_X = np.delete(new_X, target_fields, axis=1)
+            temp_array = np.array(new_types)
+            new_types = list(np.delete(temp_array, target_fields))
         else:
             assert _X.shape[1] == len(target_fields)
             new_X = X.copy()
