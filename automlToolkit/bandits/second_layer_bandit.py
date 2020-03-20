@@ -41,11 +41,13 @@ class SecondLayerBandit(object):
         self.rewards = dict()
         self.optimizer = dict()
         self.evaluation_cost = dict()
+        self.update_flag = dict()
         # Global incumbent.
         self.inc = dict()
         self.local_inc = dict()
         for arm in self.arms:
             self.rewards[arm] = list()
+            self.update_flag[arm] = False
             self.evaluation_cost[arm] = list()
         self.pull_cnt = 0
         self.action_sequence = list()
@@ -95,6 +97,9 @@ class SecondLayerBandit(object):
         self.inc['hpo'], self.local_inc['hpo'] = self.default_config, self.default_config
 
     def collect_iter_stats(self, _arm, results):
+        for arm_id in self.arms:
+            self.update_flag[arm_id] = False
+
         if _arm == 'fe' and len(self.final_rewards) == 0:
             self.incumbent_perf = self.optimizer['fe'].baseline_score
             self.final_rewards.append(self.incumbent_perf)
@@ -117,6 +122,9 @@ class SecondLayerBandit(object):
             else:
                 self.inc['fe'] = self.original_data
             self.incumbent_perf = score
+
+            arm_id = 'fe' if _arm == 'hpo' else 'hpo'
+            self.update_flag[arm_id] = True
 
         # if _arm == 'fe':
         #     _num_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
@@ -166,6 +174,9 @@ class SecondLayerBandit(object):
         # First choose one arm.
         _arm = self.arms[self.pull_cnt % 2]
         self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.classifier_id, self.pull_cnt))
+
+        if self.mth != 'alter':
+            self.prepare_optimizer(_arm)
         # Execute one iteration.
         results = self.optimizer[_arm].iterate()
 
@@ -195,7 +206,7 @@ class SecondLayerBandit(object):
                     self.inc['hpo'] = self.local_inc['hpo']
                     self.inc['fe'] = self.local_inc['fe']
                     self.incumbent_perf = _perf
-        elif self.mth == 'alter':
+        elif self.mth == 'alter' or self.mth == 'alter_p':
             self.optimize_alternatedly()
         else:
             raise ValueError('Invalid method: %s' % self.mth)
@@ -281,3 +292,33 @@ class SecondLayerBandit(object):
     def predict(self, X_test, is_weighted=False):
         proba_pred = self.predict_proba(X_test, is_weighted)
         return np.argmax(proba_pred, axis=-1)
+
+    def prepare_optimizer(self, _arm):
+        if _arm == 'fe':
+            if self.update_flag[_arm] is True:
+                # Build the Feature Engineering component.
+                fe_evaluator = Evaluator(self.inc['hpo'], name='fe', resampling_strategy=self.evaluation_type,
+                                         seed=self.seed)
+                self.optimizer[_arm] = EvaluationBasedOptimizer(
+                    'classification', self.inc['fe'], fe_evaluator,
+                    self.classifier_id, self.per_run_time_limit, self.per_run_mem_limit,
+                    self.seed, shared_mode=self.share_fe
+                )
+            else:
+                self.logger.info('No improvement on HPO, so use the old FE optimizer!')
+        else:
+            if self.update_flag[_arm] is True:
+                trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
+                trials_per_iter = max(10, trials_per_iter)
+                hpo_evaluator = Evaluator(self.config_space.get_default_configuration(),
+                                          data_node=self.inc['fe'],
+                                          name='hpo',
+                                          resampling_strategy=self.evaluation_type,
+                                          seed=self.seed)
+                self.optimizer[_arm] = SMACOptimizer(
+                    hpo_evaluator, self.config_space, output_dir=self.output_dir,
+                    per_run_time_limit=self.per_run_time_limit,
+                    trials_per_iter=trials_per_iter, seed=self.seed
+                )
+            else:
+                self.logger.info('No improvement on FE, so use the old HPO optimizer!')

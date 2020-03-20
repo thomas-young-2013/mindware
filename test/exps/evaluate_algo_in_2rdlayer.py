@@ -2,83 +2,95 @@ import os
 import sys
 import time
 import pickle
-import tabulate
 import argparse
 import numpy as np
+from tabulate import tabulate
 sys.path.append(os.getcwd())
+from automlToolkit.components.evaluators.evaluator import Evaluator, fetch_predict_estimator
+from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
-from automlToolkit.datasets.utils import load_data
+from automlToolkit.datasets.utils import load_train_test_data
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,vehicle,yeast,' \
               'messidor_features,winequality_red,winequality_white,splice,spambase,amazon_employee'
 parser.add_argument('--datasets', type=str, default=dataset_set)
-parser.add_argument('--mode', type=str, choices=['alter', 'rb', 'alter-rb', 'plot', 'all'], default='both')
+parser.add_argument('--mode', type=str, choices=['alter', 'rb', 'alter_p', 'plot'], default='rb')
 parser.add_argument('--cv', type=str, choices=['cv', 'holdout'], default='holdout')
 parser.add_argument('--algo', type=str, default='random_forest')
-parser.add_argument('--time_cost', type=int, default=10800)
-parser.add_argument('--iter_num', type=int, default=100)
-parser.add_argument('--rep_num', type=int, default=5)
+parser.add_argument('--time_cost', type=int, default=600)
+parser.add_argument('--rep_num', type=int, default=10)
 
 project_dir = './'
+save_folder = project_dir + 'data/debug_2rdmab/'
+if not os.path.exists(save_folder):
+    os.makedirs(save_folder)
 
 
-def evaluate_2rd_layered_bandit(run_id, mth='rb', dataset='pc4',
-                                algo='libsvm_svc', cv='holdout',
-                                iter_num=100,
-                                time_limit=120000,
-                                seed=1):
-    raw_data = load_data(dataset, datanode_returned=True)
-    strategy = 'avg' if mth != 'alter-rb' else 'rb'
-    mth_id = mth if mth != 'alter-rb' else 'alter'
-    bandit = SecondLayerBandit(algo, raw_data, dataset_id=dataset, mth=mth_id,
-                               strategy=strategy, seed=seed, eval_type=cv)
+def evaluate_2rd_layered_bandit(run_id, mth='rb', dataset='pc4', algo='libsvm_svc',
+                                cv='holdout', time_limit=120000, seed=1):
+    train_data, test_data = load_train_test_data(dataset)
+    bandit = SecondLayerBandit(algo, train_data, dataset_id=dataset, mth=mth, seed=seed, eval_type=cv)
 
     _start_time = time.time()
+    _iter_id = 0
     stats = list()
 
-    for _iter in range(iter_num):
-        _iter_start_time = time.time()
-        bandit.play_once()
-        stats.append([iter, time.time() - _start_time])
-
-        if time.time() > time_limit + _start_time:
+    while True:
+        if time.time() > time_limit + _start_time or bandit.early_stopped_flag:
             break
+        res = bandit.play_once()
+        print('Iteration %d - %.4f' % (_iter_id, res))
+        stats.append([_iter_id, time.time() - _start_time, res])
+        _iter_id += 1
 
-        print('%s%s' % ('\n', '='*65))
-        end_time = time.time()
-        print('| %s-%s-%d | Iteration-%d: %.4f | Time_cost: %.2f-%.2f |' %
-              (dataset, mth, run_id, _iter, bandit.final_rewards[-1],
-               end_time - _iter_start_time, end_time - _start_time))
-        print('='*65, '\n')
+    print(bandit.final_rewards)
+    print(bandit.action_sequence)
+    print(np.mean(bandit.evaluation_cost['fe']))
+    print(np.mean(bandit.evaluation_cost['hpo']))
 
-        # Save the intermediate result.
-        save_folder = project_dir + 'data/2rdlayer-mab/'
-        if not os.path.exists(save_folder):
-            os.makedirs(save_folder)
-        file_path = save_folder + '%s-%d_2rdlayer-mab_%s_%s_%d_%d_%s.pkl' % (
-            mth, seed, dataset, algo, iter_num, time_cost, cv)
-        data = [bandit.final_rewards, bandit.action_sequence, bandit.evaluation_cost, stats]
-        with open(file_path, 'wb') as f:
-            pickle.dump(data, f)
+    fe_optimizer = bandit.optimizer['fe']
+    final_train_data = fe_optimizer.apply(train_data, bandit.inc['fe'])
+    assert final_train_data == bandit.inc['fe']
+    final_test_data = fe_optimizer.apply(test_data, bandit.inc['fe'])
+    config = bandit.inc['hpo']
+
+    evaluator = Evaluator(config, name='fe', seed=seed, resampling_strategy='holdout')
+    val_score = evaluator(None, data_node=final_train_data)
+    print('==> Best validation score', val_score, res)
+
+    X_train, y_train = final_train_data.data
+    clf = fetch_predict_estimator(config, X_train, y_train)
+    X_test, y_test = final_test_data.data
+    y_pred = clf.predict(X_test)
+    test_score = balanced_accuracy(y_test, y_pred)
+    print('==> Test score', test_score)
+
+    # Alleviate overfitting.
+    y_pred1 = bandit.predict(test_data.data[0])
+    test_score1 = balanced_accuracy(y_test, y_pred1)
+    print('==> Test score with average ensemble', test_score1)
+
+    y_pred2 = bandit.predict(test_data.data[0], is_weighted=True)
+    test_score2 = balanced_accuracy(y_test, y_pred2)
+    print('==> Test score with weighted ensemble', test_score2)
+
+    save_path = save_folder + '%s_%s_%d_%d_%s.pkl' % (mth, dataset, time_limit, run_id, algo)
+    with open(save_path, 'wb') as f:
+        pickle.dump([dataset, val_score, test_score, test_score1, test_score2], f)
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
     dataset_str = args.datasets
     algo = args.algo
-    iter_num = args.iter_num
     time_cost = args.time_cost
     mode = args.mode
     cv = args.cv
     np.random.seed(1)
-    seeds = np.random.randint(low=1, high=10000, size=args.rep_num)
-
-    dataset_list = list()
-    if dataset_str == 'all':
-        dataset_list = dataset_set.split(',')
-    else:
-        dataset_list = dataset_str.split(',')
+    rep = args.rep_num
+    seeds = np.random.randint(low=1, high=10000, size=rep)
+    dataset_list = dataset_str.split(',')
 
     if mode != 'plot':
         for dataset in dataset_list:
@@ -86,57 +98,56 @@ if __name__ == "__main__":
                 print('Running %s with %d-th seed' % (dataset, _id + 1))
                 if mode == 'alter':
                     evaluate_2rd_layered_bandit(_id, mth=mode, dataset=dataset, cv=cv,
-                                                algo=algo, iter_num=iter_num, time_limit=time_cost, seed=seed)
+                                                algo=algo, time_limit=time_cost, seed=seed)
                 elif mode == 'rb':
                     evaluate_2rd_layered_bandit(_id, mth=mode, dataset=dataset, algo=algo, cv=cv,
-                                                iter_num=iter_num, time_limit=time_cost, seed=seed)
-                elif mode == 'alter-rb':
+                                                time_limit=time_cost, seed=seed)
+                elif mode == 'alter_p':
                     evaluate_2rd_layered_bandit(_id, mth=mode, dataset=dataset, algo=algo, cv=cv,
-                                                iter_num=iter_num, time_limit=time_cost, seed=seed)
-                elif mode == 'all':
-                    evaluate_2rd_layered_bandit(_id, mth='alter', dataset=dataset, algo=algo, cv=cv,
-                                                iter_num=iter_num, time_limit=time_cost, seed=seed)
-                    evaluate_2rd_layered_bandit(_id, mth='rb', dataset=dataset, algo=algo, cv=cv,
-                                                iter_num=iter_num, time_limit=time_cost, seed=seed)
-                    evaluate_2rd_layered_bandit(_id, mth='alter-rb', dataset=dataset, algo=algo, cv=cv,
-                                                iter_num=iter_num, time_limit=time_cost, seed=seed)
+                                                time_limit=time_cost, seed=seed)
                 else:
                     raise ValueError('Invalid mode: %s!' % mode)
     else:
-        headers = ['dataset', 'rb-mean', 'rb-var', 'alter-mean', 'alter-var', 'alter-rb-mean', 'alter-rb-var']
+        headers = ['dataset']
+        method_ids = ['alter', 'alter_p']
+        for mth in method_ids:
+            headers.extend(['val-%s' % mth, 'test-%s' % mth])
+
         tbl_data = list()
         for dataset in dataset_list:
             row_data = [dataset]
-            for mth in ['rb', 'alter', 'alter-rb']:
+            for mth in method_ids:
                 results = list()
-                for seed in seeds:
-                    save_folder = project_dir + 'data/2rdlayer-mab/'
-                    file_path = save_folder + '%s-%d_2rdlayer-mab_%s_%s_%d_%d_%s.pkl' % (
-                        mth, seed, dataset, algo, iter_num, time_cost, cv)
+                for run_id in range(rep):
+                    file_path = save_folder + '%s_%s_%d_%d_%s.pkl' % (mth, dataset, time_cost, run_id, algo)
                     if not os.path.exists(file_path):
                         continue
                     with open(file_path, 'rb') as f:
                         data = pickle.load(f)
-                    final_rewards, action_sequence, evaluation_cost, _ = data
-                    results.append(final_rewards)
-                if len(results) == len(seeds):
-                    for item in results:
-                        cur_num = len(item)
-                        if cur_num < 1 + iter_num:
-                            item.extend([item[-1]] * (1+iter_num - cur_num))
-                        assert len(item) == iter_num + 1
+                    val_acc, test_acc = data[1], data[2]
+                    results.append([val_acc, test_acc])
+                    if mth == 'ausk':
+                        print(data)
+                print(mth, results)
+                if len(results) == rep:
+                    results = np.array(results)
+                    stats_ = zip(np.mean(results, axis=0), np.std(results, axis=0))
+                    string = ''
+                    for mean_t, std_t in stats_:
+                        string += u'%.3f\u00B1%.3f |' % (mean_t, std_t)
+                    print(dataset, mth, '=' * 30)
+                    print('%s-%s: mean\u00B1std' % (dataset, mth), string)
+                    print('%s-%s: median' % (dataset, mth), np.median(results, axis=0))
 
-                    mean_values = np.mean(results, axis=0)
-                    std_value = np.std(np.asarray(results)[:, -1])
-                    row_data.append('%.2f%%' % (100*mean_values[-1]))
-                    row_data.append('%.4f' % std_value)
-                    print('='*30)
-                    print('%s-%s: %.2f%%' % (dataset, mth, 100*mean_values[-1]))
-                    print('-'*30)
-                    print(mean_values)
-                    print('='*30)
+                    for idx in range(results.shape[1]):
+                        vals = results[:, idx]
+                        median = np.median(vals)
+                        if median == 0.:
+                            row_data.append('-')
+                        else:
+                            row_data.append(u'%.4f' % median)
                 else:
-                    row_data.extend(['-', '-'])
+                    row_data.extend(['-'] * 2)
 
             tbl_data.append(row_data)
-        print(tabulate.tabulate(tbl_data, headers, tablefmt='github'))
+        print(tabulate(tbl_data, headers, tablefmt='github'))
