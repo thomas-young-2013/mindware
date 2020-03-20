@@ -39,6 +39,7 @@ class DataNode(object):
         new_data.append(None if self.data[1] is None else self.data[1].copy())
         new_node = DataNode(new_data, self.feature_types.copy(), self.task_type)
         new_node.trans_hist = self.trans_hist.copy()
+        new_node.depth = self.depth
         return new_node
 
     def set_values(self, node):
@@ -55,11 +56,11 @@ class DataNode(object):
             self.data.append(val.copy() if val is not None else None)
         self.feature_types = node.feature_types.copy()
         self.task_type = node.task_type
-    
+
     @property
     def node_id(self):
         return self._node_id
-    
+
     @property
     def cat_num(self):
         cnt = 0
