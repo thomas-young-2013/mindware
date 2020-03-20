@@ -244,12 +244,10 @@ class HyperbandOptimizer(Optimizer):
                         temp_trans_cnt.append(trans_next_iter)
                         _idxs = np.argsort(-np.array(tran_score))[:trans_next_iter]
                         temp_trans_set.extend([trans_set[cur_idx + _idx] for _idx in _idxs])
-                        print(list([trans_set[cur_idx + _idx] for _idx in _idxs]))
                         cur_idx += cnt
-                    print(trans_cnt)
+
                     trans_set = temp_trans_set
                     trans_cnt = temp_trans_cnt
-                    print(trans_cnt)
             # Memory Save: free the data in the unpromising nodes.
             _scores = list()
             for tmp_node in self.temporary_nodes:
