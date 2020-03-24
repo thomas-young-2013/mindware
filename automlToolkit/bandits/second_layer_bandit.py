@@ -176,13 +176,35 @@ class SecondLayerBandit(object):
         self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.classifier_id, self.pull_cnt))
 
         if self.mth != 'alter':
-            self.prepare_optimizer(_arm)
+            if self.mth != 'alter_hpo':
+                self.prepare_optimizer(_arm)
+            else:
+                if _arm == 'hpo':
+                    self.prepare_optimizer(_arm)
+
         # Execute one iteration.
         results = self.optimizer[_arm].iterate()
 
         self.collect_iter_stats(_arm, results)
         self.action_sequence.append(_arm)
         self.pull_cnt += 1
+
+    def evaluate_joint_solution(self):
+        # Update join incumbent from FE and HPO.
+        _perf = None
+        try:
+            with time_limit(600):
+                _perf = Evaluator(
+                    self.local_inc['hpo'], data_node=self.local_inc['fe'],
+                    name='fe', resampling_strategy=self.evaluation_type,
+                    seed=self.seed)(self.local_inc['hpo'])
+        except Exception as e:
+            self.logger.error(str(e))
+        # Update INC.
+        if _perf is not None and _perf > self.incumbent_perf:
+            self.inc['hpo'] = self.local_inc['hpo']
+            self.inc['fe'] = self.local_inc['fe']
+            self.incumbent_perf = _perf
 
     def play_once(self):
         if self.early_stopped_flag:
@@ -191,23 +213,10 @@ class SecondLayerBandit(object):
         if self.mth == 'rb':
             self.optimize()
             if self.enable_intersection:
-                # Update join incumbent from FE and HPO.
-                _perf = None
-                try:
-                    with time_limit(600):
-                        _perf = Evaluator(
-                            self.local_inc['hpo'], data_node=self.local_inc['fe'],
-                            name='fe', resampling_strategy=self.evaluation_type,
-                            seed=self.seed)(self.local_inc['hpo'])
-                except Exception as e:
-                    self.logger.error(str(e))
-                # Update INC.
-                if _perf is not None and _perf > self.incumbent_perf:
-                    self.inc['hpo'] = self.local_inc['hpo']
-                    self.inc['fe'] = self.local_inc['fe']
-                    self.incumbent_perf = _perf
-        elif self.mth == 'alter' or self.mth == 'alter_p':
+                self.evaluate_joint_solution()
+        elif self.mth in ['alter', 'alter_p', 'alter_hpo']:
             self.optimize_alternatedly()
+            self.evaluate_joint_solution()
         else:
             raise ValueError('Invalid method: %s' % self.mth)
 

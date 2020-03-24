@@ -15,10 +15,11 @@ parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,vehicle,yeast,' \
               'messidor_features,winequality_red,winequality_white,splice,spambase,amazon_employee'
 parser.add_argument('--datasets', type=str, default=dataset_set)
-parser.add_argument('--mode', type=str, choices=['alter', 'rb', 'alter_p', 'plot'], default='rb')
+parser.add_argument('--mode', type=str, choices=['alter', 'rb', 'alter_p', 'alter_hpo', 'plot'], default='rb')
 parser.add_argument('--cv', type=str, choices=['cv', 'holdout'], default='holdout')
 parser.add_argument('--algo', type=str, default='random_forest')
 parser.add_argument('--time_cost', type=int, default=600)
+parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--rep_num', type=int, default=10)
 
 project_dir = './'
@@ -89,12 +90,14 @@ if __name__ == "__main__":
     cv = args.cv
     np.random.seed(1)
     rep = args.rep_num
-    seeds = np.random.randint(low=1, high=10000, size=rep)
+    start_id = args.start_id
+    seeds = np.random.randint(low=1, high=10000, size=start_id+rep)
     dataset_list = dataset_str.split(',')
 
     if mode != 'plot':
         for dataset in dataset_list:
-            for _id, seed in enumerate(seeds):
+            for _id in range(start_id, start_id+rep):
+                seed = seeds[_id]
                 print('Running %s with %d-th seed' % (dataset, _id + 1))
                 if mode == 'alter':
                     evaluate_2rd_layered_bandit(_id, mth=mode, dataset=dataset, cv=cv,
@@ -102,14 +105,14 @@ if __name__ == "__main__":
                 elif mode == 'rb':
                     evaluate_2rd_layered_bandit(_id, mth=mode, dataset=dataset, algo=algo, cv=cv,
                                                 time_limit=time_cost, seed=seed)
-                elif mode == 'alter_p':
+                elif mode in ['alter_p', 'alter_hpo']:
                     evaluate_2rd_layered_bandit(_id, mth=mode, dataset=dataset, algo=algo, cv=cv,
                                                 time_limit=time_cost, seed=seed)
                 else:
                     raise ValueError('Invalid mode: %s!' % mode)
     else:
         headers = ['dataset']
-        method_ids = ['alter', 'alter_p']
+        method_ids = ['alter', 'alter_hpo']
         for mth in method_ids:
             headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
@@ -124,7 +127,7 @@ if __name__ == "__main__":
                         continue
                     with open(file_path, 'rb') as f:
                         data = pickle.load(f)
-                    val_acc, test_acc = data[1], data[2]
+                    val_acc, test_acc = data[3], data[4]
                     results.append([val_acc, test_acc])
                     if mth == 'ausk':
                         print(data)
