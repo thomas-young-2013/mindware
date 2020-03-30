@@ -23,6 +23,7 @@ class FirstLayerBandit(object):
                  num_meta_configs=0,
                  n_jobs=1,
                  logging_config=None,
+                 opt_algo='rb',
                  seed=1):
         """
         :param classifier_ids: subset of {'adaboost','bernoulli_nb','decision_tree','extra_trees','gaussian_nb','gradient_boosting',
@@ -75,7 +76,8 @@ class FirstLayerBandit(object):
                 seed=self.seed,
                 eval_type=eval_type,
                 dataset_id=dataset_name,
-                n_jobs=self.n_jobs
+                n_jobs=self.n_jobs,
+                mth=opt_algo
             )
 
         self.action_sequence = list()
