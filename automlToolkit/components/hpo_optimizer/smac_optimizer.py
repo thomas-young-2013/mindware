@@ -45,7 +45,7 @@ class SMACOptimizer(BaseHPOptimizer):
             _threshold = int(len(set(self.config_space.sample_configuration(10000))) * 0.75)
             self.config_num_threshold = _threshold
         self.logger.debug('HP_THRESHOLD is: %d' % self.config_num_threshold)
-        self.maximum_config_num = min(500, self.config_num_threshold)
+        self.maximum_config_num = min(1000, self.config_num_threshold)
         self.early_stopped_flag = False
 
     def run(self):

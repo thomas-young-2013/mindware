@@ -20,7 +20,7 @@ class FirstLayerBandit(object):
                  tmp_directory='logs',
                  eval_type='holdout',
                  share_feature=False,
-                 meta_configs=0,
+                 num_meta_configs=0,
                  n_jobs=1,
                  logging_config=None,
                  seed=1):
@@ -53,23 +53,7 @@ class FirstLayerBandit(object):
         self.logger = self._get_logger(logger_name)
 
         # Meta-learning setting
-        self.meta_configs = None
-        if meta_configs is not None and isinstance(meta_configs, int) and meta_configs > 0:
-            try:
-                if len(set(self.original_data.data[1])) == 2:
-                    self.meta_configs = get_meta_learning_configs(self.original_data.data[0],
-                                                                  self.original_data.data[1],
-                                                                  BINARY_CLASSIFICATION,
-                                                                  metric='accuracy',
-                                                                  num_cfgs=meta_configs)
-                else:
-                    self.meta_configs = get_meta_learning_configs(self.original_data.data[0],
-                                                                  self.original_data.data[1],
-                                                                  MULTICLASS_CLASSIFICATION,
-                                                                  metric='accuracy',
-                                                                  num_cfgs=meta_configs)
-            except Exception as e:
-                self.logger.info('Meta-configs not found!')
+        self.meta_configs = self.fetch_meta_configs(num_meta_configs)
 
         # Bandit settings.
         self.incumbent_perf = -1.
@@ -104,6 +88,26 @@ class FirstLayerBandit(object):
 
     def update_global_datanodes(self, arm):
         self.fe_datanodes[arm] = self.sub_bandits[arm].fetch_local_incumbents()
+
+    def fetch_meta_configs(self, num_meta_configs):
+        meta_configs = None
+        if num_meta_configs is not None and isinstance(num_meta_configs, int) and num_meta_configs > 0:
+            try:
+                if len(set(self.original_data.data[1])) == 2:
+                    meta_configs = get_meta_learning_configs(self.original_data.data[0],
+                                                                  self.original_data.data[1],
+                                                                  BINARY_CLASSIFICATION,
+                                                                  metric='accuracy',
+                                                                  num_cfgs=num_meta_configs)
+                else:
+                    meta_configs = get_meta_learning_configs(self.original_data.data[0],
+                                                                  self.original_data.data[1],
+                                                                  MULTICLASS_CLASSIFICATION,
+                                                                  metric='accuracy',
+                                                                  num_cfgs=num_meta_configs)
+            except Exception as e:
+                self.logger.info('Meta-configs not found!')
+        return meta_configs
 
     def optimize(self, strategy='explore_first'):
         if self.meta_configs is not None:

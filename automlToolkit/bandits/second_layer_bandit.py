@@ -78,8 +78,7 @@ class SecondLayerBandit(object):
         self.inc['fe'], self.local_inc['fe'] = self.original_data, self.original_data
 
         # Build the HPO component.
-        # trials_per_iter = len(self.optimizer['fe'].trans_types)
-        trials_per_iter = 4
+        trials_per_iter = max(len(self.optimizer['fe'].trans_types), 20)
         hpo_evaluator = Evaluator(self.default_config,
                                   data_node=self.original_data, name='hpo',
                                   resampling_strategy=self.evaluation_type,
@@ -318,7 +317,7 @@ class SecondLayerBandit(object):
         else:
             if self.update_flag[_arm] is True:
                 trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
-                trials_per_iter = max(10, trials_per_iter)
+                trials_per_iter = max(20, trials_per_iter)
                 hpo_evaluator = Evaluator(self.config_space.get_default_configuration(),
                                           data_node=self.inc['fe'],
                                           name='hpo',
