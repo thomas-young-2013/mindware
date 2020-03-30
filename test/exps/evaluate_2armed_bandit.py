@@ -43,7 +43,9 @@ def evaluate_2rd_bandit(dataset, algo, time_limit, run_id, seed):
     train_data, test_data = load_train_test_data(dataset)
     enable_intersect = True
     bandit = SecondLayerBandit(algo, train_data, per_run_time_limit=300,
-                               seed=seed, eval_type='holdout', enable_intersection=enable_intersect)
+                               seed=seed, eval_type='holdout',
+                               mth='alter_hpo',
+                               enable_intersection=enable_intersect)
     mth_id = 'hmab' if enable_intersect else 'hmab0'
     _start_time = time.time()
     _iter_id = 0
