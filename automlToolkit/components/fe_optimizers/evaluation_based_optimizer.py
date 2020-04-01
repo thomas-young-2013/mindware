@@ -7,7 +7,7 @@ from automlToolkit.components.feature_engineering.transformation_graph import *
 from automlToolkit.components.fe_optimizers.base_optimizer import Optimizer
 from automlToolkit.components.fe_optimizers.transformer_manager import TransformerManager
 from automlToolkit.components.evaluators.evaluator import Evaluator
-from automlToolkit.components.utils.constants import SUCCESS, ERROR, TIMEOUT, CLASSIFICATION, REGRESSION
+from automlToolkit.components.utils.constants import SUCCESS, ERROR, TIMEOUT
 from automlToolkit.utils.decorators import time_limit, TimeoutException
 from automlToolkit.components.feature_engineering import TRANS_CANDIDATES
 

@@ -7,7 +7,6 @@ from automlToolkit.components.feature_engineering.transformations.preprocessor.o
 from automlToolkit.components.feature_engineering.transformations.selector.variance_selector import VarianceSelector
 from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
 from automlToolkit.utils.logging_utils import setup_logger, get_logger
-from automlToolkit.components.utils.constants import CLASSIFICATION
 
 
 class FEPipeline(object, metaclass=abc.ABCMeta):
@@ -130,7 +129,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         input_node = self.remove_cols_with_same_values(input_node)
         print(input_node.shape)
         print('='*20)
-        if self.task_type == CLASSIFICATION:
+        if self.task_type == 'classification':
             # Label encoding.
             input_node = self.encode_label(input_node)
         return input_node
