@@ -18,10 +18,15 @@ class SecondLayerBandit(object):
                  share_fe=False, output_dir='logs',
                  per_run_time_limit=120,
                  per_run_mem_limit=5120,
-                 eval_type='holdout', dataset_id='default',
+                 dataset_id='default',
+                 eval_type='holdout',
                  mth='rb', sw_size=3,
                  n_jobs=1, seed=1,
-                 enable_intersection=True):
+                 enable_intersection=True,
+                 number_of_unit_resource=1):
+        self.number_of_unit_resource = number_of_unit_resource
+        # One unit of resource, that's, the number of trials per iteration.
+        self.one_unit_of_resource = 5
         self.per_run_time_limit = per_run_time_limit
         self.per_run_mem_limit = per_run_mem_limit
         self.classifier_id = classifier_id
@@ -56,7 +61,7 @@ class SecondLayerBandit(object):
         self.early_stopped_flag = False
         self.enable_intersection = enable_intersection
 
-        # Fetch hyperparameter space.
+        # Set hyperparameter space.
         from autosklearn.pipeline.components.classification import _classifiers
         clf_class = _classifiers[classifier_id]
         cs = clf_class.get_hyperparameter_search_space()
@@ -78,7 +83,8 @@ class SecondLayerBandit(object):
         self.inc['fe'], self.local_inc['fe'] = self.original_data, self.original_data
 
         # Build the HPO component.
-        trials_per_iter = max(len(self.optimizer['fe'].trans_types), 20)
+        # trials_per_iter = max(len(self.optimizer['fe'].trans_types), 20)
+        trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
         hpo_evaluator = Evaluator(self.default_config,
                                   data_node=self.original_data, name='hpo',
                                   resampling_strategy=self.evaluation_type,
@@ -124,10 +130,6 @@ class SecondLayerBandit(object):
 
             arm_id = 'fe' if _arm == 'hpo' else 'hpo'
             self.update_flag[arm_id] = True
-
-        # if _arm == 'fe':
-        #     _num_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
-        #     self.optimizer['hpo'].trials_per_iter = max(_num_iter, 1)
 
     def optimize(self):
         # First pull each arm #sliding_window_size times.
@@ -316,13 +318,14 @@ class SecondLayerBandit(object):
                 self.logger.info('No improvement on HPO, so use the old FE optimizer!')
         else:
             if self.update_flag[_arm] is True:
-                trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
-                trials_per_iter = max(20, trials_per_iter)
+                # trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
+                # trials_per_iter = max(20, trials_per_iter)
+                trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
                 hpo_evaluator = Evaluator(self.config_space.get_default_configuration(),
-                                          data_node=self.inc['fe'],
-                                          name='hpo',
                                           resampling_strategy=self.evaluation_type,
-                                          seed=self.seed)
+                                          data_node=self.inc['fe'],
+                                          seed=self.seed,
+                                          name='hpo')
                 self.optimizer[_arm] = SMACOptimizer(
                     hpo_evaluator, self.config_space, output_dir=self.output_dir,
                     per_run_time_limit=self.per_run_time_limit,

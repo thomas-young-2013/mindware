@@ -1,6 +1,5 @@
 import gc
 import time
-import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 from collections import namedtuple
 from automlToolkit.components.feature_engineering.transformation_graph import *
@@ -19,9 +18,11 @@ class EvaluationBasedOptimizer(Optimizer):
                  model_id: str, time_limit_per_trans: int,
                  mem_limit_per_trans: int,
                  seed: int, shared_mode: bool = False,
-                 batch_size: int = 2, beam_width: int = 3, n_jobs=1, trans_set=None):
+                 batch_size: int = 2, beam_width: int = 3, n_jobs=1,
+                 number_of_unit_resource=3, trans_set=None):
         super().__init__(str(__class__.__name__), task_type, input_data, seed)
         self.transformer_manager = TransformerManager(random_state=seed)
+        self.number_of_unit_resource = number_of_unit_resource
         self.time_limit_per_trans = time_limit_per_trans
         self.mem_limit_per_trans = mem_limit_per_trans
         self.evaluator = evaluator
@@ -86,6 +87,12 @@ class EvaluationBasedOptimizer(Optimizer):
         return self.incumbent
 
     def iterate(self):
+        result = None
+        for _ in range(self.number_of_unit_resource):
+            result = self._iterate()
+        return result
+
+    def _iterate(self):
         _iter_start_time = time.time()
         _evaluation_cnt = 0
         execution_status = list()

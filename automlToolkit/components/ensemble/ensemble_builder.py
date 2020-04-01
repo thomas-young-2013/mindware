@@ -1,7 +1,6 @@
 import time
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedShuffleSplit
 from autosklearn.metrics import balanced_accuracy
 
@@ -19,7 +18,7 @@ class EnsembleBuilder(object):
 
     def fit_predict(self, test_data: DataNode):
         test_size = 0.33
-        stats = self.bandit.fetch_ensemble_members(test_data, mode=False)
+        stats = self.bandit.fetch_ensemble_members(test_data)
         seed = stats['split_seed']
 
         print('Start to train base models from %d algorithms!' % len(self.bandit.nbest_algo_ids))
@@ -68,7 +67,7 @@ class EnsembleBuilder(object):
                         except Exception as e:
                             print(e)
 
-        print('Training Base models ends!')
+        print('Training Base models finishes!')
         print('It took %.2f seconds!' % (time.time() - start_time))
 
         es = EnsembleSelection(ensemble_size=self.ensemble_size,
@@ -79,8 +78,6 @@ class EnsembleBuilder(object):
         y_pred = np.argmax(y_pred, axis=-1)
         return y_pred
 
-    def score(self, test_data: DataNode, metric_func=None):
-        if metric_func is None:
-            metric_func = accuracy_score
+    def score(self, test_data: DataNode, metric_func):
         y_pred = self.fit_predict(test_data)
         return metric_func(test_data.data[1], y_pred)
