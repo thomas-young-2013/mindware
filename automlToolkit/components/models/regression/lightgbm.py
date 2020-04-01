@@ -5,7 +5,6 @@ from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
     UnParametrizedHyperparameter
 import numpy as np
 from lightgbm import LGBMRegressor
-from hyperopt import hp
 
 from automlToolkit.components.utils.constants import *
 from automlToolkit.components.models.base_model import BaseRegressionModel
@@ -79,6 +78,7 @@ class LightGBM(BaseRegressionModel):
                                     colsample_bytree, reg_alpha, reg_lambda])
             return cs
         elif optimizer == 'tpe':
+            from hyperopt import hp
             space = {'n_estimators': hp.randint('lgb_n_estimators', 901) + 100,
                      'num_leaves': hp.randint('lgb_num_leaves', 993) + 31,
                      'learning_rate': hp.loguniform('lgb_learning_rate', np.log(0.025), np.log(0.3)),

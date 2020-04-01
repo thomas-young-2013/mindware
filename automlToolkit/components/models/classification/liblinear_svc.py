@@ -4,7 +4,6 @@ from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
 from ConfigSpace.forbidden import ForbiddenEqualsClause, \
     ForbiddenAndConjunction
 import numpy as np
-from hyperopt import hp
 
 from automlToolkit.components.utils.model_util import softmax
 from automlToolkit.components.utils.constants import *
@@ -136,6 +135,7 @@ class LibLinear_SVC(BaseClassificationModel):
             cs.add_forbidden_clause(penalty_and_dual)
             return cs
         elif optimizer == 'tpe':
+            from hyperopt import hp
             space = {'penalty': hp.choice('liblinear_combination',
                                           [{'penalty': "l1", 'loss': "squared_hinge", 'dual': "False"},
                                            {'penalty': "l2", 'loss': "hinge", 'dual': "True"},

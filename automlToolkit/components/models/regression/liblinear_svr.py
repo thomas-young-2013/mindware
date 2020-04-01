@@ -3,7 +3,6 @@ from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
     CategoricalHyperparameter, Constant
 from ConfigSpace.forbidden import ForbiddenEqualsClause, \
     ForbiddenAndConjunction
-from hyperopt import hp
 import numpy as np
 
 from automlToolkit.components.utils.constants import *
@@ -94,6 +93,7 @@ class LibLinear_SVR(BaseRegressionModel):
             cs.add_forbidden_clause(dual_and_loss)
             return cs
         elif optimizer == 'tpe':
+            from hyperopt import hp
             space = {'loss': hp.choice('liblinear_combination', [{'loss': "epsilon_insensitive", 'dual': "True"},
                                                                  {'loss': "squared_epsilon_insensitive",
                                                                   'dual': "True"},

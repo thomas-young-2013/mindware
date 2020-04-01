@@ -3,7 +3,6 @@ from ConfigSpace.conditions import EqualsCondition, InCondition
 from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
     UniformIntegerHyperparameter, CategoricalHyperparameter, \
     UnParametrizedHyperparameter
-from hyperopt import hp
 import numpy as np
 
 from automlToolkit.components.utils.constants import *
@@ -116,6 +115,7 @@ class LibSVM_SVR(BaseRegressionModel):
 
             return cs
         elif optimizer == 'tpe':
+            from hyperopt import hp
             coef0 = hp.uniform("libsvm_coef0", -1, 1)
             space = {'C': hp.loguniform('libsvm_C', np.log(0.03125), np.log(32768)),
                      'gamma': hp.loguniform('libsvm_gamma', np.log(3.0517578125e-5), np.log(8)),

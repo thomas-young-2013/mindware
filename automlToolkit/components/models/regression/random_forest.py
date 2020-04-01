@@ -2,7 +2,6 @@ from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
     UniformIntegerHyperparameter, CategoricalHyperparameter, \
     UnParametrizedHyperparameter, Constant
-from hyperopt import hp
 import numpy as np
 
 from automlToolkit.components.models.base_model import BaseRegressionModel, IterativeComponentWithSampleWeight
@@ -145,6 +144,7 @@ class RandomForest(
                                     bootstrap, min_impurity_decrease])
             return cs
         elif optimizer == 'tpe':
+            from hyperopt import hp
             space = {'n_estimators': hp.choice('rf_n_estimators', [100]),
                      'criterion': hp.choice('rf_criterion', ["mse", "mae"]),
                      'max_features': hp.uniform('rf_max_features', 0, 1),

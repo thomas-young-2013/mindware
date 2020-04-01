@@ -1,5 +1,4 @@
 import time
-from hyperopt import hp
 
 from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
@@ -155,6 +154,7 @@ class RandomForest(
                                     bootstrap, min_impurity_decrease])
             return cs
         elif optimizer == 'tpe':
+            from hyperopt import hp
             space = {'n_estimators': hp.choice('rf_n_estimators', [100]),
                      'criterion': hp.choice('rf_criterion', ["gini", "entropy"]),
                      'max_features': hp.uniform('rf_max_features', 0, 1),
