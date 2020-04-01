@@ -5,7 +5,6 @@ from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import KFold, train_test_split
 from automlToolkit.utils.logging_utils import get_logger
-from automlToolkit.components.metrics.metric import fetch_scorer
 
 
 @ignore_warnings(category=ConvergenceWarning)
@@ -75,7 +74,7 @@ class RegressionEvaluator(object):
                  resampling_strategy='holdout', cv=5, seed=1,
                  estimator=None):
         self.reg_config = reg_config
-        self.scorer = fetch_scorer(scorer, 'regression')
+        self.scorer = scorer
         self.data_node = data_node
         self.name = name
         self.estimator = estimator
@@ -124,7 +123,7 @@ class RegressionEvaluator(object):
                 raise e
             self.logger.info('%s-evaluator: %s' % (self.name, str(e)))
             return np.inf
-        print('=' * 6+'>', self.scorer._sign * score)
+        print('=' * 6 + '>', self.scorer._sign * score)
         fmt_str = '\n' + ' ' * 5 + '==> '
         self.logger.debug('%s%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
                           (fmt_str, self.eval_id, regressor_id,

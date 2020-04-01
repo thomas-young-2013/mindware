@@ -2,13 +2,17 @@ import time
 import typing
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
+from automlToolkit.components.utils.constants import *
+from automlToolkit.components.metrics.metric import get_metric
 
-classification_algorithms = ['lightgbm', 'random_forest']
-regression_algorithms = ['random_forest']
+classification_algorithms = ['liblinear_svc', 'random_forest']
+regression_algorithms = ['liblinear_svr', 'random_forest']
 
 
 class AutoML(object):
-    def __init__(self, classification=True,
+    def __init__(self,
+                 classification=True,
+                 metric='acc',
                  time_limit=None,
                  iter_num_per_algo=50,
                  include_algorithms=None,
@@ -17,8 +21,12 @@ class AutoML(object):
                  random_state=1,
                  n_jobs=1,
                  evaluation='holdout',
-                 output_dir=None):
-        self.is_classification = classification
+                 output_dir="/tmp/"):
+        if classification:
+            self.task_type = CLASSIFICATION
+        else:
+            self.task_type = REGRESSION
+        self.metric = get_metric(metric)
         self.time_limit = time_limit
         self.random_seed = random_state
         self.ensemble_size = ensemble_size
@@ -29,7 +37,7 @@ class AutoML(object):
         self.n_jobs = n_jobs
         self.solvers = dict()
         if include_algorithms is None:
-            if self.is_classification:
+            if self.task_type == CLASSIFICATION:
                 self.include_algorithms = classification_algorithms
             else:
                 self.include_algorithms = regression_algorithms
@@ -47,15 +55,15 @@ class AutoML(object):
         """
         # Initialize each algorithm's solver.
         for _algo in self.include_algorithms:
-            self.solvers[_algo] = SecondLayerBandit(
-                _algo, train_data, output_dir=self.output_dir,
-                per_run_time_limit=self.per_run_time_limit,
-                seed=self.random_seed,
-                eval_type=self.evaluation_type,
-                dataset_id=dataset_id,
-                n_jobs=self.n_jobs,
-                mth='alter_hpo'
-            )
+            self.solvers[_algo] = SecondLayerBandit(self.task_type, _algo, train_data,
+                                                    metric=self.metric,
+                                                    output_dir=self.output_dir,
+                                                    per_run_time_limit=self.per_run_time_limit,
+                                                    seed=self.random_seed,
+                                                    eval_type=self.evaluation_type,
+                                                    dataset_id=dataset_id,
+                                                    n_jobs=self.n_jobs,
+                                                    mth='alter_hpo')
 
         # Set the resource limit.
         if self.time_limit is not None:
@@ -74,12 +82,13 @@ class AutoML(object):
                 result = solver.play_once()
                 print('optimize %s in %d-th iteration: %.3f' % (algo, _iter_id, result))
                 _iter_id += 1
-                if self.time_limit is None:
+                if self.time_limit is not None:
                     if time.time() - _start_time >= time_limit_per_algo:
                         break
                 if solver.early_stopped_flag:
                     break
 
+        assert False
         # Ensembling all intermediate/ultimate models found in above optimization process.
         pass
 

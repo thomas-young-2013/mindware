@@ -2,6 +2,7 @@ import typing
 import numpy as np
 from sklearn.model_selection import StratifiedShuffleSplit
 from automlToolkit.components.evaluators.evaluator import Evaluator
+from automlToolkit.components.evaluators.reg_evaluator import RegressionEvaluator
 from automlToolkit.utils.logging_utils import get_logger
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
@@ -9,12 +10,13 @@ from automlToolkit.components.hpo_optimizer.psmac_optimizer import PSMACOptimize
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
 from automlToolkit.components.evaluators.evaluator import fetch_predict_estimator
+from automlToolkit.components.utils.constants import *
 from automlToolkit.utils.decorators import time_limit, TimeoutException
 from automlToolkit.utils.functions import get_increasing_sequence
 
 
 class SecondLayerBandit(object):
-    def __init__(self, classifier_id: str, data: DataNode,
+    def __init__(self, task_type, estimator_id: str, data: DataNode, metric,
                  share_fe=False, output_dir='logs',
                  per_run_time_limit=120,
                  per_run_mem_limit=5120,
@@ -22,9 +24,11 @@ class SecondLayerBandit(object):
                  mth='rb', sw_size=3,
                  n_jobs=1, seed=1,
                  enable_intersection=True):
+        self.task_type = task_type
+        self.metric = metric
         self.per_run_time_limit = per_run_time_limit
         self.per_run_mem_limit = per_run_mem_limit
-        self.classifier_id = classifier_id
+        self.classifier_id = estimator_id
         self.evaluation_type = eval_type
         self.original_data = data.copy_()
         self.share_fe = share_fe
@@ -33,7 +37,7 @@ class SecondLayerBandit(object):
         self.seed = seed
         self.sliding_window_size = sw_size
         self.logger = get_logger('%s:%s-%d=>%s' % (
-            __class__.__name__, dataset_id, seed, classifier_id))
+            __class__.__name__, dataset_id, seed, estimator_id))
         np.random.seed(self.seed)
 
         # Bandit settings.
@@ -57,32 +61,53 @@ class SecondLayerBandit(object):
         self.enable_intersection = enable_intersection
 
         # Fetch hyperparameter space.
-        from autosklearn.pipeline.components.classification import _classifiers
-        clf_class = _classifiers[classifier_id]
-        cs = clf_class.get_hyperparameter_search_space()
-        model = UnParametrizedHyperparameter("estimator", classifier_id)
-        cs.add_hyperparameter(model)
+        if self.task_type in CLS_TASKS:
+            from automlToolkit.components.models.classification import _classifiers
+            clf_class = _classifiers[estimator_id]
+            cs = clf_class.get_hyperparameter_search_space()
+            model = UnParametrizedHyperparameter("estimator", estimator_id)
+            cs.add_hyperparameter(model)
+        elif self.task_type in REG_TASKS:
+            from automlToolkit.components.models.regression import _regressors
+            reg_class = _regressors[estimator_id]
+            cs = reg_class.get_hyperparameter_search_space()
+            model = UnParametrizedHyperparameter("estimator", estimator_id)
+            cs.add_hyperparameter(model)
+        else:
+            raise ValueError("Unknown task type %s!" % self.task_type)
+
         self.config_space = cs
         self.default_config = cs.get_default_configuration()
         self.config_space.seed(self.seed)
 
         # Build the Feature Engineering component.
-        fe_evaluator = Evaluator(self.default_config,
-                                 name='fe', resampling_strategy=self.evaluation_type,
-                                 seed=self.seed)
+        if self.task_type in CLS_TASKS:
+            fe_evaluator = Evaluator(self.default_config, scorer=self.metric,
+                                     name='fe', resampling_strategy=self.evaluation_type,
+                                     seed=self.seed)
+            hpo_evaluator = Evaluator(self.default_config, scorer=self.metric,
+                                      data_node=self.original_data, name='hpo',
+                                      resampling_strategy=self.evaluation_type,
+                                      seed=self.seed)
+        elif self.task_type in REG_TASKS:
+            fe_evaluator = RegressionEvaluator(self.default_config, scorer=self.metric,
+                                               name='fe', resampling_strategy=self.evaluation_type,
+                                               seed=self.seed)
+            hpo_evaluator = RegressionEvaluator(self.default_config, scorer=self.metric,
+                                                data_node=self.original_data, name='hpo',
+                                                resampling_strategy=self.evaluation_type,
+                                                seed=self.seed)
+
         self.optimizer['fe'] = EvaluationBasedOptimizer(
             'classification',
             self.original_data, fe_evaluator,
-            classifier_id, per_run_time_limit, per_run_mem_limit, self.seed,
+            estimator_id, per_run_time_limit, per_run_mem_limit, self.seed,
             shared_mode=self.share_fe, n_jobs=n_jobs)
         self.inc['fe'], self.local_inc['fe'] = self.original_data, self.original_data
 
         # Build the HPO component.
         trials_per_iter = max(len(self.optimizer['fe'].trans_types), 20)
-        hpo_evaluator = Evaluator(self.default_config,
-                                  data_node=self.original_data, name='hpo',
-                                  resampling_strategy=self.evaluation_type,
-                                  seed=self.seed)
+
         if n_jobs == 1:
             self.optimizer['hpo'] = SMACOptimizer(
                 hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,

@@ -1,16 +1,15 @@
 import time
 import warnings
 import numpy as np
-from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
 from sklearn.model_selection import StratifiedKFold, train_test_split, StratifiedShuffleSplit
 from automlToolkit.utils.logging_utils import get_logger
 from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.metrics import accuracy_score, balanced_accuracy_score
+from sklearn.metrics.scorer import balanced_accuracy_scorer
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def cross_validation(clf, X, y, n_fold=5, shuffle=True, fit_params=None, random_state=1):
+def cross_validation(clf, scorer, X, y, n_fold=5, shuffle=True, fit_params=None, random_state=1):
     with warnings.catch_warnings():
         # ignore all caught warnings
         warnings.filterwarnings("ignore")
@@ -26,13 +25,12 @@ def cross_validation(clf, X, y, n_fold=5, shuffle=True, fit_params=None, random_
             if len(fit_params) > 0:
                 _fit_params['sample_weight'] = fit_params['sample_weight'][train_idx]
             clf.fit(train_x, train_y, **_fit_params)
-            pred = clf.predict(valid_x)
-            scores.append(balanced_accuracy(pred, valid_y))
+            scores.append(scorer(clf, valid_x, valid_y))
         return np.mean(scores)
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def holdout_validation(clf, X, y, test_size=0.33, fit_params=None, random_state=1):
+def holdout_validation(clf, scorer, X, y, test_size=0.33, fit_params=None, random_state=1):
     with warnings.catch_warnings():
         # ignore all caught warnings
         warnings.filterwarnings("ignore")
@@ -44,12 +42,11 @@ def holdout_validation(clf, X, y, test_size=0.33, fit_params=None, random_state=
             if len(fit_params) > 0:
                 _fit_params['sample_weight'] = fit_params['sample_weight'][train_index]
             clf.fit(X_train, y_train, **_fit_params)
-            y_pred = clf.predict(X_test)
-            return balanced_accuracy(y_test, y_pred)
+            return scorer(clf, X_test, y_test)
 
 
 def get_estimator(config):
-    from autosklearn.pipeline.components.classification import _classifiers
+    from automlToolkit.components.models.classification import _classifiers
     classifier_type = config['estimator']
     config_ = config.copy()
     config_.pop('estimator', None)
@@ -74,14 +71,14 @@ def fetch_predict_estimator(config, X_train, y_train):
 
 
 class Evaluator(object):
-    def __init__(self, clf_config, data_node=None, name=None,
+    def __init__(self, clf_config, scorer=None, data_node=None, name=None,
                  resampling_strategy='cv', resampling_params=None, seed=1):
         self.resampling_strategy = resampling_strategy
         self.resampling_params = resampling_params
         self.clf_config = clf_config
+        self.scorer = scorer if scorer is not None else balanced_accuracy_scorer
         self.data_node = data_node
         self.name = name
-
         self.seed = seed
         self.eval_id = 0
         self.logger = get_logger('Evaluator-%s' % self.name)
@@ -130,7 +127,7 @@ class Evaluator(object):
                     folds = 5
                 else:
                     folds = self.resampling_params['folds']
-                score = cross_validation(clf, X_train, y_train,
+                score = cross_validation(clf, self.scorer, X_train, y_train,
                                          n_fold=folds, random_state=self.seed,
                                          fit_params=self.fit_params)
             elif self.resampling_strategy == 'holdout':
@@ -138,7 +135,7 @@ class Evaluator(object):
                     test_size = 0.33
                 else:
                     test_size = self.resampling_params['test_size']
-                score = holdout_validation(clf, X_train, y_train, test_size=test_size,
+                score = holdout_validation(clf, self.scorer, X_train, y_train, test_size=test_size,
                                            random_state=self.seed, fit_params=self.fit_params)
             else:
                 raise ValueError('Invalid resampling strategy: %s!' % self.resampling_strategy)
@@ -148,7 +145,7 @@ class Evaluator(object):
             self.logger.info('%s-evaluator: %s' % (self.name, str(e)))
             score = 0.
 
-        fmt_str = '\n'+' '*5 + '==> '
+        fmt_str = '\n' + ' ' * 5 + '==> '
         self.logger.debug('%s%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
                           (fmt_str, self.eval_id, classifier_id,
                            score, time.time() - start_time, X_train.shape))
