@@ -3,7 +3,7 @@ import typing
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 
-classification_algorithms = ['xgboost', 'lightgbm', 'catboost', 'random_forest']
+classification_algorithms = ['lightgbm', 'random_forest']
 regression_algorithms = ['random_forest']
 
 
@@ -33,6 +33,9 @@ class AutoML(object):
                 self.include_algorithms = classification_algorithms
             else:
                 self.include_algorithms = regression_algorithms
+
+    def fetch_ensemble_members(self):
+        pass
 
     def fit(self, train_data: DataNode, dataset_id=None):
         """
