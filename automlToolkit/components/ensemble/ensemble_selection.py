@@ -4,22 +4,21 @@ import random
 import numpy as np
 from sklearn.utils.validation import check_random_state
 
-from autosklearn.constants import *
-from autosklearn.ensembles.abstract_ensemble import AbstractEnsemble
-from autosklearn.metrics import calculate_score
+from automlToolkit.components.utils.constants import *
+from sklearn.metrics.scorer import _BaseScorer, _PredictScorer, _ThresholdScorer
 from autosklearn.metrics import Scorer
 
 
-class EnsembleSelection(AbstractEnsemble):
+class EnsembleSelection():
     def __init__(
-        self,
-        ensemble_size: int,
-        task_type: int,
-        metric: Scorer,
-        sorted_initialization: bool=False,
-        bagging: bool=False,
-        mode: str='fast',
-        random_state: np.random.RandomState=None,
+            self,
+            ensemble_size: int,
+            task_type: int,
+            metric: _BaseScorer,
+            sorted_initialization: bool = False,
+            bagging: bool = False,
+            mode: str = 'fast',
+            random_state: np.random.RandomState = None,
     ):
         self.ensemble_size = ensemble_size
         self.task_type = task_type
@@ -29,13 +28,22 @@ class EnsembleSelection(AbstractEnsemble):
         self.mode = mode
         self.random_state = random_state
 
+    def calculate_score(self, pred, y_true):
+        if isinstance(self.metric, _ThresholdScorer):
+            if len(y_true.shape) == 1:
+                y_true = self.encoder.transform(np.reshape(y_true, (len(y_true), 1))).toarray()
+        elif self.task_type in CLS_TASKS and isinstance(self.metric, _PredictScorer):
+            pred = np.argmax(pred, axis=-1)
+        score = self.metric._score_func(y_true, pred) * self.metric._sign
+        return score
+
     def fit(self, predictions, labels, identifiers):
         self.ensemble_size = int(self.ensemble_size)
         if self.ensemble_size < 1:
             raise ValueError('Ensemble size cannot be less than one!')
         if not self.task_type in TASK_TYPES:
             raise ValueError('Unknown task type %s.' % self.task_type)
-        if not isinstance(self.metric, Scorer):
+        if not isinstance(self.metric, _BaseScorer):
             raise ValueError('Metric must be of type scorer')
         if self.mode not in ('fast', 'slow'):
             raise ValueError('Unknown mode %s' % self.mode)
@@ -72,9 +80,7 @@ class EnsembleSelection(AbstractEnsemble):
                 ensemble.append(predictions[idx])
                 order.append(idx)
                 ensemble_ = np.array(ensemble).mean(axis=0)
-                ensemble_performance = calculate_score(
-                    labels, ensemble_, self.task_type, self.metric,
-                    ensemble_.shape[1])
+                ensemble_performance = self.calculate_score(pred=ensemble_, y_true=labels)
                 trajectory.append(ensemble_performance)
             ensemble_size -= n_best
 
@@ -99,12 +105,7 @@ class EnsembleSelection(AbstractEnsemble):
                 fant_ensemble_prediction[:, :] = weighted_ensemble_prediction + \
                                                  (1. / float(s + 1)) * pred
 
-                scores[j] = self.metric._optimum - calculate_score(
-                    solution=labels,
-                    prediction=fant_ensemble_prediction,
-                    task_type=self.task_type,
-                    metric=self.metric,
-                    all_scoring_functions=False)
+                scores[j] = 1 - self.calculate_score(pred=fant_ensemble_prediction, y_true=labels)
 
             all_best = np.argwhere(scores == np.nanmin(scores)).flatten()
             best = self.random_state.choice(all_best)
@@ -137,12 +138,7 @@ class EnsembleSelection(AbstractEnsemble):
                 ensemble.append(predictions[idx])
                 order.append(idx)
                 ensemble_ = np.array(ensemble).mean(axis=0)
-                ensemble_performance = calculate_score(
-                    solution=labels,
-                    prediction=ensemble_,
-                    task_type=self.task_type,
-                    metric=self.metric,
-                    all_scoring_functions=False)
+                ensemble_performance = self.calculate_score(pred=ensemble_, y_true=labels)
                 trajectory.append(ensemble_performance)
             ensemble_size -= n_best
 
@@ -151,12 +147,7 @@ class EnsembleSelection(AbstractEnsemble):
             for j, pred in enumerate(predictions):
                 ensemble.append(pred)
                 ensemble_prediction = np.mean(np.array(ensemble), axis=0)
-                scores[j] = self.metric._optimum - calculate_score(
-                    solution=labels,
-                    prediction=ensemble_prediction,
-                    task_type=self.task_type,
-                    metric=self.metric,
-                    all_scoring_functions=False)
+                scores[j] = 1 - self.calculate_score(pred=ensemble_prediction, y_true=labels)
                 ensemble.pop()
             best = np.nanargmin(scores)
             ensemble.append(predictions[best])
@@ -187,27 +178,10 @@ class EnsembleSelection(AbstractEnsemble):
         perf = np.zeros([predictions.shape[0]])
 
         for idx, prediction in enumerate(predictions):
-            perf[idx] = calculate_score(labels, prediction, self.task_type,
-                                        self.metric, predictions.shape[1])
+            perf[idx] = self.calculate_score(pred=predictions, y_true=labels)
 
         indices = np.argsort(perf)[perf.shape[0] - n_best:]
         return indices
-
-    def _bagging(self, predictions, labels, fraction=0.5, n_bags=20):
-        """Rich Caruana's ensemble selection method with bagging."""
-        raise ValueError('Bagging might not work with class-based interface!')
-        n_models = predictions.shape[0]
-        bag_size = int(n_models * fraction)
-
-        order_of_each_bag = []
-        for j in range(n_bags):
-            # Bagging a set of models
-            indices = sorted(random.sample(range(0, n_models), bag_size))
-            bag = predictions[indices, :, :]
-            order, _ = self._fit(bag, labels)
-            order_of_each_bag.append(order)
-
-        return np.array(order_of_each_bag)
 
     def predict(self, predictions):
         predictions = np.asarray(predictions)
@@ -232,7 +206,7 @@ class EnsembleSelection(AbstractEnsemble):
         return 'Ensemble Selection:\n\tTrajectory: %s\n\tMembers: %s' \
                '\n\tWeights: %s\n\tIdentifiers: %s' % \
                (' '.join(['%d: %5f' % (idx, performance)
-                         for idx, performance in enumerate(self.trajectory_)]),
+                          for idx, performance in enumerate(self.trajectory_)]),
                 self.indices_, self.weights_,
                 ' '.join([str(identifier) for idx, identifier in
                           enumerate(self.identifiers_)
