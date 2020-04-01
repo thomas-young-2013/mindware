@@ -5,6 +5,7 @@ import pickle
 import argparse
 import numpy as np
 import autosklearn.classification
+from tabulate import tabulate
 
 sys.path.append(os.getcwd())
 
@@ -55,15 +56,17 @@ def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_
         pickle.dump(data, f)
 
 
-def load_hmab_time_costs(start_id, rep, dataset, n_algo, trial_num):
+def load_hmab_time_costs(start_id, rep, dataset, n_algo, trial_num, seeds):
     time_costs = list()
     for run_id in range(start_id, start_id + rep):
+        seed = seeds[run_id]
         save_path = project_dir + 'data/hmab_%s_%s_%d_%d_%d_%d.pkl' % (opt_algo, dataset, trial_num,
                                                                        n_algo, seed, run_id)
         with open(save_path, 'rb') as f:
-            time_cost_ = pickle.load(f)[3]
+            time_cost_ = int(pickle.load(f)[4])
             time_costs.append(time_cost_)
     assert len(time_costs) == rep
+    print(time_costs)
     return time_costs
 
 
@@ -134,17 +137,62 @@ if __name__ == "__main__":
                   ]
     dataset_list = dataset_str.split(',')
 
-    for dataset in dataset_list:
-        time_costs = list()
-        if mode == 'ausk':
-            time_costs = load_hmab_time_costs(start_id, rep, dataset, len(algorithms), trial_num)
+    if mode != 'plot':
+        for dataset in dataset_list:
+            time_costs = list()
+            if mode == 'ausk':
+                time_costs = load_hmab_time_costs(start_id, rep, dataset, len(algorithms), trial_num, seeds)
 
-        for run_id in range(start_id, start_id + rep):
-            seed = int(seeds[run_id])
-            if mode == 'hmab':
-                evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed)
-            elif mode == 'ausk':
-                time_taken = time_costs[run_id-start_id]
-                evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=time_taken)
-            else:
-                raise ValueError('Invalid parameter: %s' % mode)
+            for run_id in range(start_id, start_id + rep):
+                seed = int(seeds[run_id])
+                if mode == 'hmab':
+                    evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed)
+                elif mode == 'ausk':
+                    time_taken = time_costs[run_id-start_id]
+                    evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=time_taken)
+                else:
+                    raise ValueError('Invalid parameter: %s' % mode)
+    else:
+        headers = ['dataset']
+        method_ids = ['hmab_alter_hpo', 'ausk_vanilla']
+        for mth in method_ids:
+            headers.extend(['val-%s' % mth, 'test-%s' % mth])
+
+        tbl_data = list()
+        for dataset in dataset_list:
+            row_data = [dataset]
+            for mth in method_ids:
+                results = list()
+                for run_id in range(rep):
+                    seed = seeds[run_id]
+                    file_path = project_dir + 'data/%s_%s_%d_%d_%d_%d.pkl' % (
+                        mth, dataset, trial_num, len(algorithms), seed, run_id)
+                    if not os.path.exists(file_path):
+                        continue
+                    with open(file_path, 'rb') as f:
+                        data = pickle.load(f)
+                    val_acc, test_acc = data[1], data[2]
+                    results.append([val_acc, test_acc])
+
+                if len(results) == rep:
+                    results = np.array(results)
+                    stats_ = zip(np.mean(results, axis=0), np.std(results, axis=0))
+                    string = ''
+                    for mean_t, std_t in stats_:
+                        string += u'%.3f\u00B1%.3f |' % (mean_t, std_t)
+                    print(dataset, mth, '=' * 30)
+                    print('%s-%s: mean\u00B1std' % (dataset, mth), string)
+                    print('%s-%s: median' % (dataset, mth), np.median(results, axis=0))
+
+                    for idx in range(results.shape[1]):
+                        vals = results[:, idx]
+                        median = np.median(vals)
+                        if median == 0.:
+                            row_data.append('-')
+                        else:
+                            row_data.append(u'%.4f' % median)
+                else:
+                    row_data.extend(['-'] * 2)
+
+            tbl_data.append(row_data)
+        print(tabulate(tbl_data, headers, tablefmt='github'))
