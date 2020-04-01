@@ -42,17 +42,20 @@ def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_
                               opt_algo=opt_algo,
                               seed=seed)
     bandit.optimize()
-    print(bandit.final_rewards)
-    print(bandit.action_sequence)
+    model_desc = [bandit.nbest_algo_ids, bandit.optimal_algo_id, bandit.final_rewards, bandit.action_sequence]
+
     time_taken = time.time() - _start_time
     validation_accuracy = np.max(bandit.final_rewards)
     test_accuracy = bandit.score(test_data, metric_func=balanced_accuracy)
     test_accuracy_with_ens = EnsembleBuilder(bandit).score(test_data, metric_func=balanced_accuracy)
+    data = [dataset, validation_accuracy, test_accuracy, test_accuracy_with_ens, time_taken, model_desc]
+    print(model_desc)
+
+    print(data[:4])
 
     save_path = project_dir + 'data/hmab_%s_%s_%d_%d_%d_%d.pkl' % (
         opt_algo, dataset, trial_num, len(algorithms), seed, run_id)
     with open(save_path, 'wb') as f:
-        data = [dataset, validation_accuracy, test_accuracy, test_accuracy_with_ens, time_taken]
         pickle.dump(data, f)
 
 
@@ -135,6 +138,7 @@ if __name__ == "__main__":
                   'lda', 'qda',
                   'multinomial_nb', 'gaussian_nb', 'bernoulli_nb'
                   ]
+
     dataset_list = dataset_str.split(',')
 
     if mode != 'plot':
