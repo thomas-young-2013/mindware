@@ -120,7 +120,7 @@ class SecondLayerBandit(object):
         self.local_inc[_arm] = config
 
         # Update global incumbent from FE and HPO.
-        if score > self.incumbent_perf:
+        if score > self.incumbent_perf and np.isfinite(score):
             self.inc[_arm] = config
             if _arm == 'fe':
                 self.inc['hpo'] = self.default_config
@@ -190,6 +190,16 @@ class SecondLayerBandit(object):
         self.action_sequence.append(_arm)
         self.pull_cnt += 1
 
+    def optimize_one_component(self, mth):
+        _arm = 'hpo' if mth == 'hpo_only' else 'fe'
+        self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.classifier_id, self.pull_cnt))
+
+        # Execute one iteration.
+        results = self.optimizer[_arm].iterate()
+        self.collect_iter_stats(_arm, results)
+        self.action_sequence.append(_arm)
+        self.pull_cnt += 1
+
     def evaluate_joint_solution(self):
         # Update join incumbent from FE and HPO.
         _perf = None
@@ -202,7 +212,7 @@ class SecondLayerBandit(object):
         except Exception as e:
             self.logger.error(str(e))
         # Update INC.
-        if _perf is not None and _perf > self.incumbent_perf:
+        if _perf is not None and _perf > self.incumbent_perf and np.isfinite(_perf):
             self.inc['hpo'] = self.local_inc['hpo']
             self.inc['fe'] = self.local_inc['fe']
             self.incumbent_perf = _perf
@@ -218,6 +228,8 @@ class SecondLayerBandit(object):
         elif self.mth in ['alter', 'alter_p', 'alter_hpo']:
             self.optimize_alternatedly()
             self.evaluate_joint_solution()
+        elif self.mth in ['fe_only', 'hpo_only']:
+            self.optimize_one_component(self.mth)
         else:
             raise ValueError('Invalid method: %s' % self.mth)
 

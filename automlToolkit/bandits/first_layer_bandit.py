@@ -159,8 +159,9 @@ class FirstLayerBandit(object):
             perfs = hpo_optimizer.perfs
             best_configs = [self.sub_bandits[algo_id].default_config, inc['hpo'], local_inc['hpo']]
             best_configs = list(set(best_configs))
-            n_best = 40
-            threshold = np.max(self.best_lower_bounds) * 0.
+            n_best = 30
+            # threshold = np.max(self.best_lower_bounds) * 0.
+            threshold = 0.
             for idx in np.argsort(-np.array(perfs)):
                 if perfs[idx] >= threshold and configs[idx] not in best_configs:
                     best_configs.append(configs[idx])
@@ -298,6 +299,21 @@ class FirstLayerBandit(object):
                 N_t[id] = N_t[id] * gamma
                 if id == arm_idx:
                     N_t[id] += 1
+
+        result = list()
+        for _arm in self.arms:
+            val = 0. if len(self.rewards[_arm]) == 0 else np.max(self.rewards[_arm])
+            result.append(val)
+        self.optimal_algo_id = self.arms[np.argmax(result)]
+        _best_perf = np.max(result)
+
+        threshold = 0.96
+        idxs = np.argsort(-np.array(result))[:3]
+        _algo_ids = [self.arms[idx] for idx in idxs]
+        self.nbest_algo_ids = list()
+        for _idx, _arm in zip(idxs, _algo_ids):
+            if result[_idx] >= threshold * _best_perf:
+                self.nbest_algo_ids.append(_arm)
 
         return self.rewards
 
