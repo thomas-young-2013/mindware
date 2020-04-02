@@ -30,7 +30,6 @@ class PercentileSelectorRegression(Transformer):
         irrevalent_fields = list(range(n_fields))
         for field_id in target_fields:
             irrevalent_fields.remove(field_id)
-        print(self.score_func)
         if self.model is None:
             from sklearn.feature_selection import SelectPercentile
             self.model = SelectPercentile(self.score_func, percentile=self.percentile)

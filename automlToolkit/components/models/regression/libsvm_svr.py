@@ -11,8 +11,9 @@ from automlToolkit.components.models.base_model import BaseRegressionModel
 
 
 class LibSVM_SVR(BaseRegressionModel):
-    def __init__(self, C, kernel, gamma, shrinking, tol, max_iter,
+    def __init__(self, epsilon, C, kernel, gamma, shrinking, tol, max_iter,
                  degree=3, coef0=0, random_state=None):
+        self.epsilon = epsilon
         self.C = C
         self.kernel = kernel
         self.degree = degree
@@ -37,6 +38,7 @@ class LibSVM_SVR(BaseRegressionModel):
             elif self.kernel == 'sigmoid':
                 self.coef0 = nested_kernel[1]['coef0']
 
+        self.epsilon = float(self.epsilon)
         self.C = float(self.C)
         if self.degree is None:
             self.degree = 3
@@ -55,7 +57,8 @@ class LibSVM_SVR(BaseRegressionModel):
 
         self.shrinking = check_for_bool(self.shrinking)
 
-        self.estimator = SVR(C=self.C,
+        self.estimator = SVR(epsilon=self.epsilon,
+                             C=self.C,
                              kernel=self.kernel,
                              degree=self.degree,
                              gamma=self.gamma,
@@ -86,6 +89,7 @@ class LibSVM_SVR(BaseRegressionModel):
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
         if optimizer == 'smac':
+            epsilon = CategoricalHyperparameter("epsilon", [1e-4, 1e-3, 1e-2, 1e-1, 1], default_value=1e-4)
             C = UniformFloatHyperparameter("C", 0.03125, 32768, log=True,
                                            default_value=1.0)
             # No linear kernel here, because we have liblinear
@@ -105,8 +109,8 @@ class LibSVM_SVR(BaseRegressionModel):
             max_iter = UnParametrizedHyperparameter("max_iter", 2000)
 
             cs = ConfigurationSpace()
-            cs.add_hyperparameters([C, kernel, degree, gamma, coef0, shrinking,
-                                    tol, max_iter])
+            cs.add_hyperparameters([epsilon, C, kernel, degree, gamma, coef0,
+                                    shrinking, tol, max_iter])
 
             degree_depends_on_poly = EqualsCondition(degree, kernel, "poly")
             coef0_condition = InCondition(coef0, kernel, ["poly", "sigmoid"])

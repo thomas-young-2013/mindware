@@ -8,7 +8,7 @@ from automlToolkit.components.feature_engineering.transformation_graph import Da
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 from automlToolkit.components.utils.constants import *
 from automlToolkit.components.metrics.metric import get_metric
-from automlToolkit.components.evaluators.evaluator import fetch_predict_estimator
+from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
 from automlToolkit.components.ensemble.ensemble_selection import EnsembleSelection
 
 classification_algorithms = ['liblinear_svc', 'random_forest']
@@ -169,10 +169,13 @@ class AutoML(object):
                 for _config in configs:
                     config_list.append(_config)
                     train_data_dict[self.model_cnt] = (X, y)
-                    estimator = fetch_predict_estimator(_config, X_train, y_train)
+                    estimator = fetch_predict_estimator(self.task_type, _config, X_train, y_train)
                     with open(os.path.join(self.output_dir, 'model%d' % self.model_cnt), 'wb') as f:
                         pkl.dump(estimator, f)
-                    y_valid_pred = estimator.predict_proba(X_valid)
+                    if self.task_type in CLS_TASKS:
+                        y_valid_pred = estimator.predict_proba(X_valid)
+                    else:
+                        y_valid_pred = estimator.predict(X_valid)
                     train_predictions.append(y_valid_pred)
                     self.model_cnt += 1
 
@@ -184,8 +187,6 @@ class AutoML(object):
             self.es.fit(train_predictions, train_labels, identifiers=None)
 
     def _predict(self, test_data: DataNode):
-        if self.task_type in REG_TASKS:
-            raise AttributeError("predict_proba is not supported in regression")
         if self.ensemble_size > 0:
             if self.es is None:
                 raise AttributeError("AutoML is not fitted!")
@@ -207,6 +208,8 @@ class AutoML(object):
             return self.es.predict(test_prediction)
 
     def predict_proba(self, test_data: DataNode):
+        if self.task_type in REG_TASKS:
+            raise AttributeError("predict_proba is not supported in regression")
         return self._predict(test_data)
 
     def predict(self, test_data: DataNode):

@@ -1,11 +1,13 @@
 import time
 import warnings
 import numpy as np
-from sklearn.model_selection import StratifiedKFold, train_test_split, StratifiedShuffleSplit
-from automlToolkit.utils.logging_utils import get_logger
+from sklearn.model_selection import StratifiedKFold, StratifiedShuffleSplit
 from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics.scorer import balanced_accuracy_scorer
+
+from automlToolkit.utils.logging_utils import get_logger
+from automlToolkit.components.evaluators.base_evaluator import _BaseEvaluator
 
 
 @ignore_warnings(category=ConvergenceWarning)
@@ -57,20 +59,7 @@ def get_estimator(config):
     return classifier_type, estimator
 
 
-def fetch_predict_estimator(config, X_train, y_train):
-    # Build the ML estimator.
-    from automlToolkit.components.utils.balancing import get_weights
-    _init_params, _fit_params = get_weights(
-        y_train, config['estimator'], None, {}, {})
-    config_dict = config.get_dictionary().copy()
-    for key, val in _init_params.items():
-        config_dict[key] = val
-    _, estimator = get_estimator(config_dict)
-    estimator.fit(X_train, y_train, **_fit_params)
-    return estimator
-
-
-class Evaluator(object):
+class ClassificationEvaluator(_BaseEvaluator):
     def __init__(self, clf_config, scorer=None, data_node=None, name=None,
                  resampling_strategy='cv', resampling_params=None, seed=1):
         self.resampling_strategy = resampling_strategy

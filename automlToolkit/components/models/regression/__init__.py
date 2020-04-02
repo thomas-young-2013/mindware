@@ -1,6 +1,6 @@
 import os
-from alphaml.engine.components.models.base_model import BaseRegressionModel
-from alphaml.utils.class_loader import find_components, ThirdPartyComponents
+from automlToolkit.components.models.base_model import BaseRegressionModel
+from automlToolkit.components.utils.class_loader import find_components, ThirdPartyComponents
 
 """
 Load the buildin regressors.

@@ -9,7 +9,7 @@ from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from autosklearn.pipeline.components.classification import _classifiers
 
 from automlToolkit.datasets.utils import load_train_test_data
-from automlToolkit.components.evaluators.evaluator import Evaluator
+from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator
 from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
 
 parser = argparse.ArgumentParser()
@@ -35,9 +35,9 @@ def evaluate_fe_bugs(dataset, run_id, time_limit, seed):
     cs = clf_class.get_hyperparameter_search_space()
     clf_hp = UnParametrizedHyperparameter("estimator", algo_id)
     cs.add_hyperparameter(clf_hp)
-    evaluator = Evaluator(cs.get_default_configuration(),
-                          name='fe', seed=seed,
-                          resampling_strategy='holdout')
+    evaluator = ClassificationEvaluator(cs.get_default_configuration(),
+                                        name='fe', seed=seed,
+                                        resampling_strategy='holdout')
 
     pipeline = FEPipeline(fe_enabled=True, optimizer_type='eval_base',
                           time_budget=time_limit, evaluator=evaluator,

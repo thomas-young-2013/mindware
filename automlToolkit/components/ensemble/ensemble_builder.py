@@ -7,7 +7,7 @@ from autosklearn.metrics import balanced_accuracy
 from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 from automlToolkit.components.ensemble.ensemble_selection import EnsembleSelection
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
-from automlToolkit.components.evaluators.evaluator import fetch_predict_estimator
+from automlToolkit.components.evaluators.cls_evaluator import fetch_predict_estimator
 
 
 class EnsembleBuilder(object):

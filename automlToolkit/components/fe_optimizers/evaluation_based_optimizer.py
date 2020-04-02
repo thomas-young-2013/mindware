@@ -5,7 +5,7 @@ from collections import namedtuple
 from automlToolkit.components.feature_engineering.transformation_graph import *
 from automlToolkit.components.fe_optimizers.base_optimizer import Optimizer
 from automlToolkit.components.fe_optimizers.transformer_manager import TransformerManager
-from automlToolkit.components.evaluators.evaluator import Evaluator
+from automlToolkit.components.evaluators.base_evaluator import _BaseEvaluator
 from automlToolkit.components.utils.constants import SUCCESS, ERROR, TIMEOUT
 from automlToolkit.utils.decorators import time_limit, TimeoutException
 from automlToolkit.components.feature_engineering import TRANS_CANDIDATES
@@ -14,7 +14,7 @@ EvaluationResult = namedtuple('EvaluationResult', 'status duration score extra')
 
 
 class EvaluationBasedOptimizer(Optimizer):
-    def __init__(self, task_type, input_data: DataNode, evaluator: Evaluator,
+    def __init__(self, task_type, input_data: DataNode, evaluator: _BaseEvaluator,
                  model_id: str, time_limit_per_trans: int,
                  mem_limit_per_trans: int,
                  seed: int, shared_mode: bool = False,
@@ -247,7 +247,6 @@ class EvaluationBasedOptimizer(Optimizer):
                             self.logger.info('%s - %s' % (transformer.name, str(node_.shape)))
                             output_node = transformer.operate(node_)
                             self.logger.info('after %s - %s' % (transformer.name, str(output_node.shape)))
-
                             # Evaluate this node.
                             if transformer.type != 0:
                                 output_node.depth = node_.depth + 1
@@ -298,7 +297,7 @@ class EvaluationBasedOptimizer(Optimizer):
             for tmp_node in self.temporary_nodes:
                 _score = tmp_node.score if tmp_node.score is not None else 0.0
                 _scores.append(_score)
-            _idxs = np.argsort(-np.array(_scores))[:self.beam_width+1]
+            _idxs = np.argsort(-np.array(_scores))[:self.beam_width + 1]
             self.temporary_nodes = [self.temporary_nodes[_idx] for _idx in _idxs]
 
         self.logger.info('\n [Current Inc]: %.4f, [Improvement]: %.5f' %

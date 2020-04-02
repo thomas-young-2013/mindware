@@ -12,9 +12,10 @@ from automlToolkit.components.models.base_model import BaseRegressionModel
 
 class LibLinear_SVR(BaseRegressionModel):
     # Liblinear is not deterministic as it uses a RNG inside
-    def __init__(self, loss, dual, tol, C,
+    def __init__(self, epsilon, loss, dual, tol, C,
                  fit_intercept, intercept_scaling,
                  random_state=None):
+        self.epsilon = epsilon
         self.loss = loss
         self.dual = dual
         self.tol = tol
@@ -33,6 +34,7 @@ class LibLinear_SVR(BaseRegressionModel):
             self.loss = combination['loss']
             self.dual = combination['dual']
 
+        self.epsilon = float(self.epsilon)
         self.C = float(self.C)
         self.tol = float(self.tol)
 
@@ -42,7 +44,8 @@ class LibLinear_SVR(BaseRegressionModel):
 
         self.intercept_scaling = float(self.intercept_scaling)
 
-        self.estimator = LinearSVR(loss=self.loss,
+        self.estimator = LinearSVR(epsilon=self.epsilon,
+                                   loss=self.loss,
                                    dual=self.dual,
                                    tol=self.tol,
                                    C=self.C,
@@ -73,7 +76,7 @@ class LibLinear_SVR(BaseRegressionModel):
     def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
         if optimizer == 'smac':
             cs = ConfigurationSpace()
-
+            epsilon = CategoricalHyperparameter("epsilon", [1e-4, 1e-3, 1e-2, 1e-1, 1], default_value=1e-4)
             loss = CategoricalHyperparameter(
                 "loss", ["epsilon_insensitive", "squared_epsilon_insensitive"], default_value="epsilon_insensitive")
             dual = CategoricalHyperparameter("dual", ['True', 'False'], default_value='True')
@@ -83,7 +86,7 @@ class LibLinear_SVR(BaseRegressionModel):
                 "C", 0.03125, 32768, log=True, default_value=1.0)
             fit_intercept = Constant("fit_intercept", "True")
             intercept_scaling = Constant("intercept_scaling", 1)
-            cs.add_hyperparameters([loss, dual, tol, C,
+            cs.add_hyperparameters([epsilon, loss, dual, tol, C,
                                     fit_intercept, intercept_scaling])
 
             dual_and_loss = ForbiddenAndConjunction(

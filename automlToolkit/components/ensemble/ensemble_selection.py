@@ -1,12 +1,7 @@
 from collections import Counter
-import random
-
 import numpy as np
-from sklearn.utils.validation import check_random_state
-
 from automlToolkit.components.utils.constants import *
 from sklearn.metrics.scorer import _BaseScorer, _PredictScorer, _ThresholdScorer
-from autosklearn.metrics import Scorer
 
 
 class EnsembleSelection():
@@ -102,8 +97,12 @@ class EnsembleSelection():
             for j, pred in enumerate(predictions):
                 # TODO: this could potentially be vectorized! - let's profile
                 # the script first!
-                fant_ensemble_prediction[:, :] = weighted_ensemble_prediction + \
+                if self.task_type in CLS_TASKS:
+                    fant_ensemble_prediction[:, :] = weighted_ensemble_prediction + \
                                                  (1. / float(s + 1)) * pred
+                else:
+                    fant_ensemble_prediction[:] = weighted_ensemble_prediction + \
+                                                     (1. / float(s + 1)) * pred
 
                 scores[j] = 1 - self.calculate_score(pred=fant_ensemble_prediction, y_true=labels)
 

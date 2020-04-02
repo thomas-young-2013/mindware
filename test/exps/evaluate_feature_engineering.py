@@ -8,7 +8,7 @@ import autosklearn.classification
 from tabulate import tabulate
 sys.path.append(os.getcwd())
 from automlToolkit.datasets.utils import load_train_test_data
-from automlToolkit.components.evaluators.evaluator import Evaluator, fetch_predict_estimator
+from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator, fetch_predict_estimator
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--start_id', type=int, default=0)
@@ -109,8 +109,8 @@ def evaluate_evaluation_based_fe(dataset, time_limit, run_id, seed):
       min_weight_fraction_leaf, Constant: 0.0
       n_estimators, Constant: 100
     """
-    evaluator = Evaluator(cs.get_default_configuration(), name='fe', seed=seed,
-                          resampling_strategy='holdout')
+    evaluator = ClassificationEvaluator(cs.get_default_configuration(), name='fe', seed=seed,
+                                        resampling_strategy='holdout')
 
     train_data, test_data = load_train_test_data(dataset)
     optimizer = EvaluationBasedOptimizer('classification', train_data, evaluator,

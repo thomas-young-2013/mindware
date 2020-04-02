@@ -1,7 +1,7 @@
 import typing
 import numpy as np
 from sklearn.model_selection import StratifiedShuffleSplit
-from automlToolkit.components.evaluators.evaluator import Evaluator
+from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator
 from automlToolkit.components.evaluators.reg_evaluator import RegressionEvaluator
 from automlToolkit.utils.logging_utils import get_logger
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
@@ -9,7 +9,7 @@ from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from automlToolkit.components.hpo_optimizer.psmac_optimizer import PSMACOptimizer
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
-from automlToolkit.components.evaluators.evaluator import fetch_predict_estimator
+from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
 from automlToolkit.components.utils.constants import *
 from automlToolkit.utils.decorators import time_limit, TimeoutException
 from automlToolkit.utils.functions import get_increasing_sequence
@@ -33,7 +33,7 @@ class SecondLayerBandit(object):
         self.one_unit_of_resource = 5
         self.per_run_time_limit = per_run_time_limit
         self.per_run_mem_limit = per_run_mem_limit
-        self.classifier_id = estimator_id
+        self.estimator_id = estimator_id
         self.evaluation_type = eval_type
         self.original_data = data.copy_()
         self.share_fe = share_fe
@@ -61,7 +61,7 @@ class SecondLayerBandit(object):
         self.pull_cnt = 0
         self.action_sequence = list()
         self.final_rewards = list()
-        self.incumbent_perf = -1.
+        self.incumbent_perf = float("-INF")
         self.early_stopped_flag = False
         self.enable_intersection = enable_intersection
 
@@ -87,18 +87,26 @@ class SecondLayerBandit(object):
 
         # Build the Feature Engineering component.
         if self.task_type in CLS_TASKS:
-            fe_evaluator = Evaluator(self.default_config, scorer=self.metric,
-                                     name='fe', resampling_strategy=self.evaluation_type,
-                                     seed=self.seed)
+            fe_evaluator = ClassificationEvaluator(self.default_config, scorer=self.metric,
+                                                   name='fe', resampling_strategy=self.evaluation_type,
+                                                   seed=self.seed)
+            hpo_evaluator = ClassificationEvaluator(self.default_config,
+                                                    data_node=self.original_data, name='hpo',
+                                                    resampling_strategy=self.evaluation_type,
+                                                    seed=self.seed)
         elif self.task_type in REG_TASKS:
             fe_evaluator = RegressionEvaluator(self.default_config, scorer=self.metric,
                                                name='fe', resampling_strategy=self.evaluation_type,
                                                seed=self.seed)
+            hpo_evaluator = RegressionEvaluator(self.default_config,
+                                                data_node=self.original_data, name='hpo',
+                                                resampling_strategy=self.evaluation_type,
+                                                seed=self.seed)
         else:
             raise ValueError('Invalid task type!')
 
         self.optimizer['fe'] = EvaluationBasedOptimizer(
-            'classification',
+            'regression',
             self.original_data, fe_evaluator,
             estimator_id, per_run_time_limit, per_run_mem_limit, self.seed,
             shared_mode=self.share_fe, n_jobs=n_jobs)
@@ -107,10 +115,6 @@ class SecondLayerBandit(object):
         # Build the HPO component.
         # trials_per_iter = max(len(self.optimizer['fe'].trans_types), 20)
         trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
-        hpo_evaluator = Evaluator(self.default_config,
-                                  data_node=self.original_data, name='hpo',
-                                  resampling_strategy=self.evaluation_type,
-                                  seed=self.seed)
 
         if n_jobs == 1:
             self.optimizer['hpo'] = SMACOptimizer(
@@ -158,7 +162,7 @@ class SecondLayerBandit(object):
         # First pull each arm #sliding_window_size times.
         if self.pull_cnt < len(self.arms) * self.sliding_window_size:
             _arm = self.arms[self.pull_cnt % 2]
-            self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.classifier_id, self.pull_cnt))
+            self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
             results = self.optimizer[_arm].iterate()
             self.collect_iter_stats(_arm, results)
             self.pull_cnt += 1
@@ -189,7 +193,7 @@ class SecondLayerBandit(object):
                     return
 
             self.action_sequence.append(arm_picked)
-            self.logger.info('Pulling arm: %s for %s at %d-th round' % (arm_picked, self.classifier_id, self.pull_cnt))
+            self.logger.info('Pulling arm: %s for %s at %d-th round' % (arm_picked, self.estimator_id, self.pull_cnt))
             results = self.optimizer[arm_picked].iterate()
             self.collect_iter_stats(arm_picked, results)
             self.pull_cnt += 1
@@ -197,7 +201,7 @@ class SecondLayerBandit(object):
     def optimize_alternatedly(self):
         # First choose one arm.
         _arm = self.arms[self.pull_cnt % 2]
-        self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.classifier_id, self.pull_cnt))
+        self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
 
         if self.mth != 'alter':
             if self.mth != 'alter_hpo':
@@ -218,7 +222,7 @@ class SecondLayerBandit(object):
         _perf = None
         try:
             with time_limit(600):
-                _perf = Evaluator(
+                _perf = ClassificationEvaluator(
                     self.local_inc['hpo'], data_node=self.local_inc['fe'],
                     name='fe', resampling_strategy=self.evaluation_type,
                     seed=self.seed)(self.local_inc['hpo'])
@@ -272,10 +276,10 @@ class SecondLayerBandit(object):
         X_train_ori, y_train_ori = self.original_data.data
         X_train_inc, y_train_inc = self.local_inc['fe'].data
 
-        model1_clf = fetch_predict_estimator(self.default_config, X_train_inc, y_train_inc)
-        model2_clf = fetch_predict_estimator(self.local_inc['hpo'], X_train_ori, y_train_ori)
-        model3_clf = fetch_predict_estimator(self.local_inc['hpo'], X_train_inc, y_train_inc)
-        model4_clf = fetch_predict_estimator(self.default_config, X_train_ori, y_train_ori)
+        model1_clf = fetch_predict_estimator(self.task_type, self.default_config, X_train_inc, y_train_inc)
+        model2_clf = fetch_predict_estimator(self.task_type, self.local_inc['hpo'], X_train_ori, y_train_ori)
+        model3_clf = fetch_predict_estimator(self.task_type, self.local_inc['hpo'], X_train_inc, y_train_inc)
+        model4_clf = fetch_predict_estimator(self.task_type, self.default_config, X_train_ori, y_train_ori)
 
         if is_weighted:
             # Based on performance on the validation set
@@ -291,10 +295,10 @@ class SecondLayerBandit(object):
                 _X_train, _X_val, _y_train, _y_val = _X[train_index], _X[test_index], _y[train_index], _y[test_index]
 
             assert (y_val == _y_val).all()
-            model1_clf_temp = fetch_predict_estimator(self.default_config, _X_train, _y_train)
-            model2_clf_temp = fetch_predict_estimator(self.local_inc['hpo'], X_train, y_train)
-            model3_clf_temp = fetch_predict_estimator(self.local_inc['hpo'], _X_train, _y_train)
-            model4_clf_temp = fetch_predict_estimator(self.default_config, X_train, y_train)
+            model1_clf_temp = fetch_predict_estimator(self.task_type, self.default_config, _X_train, _y_train)
+            model2_clf_temp = fetch_predict_estimator(self.task_type, self.local_inc['hpo'], X_train, y_train)
+            model3_clf_temp = fetch_predict_estimator(self.task_type, self.local_inc['hpo'], _X_train, _y_train)
+            model4_clf_temp = fetch_predict_estimator(self.task_type, self.default_config, X_train, y_train)
             pred1 = model1_clf_temp.predict_proba(_X_val)
             pred2 = model2_clf_temp.predict_proba(X_val)
             pred3 = model3_clf_temp.predict_proba(_X_val)
@@ -330,11 +334,17 @@ class SecondLayerBandit(object):
         if _arm == 'fe':
             if self.update_flag[_arm] is True:
                 # Build the Feature Engineering component.
-                fe_evaluator = Evaluator(self.inc['hpo'], name='fe', resampling_strategy=self.evaluation_type,
-                                         seed=self.seed)
+                if self.task_type in CLS_TASKS:
+                    fe_evaluator = ClassificationEvaluator(self.inc['hpo'], name='fe', scorer=self.metric,
+                                                           resampling_strategy=self.evaluation_type,
+                                                           seed=self.seed)
+                else:
+                    fe_evaluator = RegressionEvaluator(self.inc['hpo'], name='fe', scorer=self.metric,
+                                                       resampling_strategy=self.evaluation_type,
+                                                       seed=self.seed)
                 self.optimizer[_arm] = EvaluationBasedOptimizer(
                     'classification', self.inc['fe'], fe_evaluator,
-                    self.classifier_id, self.per_run_time_limit, self.per_run_mem_limit,
+                    self.estimator_id, self.per_run_time_limit, self.per_run_mem_limit,
                     self.seed, shared_mode=self.share_fe
                 )
             else:
@@ -344,11 +354,20 @@ class SecondLayerBandit(object):
                 # trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
                 # trials_per_iter = max(20, trials_per_iter)
                 trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
-                hpo_evaluator = Evaluator(self.config_space.get_default_configuration(),
-                                          resampling_strategy=self.evaluation_type,
-                                          data_node=self.inc['fe'],
-                                          seed=self.seed,
-                                          name='hpo')
+                if self.task_type in CLS_TASKS:
+                    hpo_evaluator = ClassificationEvaluator(self.config_space.get_default_configuration(),
+                                                            scorer=self.metric,
+                                                            resampling_strategy=self.evaluation_type,
+                                                            data_node=self.inc['fe'],
+                                                            seed=self.seed,
+                                                            name='hpo')
+                else:
+                    hpo_evaluator = RegressionEvaluator(self.config_space.get_default_configuration(),
+                                                        scorer=self.metric,
+                                                        resampling_strategy=self.evaluation_type,
+                                                        data_node=self.inc['fe'],
+                                                        seed=self.seed,
+                                                        name='hpo')
                 self.optimizer[_arm] = SMACOptimizer(
                     hpo_evaluator, self.config_space, output_dir=self.output_dir,
                     per_run_time_limit=self.per_run_time_limit,

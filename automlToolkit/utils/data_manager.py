@@ -64,6 +64,11 @@ class DataManager(object):
                     feat_type = CATEGORICAL
             self.feature_types.append(feat_type)
 
+    def get_data_node(self, X, y):
+        if self.feature_types is None:
+            raise ValueError("Feature type missing")
+        return DataNode([X, y], self.feature_types)
+
     def clean_data_with_nan(self, df, label_col, phase='train', drop_index=None, has_label=True):
         columns_missed = df.columns[df.isnull().any()].tolist()
 

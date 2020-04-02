@@ -189,7 +189,7 @@ class FirstLayerBandit(object):
         self.logger.info('X_train/test shapes: %s, %s' % (str(X_train.shape), str(X_test.shape)))
 
         # Build the ML estimator.
-        from automlToolkit.components.evaluators.evaluator import fetch_predict_estimator
+        from automlToolkit.components.evaluators.cls_evaluator import fetch_predict_estimator
         estimator = fetch_predict_estimator(config, X_train, y_train)
         y_pred = estimator.predict(X_test)
         return y_pred

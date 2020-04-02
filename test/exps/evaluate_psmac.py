@@ -7,7 +7,7 @@ sys.path.append(os.getcwd())
 from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from automlToolkit.components.hpo_optimizer.psmac_optimizer import PSMACOptimizer
 from automlToolkit.datasets.utils import load_data
-from automlToolkit.components.evaluators.evaluator import Evaluator
+from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
@@ -32,7 +32,7 @@ def conduct_hpo(optimizer='smac', dataset='pc4', classifier_id='random_forest', 
 
     raw_data = load_data(dataset, datanode_returned=True)
     print(set(raw_data.data[1]))
-    evaluator = Evaluator(cs.get_default_configuration(), name='hpo', data_node=raw_data)
+    evaluator = ClassificationEvaluator(cs.get_default_configuration(), name='hpo', data_node=raw_data)
 
     if optimizer == 'smac':
         optimizer = SMACOptimizer(evaluator, cs, evaluation_limit=runcount_limit, output_dir='logs')

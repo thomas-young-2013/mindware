@@ -66,7 +66,6 @@ class SMACOptimizer(BaseHPOptimizer):
                 self.logger.warning('Already explored 70 percentage of the '
                                     'hp space or maximum configuration number: %d!' % self.maximum_config_num)
                 break
-
             self.optimizer.iterate()
 
             runhistory = self.optimizer.solver.runhistory
