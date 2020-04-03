@@ -33,9 +33,10 @@ MULTICLASS_CLS = 2
 MULTILABEL_CLS = 3
 REGRESSION = 4
 IMG_CLS = 5
-tran_dict = {'binary': BINARY_CLS,
+type_dict = {'binary': BINARY_CLS,
              'multiclas': MULTICLASS_CLS,
-             'multilabel-indicator': MULTILABEL_CLS
+             'multilabel-indicator': MULTILABEL_CLS,
+             'continuous': REGRESSION
              }
 
 REG_TASKS = [REGRESSION]

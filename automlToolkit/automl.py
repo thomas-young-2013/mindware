@@ -17,7 +17,7 @@ regression_algorithms = ['liblinear_svr', 'random_forest']
 
 class AutoML(object):
     def __init__(self,
-                 classification=True,
+                 task_type=None,
                  metric='acc',
                  time_limit=None,
                  iter_num_per_algo=50,
@@ -29,7 +29,6 @@ class AutoML(object):
                  evaluation='holdout',
                  output_dir="/tmp/"):
         self.model_cnt = 0
-        self.if_classification = classification
         self.metric = get_metric(metric)
         self.time_limit = time_limit
         self.seed = random_state
@@ -40,12 +39,13 @@ class AutoML(object):
         self.evaluation_type = evaluation
         self.n_jobs = n_jobs
         self.solvers = dict()
-        self.task_type = None
-        if include_algorithms is None:
-            if classification:
-                self.include_algorithms = classification_algorithms
-            else:
-                self.include_algorithms = regression_algorithms
+        self.task_type = task_type
+        if task_type in CLS_TASKS:
+            self.include_algorithms = classification_algorithms
+        elif task_type in REG_TASKS:
+            self.include_algorithms = regression_algorithms
+        else:
+            raise ValueError("Unknown task type %s" % task_type)
 
     def fetch_ensemble_members(self, threshold=0.85):
         stats = dict()
@@ -96,11 +96,6 @@ class AutoML(object):
         :param train_data:
         :return:
         """
-        if self.if_classification:
-            target_type = type_of_target(train_data.data[1])
-            self.task_type = tran_dict[target_type]
-        else:
-            self.task_type = REGRESSION
         # Initialize each algorithm's solver.
         for _algo in self.include_algorithms:
             self.solvers[_algo] = SecondLayerBandit(self.task_type, _algo, train_data,
@@ -136,57 +131,58 @@ class AutoML(object):
                 if solver.early_stopped_flag:
                     break
 
-        self.stats = self.fetch_ensemble_members()
-        # assert False
-        # Ensembling all intermediate/ultimate models found in above optimization process.
-        train_predictions = []
-        config_list = []
-        train_data_dict = {}
-        train_labels = None
-        seed = self.stats['split_seed']
-        for algo_id in self.include_algorithms:
-            train_list = self.stats[algo_id]['train_data_list']
-            configs = self.stats[algo_id]['configurations']
-            for idx in range(len(train_list)):
-                X, y = train_list[idx].data
-
-                # TODO: Hyperparameter
-                test_size = 0.33
-
-                if self.task_type in CLS_TASKS:
-                    ss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=seed)
-                else:
-                    ss = ShuffleSplit(n_splits=1, test_size=test_size, random_state=seed)
-
-                for train_index, test_index in ss.split(X, y):
-                    X_train, X_valid = X[train_index], X[test_index]
-                    y_train, y_valid = y[train_index], y[test_index]
-
-                if train_labels is not None:
-                    assert (train_labels == y_valid).all()
-                else:
-                    train_labels = y_valid
-                for _config in configs:
-                    config_list.append(_config)
-                    train_data_dict[self.model_cnt] = (X, y)
-                    estimator = fetch_predict_estimator(self.task_type, _config, X_train, y_train)
-                    with open(os.path.join(self.output_dir, 'model%d' % self.model_cnt), 'wb') as f:
-                        pkl.dump(estimator, f)
-                    if self.task_type in CLS_TASKS:
-                        y_valid_pred = estimator.predict_proba(X_valid)
-                    else:
-                        y_valid_pred = estimator.predict(X_valid)
-                    train_predictions.append(y_valid_pred)
-                    self.model_cnt += 1
-
         # TODO: Single model
         if self.ensemble_size > 0:
+            self.stats = self.fetch_ensemble_members()
+            # assert False
+            # Ensembling all intermediate/ultimate models found in above optimization process.
+            train_predictions = []
+            config_list = []
+            train_data_dict = {}
+            train_labels = None
+            seed = self.stats['split_seed']
+            for algo_id in self.include_algorithms:
+                train_list = self.stats[algo_id]['train_data_list']
+                configs = self.stats[algo_id]['configurations']
+                for idx in range(len(train_list)):
+                    X, y = train_list[idx].data
+
+                    # TODO: Hyperparameter
+                    test_size = 0.33
+
+                    if self.task_type in CLS_TASKS:
+                        ss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=seed)
+                    else:
+                        ss = ShuffleSplit(n_splits=1, test_size=test_size, random_state=seed)
+
+                    for train_index, test_index in ss.split(X, y):
+                        X_train, X_valid = X[train_index], X[test_index]
+                        y_train, y_valid = y[train_index], y[test_index]
+
+                    if train_labels is not None:
+                        assert (train_labels == y_valid).all()
+                    else:
+                        train_labels = y_valid
+                    for _config in configs:
+                        config_list.append(_config)
+                        train_data_dict[self.model_cnt] = (X, y)
+                        estimator = fetch_predict_estimator(self.task_type, _config, X_train, y_train)
+                        with open(os.path.join(self.output_dir, 'model%d' % self.model_cnt), 'wb') as f:
+                            pkl.dump(estimator, f)
+                        if self.task_type in CLS_TASKS:
+                            y_valid_pred = estimator.predict_proba(X_valid)
+                        else:
+                            y_valid_pred = estimator.predict(X_valid)
+                        train_predictions.append(y_valid_pred)
+                        self.model_cnt += 1
+
             self.es = EnsembleSelection(ensemble_size=self.ensemble_size,
                                         task_type=self.task_type, metric=self.metric,
                                         random_state=np.random.RandomState(seed))
             self.es.fit(train_predictions, train_labels, identifiers=None)
 
-    def _predict(self, test_data: DataNode):
+    def _predict(self, test_data: DataNode, batch_size=None, n_jobs=1):
+        # TODO: Single model
         if self.ensemble_size > 0:
             if self.es is None:
                 raise AttributeError("AutoML is not fitted!")
@@ -207,14 +203,14 @@ class AutoML(object):
                         cur_idx += 1
             return self.es.predict(test_prediction)
 
-    def predict_proba(self, test_data: DataNode):
+    def predict_proba(self, test_data: DataNode, batch_size=None, n_jobs=1):
         if self.task_type in REG_TASKS:
             raise AttributeError("predict_proba is not supported in regression")
-        return self._predict(test_data)
+        return self._predict(test_data, batch_size=batch_size)
 
-    def predict(self, test_data: DataNode):
+    def predict(self, test_data: DataNode, batch_size=None, n_jobs=1):
         if self.task_type in CLS_TASKS:
             pred = self._predict(test_data)
             return np.argmax(pred, axis=-1)
         else:
-            return self._predict(test_data)
+            return self._predict(test_data, batch_size=batch_size)

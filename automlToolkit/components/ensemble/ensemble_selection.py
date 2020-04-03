@@ -1,7 +1,9 @@
 from collections import Counter
 import numpy as np
-from automlToolkit.components.utils.constants import *
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.metrics.scorer import _BaseScorer, _PredictScorer, _ThresholdScorer
+
+from automlToolkit.components.utils.constants import *
 
 
 class EnsembleSelection():
@@ -22,6 +24,7 @@ class EnsembleSelection():
         self.bagging = bagging
         self.mode = mode
         self.random_state = random_state
+        self.encoder = OneHotEncoder()
 
     def calculate_score(self, pred, y_true):
         if isinstance(self.metric, _ThresholdScorer):
@@ -33,6 +36,9 @@ class EnsembleSelection():
         return score
 
     def fit(self, predictions, labels, identifiers):
+        if len(labels.shape) == 1 and self.task_type in CLS_TASKS:
+            reshape_y = np.reshape(labels, (len(labels), 1))
+            self.encoder.fit(reshape_y)
         self.ensemble_size = int(self.ensemble_size)
         if self.ensemble_size < 1:
             raise ValueError('Ensemble size cannot be less than one!')
@@ -99,10 +105,10 @@ class EnsembleSelection():
                 # the script first!
                 if self.task_type in CLS_TASKS:
                     fant_ensemble_prediction[:, :] = weighted_ensemble_prediction + \
-                                                 (1. / float(s + 1)) * pred
+                                                     (1. / float(s + 1)) * pred
                 else:
                     fant_ensemble_prediction[:] = weighted_ensemble_prediction + \
-                                                     (1. / float(s + 1)) * pred
+                                                  (1. / float(s + 1)) * pred
 
                 scores[j] = 1 - self.calculate_score(pred=fant_ensemble_prediction, y_true=labels)
 

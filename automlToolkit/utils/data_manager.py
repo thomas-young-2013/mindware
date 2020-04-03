@@ -17,7 +17,7 @@ class DataManager(object):
     """
 
     # X,y should be None if using DataManager().load_csv(...)
-    def __init__(self, X=None, y=None, na_values=default_missing_values):
+    def __init__(self, X=None, y=None, na_values=default_missing_values, feature_types=None):
         self.na_values = na_values
         self.feature_types = None
         self.missing_flags = None
@@ -28,7 +28,10 @@ class DataManager(object):
         if X is not None:
             self.train_X = np.array(X)
             self.train_y = np.array(y)
-            self.set_feat_types(pd.DataFrame(self.train_X), [])
+            if feature_types is None:
+                self.set_feat_types(pd.DataFrame(self.train_X), [])
+            else:
+                self.feature_types = feature_types
 
     def set_feat_types(self, df, columns_missed):
         self.missing_flags = list()
