@@ -139,6 +139,9 @@ if __name__ == "__main__":
                   'lda', 'qda',
                   'multinomial_nb', 'gaussian_nb', 'bernoulli_nb'
                   ]
+    # algorithms = ['adaboost', 'random_forest',
+    #               'extra_trees'
+    #               ]
 
     dataset_list = dataset_str.split(',')
 
@@ -178,6 +181,11 @@ if __name__ == "__main__":
                         data = pickle.load(f)
                     val_acc, test_acc = data[1], data[2]
                     results.append([val_acc, test_acc])
+                    # if mth.startswith('ausk'):
+                    #     print('='*10)
+                    #     print(val_acc, test_acc)
+                    #     print(data[3])
+                    #     print('='*10)
 
                 if len(results) == rep:
                     results = np.array(results)
