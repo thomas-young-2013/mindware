@@ -5,7 +5,7 @@ from automlToolkit.components.feature_engineering.transformation_graph import Da
 from automlToolkit.components.feature_engineering.transformations.preprocessor.imputer import ImputationTransformation
 from automlToolkit.components.feature_engineering.transformations.preprocessor.onehot_encoder import OneHotTransformation
 from automlToolkit.components.feature_engineering.transformations.selector.variance_selector import VarianceSelector
-from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
+from automlToolkit.components.fe_optimizers import EvaluationBasedOptimizer
 from automlToolkit.utils.logging_utils import setup_logger, get_logger
 
 

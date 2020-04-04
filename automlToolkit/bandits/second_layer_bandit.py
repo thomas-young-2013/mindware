@@ -8,7 +8,7 @@ from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from automlToolkit.components.hpo_optimizer.psmac_optimizer import PSMACOptimizer
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
-from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
+from automlToolkit.components.fe_optimizers import EvaluationBasedOptimizer, MultiThreadEvaluationBasedOptimizer
 from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
 from automlToolkit.components.utils.constants import *
 from automlToolkit.utils.decorators import time_limit, TimeoutException
@@ -105,11 +105,21 @@ class SecondLayerBandit(object):
         else:
             raise ValueError('Invalid task type!')
 
-        self.optimizer['fe'] = EvaluationBasedOptimizer(
-            'regression',
-            self.original_data, fe_evaluator,
-            estimator_id, per_run_time_limit, per_run_mem_limit, self.seed,
-            shared_mode=self.share_fe, n_jobs=n_jobs)
+        if n_jobs > 1:
+            self.optimizer['fe'] = MultiThreadEvaluationBasedOptimizer(
+                'regression',
+                self.original_data, fe_evaluator,
+                estimator_id, per_run_time_limit, per_run_mem_limit, self.seed,
+                shared_mode=self.share_fe,
+                n_jobs=n_jobs
+            )
+        else:
+            self.optimizer['fe'] = EvaluationBasedOptimizer(
+                'regression',
+                self.original_data, fe_evaluator,
+                estimator_id, per_run_time_limit, per_run_mem_limit, self.seed,
+                shared_mode=self.share_fe
+            )
         self.inc['fe'], self.local_inc['fe'] = self.original_data, self.original_data
 
         # Build the HPO component.

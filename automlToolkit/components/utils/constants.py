@@ -34,7 +34,7 @@ MULTILABEL_CLS = 3
 REGRESSION = 4
 IMG_CLS = 5
 type_dict = {'binary': BINARY_CLS,
-             'multiclas': MULTICLASS_CLS,
+             'multiclass': MULTICLASS_CLS,
              'multilabel-indicator': MULTILABEL_CLS,
              'continuous': REGRESSION
              }
