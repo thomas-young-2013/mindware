@@ -10,7 +10,7 @@ from automlToolkit.components.feature_engineering.transformation_graph import Da
 class Classifier(BaseEstimator):
     """This class implements the classification task. """
 
-    def fit(self, data):
+    def fit(self, data: DataNode):
         """
         Fit the classifier to given training data.
         :param data: instance of DataNode
@@ -23,7 +23,7 @@ class Classifier(BaseEstimator):
         if task_type in type_dict:
             task_type = type_dict[task_type]
         else:
-            raise ValueError("UNSUPPORTED TASK TYPE: %s!" % task_type)
+            raise ValueError("Invalid Task Type: %s!" % task_type)
         self.task_type = task_type
         self.metric = get_metric(self.metric)
         super().fit(data)
@@ -40,7 +40,7 @@ class Classifier(BaseEstimator):
             The predicted classes.
         """
         if not isinstance(X, DataNode):
-            raise ValueError("Expected X to be a datanode but get %s" % type(X))
+            raise ValueError("X is supposed to be a Data Node, but get %s" % type(X))
         return super().predict(X, batch_size=batch_size, n_jobs=n_jobs)
 
     def predict_proba(self, X, batch_size=None, n_jobs=1):
@@ -53,7 +53,7 @@ class Classifier(BaseEstimator):
             The predicted class probabilities.
         """
         if not isinstance(X, DataNode):
-            raise ValueError("Expected X to be a datanode but get %s" % type(X))
+            raise ValueError("X is supposed to be a Data Node, but get %s" % type(X))
         pred_proba = super().predict_proba(X, batch_size=batch_size, n_jobs=n_jobs)
 
         if self.task_type != MULTILABEL_CLS:
@@ -61,12 +61,12 @@ class Classifier(BaseEstimator):
                 np.allclose(
                     np.sum(pred_proba, axis=1),
                     np.ones_like(pred_proba[:, 0]))
-            ), "prediction probability does not sum up to 1!"
+            ), "Prediction probability does not sum up to 1!"
 
         # Check that all probability values lie between 0 and 1.
         assert (
                 (pred_proba >= 0).all() and (pred_proba <= 1).all()
-        ), "found prediction probability value outside of [0, 1]!"
+        ), "Found prediction probability value outside of [0, 1]!"
 
         return pred_proba
 
@@ -87,7 +87,7 @@ class Regressor(BaseEstimator):
         if task_type in type_dict:
             task_type = type_dict[task_type]
         else:
-            raise ValueError("UNSUPPORTED TASK TYPE: %s!" % task_type)
+            raise ValueError("Invalid Task Type: %s!" % task_type)
         self.task_type = task_type
         self.metric = get_metric(metric)
 
@@ -105,5 +105,5 @@ class Regressor(BaseEstimator):
             The predicted classes.
         """
         if not isinstance(X, DataNode):
-            raise ValueError("Expected X to be a datanode but get %s" % type(X))
+            raise ValueError("X is supposed to be a Data Node, but get %s" % type(X))
         return super().predict(X, batch_size=batch_size, n_jobs=n_jobs)

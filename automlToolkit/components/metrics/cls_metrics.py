@@ -3,6 +3,7 @@ import scipy as sp
 
 from sklearn.metrics.classification import _check_targets, type_of_target
 
+
 def balanced_accuracy(solution, prediction):
     y_type, solution, prediction = _check_targets(solution, prediction)
 
@@ -56,7 +57,6 @@ def balanced_accuracy(solution, prediction):
         raise ValueError(y_type)
 
     return np.mean(bac)  # average over all classes
-
 
 
 def pac_score(solution, prediction):
