@@ -1,8 +1,7 @@
-import pandas as pd
 import os
-from automlToolkit.components.feature_engineering.transformation_graph import DataNode
-from automlToolkit.components.metrics.metric import get_metric
 from automlToolkit.automl import AutoML
+from automlToolkit.components.metrics.metric import get_metric
+from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 
 
 class BaseEstimator(object):
@@ -29,6 +28,7 @@ class BaseEstimator(object):
         self.n_jobs = n_jobs
         self.evaluation = evaluation
         self.output_dir = output_dir
+        self._ml_engine = None
         # Create output directory.
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -62,7 +62,7 @@ class BaseEstimator(object):
 
     def score(self, data: DataNode):
         raise NotImplementedError()
-        return self._ml_engine.score(data)
+        # return self._ml_engine.score(data)
 
     def predict_proba(self, X: DataNode, batch_size=None, n_jobs=1):
         return self._ml_engine.predict_proba(X, batch_size=batch_size, n_jobs=n_jobs)
