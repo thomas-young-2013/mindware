@@ -68,7 +68,7 @@ def get_meta_learning_configs(X, y, task_type, dataset_name='default', metric='a
                             memory_limit=1e5,
                             metric=metric,
                             watcher=watcher,
-                            metadata_directory='files',
+                            metadata_directory='components/meta_learning/meta_resource',
                             num_metalearning_cfgs=num_cfgs)
     automlsmbo.reset_data_manager = reset_data_manager
     automlsmbo.task = task_type
