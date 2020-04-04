@@ -3,7 +3,7 @@ from automlToolkit.estimators import Classifier
 
 
 def evaluate_package():
-    train_data, test_data = load_train_test_data('pc4')
+    train_data, test_data = load_train_test_data('pc4', proj_dir='./')
     Classifier().fit(train_data)
 
 
