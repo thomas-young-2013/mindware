@@ -64,3 +64,6 @@ class _BaseEvaluator(metaclass=ABCMeta):
         if self.evaluation_strategy == 'holdout':
             if 'train_size' not in self.evaluation_params:
                 self.evaluation_params['train_size']
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError()

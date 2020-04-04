@@ -1,96 +1,28 @@
+from collections import namedtuple
+from concurrent.futures import ThreadPoolExecutor
+
 import gc
 import time
-from collections import namedtuple
-from automlToolkit.components.feature_engineering.transformation_graph import *
-from automlToolkit.components.fe_optimizers import Optimizer
-from automlToolkit.components.fe_optimizers.transformer_manager import TransformerManager
+
+from automlToolkit.components.fe_optimizers import EvaluationBasedOptimizer
 from automlToolkit.components.evaluators.base_evaluator import _BaseEvaluator
+from automlToolkit.components.feature_engineering.transformation_graph import *
 from automlToolkit.components.utils.constants import SUCCESS, ERROR, TIMEOUT
-from automlToolkit.utils.decorators import time_limit, TimeoutException
-from automlToolkit.components.feature_engineering import TRANS_CANDIDATES
 
 EvaluationResult = namedtuple('EvaluationResult', 'status duration score extra')
 
 
-class EvaluationBasedOptimizer(Optimizer):
+class MultiThreadEvaluationBasedOptimizer(EvaluationBasedOptimizer):
     def __init__(self, task_type, input_data: DataNode, evaluator: _BaseEvaluator,
                  model_id: str, time_limit_per_trans: int,
                  mem_limit_per_trans: int,
                  seed: int, shared_mode: bool = False,
-                 batch_size: int = 2, beam_width: int = 3,
-                 number_of_unit_resource=3, trans_set=None):
-        super().__init__(str(__class__.__name__), task_type, input_data, seed)
-        self.transformer_manager = TransformerManager(random_state=seed)
-        self.number_of_unit_resource = number_of_unit_resource
-        self.time_limit_per_trans = time_limit_per_trans
-        self.mem_limit_per_trans = mem_limit_per_trans
-        self.evaluator = evaluator
-        self.model_id = model_id
-        self.incumbent_score = -np.inf
-        self.baseline_score = -np.inf
-        self.start_time = time.time()
-        self.hp_config = None
-        self.early_stopped_flag = False
-
-        # Parameters in beam search.
-        self.hpo_batch_size = batch_size
-        self.beam_width = beam_width
-        self.max_depth = 6
-        if trans_set is None:
-            self.trans_types = TRANS_CANDIDATES[self.task_type]
-        else:
-            self.trans_types = trans_set
-        # Debug Example:
-        # self.trans_types = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19]
-        # self.trans_types = [5, 9, 10]
-        # self.trans_types = [30, 31]
-        self.iteration_id = 0
-        self.evaluation_count = 0
-        self.beam_set = list()
-        self.is_ended = False
-        self.evaluation_num_last_iteration = -1
-        self.temporary_nodes = list()
-        self.execution_history = dict()
-
-        # Feature set for ensemble learning.
-        self.features_hist = list()
-
-        # Used to share new feature set.
-        self.local_datanodes = list()
-        self.global_datanodes = list()
-        self.shared_mode = shared_mode
-
-        # Avoid transformations, which would take too long
-        # Combinations of non-linear models with feature learning.
-        # feature_learning = ["kitchen_sinks", "kernel_pca", "nystroem_sampler"]
-        if self.task_type == 'classification':
-            classifier_set = ["adaboost", "decision_tree", "extra_trees",
-                              "gradient_boosting", "k_nearest_neighbors",
-                              "libsvm_svc", "random_forest", "gaussian_nb", "decision_tree"]
-
-            if model_id in classifier_set:
-                for tran_id in [12, 13, 15]:
-                    if tran_id in self.trans_types:
-                        self.trans_types.remove(tran_id)
-        # TODO: for regression task, the trans types should be elaborated.
-
-    def optimize(self):
-        while not self.is_ended:
-            if self.early_stopped_flag:
-                break
-            self.logger.debug('=' * 50)
-            self.logger.debug('Start the ITERATION: %d' % self.iteration_id)
-            self.logger.debug('=' * 50)
-            self.iterate()
-        return self.incumbent
+                 batch_size: int = 2, beam_width: int = 3, trans_set=None, n_jobs=4):
+        super().__init__(task_type, input_data, evaluator, model_id, time_limit_per_trans,
+                         mem_limit_per_trans, seed, shared_mode, batch_size, beam_width, trans_set)
+        self.n_jobs = n_jobs
 
     def iterate(self):
-        result = None
-        for _ in range(self.number_of_unit_resource):
-            result = self._iterate()
-        return result
-
-    def _iterate(self):
         _iter_start_time = time.time()
         _evaluation_cnt = 0
         execution_status = list()
@@ -145,29 +77,61 @@ class EvaluationBasedOptimizer(Optimizer):
             if len(trans_set) == 1 and trans_set[0].type == 0:
                 return self.incumbent.score, 0, self.incumbent
 
+            pool = ThreadPoolExecutor(max_workers=self.n_jobs)
             for transformer in trans_set:
                 self.logger.debug('[%s][%s]' % (self.model_id, transformer.name))
 
                 if transformer.type != 0:
                     self.transformer_manager.add_execution_record(node_.node_id, transformer.type)
 
-                _start_time, status, _score = time.time(), SUCCESS, -1
+                # @timeout(self.time_limit_per_trans, use_signals=True)
+                def evaluate(tran, node):
+                    start_time = time.time()
+                    output = tran.operate(node)
+
+                    # Evaluate this node.
+                    if tran.type != 0:
+                        output.depth = node.depth + 1
+                        output.trans_hist.append(tran.type)
+                        score = self.evaluator(self.hp_config, data_node=output, name='fe')
+                        output.score = score
+                    else:
+                        score = output.score
+                    return output, score, time.time() - start_time
+
+                # Limit the execution and evaluation time for each transformation.
+                tasks.append(pool.submit(evaluate, transformer, node_))
+
+            # Wait until all tasks finish
+            all_completed = False
+            while not all_completed:
+                all_completed = True
+                eval_cnt = 0
+                for task in tasks:
+                    if not task.done():
+                        all_completed = False
+                    else:
+                        eval_cnt += 1
+                self.logger.debug("Evaluated transformations: %d/%s" % (eval_cnt, len(tasks)))
+                # Cancel waited threads if budget runs out
+                if (self.maximum_evaluation_num is not None and
+                    self.evaluation_count + eval_cnt > self.maximum_evaluation_num) or \
+                        (self.time_budget is not None and
+                         time.time() >= self.start_time + self.time_budget):
+                    self.logger.debug(
+                        '[Budget Runs Out]: %s, %s\n' % (self.maximum_evaluation_num, self.time_budget))
+                    self.is_ended = True
+                    for task in tasks:
+                        task.cancel()
+                    break
+                time.sleep(0.2)
+
+            for i, task in enumerate(tasks):
+                duration, status, _score = -1, SUCCESS, -1
+                transformer = trans_set[i]
                 extra = ['%d' % _evaluation_cnt, self.model_id, transformer.name]
                 try:
-                    # Limit the execution and evaluation time for each transformation.
-                    with time_limit(self.time_limit_per_trans):
-                        self.logger.info('%s - %s' % (transformer.name, str(node_.shape)))
-                        output_node = transformer.operate(node_)
-                        self.logger.info('after %s - %s' % (transformer.name, str(output_node.shape)))
-                        # Evaluate this node.
-                        if transformer.type != 0:
-                            output_node.depth = node_.depth + 1
-                            output_node.trans_hist.append(transformer.type)
-                            _score = self.evaluator(self.hp_config, data_node=output_node, name='fe')
-                            output_node.score = _score
-                        else:
-                            _score = output_node.score
-
+                    output_node, _score, duration = task.result()
                     if _score is None:
                         status = ERROR
                     else:
@@ -179,30 +143,23 @@ class EvaluationBasedOptimizer(Optimizer):
                         if _score > self.incumbent_score:
                             self.incumbent_score = _score
                             self.incumbent = output_node
+                            self.features_hist.append(output_node)
+
                 except Exception as e:
                     extra.append(str(e))
                     self.logger.error('%s: %s' % (transformer.name, str(e)))
                     status = ERROR
-                    if isinstance(e, TimeoutException):
+                    if isinstance(e, TimeoutError):
                         status = TIMEOUT
 
                 execution_status.append(
                     EvaluationResult(status=status,
-                                     duration=time.time() - _start_time,
+                                     duration=duration if duration != -1 else self.time_limit_per_trans,
                                      score=_score,
                                      extra=extra))
                 _evaluation_cnt += 1
-
                 self.evaluation_count += 1
-                if (self.maximum_evaluation_num is not None
-                    and self.evaluation_count > self.maximum_evaluation_num) or \
-                        (self.time_budget is not None
-                         and time.time() >= self.start_time + self.time_budget):
-                    self.logger.debug(
-                        '[Budget Runs Out]: %s, %s\n' % (self.maximum_evaluation_num, self.time_budget))
-                    self.is_ended = True
-                    break
-                gc.collect()
+            pool.shutdown(wait=True)
 
             # Memory Save: free the data in the unpromising nodes.
             _scores = list()
