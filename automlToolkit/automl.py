@@ -3,14 +3,14 @@ import os
 import numpy as np
 import pickle as pkl
 from sklearn.model_selection import StratifiedShuffleSplit, ShuffleSplit
-from sklearn.utils.multiclass import type_of_target
-from automlToolkit.components.feature_engineering.transformation_graph import DataNode
-from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
-from automlToolkit.components.utils.constants import *
 from automlToolkit.components.metrics.metric import get_metric
-from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
+from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
+from automlToolkit.components.utils.constants import CLS_TASKS, REG_TASKS
 from automlToolkit.components.ensemble.ensemble_selection import EnsembleSelection
+from automlToolkit.components.feature_engineering.transformation_graph import DataNode
+from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
 
+# TODO: this default value should be updated.
 classification_algorithms = ['liblinear_svc', 'random_forest']
 regression_algorithms = ['liblinear_svr', 'random_forest']
 
@@ -134,8 +134,8 @@ class AutoML(object):
         # TODO: Single model
         if self.ensemble_size > 0:
             self.stats = self.fetch_ensemble_members()
-            # assert False
             # Ensembling all intermediate/ultimate models found in above optimization process.
+            # TODO: version1.0, support multiple ensemble methods.
             train_predictions = []
             config_list = []
             train_data_dict = {}
