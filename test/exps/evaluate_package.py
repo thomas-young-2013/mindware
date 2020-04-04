@@ -1,12 +1,3 @@
-import os
-import sys
-import time
-import pickle
-import argparse
-import numpy as np
-
-sys.path.append(os.getcwd())
-
 from automlToolkit.datasets.utils import load_train_test_data
 from automlToolkit.estimators import Classifier
 
