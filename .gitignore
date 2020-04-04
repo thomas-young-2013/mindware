@@ -3,9 +3,11 @@
 *.swp
 *.pkl
 *.csv
+*.log
 temp/*
 dist/*
 build/*
+*.egg-info/
 
 # test-related
 .coverage
@@ -16,13 +18,6 @@ build/*
 .idea
 .vscode
 
-# temp file
-lfe/*
-data/datasets/*
-*.log
-
 smac3-output*
-
 logs/
-
 data/
