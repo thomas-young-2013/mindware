@@ -4,12 +4,12 @@ from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 
 
-def load_data(dataset, proj_dir='./', datanode_returned=False):
+def load_data(dataset, data_dir='./', datanode_returned=False):
     dm = DataManager()
-    data_path = proj_dir + 'data/datasets/%s.csv' % dataset
+    data_path = data_dir + 'data/datasets/%s.csv' % dataset
 
     if dataset in ['credit_default']:
-        data_path = proj_dir + 'data/datasets/%s.xls' % dataset
+        data_path = data_dir + 'data/datasets/%s.xls' % dataset
 
     # Load train data.
     if dataset in ['higgs', 'amazon_employee', 'spectf', 'usps']:
@@ -39,8 +39,8 @@ def load_data(dataset, proj_dir='./', datanode_returned=False):
         return X, y, feature_types
 
 
-def load_train_test_data(dataset, proj_dir='./', test_size=0.2, random_state=45):
-    X, y, feature_type = load_data(dataset, proj_dir, False)
+def load_train_test_data(dataset, data_dir='./', test_size=0.2, random_state=45):
+    X, y, feature_type = load_data(dataset, data_dir, False)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=test_size, random_state=random_state, stratify=y)
     train_node = DataNode(data=[X_train, y_train], feature_type=feature_type.copy())
