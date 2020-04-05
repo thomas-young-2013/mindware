@@ -17,7 +17,12 @@ args = parser.parse_args()
 
 time_limit = args.time_limit
 
+save_dir = './data/eval_exps/automl-toolkit'
+if not os.path.exists(save_dir):
+    os.makedirs(save_dir)
+
 print('==> Start to evaluate with Budget %d' % time_limit)
+
 
 iris = load_iris()
 X, y = iris.data, iris.target
@@ -26,14 +31,7 @@ dm = DataManager(X_train, y_train)
 train_data = dm.get_data_node(X_train, y_train)
 test_data = dm.get_data_node(X_test, y_test)
 
-save_dir = './data/eval_exps/automl-toolkit'
-if not os.path.exists(save_dir):
-    os.makedirs(save_dir)
-clf = Classifier(time_limit=time_limit, output_dir=save_dir, random_state=1, metric='acc', n_jobs=1)
-_start_time = time.time()
-_iter_id = 0
-
+clf = Classifier(time_limit=time_limit, output_dir=save_dir, metric='acc')
 clf.fit(train_data)
 pred = clf.predict(test_data)
-
 print(balanced_accuracy_score(test_data.data[1], pred))
