@@ -125,7 +125,11 @@ class SecondLayerBandit(object):
             if _arm == 'fe':
                 self.inc['hpo'] = self.default_config
             else:
-                self.inc['fe'] = self.original_data
+                if self.mth != 'alter_hpo':
+                    self.inc['fe'] = self.original_data
+                else:
+                    self.inc['fe'] = self.local_inc['fe']
+
             self.incumbent_perf = score
 
             arm_id = 'fe' if _arm == 'hpo' else 'hpo'

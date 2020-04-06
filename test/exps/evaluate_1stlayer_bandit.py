@@ -30,7 +30,6 @@ parser.add_argument('--seed', type=int, default=1)
 project_dir = './'
 per_run_time_limit = 150
 opt_algo = 'alter_hpo'
-# opt_algo = 'fe_only'
 
 
 def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
