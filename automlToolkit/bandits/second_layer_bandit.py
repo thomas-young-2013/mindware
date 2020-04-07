@@ -23,7 +23,7 @@ class SecondLayerBandit(object):
                  mth='rb', sw_size=3,
                  n_jobs=1, seed=1,
                  enable_intersection=True,
-                 number_of_unit_resource=1):
+                 number_of_unit_resource=2):
         self.number_of_unit_resource = number_of_unit_resource
         # One unit of resource, that's, the number of trials per iteration.
         self.one_unit_of_resource = 5

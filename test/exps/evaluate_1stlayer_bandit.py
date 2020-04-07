@@ -130,17 +130,17 @@ if __name__ == "__main__":
     np.random.seed(args.seed)
     seeds = np.random.randint(low=1, high=10000, size=start_id + args.rep_num)
 
-    algorithms = ['adaboost', 'random_forest',
-                  'libsvm_svc', 'sgd',
-                  'extra_trees', 'decision_tree',
-                  'liblinear_svc', 'k_nearest_neighbors',
-                  'passive_aggressive', 'xgradient_boosting',
-                  'lda', 'qda',
-                  'multinomial_nb', 'gaussian_nb', 'bernoulli_nb'
-                  ]
     # algorithms = ['adaboost', 'random_forest',
-    #               'extra_trees'
+    #               'libsvm_svc', 'sgd',
+    #               'extra_trees', 'decision_tree',
+    #               'liblinear_svc', 'k_nearest_neighbors',
+    #               'passive_aggressive', 'xgradient_boosting',
+    #               'lda', 'qda',
+    #               'multinomial_nb', 'gaussian_nb', 'bernoulli_nb'
     #               ]
+    algorithms = ['adaboost', 'random_forest',
+                  'extra_trees', 'liblinear_svc', 'k_nearest_neighbors'
+                  ]
 
     dataset_list = dataset_str.split(',')
 

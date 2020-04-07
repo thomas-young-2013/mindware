@@ -19,7 +19,7 @@ class EvaluationBasedOptimizer(Optimizer):
                  mem_limit_per_trans: int,
                  seed: int, shared_mode: bool = False,
                  batch_size: int = 2, beam_width: int = 3, n_jobs=1,
-                 number_of_unit_resource=3, trans_set=None):
+                 number_of_unit_resource=4, trans_set=None):
         super().__init__(str(__class__.__name__), task_type, input_data, seed)
         self.transformer_manager = TransformerManager(random_state=seed)
         self.number_of_unit_resource = number_of_unit_resource
