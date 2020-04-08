@@ -40,12 +40,15 @@ class AutoML(object):
         self.n_jobs = n_jobs
         self.solvers = dict()
         self.task_type = task_type
-        if task_type in CLS_TASKS:
-            self.include_algorithms = classification_algorithms
-        elif task_type in REG_TASKS:
-            self.include_algorithms = regression_algorithms
+        if include_algorithms is not None:
+            self.include_algorithms = include_algorithms
         else:
-            raise ValueError("Unknown task type %s" % task_type)
+            if task_type in CLS_TASKS:
+                self.include_algorithms = classification_algorithms
+            elif task_type in REG_TASKS:
+                self.include_algorithms = regression_algorithms
+            else:
+                raise ValueError("Unknown task type %s" % task_type)
 
     def fetch_ensemble_members(self, threshold=0.85):
         stats = dict()
@@ -77,7 +80,11 @@ class AutoML(object):
             perfs = hpo_optimizer.perfs
             best_configs = [self.solvers[algo_id].default_config, inc['hpo'], local_inc['hpo']]
             best_configs = list(set(best_configs))
-            threshold = best_perf * threshold
+            if self.metric._sign > 0:
+                threshold = best_perf * threshold
+            else:
+                threshold = best_perf / threshold
+
             for idx in np.argsort(-np.array(perfs)):
                 if perfs[idx] >= threshold and configs[idx] not in best_configs:
                     best_configs.append(configs[idx])

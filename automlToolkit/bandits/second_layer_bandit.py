@@ -67,14 +67,24 @@ class SecondLayerBandit(object):
 
         # Fetch hyperparameter space.
         if self.task_type in CLS_TASKS:
-            from automlToolkit.components.models.classification import _classifiers
-            clf_class = _classifiers[estimator_id]
+            from automlToolkit.components.models.classification import _classifiers, _addons
+            if estimator_id in _classifiers:
+                clf_class = _classifiers[estimator_id]
+            elif estimator_id in _addons.components:
+                clf_class = _addons.components[estimator_id]
+            else:
+                raise ValueError("Algorithm %s not supported!" % estimator_id)
             cs = clf_class.get_hyperparameter_search_space()
             model = UnParametrizedHyperparameter("estimator", estimator_id)
             cs.add_hyperparameter(model)
         elif self.task_type in REG_TASKS:
-            from automlToolkit.components.models.regression import _regressors
-            reg_class = _regressors[estimator_id]
+            from automlToolkit.components.models.regression import _regressors, _addons
+            if estimator_id in _regressors:
+                reg_class = _regressors[estimator_id]
+            elif estimator_id in _addons.components:
+                reg_class = _addons.components[estimator_id]
+            else:
+                raise ValueError("Algorithm %s not supported!" % estimator_id)
             cs = reg_class.get_hyperparameter_search_space()
             model = UnParametrizedHyperparameter("estimator", estimator_id)
             cs.add_hyperparameter(model)
