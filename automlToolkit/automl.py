@@ -77,7 +77,11 @@ class AutoML(object):
             perfs = hpo_optimizer.perfs
             best_configs = [self.solvers[algo_id].default_config, inc['hpo'], local_inc['hpo']]
             best_configs = list(set(best_configs))
-            threshold = best_perf * threshold
+            if self.metric._sign > 0:
+                threshold = best_perf * threshold
+            else:
+                threshold = best_perf / threshold
+
             for idx in np.argsort(-np.array(perfs)):
                 if perfs[idx] >= threshold and configs[idx] not in best_configs:
                     best_configs.append(configs[idx])
