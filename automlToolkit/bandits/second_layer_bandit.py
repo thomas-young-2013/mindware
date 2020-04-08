@@ -125,7 +125,7 @@ class SecondLayerBandit(object):
             if _arm == 'fe':
                 self.inc['hpo'] = self.default_config
             else:
-                if self.mth != 'alter_hpo':
+                if self.mth not in ['alter_hpo', 'rb_hpo']:
                     self.inc['fe'] = self.original_data
                 else:
                     self.inc['fe'] = self.local_inc['fe']
@@ -135,15 +135,15 @@ class SecondLayerBandit(object):
             arm_id = 'fe' if _arm == 'hpo' else 'hpo'
             self.update_flag[arm_id] = True
 
-    def optimize(self):
+            if self.mth in ['rb_hpo', 'alter_hpo'] and _arm == 'fe':
+                self.prepare_optimizer(arm_id)
+            if self.mth == 'alter_p':
+                self.prepare_optimizer(arm_id)
+
+    def optimize_rb(self):
         # First pull each arm #sliding_window_size times.
         if self.pull_cnt < len(self.arms) * self.sliding_window_size:
-            _arm = self.arms[self.pull_cnt % 2]
-            self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.classifier_id, self.pull_cnt))
-            results = self.optimizer[_arm].iterate()
-            self.collect_iter_stats(_arm, results)
-            self.pull_cnt += 1
-            self.action_sequence.append(_arm)
+            arm_picked = self.arms[self.pull_cnt % 2]
         else:
             imp_values = list()
             for _arm in self.arms:
@@ -162,30 +162,23 @@ class SecondLayerBandit(object):
             else:
                 arm_picked = self.arms[np.argmax(imp_values)]
 
-            # Early stopping scenario.
+        # Early stopping scenario.
+        if self.optimizer[arm_picked].early_stopped_flag is True:
+            arm_picked = 'hpo' if arm_picked == 'fe' else 'fe'
             if self.optimizer[arm_picked].early_stopped_flag is True:
-                arm_picked = 'hpo' if arm_picked == 'fe' else 'fe'
-                if self.optimizer[arm_picked].early_stopped_flag is True:
-                    self.early_stopped_flag = True
-                    return
+                self.early_stopped_flag = True
+                return
 
-            self.action_sequence.append(arm_picked)
-            self.logger.info('Pulling arm: %s for %s at %d-th round' % (arm_picked, self.classifier_id, self.pull_cnt))
-            results = self.optimizer[arm_picked].iterate()
-            self.collect_iter_stats(arm_picked, results)
-            self.pull_cnt += 1
+        self.action_sequence.append(arm_picked)
+        self.logger.info('Pulling arm: %s for %s at %d-th round' % (arm_picked, self.classifier_id, self.pull_cnt))
+        results = self.optimizer[arm_picked].iterate()
+        self.collect_iter_stats(arm_picked, results)
+        self.pull_cnt += 1
 
     def optimize_alternatedly(self):
         # First choose one arm.
         _arm = self.arms[self.pull_cnt % 2]
         self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.classifier_id, self.pull_cnt))
-
-        if self.mth != 'alter':
-            if self.mth != 'alter_hpo':
-                self.prepare_optimizer(_arm)
-            else:
-                if _arm == 'hpo':
-                    self.prepare_optimizer(_arm)
 
         # Execute one iteration.
         results = self.optimizer[_arm].iterate()
@@ -225,10 +218,9 @@ class SecondLayerBandit(object):
         if self.early_stopped_flag:
             return self.incumbent_perf
 
-        if self.mth == 'rb':
-            self.optimize()
-            if self.enable_intersection:
-                self.evaluate_joint_solution()
+        if self.mth in ['rb', 'rb_hpo']:
+            self.optimize_rb()
+            self.evaluate_joint_solution()
         elif self.mth in ['alter', 'alter_p', 'alter_hpo']:
             self.optimize_alternatedly()
             self.evaluate_joint_solution()
@@ -321,31 +313,29 @@ class SecondLayerBandit(object):
 
     def prepare_optimizer(self, _arm):
         if _arm == 'fe':
-            if self.update_flag[_arm] is True:
-                # Build the Feature Engineering component.
-                fe_evaluator = Evaluator(self.inc['hpo'], name='fe', resampling_strategy=self.evaluation_type,
-                                         seed=self.seed)
-                self.optimizer[_arm] = EvaluationBasedOptimizer(
-                    'classification', self.inc['fe'], fe_evaluator,
-                    self.classifier_id, self.per_run_time_limit, self.per_run_mem_limit,
-                    self.seed, shared_mode=self.share_fe
-                )
-            else:
-                self.logger.info('No improvement on HPO, so use the old FE optimizer!')
+            # Build the Feature Engineering component.
+            fe_evaluator = Evaluator(self.inc['hpo'], name='fe', resampling_strategy=self.evaluation_type,
+                                     seed=self.seed)
+            self.optimizer[_arm] = EvaluationBasedOptimizer(
+                'classification', self.inc['fe'], fe_evaluator,
+                self.classifier_id, self.per_run_time_limit, self.per_run_mem_limit,
+                self.seed, shared_mode=self.share_fe
+            )
         else:
-            if self.update_flag[_arm] is True:
-                # trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
-                # trials_per_iter = max(20, trials_per_iter)
-                trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
-                hpo_evaluator = Evaluator(self.config_space.get_default_configuration(),
-                                          resampling_strategy=self.evaluation_type,
-                                          data_node=self.inc['fe'],
-                                          seed=self.seed,
-                                          name='hpo')
-                self.optimizer[_arm] = SMACOptimizer(
-                    hpo_evaluator, self.config_space, output_dir=self.output_dir,
-                    per_run_time_limit=self.per_run_time_limit,
-                    trials_per_iter=trials_per_iter, seed=self.seed
-                )
-            else:
-                self.logger.info('No improvement on FE, so use the old HPO optimizer!')
+            # trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
+            # trials_per_iter = max(20, trials_per_iter)
+            trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
+            hpo_evaluator = Evaluator(self.config_space.get_default_configuration(),
+                                      resampling_strategy=self.evaluation_type,
+                                      data_node=self.inc['fe'],
+                                      seed=self.seed,
+                                      name='hpo')
+            self.optimizer[_arm] = SMACOptimizer(
+                hpo_evaluator, self.config_space, output_dir=self.output_dir,
+                per_run_time_limit=self.per_run_time_limit,
+                trials_per_iter=trials_per_iter, seed=self.seed
+            )
+
+        self.logger.info('='*30)
+        self.logger.info('UPDATE OPTIMIZER: %s' % _arm)
+        self.logger.info('='*30)

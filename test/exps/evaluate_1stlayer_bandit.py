@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
               'messidor_features,winequality_red,winequality_white,splice,spambase,amazon_employee'
 parser.add_argument('--datasets', type=str, default=dataset_set)
-parser.add_argument('--mode', type=str, choices=['ausk', 'hmab', 'plot'], default='plot')
+parser.add_argument('--mode', type=str, choices=['ausk', 'hmab', 'hmab,ausk', 'plot'], default='plot')
 parser.add_argument('--algo_num', type=int, default=15)
 parser.add_argument('--time_cost', type=int, default=1200)
 parser.add_argument('--trial_num', type=int, default=150)
@@ -29,7 +29,7 @@ parser.add_argument('--seed', type=int, default=1)
 
 project_dir = './'
 per_run_time_limit = 150
-opt_algo = 'alter_hpo'
+opt_algo = 'rb'
 
 
 def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     dataset_str = args.datasets
     algo_num = args.algo_num
     trial_num = args.trial_num
-    mode = args.mode
+    modes = args.mode.split(',')
     rep = args.rep_num
     start_id = args.start_id
 
@@ -144,67 +144,68 @@ if __name__ == "__main__":
 
     dataset_list = dataset_str.split(',')
 
-    if mode != 'plot':
-        for dataset in dataset_list:
-            time_costs = list()
-            if mode == 'ausk':
-                time_costs = load_hmab_time_costs(start_id, rep, dataset, len(algorithms), trial_num, seeds)
+    for mode in modes:
+        if mode != 'plot':
+            for dataset in dataset_list:
+                time_costs = list()
+                if mode == 'ausk':
+                    time_costs = load_hmab_time_costs(start_id, rep, dataset, len(algorithms), trial_num, seeds)
 
-            for run_id in range(start_id, start_id + rep):
-                seed = int(seeds[run_id])
-                if mode == 'hmab':
-                    evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed)
-                elif mode == 'ausk':
-                    time_taken = time_costs[run_id-start_id]
-                    evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=time_taken)
-                else:
-                    raise ValueError('Invalid parameter: %s' % mode)
-    else:
-        headers = ['dataset']
-        method_ids = ['hmab_alter_hpo', 'ausk_vanilla']
-        for mth in method_ids:
-            headers.extend(['val-%s' % mth, 'test-%s' % mth])
-
-        tbl_data = list()
-        for dataset in dataset_list:
-            row_data = [dataset]
+                for run_id in range(start_id, start_id + rep):
+                    seed = int(seeds[run_id])
+                    if mode == 'hmab':
+                        evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed)
+                    elif mode == 'ausk':
+                        time_taken = time_costs[run_id-start_id]
+                        evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=time_taken)
+                    else:
+                        raise ValueError('Invalid parameter: %s' % mode)
+        else:
+            headers = ['dataset']
+            method_ids = ['hmab_rb', 'ausk_vanilla']
             for mth in method_ids:
-                results = list()
-                for run_id in range(rep):
-                    seed = seeds[run_id]
-                    file_path = project_dir + 'data/%s_%s_%d_%d_%d_%d.pkl' % (
-                        mth, dataset, trial_num, len(algorithms), seed, run_id)
-                    if not os.path.exists(file_path):
-                        continue
-                    with open(file_path, 'rb') as f:
-                        data = pickle.load(f)
-                    val_acc, test_acc = data[1], data[2]
-                    results.append([val_acc, test_acc])
-                    # if mth.startswith('ausk'):
-                    #     print('='*10)
-                    #     print(val_acc, test_acc)
-                    #     print(data[3])
-                    #     print('='*10)
+                headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
-                if len(results) == rep:
-                    results = np.array(results)
-                    stats_ = zip(np.mean(results, axis=0), np.std(results, axis=0))
-                    string = ''
-                    for mean_t, std_t in stats_:
-                        string += u'%.3f\u00B1%.3f |' % (mean_t, std_t)
-                    print(dataset, mth, '=' * 30)
-                    print('%s-%s: mean\u00B1std' % (dataset, mth), string)
-                    print('%s-%s: median' % (dataset, mth), np.median(results, axis=0))
+            tbl_data = list()
+            for dataset in dataset_list:
+                row_data = [dataset]
+                for mth in method_ids:
+                    results = list()
+                    for run_id in range(rep):
+                        seed = seeds[run_id]
+                        file_path = project_dir + 'data/%s_%s_%d_%d_%d_%d.pkl' % (
+                            mth, dataset, trial_num, len(algorithms), seed, run_id)
+                        if not os.path.exists(file_path):
+                            continue
+                        with open(file_path, 'rb') as f:
+                            data = pickle.load(f)
+                        val_acc, test_acc = data[1], data[2]
+                        results.append([val_acc, test_acc])
+                        # if mth.startswith('ausk'):
+                        #     print('='*10)
+                        #     print(val_acc, test_acc)
+                        #     print(data[3])
+                        #     print('='*10)
 
-                    for idx in range(results.shape[1]):
-                        vals = results[:, idx]
-                        median = np.median(vals)
-                        if median == 0.:
-                            row_data.append('-')
-                        else:
-                            row_data.append(u'%.4f' % median)
-                else:
-                    row_data.extend(['-'] * 2)
+                    if len(results) == rep:
+                        results = np.array(results)
+                        stats_ = zip(np.mean(results, axis=0), np.std(results, axis=0))
+                        string = ''
+                        for mean_t, std_t in stats_:
+                            string += u'%.3f\u00B1%.3f |' % (mean_t, std_t)
+                        print(dataset, mth, '=' * 30)
+                        print('%s-%s: mean\u00B1std' % (dataset, mth), string)
+                        print('%s-%s: median' % (dataset, mth), np.median(results, axis=0))
 
-            tbl_data.append(row_data)
-        print(tabulate(tbl_data, headers, tablefmt='github'))
+                        for idx in range(results.shape[1]):
+                            vals = results[:, idx]
+                            median = np.median(vals)
+                            if median == 0.:
+                                row_data.append('-')
+                            else:
+                                row_data.append(u'%.4f' % median)
+                    else:
+                        row_data.extend(['-'] * 2)
+
+                tbl_data.append(row_data)
+            print(tabulate(tbl_data, headers, tablefmt='github'))
