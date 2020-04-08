@@ -40,12 +40,15 @@ class AutoML(object):
         self.n_jobs = n_jobs
         self.solvers = dict()
         self.task_type = task_type
-        if task_type in CLS_TASKS:
-            self.include_algorithms = classification_algorithms
-        elif task_type in REG_TASKS:
-            self.include_algorithms = regression_algorithms
+        if include_algorithms is not None:
+            self.include_algorithms = include_algorithms
         else:
-            raise ValueError("Unknown task type %s" % task_type)
+            if task_type in CLS_TASKS:
+                self.include_algorithms = classification_algorithms
+            elif task_type in REG_TASKS:
+                self.include_algorithms = regression_algorithms
+            else:
+                raise ValueError("Unknown task type %s" % task_type)
 
     def fetch_ensemble_members(self, threshold=0.85):
         stats = dict()

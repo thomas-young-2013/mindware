@@ -48,12 +48,15 @@ def holdout_validation(clf, scorer, X, y, test_size=0.33, fit_params=None, rando
 
 
 def get_estimator(config):
-    from automlToolkit.components.models.classification import _classifiers
+    from automlToolkit.components.models.classification import _classifiers, _addons
     classifier_type = config['estimator']
     config_ = config.copy()
     config_.pop('estimator', None)
     config_['random_state'] = 1
-    estimator = _classifiers[classifier_type](**config_)
+    try:
+        estimator = _classifiers[classifier_type](**config_)
+    except:
+        estimator = _addons.components[classifier_type](**config_)
     # if hasattr(estimator, 'n_jobs'):
     #     setattr(estimator, 'n_jobs', -1)
     return classifier_type, estimator
