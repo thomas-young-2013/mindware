@@ -31,8 +31,7 @@ class UnnamedEnsemble:
     def fit(self, predictions, labels):
         """
 
-        :param predictions: proba_predictions for cls and predictions for rgs. Shape: (num_models,num_samples,num_class) for cls
-        and (num_models,num_samples,) for rgs
+        :param predictions: proba_predictions for cls. Shape: (num_models,num_samples,num_class) for cls
         :param labels: Shape: (num_samples,)
         :return: self
         """
