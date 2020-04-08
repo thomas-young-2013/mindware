@@ -6,7 +6,7 @@ from sklearn.model_selection import StratifiedShuffleSplit, ShuffleSplit
 from automlToolkit.components.metrics.metric import get_metric
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 from automlToolkit.components.utils.constants import CLS_TASKS, REG_TASKS
-from automlToolkit.components.ensemble.ensemble_selection import EnsembleSelection
+from automlToolkit.components.ensemble import EnsembleSelection, UnnamedEnsemble
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
 
@@ -176,10 +176,17 @@ class AutoML(object):
                         train_predictions.append(y_valid_pred)
                         self.model_cnt += 1
 
-            self.es = EnsembleSelection(ensemble_size=self.ensemble_size,
-                                        task_type=self.task_type, metric=self.metric,
-                                        random_state=np.random.RandomState(seed))
-            self.es.fit(train_predictions, train_labels, identifiers=None)
+            if self.task_type in CLS_TASKS:
+                self.es = UnnamedEnsemble(ensemble_size=self.ensemble_size,
+                                          task_type=self.task_type,
+                                          metric=self.metric,
+                                          random_state=np.random.RandomState(seed))
+                self.es.fit(train_predictions, train_labels)
+            else:
+                self.es = EnsembleSelection(ensemble_size=self.ensemble_size,
+                                            task_type=self.task_type, metric=self.metric,
+                                            random_state=np.random.RandomState(seed))
+                self.es.fit(train_predictions, train_labels, identifiers=None)
 
     def _predict(self, test_data: DataNode, batch_size=None, n_jobs=1):
         # TODO: Single model
