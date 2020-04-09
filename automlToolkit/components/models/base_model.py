@@ -95,14 +95,6 @@ class BaseRegressionModel(BaseModel):
         """
         raise NotImplementedError()
 
-    def predict_proba(self, X):
-        """
-        Predict probabilities.
-        :param X: array-like, shape = (n_samples, n_features).
-        :return: array, shape=(n_samples,) if n_classes == 2 else (n_samples, n_classes).
-        """
-        raise NotImplementedError()
-
     def get_estimator(self):
         """
         Return the underlying estimator object.

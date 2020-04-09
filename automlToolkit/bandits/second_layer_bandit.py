@@ -8,12 +8,12 @@ from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from automlToolkit.components.hpo_optimizer.psmac_optimizer import PSMACOptimizer
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
-from automlToolkit.components.fe_optimizers import EvaluationBasedOptimizer, MultiThreadEvaluationBasedOptimizer
+from automlToolkit.components.fe_optimizers import EvaluationBasedOptimizer, MultiThreadEvaluationBasedOptimizer, \
+    HyperbandOptimizer
 from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
 from automlToolkit.components.utils.constants import *
 from automlToolkit.utils.decorators import time_limit, TimeoutException
 from automlToolkit.utils.functions import get_increasing_sequence
-from automlToolkit.components.utils.constants import CLS_TASKS
 
 
 class SecondLayerBandit(object):
@@ -55,6 +55,7 @@ class SecondLayerBandit(object):
         # Global incumbent.
         self.inc = dict()
         self.local_inc = dict()
+        self.local_hist = {'fe': [], 'hpo': []}
         for arm in self.arms:
             self.rewards[arm] = list()
             self.update_flag[arm] = False
@@ -118,16 +119,14 @@ class SecondLayerBandit(object):
 
         if n_jobs > 1:
             self.optimizer['fe'] = MultiThreadEvaluationBasedOptimizer(
-                'regression',
-                self.original_data, fe_evaluator,
+                self.task_type, self.original_data, fe_evaluator,
                 estimator_id, per_run_time_limit, per_run_mem_limit, self.seed,
                 shared_mode=self.share_fe,
                 n_jobs=n_jobs
             )
         else:
             self.optimizer['fe'] = EvaluationBasedOptimizer(
-                'regression',
-                self.original_data, fe_evaluator,
+                self.task_type, self.original_data, fe_evaluator,
                 estimator_id, per_run_time_limit, per_run_mem_limit, self.seed,
                 shared_mode=self.share_fe
             )
@@ -148,6 +147,8 @@ class SecondLayerBandit(object):
                 n_jobs=n_jobs
             )
         self.inc['hpo'], self.local_inc['hpo'] = self.default_config, self.default_config
+        self.local_hist['fe'].append(self.original_data)
+        self.local_hist['hpo'].append(self.default_config)
 
     def collect_iter_stats(self, _arm, results):
         for arm_id in self.arms:
@@ -160,7 +161,6 @@ class SecondLayerBandit(object):
         self.logger.info('After %d-th pulling, results: %s' % (self.pull_cnt, results))
 
         score, iter_cost, config = results
-
         if score is None:
             score = 0.0
         self.rewards[_arm].append(score)
@@ -170,6 +170,7 @@ class SecondLayerBandit(object):
         # Update global incumbent from FE and HPO.
         if score > self.incumbent_perf and np.isfinite(score):
             self.inc[_arm] = config
+            self.local_hist[_arm].append(config)
             if _arm == 'fe':
                 self.inc['hpo'] = self.default_config
             else:
@@ -373,7 +374,7 @@ class SecondLayerBandit(object):
             else:
                 raise ValueError('Invalid task type!')
             self.optimizer[_arm] = EvaluationBasedOptimizer(
-                'classification', self.inc['fe'], fe_evaluator,
+                self.task_type, self.inc['fe'], fe_evaluator,
                 self.estimator_id, self.per_run_time_limit, self.per_run_mem_limit,
                 self.seed, shared_mode=self.share_fe
             )

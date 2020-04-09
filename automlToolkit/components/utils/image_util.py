@@ -1,4 +1,3 @@
-from keras.models import Model
 import numpy as np
 import warnings
 
@@ -19,6 +18,7 @@ def reshape(images):
 
 class Image2vector():
     def __init__(self, model='resnet'):
+        from keras.models import Model
         if model == 'resnet':
             from keras.applications import ResNet50
             self.model = ResNet50(include_top=True)
