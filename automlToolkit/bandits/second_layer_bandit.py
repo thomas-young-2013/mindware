@@ -8,7 +8,8 @@ from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from automlToolkit.components.hpo_optimizer.psmac_optimizer import PSMACOptimizer
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
-from automlToolkit.components.fe_optimizers import EvaluationBasedOptimizer, MultiThreadEvaluationBasedOptimizer
+from automlToolkit.components.fe_optimizers import EvaluationBasedOptimizer, MultiThreadEvaluationBasedOptimizer, \
+    HyperbandOptimizer
 from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
 from automlToolkit.components.utils.constants import *
 from automlToolkit.utils.decorators import time_limit, TimeoutException
@@ -160,7 +161,6 @@ class SecondLayerBandit(object):
         self.logger.info('After %d-th pulling, results: %s' % (self.pull_cnt, results))
 
         score, iter_cost, config = results
-
         if score is None:
             score = 0.0
         self.rewards[_arm].append(score)
