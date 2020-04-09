@@ -10,7 +10,7 @@ from automlToolkit.components.fe_optimizers.transformer_manager import Transform
 from automlToolkit.components.evaluators.base_evaluator import _BaseEvaluator
 from automlToolkit.components.feature_engineering import TRANS_CANDIDATES
 from automlToolkit.components.feature_engineering.transformation_graph import *
-from automlToolkit.components.utils.constants import SUCCESS, ERROR, TIMEOUT
+from automlToolkit.components.utils.constants import SUCCESS, ERROR, TIMEOUT, CLS_TASKS
 from automlToolkit.utils.decorators import time_limit, TimeoutException
 
 EvaluationResult = namedtuple('EvaluationResult', 'status duration score extra')
@@ -39,7 +39,10 @@ class HyperbandOptimizer(Optimizer):
         self.beam_width = beam_width
         self.max_depth = 6
         if trans_set is None:
-            self.trans_types = TRANS_CANDIDATES[self.task_type]
+            if self.task_type in CLS_TASKS:
+                self.trans_types = TRANS_CANDIDATES['classification']
+            else:
+                self.trans_types = TRANS_CANDIDATES['regression']
         else:
             self.trans_types = trans_set
         # Debug Example:
@@ -65,7 +68,7 @@ class HyperbandOptimizer(Optimizer):
         # Avoid transformations, which would take too long
         # Combinations of non-linear models with feature learning.
         # feature_learning = ["kitchen_sinks", "kernel_pca", "nystroem_sampler"]
-        if self.task_type == 'classification':
+        if self.task_type in CLS_TASKS:
             classifier_set = ["adaboost", "decision_tree", "extra_trees",
                               "gradient_boosting", "k_nearest_neighbors",
                               "libsvm_svc", "random_forest", "gaussian_nb", "decision_tree"]

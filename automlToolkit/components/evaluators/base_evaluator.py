@@ -55,7 +55,7 @@ class _BaseEvaluator(metaclass=ABCMeta):
     def __init__(self, estimator, metric, task_type,
                  evaluation_strategy, **evaluation_params):
         self.estimator = estimator
-        if task_type not in ['classification', 'regression']:
+        if task_type not in TASK_TYPES:
             raise ValueError('Unsupported task type: %s' % task_type)
         self.metric = get_metric(metric)
         self.evaluation_strategy = evaluation_strategy

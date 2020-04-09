@@ -118,16 +118,14 @@ class SecondLayerBandit(object):
 
         if n_jobs > 1:
             self.optimizer['fe'] = MultiThreadEvaluationBasedOptimizer(
-                'regression',
-                self.original_data, fe_evaluator,
+                self.task_type, self.original_data, fe_evaluator,
                 estimator_id, per_run_time_limit, per_run_mem_limit, self.seed,
                 shared_mode=self.share_fe,
                 n_jobs=n_jobs
             )
         else:
             self.optimizer['fe'] = EvaluationBasedOptimizer(
-                'regression',
-                self.original_data, fe_evaluator,
+                self.task_type, self.original_data, fe_evaluator,
                 estimator_id, per_run_time_limit, per_run_mem_limit, self.seed,
                 shared_mode=self.share_fe
             )
@@ -367,7 +365,7 @@ class SecondLayerBandit(object):
                                                        resampling_strategy=self.evaluation_type,
                                                        seed=self.seed)
                 self.optimizer[_arm] = EvaluationBasedOptimizer(
-                    'classification', self.inc['fe'], fe_evaluator,
+                    self.task_type, self.inc['fe'], fe_evaluator,
                     self.estimator_id, self.per_run_time_limit, self.per_run_mem_limit,
                     self.seed, shared_mode=self.share_fe
                 )
