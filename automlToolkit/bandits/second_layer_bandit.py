@@ -54,6 +54,7 @@ class SecondLayerBandit(object):
         # Global incumbent.
         self.inc = dict()
         self.local_inc = dict()
+        self.local_hist = {'fe': [], 'hpo': []}
         for arm in self.arms:
             self.rewards[arm] = list()
             self.update_flag[arm] = False
@@ -147,6 +148,8 @@ class SecondLayerBandit(object):
                 n_jobs=n_jobs
             )
         self.inc['hpo'], self.local_inc['hpo'] = self.default_config, self.default_config
+        self.local_hist['fe'].append(self.original_data)
+        self.local_hist['hpo'].append(self.default_config)
 
     def collect_iter_stats(self, _arm, results):
         for arm_id in self.arms:
@@ -169,6 +172,7 @@ class SecondLayerBandit(object):
         # Update global incumbent from FE and HPO.
         if score > self.incumbent_perf:
             self.inc[_arm] = config
+            self.local_hist[_arm].append(config)
             if _arm == 'fe':
                 self.inc['hpo'] = self.default_config
             else:

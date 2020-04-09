@@ -6,10 +6,6 @@ from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import accuracy_score
 
 
-# def choose_base_models(predictions, labels, num_model):
-#     base_mask = [0] * len(predictions)
-#     return base_mask
-
 def choose_base_models(predictions, num_model, interval=20):
     num_class = predictions.shape[2]
     num_total_models = predictions.shape[0]

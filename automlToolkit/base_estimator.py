@@ -11,6 +11,7 @@ class BaseEstimator(object):
             time_limit=None,
             iter_num_per_algo=50,
             include_algorithms=None,
+            ensemble_method='ensemble_selection',
             ensemble_size=20,
             per_run_time_limit=150,
             random_state=1,
@@ -22,6 +23,7 @@ class BaseEstimator(object):
         self.time_limit = time_limit
         self.iter_num_per_algo = iter_num_per_algo
         self.include_algorithms = include_algorithms
+        self.ensemble_method = ensemble_method
         self.ensemble_size = ensemble_size
         self.per_run_time_limit = per_run_time_limit
         self.random_state = random_state
@@ -41,6 +43,7 @@ class BaseEstimator(object):
             time_limit=self.time_limit,
             iter_num_per_algo=self.iter_num_per_algo,
             include_algorithms=self.include_algorithms,
+            ensemble_method=self.ensemble_method,
             ensemble_size=self.ensemble_size,
             per_run_time_limit=self.per_run_time_limit,
             random_state=self.random_state,

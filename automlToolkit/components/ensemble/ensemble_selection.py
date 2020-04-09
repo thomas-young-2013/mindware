@@ -1,30 +1,37 @@
 from collections import Counter
+import os
 import numpy as np
+import pickle as pkl
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.metrics.scorer import _BaseScorer, _PredictScorer, _ThresholdScorer
 
 from automlToolkit.components.utils.constants import *
+from automlToolkit.components.ensemble.base_ensemble import BaseEnsembleModel
 
 
-class EnsembleSelection():
+class EnsembleSelection(BaseEnsembleModel):
     def __init__(
-            self,
+            self, stats,
             ensemble_size: int,
             task_type: int,
             metric: _BaseScorer,
+            output_dir=None,
             sorted_initialization: bool = False,
             bagging: bool = False,
-            mode: str = 'fast',
-            random_state: np.random.RandomState = None,
+            mode: str = 'fast'
     ):
-        self.ensemble_size = ensemble_size
-        self.task_type = task_type
-        self.metric = metric
+        super().__init__(stats=stats,
+                         ensemble_method='ensemble_selection',
+                         ensemble_size=ensemble_size,
+                         task_type=task_type,
+                         metric=metric,
+                         save_model=True,
+                         output_dir=output_dir)
         self.sorted_initialization = sorted_initialization
         self.bagging = bagging
         self.mode = mode
-        self.random_state = random_state
         self.encoder = OneHotEncoder()
+        self.random_state = np.random.RandomState(self.seed)
 
     def calculate_score(self, pred, y_true):
         if isinstance(self.metric, _ThresholdScorer):
@@ -35,9 +42,9 @@ class EnsembleSelection():
         score = self.metric._score_func(y_true, pred) * self.metric._sign
         return score
 
-    def fit(self, predictions, labels, identifiers):
-        if len(labels.shape) == 1 and self.task_type in CLS_TASKS:
-            reshape_y = np.reshape(labels, (len(labels), 1))
+    def fit(self, data):
+        if len(self.train_labels.shape) == 1 and self.task_type in CLS_TASKS:
+            reshape_y = np.reshape(self.train_labels, (len(self.train_labels), 1))
             self.encoder.fit(reshape_y)
         self.ensemble_size = int(self.ensemble_size)
         if self.ensemble_size < 1:
@@ -50,11 +57,11 @@ class EnsembleSelection():
             raise ValueError('Unknown mode %s' % self.mode)
 
         if self.bagging:
-            self._bagging(predictions, labels)
+            self._bagging(self.train_predictions, self.train_labels)
         else:
-            self._fit(predictions, labels)
+            self._fit(self.train_predictions, self.train_labels)
         self._calculate_weights()
-        self.identifiers_ = identifiers
+        self.identifiers_ = None
         return self
 
     def _fit(self, predictions, labels):
@@ -188,7 +195,21 @@ class EnsembleSelection():
         indices = np.argsort(perf)[perf.shape[0] - n_best:]
         return indices
 
-    def predict(self, predictions):
+    def predict(self, data, solvers):
+        predictions = []
+        cur_idx = 0
+        for algo_id in self.stats["include_algorithms"]:
+            for train_node in self.stats[algo_id]['train_data_list']:
+                test_node = solvers[algo_id].optimizer['fe'].apply(data, train_node)
+                X_test, _ = test_node.data
+                for _ in self.stats[algo_id]['configurations']:
+                    with open(os.path.join(self.output_dir, 'model%d' % cur_idx), 'rb') as f:
+                        estimator = pkl.load(f)
+                        if self.task_type in CLS_TASKS:
+                            predictions.append(estimator.predict_proba(X_test))
+                        else:
+                            predictions.append(estimator.predict(X_test))
+                    cur_idx += 1
         predictions = np.asarray(predictions)
 
         # if predictions.shape[0] == len(self.weights_),
