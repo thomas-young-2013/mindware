@@ -1,4 +1,5 @@
 import typing
+import warnings
 import numpy as np
 from sklearn.model_selection import StratifiedShuffleSplit
 from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator
@@ -141,7 +142,9 @@ class SecondLayerBandit(object):
                 trials_per_iter=trials_per_iter, seed=self.seed)
         else:
             # TODO: Support asynchronous BO
-            pass
+            self.optimizer['hpo'] = SMACOptimizer(
+                hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
+                trials_per_iter=trials_per_iter, seed=self.seed)
         self.inc['hpo'], self.local_inc['hpo'] = self.default_config, self.default_config
         self.local_hist['fe'].append(self.original_data)
         self.local_hist['hpo'].append(self.default_config)
