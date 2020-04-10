@@ -34,12 +34,17 @@ def holdout_validation(reg, scorer, X, y, test_size=0.3, random_state=1):
 
 
 def get_estimator(config):
-    from automlToolkit.components.models.regression import _regressors
+    from automlToolkit.components.models.regression import _regressors, _addons
     regressor_type = config['estimator']
     config_ = config.copy()
     config_.pop('estimator', None)
     config_['random_state'] = 1
-    estimator = _regressors[regressor_type](**config_)
+    try:
+        estimator = _regressors[regressor_type](**config_)
+    except:
+        estimator = _addons.components[regressor_type](**config_)
+    if hasattr(estimator, 'n_jobs'):
+        setattr(estimator, 'n_jobs', 4)
     return regressor_type, estimator
 
 

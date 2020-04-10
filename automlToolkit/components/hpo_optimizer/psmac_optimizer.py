@@ -46,7 +46,7 @@ class PSMACOptimizer(BaseHPOptimizer):
         self.trial_cnt = 0
         self.configs = list()
         self.perfs = list()
-        self.incumbent_perf = -1.
+        self.incumbent_perf = float("-INF")
         self.incumbent_config = self.config_space.get_default_configuration()
         # Estimate the size of the hyperparameter space.
         hp_num = len(self.config_space.get_hyperparameters())

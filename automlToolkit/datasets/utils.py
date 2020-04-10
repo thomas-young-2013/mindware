@@ -29,7 +29,7 @@ def load_data(dataset, data_dir='./', datanode_returned=False):
 
     train_data_node = dm.load_train_csv(data_path, label_col=label_column, header=header, sep=sep)
 
-    pipeline = FEPipeline(fe_enabled=False)
+    pipeline = FEPipeline(fe_enabled=False, metric='acc')
     train_data = pipeline.fit_transform(train_data_node)
     if datanode_returned:
         return train_data
