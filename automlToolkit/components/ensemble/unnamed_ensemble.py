@@ -1,16 +1,32 @@
 import numpy as np
 import pandas as pd
+import scipy.spatial
 from sklearn.metrics.scorer import _BaseScorer
 from automlToolkit.components.utils.constants import CLS_TASKS
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import accuracy_score
 
 
-def choose_base_models(predictions, num_model, interval=20):
+def choose_base_models_regression(predictions, labels, num_model):
+    base_mask = [0] * len(predictions)
+    dif = predictions - labels
+    dif[dif > 0] = 1
+    dif[dif < 0] = -1
+    '''Calculate the distance between each model'''
+    dist = scipy.spatial.distance.cdist(dif, dif)
+    total_dist = np.sum(dist, 1)
+    '''Select the model which has large distance to other models'''
+    selected_models = total_dist.argsort()[-num_model:]
+    for model in selected_models:
+        base_mask[model] = 1
+    return base_mask
+
+
+def choose_base_models_classification(predictions, num_model, interval=20):
     num_class = predictions.shape[2]
     num_total_models = predictions.shape[0]
     base_mask = [0] * len(predictions)
-    bucket = np.arange(interval+1) / interval
+    bucket = np.arange(interval + 1) / interval
     distribution = []
     for prediction in predictions:
         freq_array = []
@@ -24,8 +40,8 @@ def choose_base_models(predictions, num_model, interval=20):
     distribution = np.array(distribution)
 
     # Apply the clustering algorithm
-    Model = AgglomerativeClustering(n_clusters=num_model, linkage="complete")
-    cluster = Model.fit(distribution)
+    model = AgglomerativeClustering(n_clusters=num_model, linkage="complete")
+    cluster = model.fit(distribution)
     """
     Select models which are the most nearest to the clustering center
     selected_models = []
@@ -65,9 +81,10 @@ def calculate_weights(predictions, labels, base_mask):
             weights[:, i] = model_weight
     return weights
 
+
 def calculate_weights_simple(predictions, labels, base_mask):
     num_total_models = predictions.shape[0]
-    weights = [0]*num_total_models
+    weights = [0] * num_total_models
     for i in range(num_total_models):
         if base_mask[i] != 0:
             predicted_labels = np.argmax(predictions[i], 1)
