@@ -5,7 +5,7 @@ from automlToolkit.components.feature_engineering.transformations.base_transform
 
 class DataBalancer(Transformer):
     def __init__(self, threshold=0.6, random_state=1):
-        super().__init__("data_balancer", 20)
+        super().__init__("data_balancer", -20)
         self.threshold = threshold
         self.random_state = random_state
 

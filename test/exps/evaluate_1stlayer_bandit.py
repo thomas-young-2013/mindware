@@ -29,7 +29,7 @@ parser.add_argument('--seed', type=int, default=1)
 
 project_dir = './'
 per_run_time_limit = 180
-opt_algo = 'rb'
+opt_algo = 'hpo_only'
 
 
 def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
@@ -164,7 +164,7 @@ if __name__ == "__main__":
                         raise ValueError('Invalid parameter: %s' % mode)
         else:
             headers = ['dataset']
-            method_ids = ['hmab_rb', 'ausk_vanilla']
+            method_ids = ['hmab_rb_hpo', 'hmab_rb']
             for mth in method_ids:
                 headers.extend(['val-%s' % mth, 'test-%s' % mth])
 

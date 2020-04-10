@@ -160,6 +160,7 @@ def ease_trans(func):
         output_datanode = DataNode((new_X, y), new_types, input.task_type)
         output_datanode.trans_hist = input.trans_hist.copy()
         output_datanode.trans_hist.append(trans.type)
+        output_datanode.enable_balance = input.enable_balance
         trans.target_fields = target_fields
         return output_datanode
 
