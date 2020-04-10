@@ -3,7 +3,6 @@ from collections import namedtuple
 import gc
 import time
 from math import log, ceil
-from sklearn.model_selection import train_test_split
 
 from automlToolkit.components.fe_optimizers import Optimizer
 from automlToolkit.components.fe_optimizers.transformer_manager import TransformerManager
@@ -94,16 +93,18 @@ class HyperbandOptimizer(Optimizer):
         _iter_start_time = time.time()
         _evaluation_cnt = 0
         execution_status = list()
-
         if self.iteration_id == 0:
             # Evaluate the original features.
             _start_time, status, extra = time.time(), SUCCESS, '%d,root_node' % _evaluation_cnt
-            try:
-                self.incumbent_score = self.evaluator(self.hp_config, data_node=self.root_node, name='fe')
-            except Exception as e:
-                self.logger.error('evaluating root node: %s' % str(e))
-                self.incumbent_score = -np.inf
-                status = ERROR
+            # try:
+            #     self.incumbent_score = self.evaluator(self.hp_config, data_node=self.root_node, name='fe',
+            #                                           data_subsample_ratio=1.0)
+            # except Exception as e:
+            #     self.logger.error('evaluating root node: %s' % str(e))
+            #     self.incumbent_score = -np.inf
+            #     status = ERROR
+            self.incumbent_score = self.evaluator(self.hp_config, data_node=self.root_node, name='fe',
+                                                  data_subsample_ratio=1.0)
 
             execution_status.append(EvaluationResult(status=status,
                                                      duration=time.time() - _start_time,
@@ -147,15 +148,6 @@ class HyperbandOptimizer(Optimizer):
 
             for i in range(s + 1):
                 dataset_size = r * self.eta ** i
-                if dataset_size != R:
-                    x, y = node_.data
-                    train_x, test_x, train_y, test_y = train_test_split(x, y, stratify=y,
-                                                                        test_size=dataset_size,
-                                                                        random_state=self._seed)
-                    eval_node = node_.copy_()
-                    eval_node.data = (test_x, test_y)
-                else:
-                    eval_node = node_
 
                 score_list = []
                 self.logger.info('The total number of transformations is: %d' % len(trans_set))
@@ -163,7 +155,7 @@ class HyperbandOptimizer(Optimizer):
                     self.logger.debug('[%s][%s]' % (self.model_id, transformer.name))
                     self.logger.info('Dataset size: %f' % dataset_size)
                     if transformer.type != 0 and dataset_size == R:
-                        self.transformer_manager.add_execution_record(eval_node.node_id, transformer.type)
+                        self.transformer_manager.add_execution_record(node_.node_id, transformer.type)
 
                     _start_time, status, _score = time.time(), SUCCESS, float("-INF")
                     extra = ['%d' % _evaluation_cnt, self.model_id, transformer.name]
@@ -171,15 +163,16 @@ class HyperbandOptimizer(Optimizer):
                     try:
                         # Limit the execution and evaluation time for each transformation.
                         with time_limit(self.time_limit_per_trans):
-                            self.logger.info('%s - %s' % (transformer.name, str(eval_node.shape)))
-                            output_node = transformer.operate(eval_node)
+                            self.logger.info('%s - size %f ' % (transformer.name, dataset_size))
+                            output_node = transformer.operate(node_)
                             self.logger.info('after %s - %s' % (transformer.name, str(output_node.shape)))
 
                             # Evaluate this node.
                             if transformer.type != 0:
-                                output_node.depth = eval_node.depth + 1
+                                output_node.depth = node_.depth + 1
                                 output_node.trans_hist.append(transformer.type)
-                                _score = self.evaluator(self.hp_config, data_node=output_node, name='fe')
+                                _score = self.evaluator(self.hp_config, data_node=output_node, name='fe',
+                                                        data_subsample_ratio=dataset_size)
                                 output_node.score = _score
                             else:
                                 _score = output_node.score
@@ -193,8 +186,8 @@ class HyperbandOptimizer(Optimizer):
                                 self.temporary_nodes.append(output_node)
                                 self.graph.add_node(output_node)
                                 # Avoid self-loop.
-                                if transformer.type != 0 and eval_node.node_id != output_node.node_id:
-                                    self.graph.add_trans_in_graph(eval_node, output_node, transformer)
+                                if transformer.type != 0 and node_.node_id != output_node.node_id:
+                                    self.graph.add_trans_in_graph(node_, output_node, transformer)
                                 if _score > self.incumbent_score:
                                     self.incumbent_score = _score
                                     self.incumbent = output_node
@@ -230,10 +223,11 @@ class HyperbandOptimizer(Optimizer):
                 _idxs = np.argsort(-np.array(score_list))[:trans_next_iter]
                 trans_set = [trans_set[i] for i in _idxs]
 
-                # Reset model
-                for tran in trans_set:
-                    if hasattr(tran, 'model'):
-                        tran.model = None
+                # Reset model if datasize is not 1
+                if dataset_size < 1:
+                    for tran in trans_set:
+                        if hasattr(tran, 'model'):
+                            tran.model = None
             # Memory Save: free the data in the unpromising nodes.
             _scores = list()
             for tmp_node in self.temporary_nodes:

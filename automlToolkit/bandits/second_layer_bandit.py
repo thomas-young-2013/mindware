@@ -116,8 +116,13 @@ class SecondLayerBandit(object):
                                                 seed=self.seed)
         else:
             raise ValueError('Invalid task type!')
-
-        if n_jobs > 1:
+        if self.evaluation_type == 'partial':
+            self.optimizer['fe'] = HyperbandOptimizer(
+                self.task_type, self.original_data, fe_evaluator,
+                estimator_id, per_run_time_limit, per_run_mem_limit, self.seed,
+                shared_mode=self.share_fe
+            )
+        elif n_jobs > 1:
             self.optimizer['fe'] = MultiThreadEvaluationBasedOptimizer(
                 self.task_type, self.original_data, fe_evaluator,
                 estimator_id, per_run_time_limit, per_run_mem_limit, self.seed,
@@ -400,6 +405,6 @@ class SecondLayerBandit(object):
                 trials_per_iter=trials_per_iter, seed=self.seed
             )
 
-        self.logger.info('='*30)
+        self.logger.info('=' * 30)
         self.logger.info('UPDATE OPTIMIZER: %s' % _arm)
-        self.logger.info('='*30)
+        self.logger.info('=' * 30)
