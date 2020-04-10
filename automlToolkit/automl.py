@@ -12,8 +12,8 @@ from automlToolkit.components.feature_engineering.transformation_graph import Da
 from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
 
 # TODO: this default value should be updated.
-classification_algorithms = ['liblinear_svc', 'random_forest']
-regression_algorithms = ['liblinear_svr', 'random_forest']
+classification_algorithms = ['liblinear_svc', 'random_forest', 'lightgbm']
+regression_algorithms = ['liblinear_svr', 'random_forest', 'lightgbm']
 
 
 class AutoML(object):

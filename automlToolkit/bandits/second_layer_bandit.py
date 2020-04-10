@@ -6,13 +6,12 @@ from automlToolkit.components.evaluators.reg_evaluator import RegressionEvaluato
 from automlToolkit.utils.logging_utils import get_logger
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
-from automlToolkit.components.hpo_optimizer.psmac_optimizer import PSMACOptimizer
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.fe_optimizers import EvaluationBasedOptimizer, MultiThreadEvaluationBasedOptimizer, \
     HyperbandOptimizer
 from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
 from automlToolkit.components.utils.constants import *
-from automlToolkit.utils.decorators import time_limit, TimeoutException
+from automlToolkit.utils.decorators import time_limit
 from automlToolkit.utils.functions import get_increasing_sequence
 
 
@@ -141,11 +140,8 @@ class SecondLayerBandit(object):
                 hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
                 trials_per_iter=trials_per_iter, seed=self.seed)
         else:
-            self.optimizer['hpo'] = PSMACOptimizer(
-                hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
-                trials_per_iter=trials_per_iter, seed=self.seed,
-                n_jobs=n_jobs
-            )
+            # TODO: Support asynchronous BO
+            pass
         self.inc['hpo'], self.local_inc['hpo'] = self.default_config, self.default_config
         self.local_hist['fe'].append(self.original_data)
         self.local_hist['hpo'].append(self.default_config)
