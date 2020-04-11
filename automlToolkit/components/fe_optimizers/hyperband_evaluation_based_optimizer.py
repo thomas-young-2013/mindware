@@ -20,7 +20,7 @@ class HyperbandOptimizer(Optimizer):
                  model_id: str, time_limit_per_trans: int,
                  mem_limit_per_trans: int,
                  seed: int, shared_mode: bool = False,
-                 batch_size: int = 2, beam_width: int = 3, trans_set=None, eta=3):
+                 batch_size: int = 5, beam_width: int = 3, trans_set=None, eta=3):
         super().__init__(str(__class__.__name__), task_type, input_data, seed)
         self.transformer_manager = TransformerManager(random_state=seed)
         self.time_limit_per_trans = time_limit_per_trans

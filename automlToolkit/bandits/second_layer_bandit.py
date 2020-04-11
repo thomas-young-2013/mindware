@@ -7,6 +7,7 @@ from automlToolkit.components.evaluators.reg_evaluator import RegressionEvaluato
 from automlToolkit.utils.logging_utils import get_logger
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
+from automlToolkit.components.hpo_optimizer.mfse_optimizer import MfseOptimizer
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.fe_optimizers import EvaluationBasedOptimizer, MultiThreadEvaluationBasedOptimizer, \
     HyperbandOptimizer
@@ -140,8 +141,11 @@ class SecondLayerBandit(object):
         # Build the HPO component.
         # trials_per_iter = max(len(self.optimizer['fe'].trans_types), 20)
         trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
-
-        if n_jobs == 1:
+        if self.evaluation_type == 'partial':
+            self.optimizer['hpo'] = MfseOptimizer(
+                hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
+                trials_per_iter=trials_per_iter, seed=self.seed)
+        elif n_jobs == 1:
             self.optimizer['hpo'] = SMACOptimizer(
                 hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
                 trials_per_iter=trials_per_iter, seed=self.seed)
@@ -377,7 +381,7 @@ class SecondLayerBandit(object):
                                                    seed=self.seed)
             else:
                 raise ValueError('Invalid task type!')
-            self.optimizer[_arm] = EvaluationBasedOptimizer(
+            self.optimizer[_arm] = self.optimizer[_arm].__class__(
                 self.task_type, self.inc['fe'], fe_evaluator,
                 self.estimator_id, self.per_run_time_limit, self.per_run_mem_limit,
                 self.seed, shared_mode=self.share_fe
@@ -399,7 +403,7 @@ class SecondLayerBandit(object):
             else:
                 raise ValueError('Invalid task type!')
 
-            self.optimizer[_arm] = SMACOptimizer(
+            self.optimizer[_arm] = self.optimizer[_arm].__class__(
                 hpo_evaluator, self.config_space, output_dir=self.output_dir,
                 per_run_time_limit=self.per_run_time_limit,
                 trials_per_iter=trials_per_iter, seed=self.seed

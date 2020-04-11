@@ -5,6 +5,8 @@ from sklearn.model_selection import KFold
 
 from automlToolkit.components.hpo_optimizer.base_optimizer import BaseHPOptimizer
 from automlToolkit.components.computation.parallel_func import ParallelExecutor
+from automlToolkit.components.hpo_optimizer.utils.acquisition import EI
+from automlToolkit.components.hpo_optimizer.utils.acq_optimizer import RandomSampling
 from automlToolkit.components.hpo_optimizer.utils.prob_rf import RandomForestWithInstances
 from automlToolkit.components.hpo_optimizer.utils.prob_rf_cluster import WeightedRandomForestCluster
 from automlToolkit.components.hpo_optimizer.utils.funcs import get_types, minmax_normalization
@@ -65,11 +67,13 @@ class MfseOptimizer(BaseHPOptimizer):
         self.hist_weights = list()
         self.executor = ParallelExecutor(self.evaluator, n_worker=n_workers)
         # TODO: need to improve with lite-bo.
-        # self.weighted_acquisition_func = EI(model=self.weighted_surrogate)
-        # self.weighted_acq_optimizer = RandomSampling(self.weighted_acquisition_func,
-        #                                              config_space, n_samples=max(500, 50 * self.num_config))
+        self.weighted_acquisition_func = EI(model=self.weighted_surrogate)
+        self.weighted_acq_optimizer = RandomSampling(self.weighted_acquisition_func,
+                                                     config_space,
+                                                     n_samples=max(500, 50 * self.num_config),
+                                                     rng=np.random.RandomState(seed))
 
-    def iterate(self, num_iter=1):
+    def iterate(self, num_iter=2):
         '''
             Iterate a SH procedure (inner loop) in Hyperband.
         :return:
@@ -83,8 +87,6 @@ class MfseOptimizer(BaseHPOptimizer):
         return self.incumbent_perf, iteration_cost, self.incumbent_config
 
     def _iterate(self, s, skip_last=0):
-
-        # TODO: update the model weight.
         if self.weight_update_id > self.s_max:
             self.update_weight()
         self.weight_update_id += 1
@@ -96,7 +98,6 @@ class MfseOptimizer(BaseHPOptimizer):
 
         # Choose a batch of configurations in different mechanisms.
         start_time = time.time()
-        # TODO: sample candidate configurations.
         T = self.fetch_candidate_configurations(n)
         time_elapsed = time.time() - start_time
         self.logger.info("Choosing next configurations took %.2f sec." % time_elapsed)
@@ -130,12 +131,11 @@ class MfseOptimizer(BaseHPOptimizer):
                 T = T[0:reduced_num]
             else:
                 T = [T[indices[0]]]
-
-            for item in self.iterate_r[self.iterate_r.index(r):]:
-                # NORMALIZE Objective value: MinMax linear normalization
-                normalized_y = minmax_normalization(self.target_y[item])
-                self.weighted_surrogate.train(convert_configurations_to_array(self.target_x[item]),
-                                              np.array(normalized_y, dtype=np.float64), r=item)
+        for item in self.iterate_r[self.iterate_r.index(r):]:
+            # NORMALIZE Objective value: MinMax linear normalization
+            normalized_y = minmax_normalization(self.target_y[item])
+            self.weighted_surrogate.train(convert_configurations_to_array(self.target_x[item]),
+                                          np.array(normalized_y, dtype=np.float64), r=item)
 
     def fetch_candidate_configurations(self, num_config):
         if len(self.target_y[self.iterate_r[-1]]) == 0:

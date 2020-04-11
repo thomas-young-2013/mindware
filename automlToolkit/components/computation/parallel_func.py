@@ -55,6 +55,6 @@ class ParallelExecutor(object):
             # get the evaluation statistics
             for trial in execution_stats:
                 assert (trial.done())
-                perf = trial.result()
+                perf = trial.result()[0]
                 evaluation_result.append(perf)
         return evaluation_result
