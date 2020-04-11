@@ -23,7 +23,6 @@ class Bagging(BaseEnsembleModel):
                          output_dir=output_dir)
 
     def fit(self, datanode):
-        print("yeah")
         model_cnt = 0
         for algo_id in self.stats["include_algorithms"]:
             train_list = self.stats[algo_id]['train_data_list']
