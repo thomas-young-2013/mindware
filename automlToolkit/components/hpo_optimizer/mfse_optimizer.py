@@ -1,11 +1,14 @@
 import time
 import numpy as np
 from math import log, ceil
+from sklearn.model_selection import KFold
 
 from automlToolkit.components.hpo_optimizer.base_optimizer import BaseHPOptimizer
+from automlToolkit.components.hpo_optimizer.utils.prob_rf import RandomForestWithInstances
 from automlToolkit.components.hpo_optimizer.utils.prob_rf_cluster import WeightedRandomForestCluster
 from automlToolkit.components.hpo_optimizer.utils.funcs import get_types, minmax_normalization
-from automlToolkit.components.hpo_optimizer.utils.config_space_utils import convert_configurations_to_array
+from automlToolkit.components.hpo_optimizer.utils.config_space_utils import convert_configurations_to_array, \
+    sample_configurations, expand_configurations
 
 
 class MfseOptimizer(BaseHPOptimizer):
@@ -56,7 +59,8 @@ class MfseOptimizer(BaseHPOptimizer):
         init_weight.extend([1. / self.s_max] * self.s_max)
         self.weighted_surrogate = WeightedRandomForestCluster(types, bounds, self.s_max,
                                                               self.eta, init_weight, 'gpoe')
-
+        self.weight_changed_cnt = 0
+        self.hist_weights = list()
         # TODO: need to improve with lite-bo.
         # self.weighted_acquisition_func = EI(model=self.weighted_surrogate)
         # self.weighted_acq_optimizer = RandomSampling(self.weighted_acquisition_func,
@@ -146,8 +150,102 @@ class MfseOptimizer(BaseHPOptimizer):
                 self.weighted_surrogate.train(convert_configurations_to_array(self.target_x[item]),
                                               np.array(normalized_y, dtype=np.float64), r=item)
 
-    def fetch_candidate_configurations(self, n):
-        pass
+    def fetch_candidate_configurations(self, num_config):
+        if len(self.target_y[self.iterate_r[-1]]) == 0:
+            return sample_configurations(self.config_space, num_config)
+
+        config_cnt = 0
+        config_candidates = list()
+        total_sample_cnt = 0
+
+        while config_cnt < num_config and total_sample_cnt < 3 * num_config:
+            incumbent = dict()
+            max_r = self.iterate_r[-1]
+            best_index = np.argmin(self.target_y[max_r])
+            incumbent['config'] = self.target_x[max_r][best_index]
+            approximate_obj = self.weighted_surrogate.predict(convert_configurations_to_array([incumbent['config']]))[0]
+            incumbent['obj'] = approximate_obj
+
+            self.weighted_acquisition_func.update(model=self.weighted_surrogate, eta=incumbent)
+            _config = self.weighted_acq_optimizer.maximize(batch_size=1)[0]
+
+            if _config not in config_candidates:
+                config_candidates.append(_config)
+                config_cnt += 1
+            total_sample_cnt += 1
+
+        if config_cnt < num_config:
+            config_candidates = expand_configurations(config_candidates, self.config_space, num_config)
+        return config_candidates
 
     def update_weight(self):
-        pass
+        max_r = self.iterate_r[-1]
+        incumbent_configs = self.target_x[max_r]
+        test_x = convert_configurations_to_array(incumbent_configs)
+        test_y = np.array(self.target_y[max_r], dtype=np.float64)
+
+        r_list = self.weighted_surrogate.surrogate_r
+        K = len(r_list)
+        p = 3
+
+        if len(test_y) >= 3:
+            # Get previous weights
+            preserving_order_p = list()
+            preserving_order_nums = list()
+            for i, r in enumerate(r_list):
+                fold_num = 5
+                if i != K - 1:
+                    mean, var = self.weighted_surrogate.surrogate_container[r].predict(test_x)
+                    tmp_y = np.reshape(mean, -1)
+                    preorder_num, pair_num = self.calculate_preserving_order_num(tmp_y, test_y)
+                    preserving_order_p.append(preorder_num / pair_num)
+                    preserving_order_nums.append(preorder_num)
+                else:
+                    if len(test_y) < 2 * fold_num:
+                        preserving_order_p.append(0)
+                    else:
+                        # 5-fold cross validation.
+                        kfold = KFold(n_splits=fold_num)
+                        cv_pred = np.array([0] * len(test_y))
+                        for train_idx, valid_idx in kfold.split(test_x):
+                            train_configs, train_y = test_x[train_idx], test_y[train_idx]
+                            valid_configs, valid_y = test_x[valid_idx], test_y[valid_idx]
+                            types, bounds = get_types(self.config_space)
+                            _surrogate = RandomForestWithInstances(types=types, bounds=bounds)
+                            _surrogate.train(train_configs, train_y)
+                            pred, _ = _surrogate.predict(valid_configs)
+                            cv_pred[valid_idx] = pred.reshape(-1)
+                        preorder_num, pair_num = self.calculate_preserving_order_num(cv_pred, test_y)
+                        preserving_order_p.append(preorder_num / pair_num)
+                        preserving_order_nums.append(preorder_num)
+            trans_order_weight = np.array(preserving_order_p)
+            power_sum = np.sum(np.power(trans_order_weight, p))
+            new_weights = np.power(trans_order_weight, p) / power_sum
+        else:
+            old_weights = list()
+            for i, r in enumerate(r_list):
+                _weight = self.weighted_surrogate.surrogate_weight[r]
+                old_weights.append(_weight)
+            new_weights = old_weights.copy()
+
+        self.logger.info(' %d-th Updating weights: %s' % (self.weight_changed_cnt, str(new_weights)))
+
+        # Assign the weight to each basic surrogate.
+        for i, r in enumerate(r_list):
+            self.weighted_surrogate.surrogate_weight[r] = new_weights[i]
+        self.weight_changed_cnt += 1
+        # Save the weight data.
+        self.hist_weights.append(new_weights)
+
+    @staticmethod
+    def calculate_preserving_order_num(y_pred, y_true):
+        array_size = len(y_pred)
+        assert len(y_true) == array_size
+
+        total_pair_num, order_preserving_num = 0, 0
+        for idx in range(array_size):
+            for inner_idx in range(idx + 1, array_size):
+                if bool(y_true[idx] > y_true[inner_idx]) == bool(y_pred[idx] > y_pred[inner_idx]):
+                    order_preserving_num += 1
+                total_pair_num += 1
+        return order_preserving_num, total_pair_num
