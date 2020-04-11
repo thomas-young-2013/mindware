@@ -89,8 +89,8 @@ class Stacking(BaseEnsembleModel):
                                 else:
                                     feature_p2[test, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred
                             else:
-                                pred = estimator.predict(x_p2)
-                                n_dim = np.array(pred).shape[1]
+                                pred = estimator.predict(x_p2).reshape(-1, 1)
+                                n_dim = 1
                                 # Initialize training matrix for phase 2
                                 if feature_p2 is None:
                                     num_samples = len(train) + len(test)
@@ -132,8 +132,8 @@ class Stacking(BaseEnsembleModel):
                                     feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = \
                                         feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] + pred / self.kfold
                             else:
-                                pred = estimator.predict(test_node.data[0])
-                                n_dim = np.array(pred).shape[1]
+                                pred = estimator.predict(test_node.data[0]).reshape(-1, 1)
+                                n_dim = 1
                                 # Initialize training matrix for phase 2
                                 if feature_p2 is None:
                                     num_samples = len(test_node.data[0])
