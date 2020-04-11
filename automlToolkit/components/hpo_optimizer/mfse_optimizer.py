@@ -4,6 +4,7 @@ from math import log, ceil
 from sklearn.model_selection import KFold
 
 from automlToolkit.components.hpo_optimizer.base_optimizer import BaseHPOptimizer
+from automlToolkit.components.computation.parallel_func import ParallelExecutor
 from automlToolkit.components.hpo_optimizer.utils.prob_rf import RandomForestWithInstances
 from automlToolkit.components.hpo_optimizer.utils.prob_rf_cluster import WeightedRandomForestCluster
 from automlToolkit.components.hpo_optimizer.utils.funcs import get_types, minmax_normalization
@@ -14,7 +15,7 @@ from automlToolkit.components.hpo_optimizer.utils.config_space_utils import conv
 class MfseOptimizer(BaseHPOptimizer):
     def __init__(self, evaluator, config_space, time_limit=None, evaluation_limit=None,
                  per_run_time_limit=600, per_run_mem_limit=1024, output_dir='./', trials_per_iter=1, seed=1,
-                 R=81, eta=3):
+                 R=81, eta=3, n_workers=1):
         super().__init__(evaluator, config_space, seed)
         self.time_limit = time_limit
         self.evaluation_num_limit = evaluation_limit
@@ -22,6 +23,7 @@ class MfseOptimizer(BaseHPOptimizer):
         self.per_run_time_limit = per_run_time_limit
         self.per_run_mem_limit = per_run_mem_limit
         self.config_space = config_space
+        self.n_workers = n_workers
 
         self.trial_cnt = 0
         self.configs = list()
@@ -61,6 +63,7 @@ class MfseOptimizer(BaseHPOptimizer):
                                                               self.eta, init_weight, 'gpoe')
         self.weight_changed_cnt = 0
         self.hist_weights = list()
+        self.executor = ParallelExecutor(self.evaluator, n_worker=n_workers)
         # TODO: need to improve with lite-bo.
         # self.weighted_acquisition_func = EI(model=self.weighted_surrogate)
         # self.weighted_acq_optimizer = RandomSampling(self.weighted_acquisition_func,
@@ -98,51 +101,35 @@ class MfseOptimizer(BaseHPOptimizer):
         time_elapsed = time.time() - start_time
         self.logger.info("Choosing next configurations took %.2f sec." % time_elapsed)
 
-        extra_info = None
-        last_run_num = None
-
         for i in range((s + 1) - int(skip_last)):  # changed from s + 1
 
             # Run each of the n configs for <iterations>
             # and keep best (n_configs / eta) configurations
 
             n_configs = n * self.eta ** (-i)
-            n_iterations = r * self.eta ** (i)
+            n_resource = r * self.eta ** i
 
-            n_iter = n_iterations
-            if last_run_num is not None and not self.restart_needed:
-                n_iter -= last_run_num
-            last_run_num = n_iterations
+            self.logger.info("MFSE: %d configurations x size %f each" %
+                             (int(n_configs), float(n_resource / self.R)))
 
-            self.logger.info("MFSE: %d configurations x %d iterations each" %
-                             (int(n_configs), int(n_iterations)))
+            val_losses = self.executor.parallel_execute(T, subsample_ratio=float(n_resource / self.R))
 
-            ret_val, early_stops = self.run_in_parallel(T, n_iter, extra_info)
-            val_losses = [item['loss'] for item in ret_val]
-            ref_list = [item['ref_id'] for item in ret_val]
+            self.target_x[int(n_resource)].extend(T)
+            self.target_y[int(n_resource)].extend(val_losses)
 
-            self.target_x[int(n_iterations)].extend(T)
-            self.target_y[int(n_iterations)].extend(val_losses)
-
-            if int(n_iterations) == self.R:
+            if int(n_resource) == self.R:
                 self.incumbent_configs.extend(T)
                 self.incumbent_perfs.extend(val_losses)
 
             # Select a number of best configurations for the next loop.
             # Filter out early stops, if any.
             indices = np.argsort(val_losses)
-            if len(T) == sum(early_stops):
-                break
             if len(T) >= self.eta:
-                T = [T[i] for i in indices if not early_stops[i]]
-                extra_info = [ref_list[i] for i in indices if not early_stops[i]]
+                T = [T[i] for i in indices]
                 reduced_num = int(n_configs / self.eta)
                 T = T[0:reduced_num]
-                extra_info = extra_info[0:reduced_num]
             else:
                 T = [T[indices[0]]]
-                extra_info = [ref_list[indices[0]]]
-            incumbent_loss = val_losses[indices[0]]
 
             for item in self.iterate_r[self.iterate_r.index(r):]:
                 # NORMALIZE Objective value: MinMax linear normalization
