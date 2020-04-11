@@ -54,9 +54,6 @@ class AutoML(object):
                 raise ValueError("Unknown task type %s" % task_type)
         if ensemble_method is not None and ensemble_method not in ensemble_list:
             raise ValueError("%s is not supported for ensemble!" % ensemble_method)
-        if ensemble_method is not None and ensemble_method != 'ensemble_selection' and task_type in REG_TASKS:
-            warnings.warn("Only ensemble selection is supported for regression!")
-            self.ensemble_method = 'ensemble_selection'
 
     def fetch_ensemble_members(self, threshold=0.85):
         stats = dict()

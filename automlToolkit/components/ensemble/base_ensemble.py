@@ -6,7 +6,8 @@ import pickle as pkl
 
 from automlToolkit.components.utils.constants import CLS_TASKS
 from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
-from automlToolkit.components.ensemble.unnamed_ensemble import choose_base_models
+from automlToolkit.components.ensemble.unnamed_ensemble import choose_base_models_classification, \
+    choose_base_models_regression
 
 
 class BaseEnsembleModel(object):
@@ -75,7 +76,11 @@ class BaseEnsembleModel(object):
             return
 
         if task_type in CLS_TASKS:
-            self.base_model_mask = choose_base_models(np.array(self.train_predictions), self.ensemble_size)
+            self.base_model_mask = choose_base_models_classification(np.array(self.train_predictions),
+                                                                     self.ensemble_size)
+        else:
+            self.base_model_mask = choose_base_models_regression(np.array(self.train_predictions), np.array(y_valid),
+                                                                 self.ensemble_size)
 
     def fit(self, data):
         raise NotImplementedError

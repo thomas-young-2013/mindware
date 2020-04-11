@@ -141,7 +141,7 @@ class Stacking(BaseEnsembleModel):
                                 # Get average predictions
                                 feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = \
                                     feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] + pred / self.kfold
-                model_cnt += 1
+                    model_cnt += 1
         return feature_p2
 
     def predict(self, data, solvers):

@@ -4,4 +4,4 @@ from .bagging import Bagging
 from .blending import Blending
 from .stacking import Stacking
 from .ensemble_selection import EnsembleSelection
-from .unnamed_ensemble import UnnamedEnsemble, choose_base_models
+from .unnamed_ensemble import UnnamedEnsemble, choose_base_models_regression, choose_base_models_classification
