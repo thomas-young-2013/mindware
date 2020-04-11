@@ -19,7 +19,7 @@ class HyperbandOptimizer(Optimizer):
     def __init__(self, task_type, input_data: DataNode, evaluator: _BaseEvaluator,
                  model_id: str, time_limit_per_trans: int,
                  mem_limit_per_trans: int,
-                 seed: int, shared_mode: bool = False,
+                 seed: int, shared_mode: bool = False, n_jobs=1,
                  batch_size: int = 5, beam_width: int = 3, trans_set=None, eta=3):
         super().__init__(str(__class__.__name__), task_type, input_data, seed)
         self.transformer_manager = TransformerManager(random_state=seed)
@@ -32,7 +32,6 @@ class HyperbandOptimizer(Optimizer):
         self.start_time = time.time()
         self.hp_config = None
         self.early_stopped_flag = False
-
         # Parameters in beam search.
         self.hpo_batch_size = batch_size
         self.beam_width = beam_width

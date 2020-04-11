@@ -6,11 +6,9 @@ from automlToolkit.components.evaluators.cls_evaluator import ClassificationEval
 from automlToolkit.components.evaluators.reg_evaluator import RegressionEvaluator
 from automlToolkit.utils.logging_utils import get_logger
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
-from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
-from automlToolkit.components.hpo_optimizer.mfse_optimizer import MfseOptimizer
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
-from automlToolkit.components.fe_optimizers import EvaluationBasedOptimizer, MultiThreadEvaluationBasedOptimizer, \
-    HyperbandOptimizer
+from automlToolkit.components.fe_optimizers import build_fe_optimizer
+from automlToolkit.components.hpo_optimizer import build_hpo_optimizer
 from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
 from automlToolkit.components.utils.constants import *
 from automlToolkit.utils.decorators import time_limit
@@ -103,7 +101,7 @@ class SecondLayerBandit(object):
             fe_evaluator = ClassificationEvaluator(self.default_config, scorer=self.metric,
                                                    name='fe', resampling_strategy=self.evaluation_type,
                                                    seed=self.seed)
-            hpo_evaluator = ClassificationEvaluator(self.default_config,
+            hpo_evaluator = ClassificationEvaluator(self.default_config, scorer=self.metric,
                                                     data_node=self.original_data, name='hpo',
                                                     resampling_strategy=self.evaluation_type,
                                                     seed=self.seed)
@@ -111,49 +109,28 @@ class SecondLayerBandit(object):
             fe_evaluator = RegressionEvaluator(self.default_config, scorer=self.metric,
                                                name='fe', resampling_strategy=self.evaluation_type,
                                                seed=self.seed)
-            hpo_evaluator = RegressionEvaluator(self.default_config,
+            hpo_evaluator = RegressionEvaluator(self.default_config, scorer=self.metric,
                                                 data_node=self.original_data, name='hpo',
                                                 resampling_strategy=self.evaluation_type,
                                                 seed=self.seed)
         else:
             raise ValueError('Invalid task type!')
-        if self.evaluation_type == 'partial':
-            self.optimizer['fe'] = HyperbandOptimizer(
-                self.task_type, self.original_data, fe_evaluator,
-                estimator_id, per_run_time_limit, per_run_mem_limit, self.seed,
-                shared_mode=self.share_fe
-            )
-        elif n_jobs > 1:
-            self.optimizer['fe'] = MultiThreadEvaluationBasedOptimizer(
-                self.task_type, self.original_data, fe_evaluator,
-                estimator_id, per_run_time_limit, per_run_mem_limit, self.seed,
-                shared_mode=self.share_fe,
-                n_jobs=n_jobs
-            )
-        else:
-            self.optimizer['fe'] = EvaluationBasedOptimizer(
-                self.task_type, self.original_data, fe_evaluator,
-                estimator_id, per_run_time_limit, per_run_mem_limit, self.seed,
-                shared_mode=self.share_fe
-            )
+
+        self.optimizer['fe'] = build_fe_optimizer(self.evaluation_type, self.task_type, self.original_data,
+                                                  fe_evaluator, estimator_id, per_run_time_limit,
+                                                  per_run_mem_limit, self.seed,
+                                                  shared_mode=self.share_fe, n_jobs=n_jobs)
+
         self.inc['fe'], self.local_inc['fe'] = self.original_data, self.original_data
 
         # Build the HPO component.
         # trials_per_iter = max(len(self.optimizer['fe'].trans_types), 20)
         trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
-        if self.evaluation_type == 'partial':
-            self.optimizer['hpo'] = MfseOptimizer(
-                hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
-                trials_per_iter=trials_per_iter, seed=self.seed)
-        elif n_jobs == 1:
-            self.optimizer['hpo'] = SMACOptimizer(
-                hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
-                trials_per_iter=trials_per_iter, seed=self.seed)
-        else:
-            # TODO: Support asynchronous BO
-            self.optimizer['hpo'] = SMACOptimizer(
-                hpo_evaluator, cs, output_dir=output_dir, per_run_time_limit=per_run_time_limit,
-                trials_per_iter=trials_per_iter, seed=self.seed)
+
+        self.optimizer['hpo'] = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs, output_dir=output_dir,
+                                                    per_run_time_limit=per_run_time_limit,
+                                                    trials_per_iter=trials_per_iter, seed=self.seed)
+
         self.inc['hpo'], self.local_inc['hpo'] = self.default_config, self.default_config
         self.local_hist['fe'].append(self.original_data)
         self.local_hist['hpo'].append(self.default_config)
@@ -381,33 +358,30 @@ class SecondLayerBandit(object):
                                                    seed=self.seed)
             else:
                 raise ValueError('Invalid task type!')
-            self.optimizer[_arm] = self.optimizer[_arm].__class__(
-                self.task_type, self.inc['fe'], fe_evaluator,
-                self.estimator_id, self.per_run_time_limit, self.per_run_mem_limit,
-                self.seed, shared_mode=self.share_fe
-            )
+            self.optimizer[_arm] = build_fe_optimizer(self.evaluation_type, self.task_type, self.inc['fe'],
+                                                      fe_evaluator, self.estimator_id, self.per_run_time_limit,
+                                                      self.per_run_mem_limit, self.seed, shared_mode=self.share_fe)
         else:
             # trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
             # trials_per_iter = max(20, trials_per_iter)
             trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
             if self.task_type in CLS_TASKS:
-                hpo_evaluator = ClassificationEvaluator(self.default_config,
+                hpo_evaluator = ClassificationEvaluator(self.default_config, scorer=self.metric,
                                                         data_node=self.inc['fe'], name='hpo',
                                                         resampling_strategy=self.evaluation_type,
                                                         seed=self.seed)
             elif self.task_type in REG_TASKS:
-                hpo_evaluator = RegressionEvaluator(self.default_config,
+                hpo_evaluator = RegressionEvaluator(self.default_config, scorer=self.metric,
                                                     data_node=self.inc['fe'], name='hpo',
                                                     resampling_strategy=self.evaluation_type,
                                                     seed=self.seed)
             else:
                 raise ValueError('Invalid task type!')
 
-            self.optimizer[_arm] = self.optimizer[_arm].__class__(
-                hpo_evaluator, self.config_space, output_dir=self.output_dir,
-                per_run_time_limit=self.per_run_time_limit,
-                trials_per_iter=trials_per_iter, seed=self.seed
-            )
+            self.optimizer[_arm] = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, self.config_space,
+                                                       output_dir=self.output_dir,
+                                                       per_run_time_limit=self.per_run_time_limit,
+                                                       trials_per_iter=trials_per_iter, seed=self.seed)
 
         self.logger.info('=' * 30)
         self.logger.info('UPDATE OPTIMIZER: %s' % _arm)

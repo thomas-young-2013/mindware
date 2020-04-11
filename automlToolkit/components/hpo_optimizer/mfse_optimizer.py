@@ -30,7 +30,7 @@ class MfseOptimizer(BaseHPOptimizer):
         self.trial_cnt = 0
         self.configs = list()
         self.perfs = list()
-        self.incumbent_perf = -1.
+        self.incumbent_perf = float("-INF")
         self.incumbent_config = self.config_space.get_default_configuration()
         self.incumbent_configs = []
         self.incumbent_perfs = []
@@ -73,7 +73,7 @@ class MfseOptimizer(BaseHPOptimizer):
                                                      n_samples=max(500, 50 * self.num_config),
                                                      rng=np.random.RandomState(seed))
 
-    def iterate(self, num_iter=2):
+    def iterate(self, num_iter=1):
         '''
             Iterate a SH procedure (inner loop) in Hyperband.
         :return:
@@ -84,6 +84,10 @@ class MfseOptimizer(BaseHPOptimizer):
             self.inner_iter_id = (self.inner_iter_id + 1) % (self.s_max + 1)
 
         iteration_cost = time.time() - _start_time
+        inc_idx = np.argmin(np.array(self.incumbent_perf))
+
+        self.incumbent_perf = 1 - self.incumbent_perfs[inc_idx]
+        self.incumbent_config = self.incumbent_configs[inc_idx]
         return self.incumbent_perf, iteration_cost, self.incumbent_config
 
     def _iterate(self, s, skip_last=0):

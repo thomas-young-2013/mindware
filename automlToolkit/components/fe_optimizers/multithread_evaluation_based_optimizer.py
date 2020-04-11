@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 import gc
 import time
 
-from automlToolkit.components.fe_optimizers import EvaluationBasedOptimizer
+from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
 from automlToolkit.components.evaluators.base_evaluator import _BaseEvaluator
 from automlToolkit.components.feature_engineering.transformation_graph import *
 from automlToolkit.components.utils.constants import SUCCESS, ERROR, TIMEOUT
