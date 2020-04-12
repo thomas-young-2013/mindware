@@ -6,7 +6,6 @@ from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
     UniformIntegerHyperparameter, UnParametrizedHyperparameter, Constant, \
     CategoricalHyperparameter
-from hyperopt import hp
 
 from automlToolkit.components.models.base_model import BaseClassificationModel, IterativeComponentWithSampleWeight
 from automlToolkit.components.utils.configspace_utils import check_none
@@ -157,6 +156,7 @@ class GradientBoostingClassifier(IterativeComponentWithSampleWeight, BaseClassif
                                     min_impurity_decrease])
             return cs
         elif optimizer == 'tpe':
+            from hyperopt import hp
             space = {'loss': hp.choice('gb_loss', ["deviance"]),
                      'learning_rate': hp.loguniform('gb_learning_rate', np.log(0.01), np.log(1)),
                      # 'n_estimators': hp.randint('gb_n_estimators', 451) + 50,

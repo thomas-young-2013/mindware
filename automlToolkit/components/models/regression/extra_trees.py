@@ -4,7 +4,6 @@ from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
     UniformIntegerHyperparameter, CategoricalHyperparameter, \
     Constant
-from hyperopt import hp
 
 from automlToolkit.components.models.base_model import BaseRegressionModel, IterativeComponentWithSampleWeight
 from automlToolkit.components.utils.configspace_utils import check_none, check_for_bool
@@ -99,6 +98,7 @@ class ExtraTreesRegressor(IterativeComponentWithSampleWeight, BaseRegressionMode
 
             return cs
         elif optimizer == 'tpe':
+            from hyperopt import hp
             space = {'n_estimators': hp.choice('et_n_estimators', [100]),
                      'criterion': hp.choice('et_criterion', ["mse", "mae"]),
                      'max_features': hp.uniform('et_max_features', 0, 1),

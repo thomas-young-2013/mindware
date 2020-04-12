@@ -2,7 +2,6 @@ import numpy as np
 from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
     CategoricalHyperparameter
-from hyperopt import hp
 
 from automlToolkit.components.models.base_model import BaseClassificationModel
 from automlToolkit.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
@@ -76,6 +75,7 @@ class Logistic_Regression(BaseClassificationModel):
             cs.add_hyperparameters([C, penalty, solver, tol, max_iter])
             return cs
         elif optimizer == 'tpe':
+            from hyperopt import hp
             space = {'C': hp.loguniform('lr_C', np.log(0.03125), np.log(10)),
                      'tol': hp.loguniform('lr_tol', np.log(1e-6), np.log(1e-2)),
                      'max_iter': hp.uniform('lr_max_iter', 100, 1000),

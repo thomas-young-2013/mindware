@@ -147,6 +147,7 @@ class HyperbandOptimizer(Optimizer):
             s = ceil(log(len(trans_set) / self.beam_width) / log(self.eta))
             r = R * self.eta ** (-s)
 
+            # TODO: Modify successive halving
             for i in range(s + 1):
                 dataset_size = r * self.eta ** i
 

@@ -1,7 +1,6 @@
 import numpy as np
 from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import UniformFloatHyperparameter, CategoricalHyperparameter
-from hyperopt import hp
 
 from automlToolkit.components.models.base_model import BaseRegressionModel
 from automlToolkit.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
@@ -58,6 +57,7 @@ class RidgeRegressor(BaseRegressionModel):
             cs.add_hyperparameters([alpha, tol, max_iter, solver])
             return cs
         elif optimizer == 'tpe':
+            from hyperopt import hp
             space = {'alpha': hp.loguniform('ridge_alpha', np.log(0.01), np.log(32)),
                      'tol': hp.loguniform('ridge_tol', np.log(1e-6), np.log(1e-2)),
                      'max_iter': hp.uniform('ridge_max_iter', 100, 1000),

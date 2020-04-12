@@ -2,7 +2,6 @@ import numpy as np
 from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
     UniformIntegerHyperparameter, CategoricalHyperparameter
-from hyperopt import hp
 
 from automlToolkit.components.models.base_model import BaseClassificationModel
 from automlToolkit.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
@@ -78,6 +77,7 @@ class AdaboostClassifier(BaseClassificationModel):
             cs.add_hyperparameters([n_estimators, learning_rate, algorithm, max_depth])
             return cs
         elif optimizer == 'tpe':
+            from hyperopt import hp
             space = {'n_estimators': hp.randint('ab_n_estimators', 451) + 50,
                      'learning_rate': hp.loguniform('ab_learning_rate', np.log(0.01), np.log(2)),
                      'algorithm': hp.choice('ab_algorithm', ["SAMME.R", "SAMME"]),

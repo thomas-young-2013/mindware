@@ -1,7 +1,6 @@
 from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter, \
     UniformIntegerHyperparameter
-from hyperopt import hp
 
 from automlToolkit.components.models.base_model import BaseClassificationModel
 from automlToolkit.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
@@ -68,6 +67,7 @@ class KNearestNeighborsClassifier(BaseClassificationModel):
 
             return cs
         elif optimizer == 'tpe':
+            from hyperopt import hp
             space = {'n_neighbors': hp.randint('knn_n_neighbors', 100) + 1,
                      'weights': hp.choice('knn_weights', ['uniform', 'distance']),
                      'p': hp.choice('knn_p', [1, 2])}
