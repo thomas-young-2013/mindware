@@ -5,9 +5,9 @@
 ## Soln-ML: Towards Self-Learning AutoML System.
 Soln-ML is an AutoML system, which is capable of improving its AutoML power by learning from past experience.
 It implements many basic components that enables automatic machine learning. 
-The playground toolkit is used to nourish new AutoML algorithms.
-It is developed by <a href="http://net.pku.edu.cn/~cuibin/" target="_blank" rel="nofollow">DAIM Lab</a> at Peking University.
-The goal of Soln-ML is to make machine learning accessible for everyone.
+Furthermore, this toolkit can be also used to nourish new AutoML algorithms.
+Soln-ML is developed by <a href="http://net.pku.edu.cn/~cuibin/" target="_blank" rel="nofollow">DAIM Lab</a> at Peking University.
+The goal of Soln-ML is to make machine learning easier to apply both in industry and academia.
 
 ## Guiding principles
 
@@ -16,6 +16,11 @@ The goal of Soln-ML is to make machine learning accessible for everyone.
 - __Easy extensibility.__ New ML algorithms are simple to add (as new classes and functions), and existing modules provide ample examples. To be able to easily create new modules allows for total expressiveness, making it suitable for advanced research.
 
 - __Work with Python__. No separate models configuration files in a declarative format. Models are described in Python code, which is compact, easier to debug, and allows for ease of extensibility.
+
+## Characteristics
+- Soln-ML supports AutoML on large datasets.
+
+- Soln-ML enables transfer-learning, meta-learning and reinforcement learning techniques to make AutoML with more intelligent behaviors.
 
 ## Example
 
