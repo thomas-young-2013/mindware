@@ -14,13 +14,17 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--time_limit', type=int, default=1200)
 parser.add_argument('--eval_type', type=str, default='holdout', choices=['holdout', 'cv', 'partial'])
 parser.add_argument('--ens_method', default='ensemble_selection',
-                    choices=[None, 'bagging', 'blending', 'stacking', 'ensemble_selection'])
+                    choices=['none', 'bagging', 'blending', 'stacking', 'ensemble_selection'])
+parser.add_argument('--n_jobs', type=int, default=1)
 
 args = parser.parse_args()
 
 time_limit = args.time_limit
 eval_type = args.eval_type
+n_jobs = args.n_jobs
 ensemble_method = args.ens_method
+if ensemble_method == 'none':
+    ensemble_method = None
 
 print('==> Start to evaluate with Budget %d' % time_limit)
 
@@ -35,13 +39,13 @@ save_dir = './data/eval_exps/automl-toolkit'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
-rgs = Regressor(
-    metric='mse',
-    ensemble_method=ensemble_method,
-    evaluation=eval_type,
-    time_limit=time_limit,
-    output_dir=save_dir,
-    random_state=1)
+rgs = Regressor(metric='mse',
+                ensemble_method=ensemble_method,
+                evaluation=eval_type,
+                time_limit=time_limit,
+                output_dir=save_dir,
+                random_state=1,
+                n_jobs=n_jobs)
 
 rgs.fit(train_data)
 pred = rgs.predict(test_data)
