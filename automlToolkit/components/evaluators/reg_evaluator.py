@@ -45,7 +45,7 @@ class RegressionEvaluator(_BaseEvaluator):
         np.random.seed(self.seed)
         config = config if config is not None else self.reg_config
 
-        downsample_ratio = kwargs.get('data_subsample_ratio', None)
+        downsample_ratio = kwargs.get('data_subsample_ratio', 1.0)
 
         # Prepare data node.
         if 'data_node' in kwargs:
@@ -77,7 +77,6 @@ class RegressionEvaluator(_BaseEvaluator):
                                            random_state=self.seed,
                                            if_stratify=False)
             elif self.resampling_strategy == 'partial':
-                assert downsample_ratio is not None
                 if self.resampling_params is None or 'test_size' not in self.resampling_params:
                     test_size = 0.33
                 else:

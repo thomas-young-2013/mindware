@@ -216,7 +216,6 @@ class SecondLayerBandit(object):
 
         # Execute one iteration.
         results = self.optimizer[_arm].iterate()
-
         self.collect_iter_stats(_arm, results)
         self.action_sequence.append(_arm)
         self.pull_cnt += 1
@@ -236,10 +235,16 @@ class SecondLayerBandit(object):
         _perf = None
         try:
             with time_limit(600):
-                _perf = ClassificationEvaluator(
-                    self.local_inc['hpo'], data_node=self.local_inc['fe'],
-                    name='fe', resampling_strategy=self.evaluation_type,
-                    seed=self.seed)(self.local_inc['hpo'])
+                if self.task_type in CLS_TASKS:
+                    _perf = ClassificationEvaluator(
+                        self.local_inc['hpo'], data_node=self.local_inc['fe'], scorer=self.metric,
+                        name='fe', resampling_strategy=self.evaluation_type,
+                        seed=self.seed)(self.local_inc['hpo'])
+                else:
+                    _perf = RegressionEvaluator(
+                        self.local_inc['hpo'], data_node=self.local_inc['fe'], scorer=self.metric,
+                        name='fe', resampling_strategy=self.evaluation_type,
+                        seed=self.seed)(self.local_inc['hpo'])
         except Exception as e:
             self.logger.error(str(e))
         # Update INC.
@@ -299,7 +304,6 @@ class SecondLayerBandit(object):
         if is_weighted:
             # Based on performance on the validation set
             # TODO: Save the results so that the models will not be trained again
-            from sklearn.model_selection import train_test_split
             from automlToolkit.components.ensemble.ensemble_selection import EnsembleSelection
             from autosklearn.metrics import balanced_accuracy
             sss = StratifiedShuffleSplit(n_splits=1, test_size=0.33, random_state=1)
