@@ -42,7 +42,8 @@ class SecondLayerBandit(object):
         np.random.seed(self.seed)
 
         # Bandit settings.
-        self.arms = ['fe', 'hpo']
+        # self.arms = ['fe', 'hpo']
+        self.arms = ['hpo', 'fe']
         self.rewards = dict()
         self.optimizer = dict()
         self.evaluation_cost = dict()
@@ -100,6 +101,7 @@ class SecondLayerBandit(object):
                 n_jobs=n_jobs
             )
         self.inc['hpo'], self.local_inc['hpo'] = self.default_config, self.default_config
+        self.init_config = cs.get_default_configuration()
 
     def collect_iter_stats(self, _arm, results):
         for arm_id in self.arms:
@@ -120,15 +122,16 @@ class SecondLayerBandit(object):
         self.local_inc[_arm] = config
 
         # Update global incumbent from FE and HPO.
-        if score > self.incumbent_perf and np.isfinite(score):
+        if np.isfinite(score) and score > self.incumbent_perf:
             self.inc[_arm] = config
             if _arm == 'fe':
-                self.inc['hpo'] = self.default_config
+                if self.mth not in ['alter_hpo', 'rb_hpo']:
+                    self.inc['hpo'] = self.default_config
+                else:
+                    self.inc['hpo'] = self.init_config
             else:
                 if self.mth not in ['alter_hpo', 'rb_hpo']:
                     self.inc['fe'] = self.original_data
-                else:
-                    self.inc['fe'] = self.local_inc['fe']
 
             self.incumbent_perf = score
 
@@ -137,6 +140,13 @@ class SecondLayerBandit(object):
 
             if self.mth in ['rb_hpo', 'alter_hpo'] and _arm == 'fe':
                 self.prepare_optimizer(arm_id)
+
+            if self.mth in ['rb_hpo', 'alter_hpo'] and _arm == 'hpo':
+                if len(self.rewards[_arm]) == 1:
+                    self.prepare_optimizer(arm_id)
+                    self.init_config = config
+                    print(config == self.default_config)
+
             if self.mth == 'alter_p':
                 self.prepare_optimizer(arm_id)
 
@@ -170,6 +180,7 @@ class SecondLayerBandit(object):
                 return
 
         self.action_sequence.append(arm_picked)
+        self.logger.info(','.join(self.action_sequence))
         self.logger.info('Pulling arm: %s for %s at %d-th round' % (arm_picked, self.classifier_id, self.pull_cnt))
         results = self.optimizer[arm_picked].iterate()
         self.collect_iter_stats(arm_picked, results)
@@ -209,7 +220,7 @@ class SecondLayerBandit(object):
         except Exception as e:
             self.logger.error(str(e))
         # Update INC.
-        if _perf is not None and _perf > self.incumbent_perf and np.isfinite(_perf):
+        if _perf is not None and np.isfinite(_perf) and _perf > self.incumbent_perf:
             self.inc['hpo'] = self.local_inc['hpo']
             self.inc['fe'] = self.local_inc['fe']
             self.incumbent_perf = _perf
