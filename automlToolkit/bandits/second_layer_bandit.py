@@ -129,7 +129,8 @@ class SecondLayerBandit(object):
 
         self.optimizer['hpo'] = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs, output_dir=output_dir,
                                                     per_run_time_limit=per_run_time_limit,
-                                                    trials_per_iter=trials_per_iter, seed=self.seed)
+                                                    trials_per_iter=trials_per_iter,
+                                                    seed=self.seed, n_jobs=n_jobs)
 
         self.inc['hpo'], self.local_inc['hpo'] = self.default_config, self.default_config
         self.local_hist['fe'].append(self.original_data)

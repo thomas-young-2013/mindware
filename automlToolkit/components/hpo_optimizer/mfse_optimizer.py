@@ -17,7 +17,7 @@ from automlToolkit.components.hpo_optimizer.utils.config_space_utils import conv
 class MfseOptimizer(BaseHPOptimizer):
     def __init__(self, evaluator, config_space, time_limit=None, evaluation_limit=None,
                  per_run_time_limit=600, per_run_mem_limit=1024, output_dir='./', trials_per_iter=1, seed=1,
-                 R=81, eta=3, n_workers=1):
+                 R=81, eta=3, n_jobs=1):
         super().__init__(evaluator, config_space, seed)
         self.time_limit = time_limit
         self.evaluation_num_limit = evaluation_limit
@@ -25,7 +25,7 @@ class MfseOptimizer(BaseHPOptimizer):
         self.per_run_time_limit = per_run_time_limit
         self.per_run_mem_limit = per_run_mem_limit
         self.config_space = config_space
-        self.n_workers = n_workers
+        self.n_workers = n_jobs
 
         self.trial_cnt = 0
         self.configs = list()
@@ -65,7 +65,7 @@ class MfseOptimizer(BaseHPOptimizer):
                                                               self.eta, init_weight, 'gpoe')
         self.weight_changed_cnt = 0
         self.hist_weights = list()
-        self.executor = ParallelExecutor(self.evaluator, n_worker=n_workers)
+        self.executor = ParallelExecutor(self.evaluator, n_worker=n_jobs)
         # TODO: need to improve with lite-bo.
         self.weighted_acquisition_func = EI(model=self.weighted_surrogate)
         self.weighted_acq_optimizer = RandomSampling(self.weighted_acquisition_func,

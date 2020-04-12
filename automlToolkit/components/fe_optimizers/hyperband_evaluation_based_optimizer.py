@@ -1,4 +1,5 @@
 from collections import namedtuple
+from concurrent.futures import ThreadPoolExecutor
 
 import gc
 import time
@@ -76,6 +77,7 @@ class HyperbandOptimizer(Optimizer):
                     if tran_id in self.trans_types:
                         self.trans_types.remove(tran_id)
 
+        self.n_jobs = n_jobs
         self.eta = eta
 
     def optimize(self):
@@ -150,32 +152,48 @@ class HyperbandOptimizer(Optimizer):
 
                 score_list = []
                 self.logger.info('The total number of transformations is: %d' % len(trans_set))
+                pool = ThreadPoolExecutor(max_workers=self.n_jobs)
+                tasks = []
                 for transformer in trans_set:
                     self.logger.debug('[%s][%s]' % (self.model_id, transformer.name))
                     self.logger.info('Dataset size: %f' % dataset_size)
                     if transformer.type != 0 and dataset_size == R:
                         self.transformer_manager.add_execution_record(node_.node_id, transformer.type)
 
-                    _start_time, status, _score = time.time(), SUCCESS, float("-INF")
+                    def evaluate(tran, node, subsample_size):
+                        start_time = time.time()
+                        output_node = tran.operate(node)
+                        if tran.type != 0:
+                            output_node.depth = node.depth + 1
+                            output_node.trans_hist.append(tran.type)
+                            score = self.evaluator(self.hp_config, data_node=output_node, name='fe',
+                                                   data_subsample_ratio=subsample_size)
+                            output_node.score = score
+                        else:
+                            score = output_node.score
+                        return output_node, score, time.time() - start_time
+
+                    tasks.append(pool.submit(evaluate, transformer, node_, dataset_size))
+
+                all_completed = False
+                while not all_completed:
+                    all_completed = True
+                    eval_cnt = 0
+                    for task in tasks:
+                        if not task.done():
+                            all_completed = False
+                        else:
+                            eval_cnt += 1
+                    self.logger.debug("Evaluated transformations: %d/%s" % (eval_cnt, len(tasks)))
+                    time.sleep(0.2)
+
+                for i, task in enumerate(tasks):
+                    duration, status, _score = -1, SUCCESS, float("-INF")
+                    transformer = trans_set[i]
                     extra = ['%d' % _evaluation_cnt, self.model_id, transformer.name]
 
                     try:
-                        # Limit the execution and evaluation time for each transformation.
-                        with time_limit(self.time_limit_per_trans):
-                            self.logger.info('%s - size %f ' % (transformer.name, dataset_size))
-                            output_node = transformer.operate(node_)
-                            self.logger.info('after %s - %s' % (transformer.name, str(output_node.shape)))
-
-                            # Evaluate this node.
-                            if transformer.type != 0:
-                                output_node.depth = node_.depth + 1
-                                output_node.trans_hist.append(transformer.type)
-                                _score = self.evaluator(self.hp_config, data_node=output_node, name='fe',
-                                                        data_subsample_ratio=dataset_size)
-                                output_node.score = _score
-                            else:
-                                _score = output_node.score
-
+                        output_node, _score, duration = task.result()
                         if _score is None:
                             status = ERROR
                             score_list.append(float("-INF"))
@@ -190,6 +208,7 @@ class HyperbandOptimizer(Optimizer):
                                 if _score > self.incumbent_score:
                                     self.incumbent_score = _score
                                     self.incumbent = output_node
+                                    self.features_hist.append(output_node)
                     except Exception as e:
                         score_list.append(float("-INF"))
                         extra.append(str(e))
@@ -200,7 +219,7 @@ class HyperbandOptimizer(Optimizer):
 
                     execution_status.append(
                         EvaluationResult(status=status,
-                                         duration=time.time() - _start_time,
+                                         duration=duration if duration != -1 else self.time_limit_per_trans,
                                          score=_score,
                                          extra=extra))
 
@@ -219,6 +238,7 @@ class HyperbandOptimizer(Optimizer):
                     gc.collect()
 
                 trans_next_iter = max(self.beam_width, int(len(trans_set) / self.eta))
+                assert len(score_list) == len(trans_set)
                 _idxs = np.argsort(-np.array(score_list))[:trans_next_iter]
                 trans_set = [trans_set[i] for i in _idxs]
 
@@ -227,6 +247,9 @@ class HyperbandOptimizer(Optimizer):
                     for tran in trans_set:
                         if hasattr(tran, 'model'):
                             tran.model = None
+
+                pool.shutdown(wait=True)
+
             # Memory Save: free the data in the unpromising nodes.
             _scores = list()
             for tmp_node in self.temporary_nodes:
