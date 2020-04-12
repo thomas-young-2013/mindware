@@ -40,12 +40,31 @@ For more details, please check [examples](https://github.com/thomas-young-2013/a
 
 ## Installation
 
-To install the package, please use the `pip` installation as follows:
+### Requirements
 
-```shell
-pip3 install autokeras
+Besides the listed requirements (see `requirements.txt`), Soln-ML requires SWIG (>= 3.0, <4.0) as a build dependency:
+
+```apt-get install swig```
+
+On Arch Linux (or any distribution with swig4 as default implementation):
+
+```
+pacman -Syu swig3
+ln -s /usr/bin/swig-3 /usr/bin/swig
 ```
 
-Please follow the [installation guide](https://autokeras.com/install) for more details.
+### Installation via pip (coming soon!)
+
+Soln-ML will be available on PyPI.
+
+```pip install soln-ml```
+
+### Manual Installation (recommended now!)
+
+```
+git clone https://github.com/thomas-young-2013/automl-toolkit.git && cd automl-toolkit
+cat requirements.txt | xargs -n 1 -L 1 pip install
+python setup.py install.
+```
 
 **Note:** Currently, Soln-ML is only compatible with **Python >= 3.5** and **Scikit-learn == 0.21.3**.
