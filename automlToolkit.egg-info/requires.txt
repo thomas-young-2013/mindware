@@ -1,0 +1,13 @@
+setuptools
+nose
+Cython
+pyyaml
+litebo
+lightgbm
+pandas>=0.24.0
+numpy>=1.9.0
+scipy>=0.14.1
+ConfigSpace<0.5,>=0.4.0
+pyrfr==0.8.0
+scikit-learn==0.21.3
+tabulate>=0.8.5

@@ -1,0 +1,12 @@
+Metadata-Version: 1.2
+Name: automlToolkit
+Version: 1.0
+Summary: AutoML toolkit
+Home-page: https://github.com/thomas-young-2013/
+Author: AutoML Researcher @ DAIM
+Author-email: liyang.cs@pku.edu.cn
+License: LICENSE.txt
+Description: UNKNOWN
+Keywords: AutoML
+Platform: UNKNOWN
+Requires-Python: >=3.5.*
