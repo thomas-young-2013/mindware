@@ -6,7 +6,7 @@ from automlToolkit.components.utils.configspace_utils import check_for_bool
 
 
 class PcaDecomposer(Transformer):
-    def __init__(self, keep_variance=0.9999, whiten='False', random_state=None):
+    def __init__(self, keep_variance=0.9999, whiten='False', random_state=1):
         super().__init__("pca", 16)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'

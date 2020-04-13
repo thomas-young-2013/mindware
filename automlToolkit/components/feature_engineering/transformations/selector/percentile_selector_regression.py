@@ -4,7 +4,7 @@ from automlToolkit.components.feature_engineering.transformations.base_transform
 
 
 class PercentileSelectorRegression(Transformer):
-    def __init__(self, percentile=10, score_func='f_regression', random_state=None):
+    def __init__(self, percentile=10, score_func='f_regression', random_state=1):
         super().__init__("percentile_selector_reg", 30)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'

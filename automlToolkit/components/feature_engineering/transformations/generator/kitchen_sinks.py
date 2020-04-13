@@ -5,7 +5,7 @@ from automlToolkit.components.feature_engineering.transformations.base_transform
 
 
 class KitchenSinks(Transformer):
-    def __init__(self, gamma=1.0, n_components=100, random_state=None):
+    def __init__(self, gamma=1.0, n_components=100, random_state=1):
         super().__init__("kitchen_sinks", 13, random_state=random_state)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'

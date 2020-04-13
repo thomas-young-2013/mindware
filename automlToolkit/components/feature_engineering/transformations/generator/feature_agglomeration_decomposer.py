@@ -8,7 +8,7 @@ from automlToolkit.components.feature_engineering.transformations.base_transform
 
 class FeatureAgglomerationDecomposer(Transformer):
     def __init__(self, n_clusters=2, affinity='euclidean', linkage='ward', pooling_func='mean',
-                 random_state=None):
+                 random_state=1):
         super().__init__("feature_agglomeration_decomposer", 11)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'

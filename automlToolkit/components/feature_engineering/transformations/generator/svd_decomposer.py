@@ -4,7 +4,7 @@ from automlToolkit.components.feature_engineering.transformations.base_transform
 
 
 class SvdDecomposer(Transformer):
-    def __init__(self, target_dim=128, random_state=None):
+    def __init__(self, target_dim=128, random_state=1):
         super().__init__("svd", 19)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
