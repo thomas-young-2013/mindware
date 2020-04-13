@@ -1,3 +1,4 @@
+import copy
 import typing
 import numpy as np
 from sklearn.model_selection import StratifiedShuffleSplit
@@ -325,10 +326,11 @@ class SecondLayerBandit(object):
     def prepare_optimizer(self, _arm):
         if _arm == 'fe':
             # Build the Feature Engineering component.
-            fe_evaluator = Evaluator(self.inc['hpo'], name='fe', resampling_strategy=self.evaluation_type,
+            inc_hpo = copy.deepcopy(self.inc['hpo'])
+            fe_evaluator = Evaluator(inc_hpo, name='fe', resampling_strategy=self.evaluation_type,
                                      seed=self.seed)
             self.optimizer[_arm] = EvaluationBasedOptimizer(
-                'classification', self.inc['fe'], fe_evaluator,
+                'classification', self.inc['fe'].copy_(), fe_evaluator,
                 self.classifier_id, self.per_run_time_limit, self.per_run_mem_limit,
                 self.seed, shared_mode=self.share_fe
             )
@@ -338,7 +340,7 @@ class SecondLayerBandit(object):
             trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
             hpo_evaluator = Evaluator(self.config_space.get_default_configuration(),
                                       resampling_strategy=self.evaluation_type,
-                                      data_node=self.inc['fe'],
+                                      data_node=self.inc['fe'].copy_(),
                                       seed=self.seed,
                                       name='hpo')
             self.optimizer[_arm] = SMACOptimizer(

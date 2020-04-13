@@ -183,7 +183,7 @@ class FirstLayerBandit(object):
 
         # Check the validity of feature engineering.
         _train_data = fe_optimizer.apply(self.original_data, sub_bandit.inc['fe'])
-        assert train_data_node == _train_data
+        assert _train_data in [train_data_node, sub_bandit.local_inc['fe']]
 
         X_train, y_train = train_data_node.data
         X_test, y_test = test_data_node.data
