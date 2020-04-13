@@ -7,6 +7,8 @@ temp/*
 dist/*
 build/*
 
+*.egg-info/
+
 # test-related
 .coverage
 .cache
