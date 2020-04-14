@@ -9,7 +9,6 @@ from automlToolkit.components.feature_engineering.transformation_graph import Da
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 from automlToolkit.utils.logging_utils import setup_logger, get_logger
 from automlToolkit.components.meta_learning.meta_learning import evaluate_metalearning_configs
-from automlToolkit.utils.metalearning import get_meta_learning_configs
 
 
 class FirstLayerBandit(object):
@@ -21,7 +20,6 @@ class FirstLayerBandit(object):
                  tmp_directory='logs',
                  eval_type='holdout',
                  share_feature=False,
-                 num_meta_configs=0,
                  logging_config=None,
                  opt_algo='rb',
                  n_jobs=1,
@@ -55,9 +53,6 @@ class FirstLayerBandit(object):
             os.makedirs(self.tmp_directory)
         logger_name = "%s-%s" % (__class__.__name__, self.dataset_name)
         self.logger = self._get_logger(logger_name)
-
-        # Meta-learning setting
-        self.meta_configs = self.fetch_meta_configs(num_meta_configs)
 
         # Bandit settings.
         self.incumbent_perf = -1.
@@ -96,10 +91,6 @@ class FirstLayerBandit(object):
         self.fe_datanodes[arm] = self.sub_bandits[arm].fetch_local_incumbents()
 
     def optimize(self, strategy='explore_first'):
-        if self.meta_configs is not None:
-            evaluate_metalearning_configs(self, n_jobs=self.n_jobs)
-            self.trial_num -= 1
-
         if strategy == 'explore_first':
             self.optimize_explore_first()
         elif strategy == 'exp3':
