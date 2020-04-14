@@ -30,6 +30,7 @@ parser.add_argument('--seed', type=int, default=1)
 project_dir = './'
 per_run_time_limit = 180
 opt_algo = 'rb_hpo'
+hmab_flag = 'hmab'
 
 
 def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
@@ -53,8 +54,8 @@ def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_
 
     print(data[:4])
 
-    save_path = project_dir + 'data/hmab_%s_%s_%d_%d_%d_%d.pkl' % (
-        opt_algo, dataset, trial_num, len(algorithms), seed, run_id)
+    save_path = project_dir + 'data/%s_%s_%s_%d_%d_%d_%d.pkl' % (
+        hmab_flag, opt_algo, dataset, trial_num, len(algorithms), seed, run_id)
     with open(save_path, 'wb') as f:
         pickle.dump(data, f)
 
@@ -63,8 +64,8 @@ def load_hmab_time_costs(start_id, rep, dataset, n_algo, trial_num, seeds):
     time_costs = list()
     for run_id in range(start_id, start_id + rep):
         seed = seeds[run_id]
-        save_path = project_dir + 'data/hmab_%s_%s_%d_%d_%d_%d.pkl' % (opt_algo, dataset, trial_num,
-                                                                       n_algo, seed, run_id)
+        save_path = project_dir + 'data/%s_%s_%s_%d_%d_%d_%d.pkl' % (hmab_flag, opt_algo, dataset, trial_num,
+                                                                     n_algo, seed, run_id)
         with open(save_path, 'rb') as f:
             time_cost_ = int(pickle.load(f)[4])
             time_costs.append(time_cost_)
@@ -164,7 +165,7 @@ if __name__ == "__main__":
                         raise ValueError('Invalid parameter: %s' % mode)
         else:
             headers = ['dataset']
-            method_ids = ['hmab_rb', 'hmab_hpo_only', 'hmab_fe_only']
+            method_ids = ['hmab1_rb_hpo', 'hmab_rb_hpo', 'ausk_vanilla']
             for mth in method_ids:
                 headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
