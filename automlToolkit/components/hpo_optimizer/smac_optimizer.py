@@ -60,7 +60,7 @@ class SMACOptimizer(BaseHPOptimizer):
             self.optimizer.iterate()
 
         runhistory = self.optimizer.get_history()
-        self.incumbent_config, self.incumbent_perf = runhistory.get_incumbents()[-1]
+        self.incumbent_config, self.incumbent_perf = runhistory.get_incumbents()[0]
         self.incumbent_perf = 1 - self.incumbent_perf
         iteration_cost = time.time() - _start_time
         return self.incumbent_perf, iteration_cost, self.incumbent_config
