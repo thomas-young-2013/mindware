@@ -12,6 +12,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from automlToolkit.utils.logging_utils import get_logger
+from automlToolkit.components.utils.constants import CLS_TASKS
 from automlToolkit.components.meta_learning.meta_feature import MetaFeature, HelperFunction, DatasetMetafeatures
 
 
@@ -827,9 +828,9 @@ class Landmark1NN(MetaFeature):
         import sklearn.neighbors
 
         if len(y.shape) == 1 or y.shape[1] == 1:
-            kf = sklearn.model_selection.StratifiedKFold(n_splits=5)
+            kf = sklearn.model_selection.StratifiedKFold(n_splits=5, random_state=1)
         else:
-            kf = sklearn.model_selection.KFold(n_splits=5)
+            kf = sklearn.model_selection.KFold(n_splits=5, random_state=1)
 
         accuracy = 0.
         for train, test in kf.split(X, y):
@@ -963,7 +964,7 @@ def calculate_all_metafeatures_with_labels(X, y, categorical, dataset_name,
                                       dont_calculate=dont_calculate)
 
 
-def calculate_all_metafeatures(X, y, categorical, dataset_name,
+def calculate_all_metafeatures(X, y, categorical, dataset_name, task_type,
                                calculate=None, dont_calculate=None, densify_threshold=1000):
     logger = get_logger(__name__)
 
@@ -979,6 +980,14 @@ def calculate_all_metafeatures(X, y, categorical, dataset_name,
     X_transformed = None
     y_transformed = None
 
+    func_cls = ['NumberOfClasses', 'LogNumberOfFeatures',
+                'ClassProbabilityMin', 'ClassProbabilityMax',
+                'ClassProbabilityMean', "ClassProbabilitySTD",
+                'ClassEntropy', 'LandmarkLDA',
+                'LandmarkNaiveBayes', 'LandmarkDecisionTree',
+                'LandmarkDecisionNodeLearner', 'LandmarkRandomNodeLearner',
+                'LandmarkWorstNodeLearner', 'Landmark1NN']
+
     # TODO calculate the numpy metafeatures after all others to consume less
     # memory
     while len(to_visit) > 0:
@@ -986,6 +995,8 @@ def calculate_all_metafeatures(X, y, categorical, dataset_name,
         if calculate is not None and name not in calculate:
             continue
         if dont_calculate is not None and name in dont_calculate:
+            continue
+        if name in func_cls and task_type not in CLS_TASKS:
             continue
 
         if name in npy_metafeatures:
@@ -1063,7 +1074,7 @@ def calculate_all_metafeatures(X, y, categorical, dataset_name,
         mf_[name] = value
         visited.add(name)
 
-    mf_ = DatasetMetafeatures(dataset_name, mf_)
+    mf_ = DatasetMetafeatures(dataset_name, mf_, task_type=task_type)
     return mf_
 
 

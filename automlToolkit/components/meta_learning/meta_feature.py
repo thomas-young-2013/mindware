@@ -6,6 +6,7 @@ import arff
 import scipy.sparse
 
 from automlToolkit.utils.logging_utils import get_logger
+from automlToolkit.components.utils.constants import CLS_TASKS, TASK_TYPES
 
 
 class AbstractMetaFeature(object):
@@ -80,7 +81,9 @@ class MetaFeatureValue(object):
 
 
 class DatasetMetafeatures(object):
-    def __init__(self, dataset_name, metafeature_values):
+    def __init__(self, dataset_name, metafeature_values, task_type):
+        assert task_type in TASK_TYPES
+        self.task_type = task_type
         self.dataset_name = dataset_name
         self.metafeature_values = metafeature_values
 
