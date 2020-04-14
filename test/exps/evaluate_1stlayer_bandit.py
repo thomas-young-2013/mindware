@@ -13,7 +13,6 @@ from automlToolkit.datasets.utils import load_train_test_data
 from automlToolkit.components.utils.constants import CATEGORICAL
 from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
-from automlToolkit.components.ensemble.ensemble_builder import EnsembleBuilder
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
@@ -36,7 +35,8 @@ hmab_flag = 'hmab'
 def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
     _start_time = time.time()
     train_data, test_data = load_train_test_data(dataset)
-    bandit = FirstLayerBandit(trial_num, algorithms, train_data,
+    from automlToolkit.components.utils.constants import MULTICLASS_CLS
+    bandit = FirstLayerBandit(MULTICLASS_CLS, trial_num, algorithms, train_data,
                               output_dir='logs',
                               per_run_time_limit=per_run_time_limit,
                               dataset_name=dataset,
@@ -47,8 +47,10 @@ def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_
 
     time_taken = time.time() - _start_time
     validation_accuracy = np.max(bandit.final_rewards)
-    test_accuracy = bandit.score(test_data, metric_func=balanced_accuracy)
-    test_accuracy_with_ens = EnsembleBuilder(bandit).score(test_data, metric_func=balanced_accuracy)
+    best_pred = bandit._best_predict(test_data)
+    test_accuracy = balanced_accuracy(test_data.data[1], best_pred)
+    es_pred = bandit._es_predict(test_data)
+    test_accuracy_with_ens = balanced_accuracy(test_data.data[1], es_pred)
     data = [dataset, validation_accuracy, test_accuracy, test_accuracy_with_ens, time_taken, model_desc]
     print(model_desc)
 
@@ -159,7 +161,7 @@ if __name__ == "__main__":
                     if mode == 'hmab':
                         evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed)
                     elif mode == 'ausk':
-                        time_taken = time_costs[run_id-start_id]
+                        time_taken = time_costs[run_id - start_id]
                         evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=time_taken)
                     else:
                         raise ValueError('Invalid parameter: %s' % mode)

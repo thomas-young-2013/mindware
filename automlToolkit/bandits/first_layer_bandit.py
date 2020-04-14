@@ -1,27 +1,30 @@
 import os
 import time
 import numpy as np
+import pickle as pkl
 from scipy.stats import norm
 from typing import List
 from sklearn.metrics import accuracy_score
 from automlToolkit.components.metrics.metric import get_metric
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode, TransformationGraph
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
+from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
 from automlToolkit.utils.logging_utils import setup_logger, get_logger
-from automlToolkit.components.meta_learning.meta_learning import evaluate_metalearning_configs
-from automlToolkit.utils.metalearning import get_meta_learning_configs
+from automlToolkit.components.utils.constants import CLS_TASKS
+from automlToolkit.components.ensemble import EnsembleBuilder
 
 
 class FirstLayerBandit(object):
-    def __init__(self, trial_num, classifier_ids: List[str], data: DataNode,
+    def __init__(self, task_type, trial_num,
+                 classifier_ids: List[str], data: DataNode,
                  metric='acc',
+                 ensemble_method='ensemble_selection',
                  ensemble_size=10,
                  per_run_time_limit=300, output_dir=None,
                  dataset_name='default_dataset',
                  tmp_directory='logs',
                  eval_type='holdout',
                  share_feature=False,
-                 num_meta_configs=0,
                  logging_config=None,
                  opt_algo='rb',
                  n_jobs=1,
@@ -31,8 +34,10 @@ class FirstLayerBandit(object):
         'gradient_boosting','k_nearest_neighbors','lda','liblinear_svc','libsvm_svc','multinomial_nb','passive_aggressive','qda',
         'random_forest','sgd'}
         """
+        self.task_type = task_type
         self.metric = get_metric(metric)
         self.original_data = data.copy_()
+        self.ensemble_method = ensemble_method
         self.ensemble_size = ensemble_size
         self.trial_num = trial_num
         self.n_jobs = n_jobs
@@ -40,6 +45,7 @@ class FirstLayerBandit(object):
         self.B = 0.01
         self.seed = seed
         self.shared_mode = share_feature
+        self.output_dir = output_dir
         np.random.seed(self.seed)
 
         # Best configuration.
@@ -56,9 +62,6 @@ class FirstLayerBandit(object):
         logger_name = "%s-%s" % (__class__.__name__, self.dataset_name)
         self.logger = self._get_logger(logger_name)
 
-        # Meta-learning setting
-        self.meta_configs = self.fetch_meta_configs(num_meta_configs)
-
         # Bandit settings.
         self.incumbent_perf = -1.
         self.arms = classifier_ids
@@ -74,14 +77,16 @@ class FirstLayerBandit(object):
             self.evaluation_cost[arm] = list()
             self.fe_datanodes[arm] = list()
             self.sub_bandits[arm] = SecondLayerBandit(
-                arm, self.original_data, output_dir=output_dir,
+                self.task_type, arm, self.original_data,
+                metric=self.metric,
+                output_dir=output_dir,
                 per_run_time_limit=per_run_time_limit,
                 share_fe=self.shared_mode,
                 seed=self.seed,
                 eval_type=eval_type,
                 dataset_id=dataset_name,
                 n_jobs=self.n_jobs,
-                mth=opt_algo
+                mth=opt_algo,
             )
 
         self.action_sequence = list()
@@ -96,10 +101,6 @@ class FirstLayerBandit(object):
         self.fe_datanodes[arm] = self.sub_bandits[arm].fetch_local_incumbents()
 
     def optimize(self, strategy='explore_first'):
-        if self.meta_configs is not None:
-            evaluate_metalearning_configs(self, n_jobs=self.n_jobs)
-            self.trial_num -= 1
-
         if strategy == 'explore_first':
             self.optimize_explore_first()
         elif strategy == 'exp3':
@@ -112,6 +113,35 @@ class FirstLayerBandit(object):
             self.optimize_sw_ts()
         else:
             raise ValueError('Unsupported optimization method: %s!' % strategy)
+
+        if self.ensemble_method is not None:
+            self.stats = self.fetch_ensemble_members()
+            # Ensembling all intermediate/ultimate models found in above optimization process.
+            self.es = EnsembleBuilder(stats=self.stats,
+                                      ensemble_method=self.ensemble_method,
+                                      ensemble_size=self.ensemble_size,
+                                      task_type=self.task_type,
+                                      metric=self.metric,
+                                      output_dir=self.output_dir)
+            self.es.fit(data=self.original_data)
+
+        # Fit the best model
+        ### Local_inc or inc ###
+
+        best_algo_id = None
+        best_perf = float("-INF")
+        for algo_id in self.include_algorithms:
+            if self.sub_bandits[algo_id].incumbent_perf > best_perf:
+                best_perf = self.sub_bandits[algo_id].incumbent_perf
+                best_algo_id = algo_id
+
+        self.best_data_node = self.sub_bandits[best_algo_id].inc['fe']
+        self.fe_optimizer = self.sub_bandits[best_algo_id].optimizer['fe']
+        best_config = self.sub_bandits[best_algo_id].inc['hpo']
+        best_estimator = fetch_predict_estimator(self.task_type, best_config, self.best_data_node.data[0],
+                                                 self.best_data_node.data[1])
+        with open(os.path.join(self.output_dir, 'best_model'), 'wb') as f:
+            pkl.dump(best_estimator, f)
 
     @DeprecationWarning
     def _fetch_ensemble_members(self, test_data: DataNode):
@@ -157,28 +187,53 @@ class FirstLayerBandit(object):
             stats[algo_id] = data
         return stats
 
-    def predict(self, test_data: DataNode):
+    def _best_predict(self, test_data: DataNode):
         best_arm = self.optimal_algo_id
         sub_bandit = self.sub_bandits[best_arm]
-        fe_optimizer = sub_bandit.optimizer['fe']
-
-        train_data_node = sub_bandit.inc['fe']
-        test_data_node = fe_optimizer.apply(test_data, sub_bandit.inc['fe'])
-        config = sub_bandit.inc['hpo']
-
         # Check the validity of feature engineering.
-        _train_data = fe_optimizer.apply(self.original_data, sub_bandit.inc['fe'])
-        assert _train_data in [train_data_node, sub_bandit.local_inc['fe']]
+        _train_data = self.fe_optimizer.apply(self.original_data, self.best_data_node)
+        assert _train_data in [self.best_data_node, sub_bandit.local_inc['fe']]
+        test_data_node = self.fe_optimizer.apply(test_data, self.best_data_node)
+        with open(os.path.join(self.output_dir, 'best_model'), 'rb') as f:
+            estimator = pkl.load(f)
 
-        X_train, y_train = train_data_node.data
-        X_test, y_test = test_data_node.data
-        self.logger.info('X_train/test shapes: %s, %s' % (str(X_train.shape), str(X_test.shape)))
+        return estimator.predict(test_data_node.data[0])
 
-        # Build the ML estimator.
-        from automlToolkit.components.evaluators.cls_evaluator import fetch_predict_estimator
-        estimator = fetch_predict_estimator(config, X_train, y_train)
-        y_pred = estimator.predict(X_test)
-        return y_pred
+    def _es_predict(self, test_data: DataNode):
+        if self.ensemble_method is not None:
+            if self.es is None:
+                raise AttributeError("AutoML is not fitted!")
+        pred = self.es.predict(test_data, self.sub_bandits)
+        if self.task_type in CLS_TASKS:
+            return np.argmax(pred, axis=-1)
+        else:
+            return pred
+
+    def _predict(self, test_data: DataNode):
+        if self.ensemble_method is not None:
+            if self.es is None:
+                raise AttributeError("AutoML is not fitted!")
+            return self.es.predict(test_data, self.sub_bandits)
+        else:
+            test_data_node = self.fe_optimizer.apply(test_data, self.best_data_node)
+            with open(os.path.join(self.output_dir, 'best_model'), 'rb') as f:
+                estimator = pkl.load(f)
+            if self.task_type in CLS_TASKS:
+                return estimator.predict_proba(test_data_node.data[0])
+            else:
+                return estimator.predict(test_data_node.data[0])
+
+    def predict_proba(self, test_data: DataNode):
+        if self.task_type not in CLS_TASKS:
+            raise AttributeError("predict_proba is not supported in regression")
+        return self._predict(test_data)
+
+    def predict(self, test_data: DataNode):
+        if self.task_type in CLS_TASKS:
+            pred = self._predict(test_data)
+            return np.argmax(pred, axis=-1)
+        else:
+            return self._predict(test_data)
 
     def score(self, test_data: DataNode, metric_func=None):
         if metric_func is None:
