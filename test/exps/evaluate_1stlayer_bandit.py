@@ -45,6 +45,7 @@ def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_
                               output_dir='logs',
                               per_run_time_limit=per_run_time_limit,
                               dataset_name=dataset,
+                              ensemble_size=50,
                               opt_algo=opt_algo,
                               metric=balanced_acc_metric,
                               seed=seed)
@@ -93,8 +94,8 @@ def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limi
         include_estimators=include_models,
         ensemble_memory_limit=8192,
         ml_memory_limit=8192,
-        ensemble_size=1,
-        ensemble_nbest=1,
+        ensemble_size=50,
+        ensemble_nbest=50,
         initial_configurations_via_metalearning=0,
         seed=int(seed),
         resampling_strategy='holdout',
