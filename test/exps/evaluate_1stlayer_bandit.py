@@ -6,6 +6,7 @@ import argparse
 import numpy as np
 import autosklearn.classification
 from tabulate import tabulate
+from sklearn.metrics import make_scorer
 
 sys.path.append(os.getcwd())
 
@@ -13,6 +14,7 @@ from automlToolkit.datasets.utils import load_train_test_data
 from automlToolkit.components.utils.constants import CATEGORICAL
 from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
+from automlToolkit.components.utils.constants import MULTICLASS_CLS, BINARY_CLS
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
@@ -29,18 +31,22 @@ parser.add_argument('--seed', type=int, default=1)
 project_dir = './'
 per_run_time_limit = 180
 opt_algo = 'rb_hpo'
-hmab_flag = 'hmab'
+hmab_flag = 'hmab_ens'
+ausk_flag = 'ausk_ens'
 
 
 def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
+    print('%s-%s-%d: %d' % (hmab_flag, dataset, run_id, time_limit))
     _start_time = time.time()
     train_data, test_data = load_train_test_data(dataset)
-    from automlToolkit.components.utils.constants import MULTICLASS_CLS
-    bandit = FirstLayerBandit(MULTICLASS_CLS, trial_num, algorithms, train_data,
+    cls_task_type = BINARY_CLS if len(set(train_data.data[1])) == 2 else MULTICLASS_CLS
+    balanced_acc_metric = make_scorer(balanced_accuracy)
+    bandit = FirstLayerBandit(cls_task_type, trial_num, algorithms, train_data,
                               output_dir='logs',
                               per_run_time_limit=per_run_time_limit,
                               dataset_name=dataset,
                               opt_algo=opt_algo,
+                              metric=balanced_acc_metric,
                               seed=seed)
     bandit.optimize()
     model_desc = [bandit.nbest_algo_ids, bandit.optimal_algo_id, bandit.final_rewards, bandit.action_sequence]
@@ -53,7 +59,6 @@ def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_
     test_accuracy_with_ens = balanced_accuracy(test_data.data[1], es_pred)
     data = [dataset, validation_accuracy, test_accuracy, test_accuracy_with_ens, time_taken, model_desc]
     print(model_desc)
-
     print(data[:4])
 
     save_path = project_dir + 'data/%s_%s_%s_%d_%d_%d_%d.pkl' % (
@@ -77,7 +82,7 @@ def load_hmab_time_costs(start_id, rep, dataset, n_algo, trial_num, seeds):
 
 
 def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
-    print('==> Start to evaluate', dataset, 'budget', time_limit)
+    print('AUSK-%s-%d: %d' % (dataset, run_id, time_limit))
     include_models = algorithms
     automl = autosklearn.classification.AutoSklearnClassifier(
         time_left_for_this_task=time_limit,
@@ -114,8 +119,8 @@ def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limi
     y_pred = automl.predict(X_test)
     test_result = balanced_accuracy(y_test, y_pred)
     print('Test accuracy', test_result)
-    save_path = project_dir + 'data/ausk_vanilla_%s_%d_%d_%d_%d.pkl' % (
-        dataset, trial_num, len(algorithms), seed, run_id)
+    save_path = project_dir + 'data/%s_%s_%d_%d_%d_%d.pkl' % (
+        ausk_flag, dataset, trial_num, len(algorithms), seed, run_id)
     with open(save_path, 'wb') as f:
         pickle.dump([dataset, val_result, test_result, model_desc], f)
 
@@ -167,7 +172,7 @@ if __name__ == "__main__":
                         raise ValueError('Invalid parameter: %s' % mode)
         else:
             headers = ['dataset']
-            method_ids = ['hmab1_rb_hpo', 'hmab_rb_hpo', 'ausk_vanilla']
+            method_ids = ['hmab_rb_hpo', 'hmab_rb_hpo', 'ausk_vanilla']
             for mth in method_ids:
                 headers.extend(['val-%s' % mth, 'test-%s' % mth])
 

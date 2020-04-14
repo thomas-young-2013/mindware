@@ -143,50 +143,6 @@ class FirstLayerBandit(object):
         with open(os.path.join(self.output_dir, 'best_model'), 'wb') as f:
             pkl.dump(best_estimator, f)
 
-    @DeprecationWarning
-    def _fetch_ensemble_members(self, test_data: DataNode):
-        stats = dict()
-        stats['split_seed'] = self.seed
-        for algo_id in self.nbest_algo_ids:
-            data = dict()
-            inc = self.sub_bandits[algo_id].inc
-            local_inc = self.sub_bandits[algo_id].local_inc
-            fe_optimizer = self.sub_bandits[algo_id].optimizer['fe']
-            hpo_optimizer = self.sub_bandits[algo_id].optimizer['hpo']
-
-            train_data_candidates = [inc['fe'], local_inc['fe'], self.sub_bandits[algo_id].original_data]
-            for _feature_set in fe_optimizer.features_hist:
-                if _feature_set not in train_data_candidates:
-                    train_data_candidates.append(_feature_set)
-
-            train_data_list, test_data_list = list(), list()
-            for item in train_data_candidates:
-                if item not in train_data_list:
-                    train_data_list.append(item)
-                    test_data_node = fe_optimizer.apply(test_data, item)
-                    test_data_list.append(test_data_node)
-
-            data['test_data_list'] = test_data_list
-            data['train_data_list'] = train_data_list
-            print(algo_id, len(train_data_list), len(test_data_list))
-
-            configs = hpo_optimizer.configs
-            perfs = hpo_optimizer.perfs
-            best_configs = [self.sub_bandits[algo_id].default_config, inc['hpo'], local_inc['hpo']]
-            best_configs = list(set(best_configs))
-            n_best = 30
-            # threshold = np.max(self.best_lower_bounds) * 0.
-            threshold = 0.
-            for idx in np.argsort(-np.array(perfs)):
-                if perfs[idx] >= threshold and configs[idx] not in best_configs:
-                    best_configs.append(configs[idx])
-                if len(best_configs) >= n_best:
-                    break
-            data['configurations'] = best_configs
-
-            stats[algo_id] = data
-        return stats
-
     def _best_predict(self, test_data: DataNode):
         best_arm = self.optimal_algo_id
         sub_bandit = self.sub_bandits[best_arm]
@@ -555,7 +511,6 @@ class FirstLayerBandit(object):
         return get_logger(logger_name)
 
     def __del__(self):
-        del self.logger
         for _arm in self.arms:
             del self.sub_bandits[_arm].optimizer
 
