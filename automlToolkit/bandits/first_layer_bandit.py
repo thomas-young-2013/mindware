@@ -8,7 +8,6 @@ from automlToolkit.components.metrics.metric import get_metric
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode, TransformationGraph
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 from automlToolkit.utils.logging_utils import setup_logger, get_logger
-from automlToolkit.components.meta_learning.meta_learning import evaluate_metalearning_configs
 
 
 class FirstLayerBandit(object):
