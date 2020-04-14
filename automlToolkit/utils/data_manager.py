@@ -17,7 +17,7 @@ class DataManager(object):
     """
 
     # X,y should be None if using DataManager().load_csv(...)
-    def __init__(self, X=None, y=None, na_values=default_missing_values):
+    def __init__(self, X=None, y=None, na_values=default_missing_values, feature_types=None):
         self.na_values = na_values
         self.feature_types = None
         self.missing_flags = None
@@ -28,7 +28,10 @@ class DataManager(object):
         if X is not None:
             self.train_X = np.array(X)
             self.train_y = np.array(y)
-            self.set_feat_types(pd.DataFrame(self.train_X), [])
+            if feature_types is None:
+                self.set_feat_types(pd.DataFrame(self.train_X), [])
+            else:
+                self.feature_types = feature_types
 
     def set_feat_types(self, df, columns_missed):
         self.missing_flags = list()
@@ -63,6 +66,11 @@ class DataManager(object):
                 else:
                     feat_type = CATEGORICAL
             self.feature_types.append(feat_type)
+
+    def get_data_node(self, X, y):
+        if self.feature_types is None:
+            raise ValueError("Feature type missing")
+        return DataNode([X, y], self.feature_types)
 
     def clean_data_with_nan(self, df, label_col, phase='train', drop_index=None, has_label=True):
         columns_missed = df.columns[df.isnull().any()].tolist()

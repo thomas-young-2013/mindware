@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 from tabulate import tabulate
 sys.path.append(os.getcwd())
-from automlToolkit.components.evaluators.evaluator import Evaluator, fetch_predict_estimator
+from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator, fetch_predict_estimator
 from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 from automlToolkit.datasets.utils import load_train_test_data
@@ -56,7 +56,7 @@ def evaluate_2rd_layered_bandit(run_id, mth='rb', dataset='pc4', algo='libsvm_sv
     final_test_data = fe_optimizer.apply(test_data, bandit.inc['fe'])
     config = bandit.inc['hpo']
 
-    evaluator = Evaluator(config, name='fe', seed=seed, resampling_strategy='holdout')
+    evaluator = ClassificationEvaluator(config, name='fe', seed=seed, resampling_strategy='holdout')
     val_score = evaluator(None, data_node=final_train_data)
     print('==> Best validation score', val_score, res)
 

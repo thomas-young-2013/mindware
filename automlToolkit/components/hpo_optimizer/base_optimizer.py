@@ -3,11 +3,11 @@ import time
 import numpy as np
 from automlToolkit.utils.constant import MAX_INT
 from automlToolkit.utils.logging_utils import get_logger
-from automlToolkit.components.evaluators.evaluator import Evaluator
+from automlToolkit.components.evaluators.base_evaluator import _BaseEvaluator
 
 
 class BaseHPOptimizer(object):
-    def __init__(self, evaluator: Evaluator, config_space, seed=None):
+    def __init__(self, evaluator: _BaseEvaluator, config_space, seed=None):
         self.evaluator = evaluator
         self.config_space = config_space
         self.seed = np.random.random_integers(MAX_INT) if seed is None else seed

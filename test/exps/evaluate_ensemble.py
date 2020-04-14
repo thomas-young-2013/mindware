@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
 
-from automlToolkit.components.evaluators.evaluator import get_estimator
+from automlToolkit.components.evaluators.cls_evaluator import get_estimator
 from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 from automlToolkit.datasets.utils import load_train_test_data
 from automlToolkit.components.ensemble.ensemble_selection import EnsembleSelection

@@ -8,7 +8,7 @@ sys.path.append(os.getcwd())
 from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
 from automlToolkit.datasets.utils import load_train_test_data
-from automlToolkit.components.evaluators.evaluator import Evaluator, fetch_predict_estimator
+from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator, fetch_predict_estimator
 from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
 
 parser = argparse.ArgumentParser()
@@ -32,8 +32,8 @@ def conduct_hpo(dataset='pc4', classifier_id='random_forest', iter_num=100, run_
     cs.add_hyperparameter(model)
 
     raw_data, test_raw_data = load_train_test_data(dataset, random_state=seed)
-    evaluator = Evaluator(cs.get_default_configuration(), name='hpo', data_node=raw_data,
-                          resampling_strategy='holdout', seed=seed)
+    evaluator = ClassificationEvaluator(cs.get_default_configuration(), name='hpo', data_node=raw_data,
+                                        resampling_strategy='holdout', seed=seed)
 
     default_config = cs.get_default_configuration()
     val_acc = 1. - evaluator(default_config)
@@ -76,8 +76,8 @@ def conduct_fe(dataset='pc4', classifier_id='random_forest', iter_num=100, run_i
     default_config = cs.get_default_configuration()
 
     raw_data, test_raw_data = load_train_test_data(dataset, random_state=seed)
-    evaluator = Evaluator(default_config, name='fe', data_node=raw_data,
-                          resampling_strategy='holdout', seed=seed)
+    evaluator = ClassificationEvaluator(default_config, name='fe', data_node=raw_data,
+                                        resampling_strategy='holdout', seed=seed)
 
     val_acc = evaluator(default_config)
     estimator = fetch_predict_estimator(default_config, raw_data.data[0], raw_data.data[1])

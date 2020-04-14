@@ -4,7 +4,7 @@ import numpy as np
 from scipy.stats import norm
 from typing import List
 from sklearn.metrics import accuracy_score
-from autosklearn.constants import *
+from automlToolkit.components.metrics.metric import get_metric
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode, TransformationGraph
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
 from automlToolkit.utils.logging_utils import setup_logger, get_logger
@@ -14,22 +14,26 @@ from automlToolkit.utils.metalearning import get_meta_learning_configs
 
 class FirstLayerBandit(object):
     def __init__(self, trial_num, classifier_ids: List[str], data: DataNode,
+                 metric='acc',
+                 ensemble_size=10,
                  per_run_time_limit=300, output_dir=None,
                  dataset_name='default_dataset',
                  tmp_directory='logs',
                  eval_type='holdout',
                  share_feature=False,
                  num_meta_configs=0,
-                 n_jobs=1,
                  logging_config=None,
                  opt_algo='rb',
+                 n_jobs=1,
                  seed=1):
         """
         :param classifier_ids: subset of {'adaboost','bernoulli_nb','decision_tree','extra_trees','gaussian_nb','gradient_boosting',
         'gradient_boosting','k_nearest_neighbors','lda','liblinear_svc','libsvm_svc','multinomial_nb','passive_aggressive','qda',
         'random_forest','sgd'}
         """
+        self.metric = get_metric(metric)
         self.original_data = data.copy_()
+        self.ensemble_size = ensemble_size
         self.trial_num = trial_num
         self.n_jobs = n_jobs
         self.alpha = 6
@@ -58,6 +62,7 @@ class FirstLayerBandit(object):
         # Bandit settings.
         self.incumbent_perf = -1.
         self.arms = classifier_ids
+        self.include_algorithms = classifier_ids
         self.rewards = dict()
         self.sub_bandits = dict()
         self.evaluation_cost = dict()
@@ -90,26 +95,6 @@ class FirstLayerBandit(object):
     def update_global_datanodes(self, arm):
         self.fe_datanodes[arm] = self.sub_bandits[arm].fetch_local_incumbents()
 
-    def fetch_meta_configs(self, num_meta_configs):
-        meta_configs = None
-        if num_meta_configs is not None and isinstance(num_meta_configs, int) and num_meta_configs > 0:
-            try:
-                if len(set(self.original_data.data[1])) == 2:
-                    meta_configs = get_meta_learning_configs(self.original_data.data[0],
-                                                                  self.original_data.data[1],
-                                                                  BINARY_CLASSIFICATION,
-                                                                  metric='accuracy',
-                                                                  num_cfgs=num_meta_configs)
-                else:
-                    meta_configs = get_meta_learning_configs(self.original_data.data[0],
-                                                                  self.original_data.data[1],
-                                                                  MULTICLASS_CLASSIFICATION,
-                                                                  metric='accuracy',
-                                                                  num_cfgs=num_meta_configs)
-            except Exception as e:
-                self.logger.info('Meta-configs not found!')
-        return meta_configs
-
     def optimize(self, strategy='explore_first'):
         if self.meta_configs is not None:
             evaluate_metalearning_configs(self, n_jobs=self.n_jobs)
@@ -128,7 +113,8 @@ class FirstLayerBandit(object):
         else:
             raise ValueError('Unsupported optimization method: %s!' % strategy)
 
-    def fetch_ensemble_members(self, test_data: DataNode):
+    @DeprecationWarning
+    def _fetch_ensemble_members(self, test_data: DataNode):
         stats = dict()
         stats['split_seed'] = self.seed
         for algo_id in self.nbest_algo_ids:
@@ -189,7 +175,7 @@ class FirstLayerBandit(object):
         self.logger.info('X_train/test shapes: %s, %s' % (str(X_train.shape), str(X_test.shape)))
 
         # Build the ML estimator.
-        from automlToolkit.components.evaluators.evaluator import fetch_predict_estimator
+        from automlToolkit.components.evaluators.cls_evaluator import fetch_predict_estimator
         estimator = fetch_predict_estimator(config, X_train, y_train)
         y_pred = estimator.predict(X_test)
         return y_pred
@@ -517,3 +503,47 @@ class FirstLayerBandit(object):
         del self.logger
         for _arm in self.arms:
             del self.sub_bandits[_arm].optimizer
+
+    def fetch_ensemble_members(self, threshold=0.85):
+        stats = dict()
+        stats['include_algorithms'] = self.include_algorithms
+        stats['split_seed'] = self.seed
+        best_perf = float('-INF')
+        for algo_id in self.include_algorithms:
+            best_perf = max(best_perf, self.sub_bandits[algo_id].incumbent_perf)
+        for algo_id in self.include_algorithms:
+            data = dict()
+            fe_optimizer = self.sub_bandits[algo_id].optimizer['fe']
+            hpo_optimizer = self.sub_bandits[algo_id].optimizer['hpo']
+
+            train_data_candidates = self.sub_bandits[algo_id].local_hist['fe']
+            for _feature_set in fe_optimizer.features_hist:
+                if _feature_set not in train_data_candidates:
+                    train_data_candidates.append(_feature_set)
+
+            train_data_list = list()
+            for item in train_data_candidates:
+                if item not in train_data_list:
+                    train_data_list.append(item)
+
+            data['train_data_list'] = train_data_list
+            print(algo_id, len(train_data_list))
+
+            configs = hpo_optimizer.configs
+            perfs = hpo_optimizer.perfs
+            best_configs = self.sub_bandits[algo_id].local_hist['hpo']
+            best_configs = list(set(best_configs))
+            if self.metric._sign > 0:
+                threshold = best_perf * threshold
+            else:
+                threshold = best_perf / threshold
+
+            for idx in np.argsort(-np.array(perfs)):
+                if perfs[idx] >= threshold and configs[idx] not in best_configs:
+                    best_configs.append(configs[idx])
+                if len(best_configs) >= self.ensemble_size / len(self.include_algorithms):
+                    break
+            data['configurations'] = best_configs
+
+            stats[algo_id] = data
+        return stats
