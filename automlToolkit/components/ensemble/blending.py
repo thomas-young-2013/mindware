@@ -55,6 +55,7 @@ class Blending(BaseEnsembleModel):
 
         # Train basic models using a part of training data
         model_cnt = 0
+        suc_cnt = 0
         feature_p2 = None
         for algo_id in self.stats["include_algorithms"]:
             train_list = self.stats[algo_id]['train_data_list']
@@ -83,9 +84,9 @@ class Blending(BaseEnsembleModel):
                                 num_samples = len(x_p2)
                                 feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
                             if n_dim == 1:
-                                feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred[:, 1:2]
+                                feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred[:, 1:2]
                             else:
-                                feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred
+                                feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred
                         else:
                             pred = estimator.predict(x_p2).reshape(-1, 1)
                             n_dim = 1
@@ -93,7 +94,8 @@ class Blending(BaseEnsembleModel):
                             if feature_p2 is None:
                                 num_samples = len(x_p2)
                                 feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
-                            feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred
+                            feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred
+                        suc_cnt += 1
                     model_cnt += 1
         self.meta_learner.fit(feature_p2, y_p2)
 
@@ -103,6 +105,7 @@ class Blending(BaseEnsembleModel):
         # Predict the labels via blending
         feature_p2 = None
         model_cnt = 0
+        suc_cnt = 0
         for algo_id in self.stats["include_algorithms"]:
             train_list = self.stats[algo_id]['train_data_list']
             configs = self.stats[algo_id]['configurations']
@@ -123,9 +126,9 @@ class Blending(BaseEnsembleModel):
                                 num_samples = len(data.data[0])
                                 feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
                             if n_dim == 1:
-                                feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred[:, 1:2]
+                                feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred[:, 1:2]
                             else:
-                                feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred
+                                feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred
                         else:
                             pred = estimator.predict(test_node.data[0]).reshape(-1, 1)
                             n_dim = 1
@@ -133,7 +136,8 @@ class Blending(BaseEnsembleModel):
                             if feature_p2 is None:
                                 num_samples = len(data.data[0])
                                 feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
-                            feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred
+                            feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred
+                        suc_cnt += 1
                     model_cnt += 1
 
         return feature_p2

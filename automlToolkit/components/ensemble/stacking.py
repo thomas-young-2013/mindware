@@ -61,6 +61,7 @@ class Stacking(BaseEnsembleModel):
 
         # Train basic models using a part of training data
         model_cnt = 0
+        suc_cnt = 0
         feature_p2 = None
         for algo_id in self.stats["include_algorithms"]:
             train_list = self.stats[algo_id]['train_data_list']
@@ -68,9 +69,9 @@ class Stacking(BaseEnsembleModel):
             for idx in range(len(train_list)):
                 X, y = train_list[idx].data
                 for _config in configs:
-                    for j, (train, test) in enumerate(kf.split(X, y)):
-                        x_p1, x_p2, y_p1, _ = X[train], X[test], y[train], y[test]
-                        if self.base_model_mask[model_cnt] == 1:
+                    if self.base_model_mask[model_cnt] == 1:
+                        for j, (train, test) in enumerate(kf.split(X, y)):
+                            x_p1, x_p2, y_p1, _ = X[train], X[test], y[train], y[test]
                             estimator = fetch_predict_estimator(self.task_type, _config, x_p1, y_p1)
                             with open(os.path.join(self.output_dir, 'model%d_part%d' % (model_cnt, j)), 'wb') as f:
                                 pkl.dump(estimator, f)
@@ -85,9 +86,9 @@ class Stacking(BaseEnsembleModel):
                                     num_samples = len(train) + len(test)
                                     feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
                                 if n_dim == 1:
-                                    feature_p2[test, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred[:, 1:2]
+                                    feature_p2[test, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred[:, 1:2]
                                 else:
-                                    feature_p2[test, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred
+                                    feature_p2[test, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred
                             else:
                                 pred = estimator.predict(x_p2).reshape(-1, 1)
                                 n_dim = 1
@@ -95,7 +96,8 @@ class Stacking(BaseEnsembleModel):
                                 if feature_p2 is None:
                                     num_samples = len(train) + len(test)
                                     feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
-                                feature_p2[test, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred
+                                feature_p2[test, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred
+                        suc_cnt += 1
                     model_cnt += 1
         # Train model for stacking using the other part of training data
         self.meta_learner.fit(feature_p2, y)
@@ -105,6 +107,7 @@ class Stacking(BaseEnsembleModel):
         # Predict the labels via stacking
         feature_p2 = None
         model_cnt = 0
+        suc_cnt = 0
         for algo_id in self.stats["include_algorithms"]:
             train_list = self.stats[algo_id]['train_data_list']
             configs = self.stats[algo_id]['configurations']
@@ -125,12 +128,12 @@ class Stacking(BaseEnsembleModel):
                                     feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
                                 # Get average predictions
                                 if n_dim == 1:
-                                    feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = \
-                                        feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] + pred[:,
+                                    feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = \
+                                        feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] + pred[:,
                                                                                                    1:2] / self.kfold
                                 else:
-                                    feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = \
-                                        feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] + pred / self.kfold
+                                    feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = \
+                                        feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] + pred / self.kfold
                             else:
                                 pred = estimator.predict(test_node.data[0]).reshape(-1, 1)
                                 n_dim = 1
@@ -139,8 +142,9 @@ class Stacking(BaseEnsembleModel):
                                     num_samples = len(test_node.data[0])
                                     feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
                                 # Get average predictions
-                                feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = \
-                                    feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] + pred / self.kfold
+                                feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = \
+                                    feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] + pred / self.kfold
+                        suc_cnt += 1
                     model_cnt += 1
         return feature_p2
 

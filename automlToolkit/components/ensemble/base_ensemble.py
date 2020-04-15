@@ -81,6 +81,7 @@ class BaseEnsembleModel(object):
         else:
             self.base_model_mask = choose_base_models_regression(np.array(self.train_predictions), np.array(y_valid),
                                                                  self.ensemble_size)
+        self.ensemble_size = sum(self.base_model_mask)
 
     def fit(self, data):
         raise NotImplementedError
