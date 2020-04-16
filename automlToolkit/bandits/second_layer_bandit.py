@@ -37,6 +37,7 @@ class SecondLayerBandit(object):
         self.original_data = data.copy_()
         self.share_fe = share_fe
         self.output_dir = output_dir
+        self.n_jobs = n_jobs
         self.mth = mth
         self.seed = seed
         self.sliding_window_size = sw_size
@@ -364,7 +365,9 @@ class SecondLayerBandit(object):
                 raise ValueError('Invalid task type!')
             self.optimizer[_arm] = build_fe_optimizer(self.evaluation_type, self.task_type, self.inc['fe'],
                                                       fe_evaluator, self.estimator_id, self.per_run_time_limit,
-                                                      self.per_run_mem_limit, self.seed, shared_mode=self.share_fe)
+                                                      self.per_run_mem_limit, self.seed,
+                                                      shared_mode=self.share_fe,
+                                                      n_jobs=self.n_jobs)
         else:
             # trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
             # trials_per_iter = max(20, trials_per_iter)
