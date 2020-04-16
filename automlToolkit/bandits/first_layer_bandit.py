@@ -97,9 +97,6 @@ class FirstLayerBandit(object):
     def get_stats(self):
         return self.time_records, self.final_rewards
 
-    def update_global_datanodes(self, arm):
-        self.fe_datanodes[arm] = self.sub_bandits[arm].fetch_local_incumbents()
-
     def optimize(self, strategy='explore_first'):
         if strategy == 'explore_first':
             self.optimize_explore_first()
