@@ -40,6 +40,7 @@ class SecondLayerBandit(object):
         self.output_dir = output_dir
         self.mth = mth
         self.seed = seed
+        self.n_jobs = n_jobs
         self.sliding_window_size = sw_size
         self.logger = get_logger('%s:%s-%d=>%s' % (
             __class__.__name__, dataset_id, seed, estimator_id))
@@ -365,7 +366,8 @@ class SecondLayerBandit(object):
                 raise ValueError('Invalid task type!')
             self.optimizer[_arm] = build_fe_optimizer(self.evaluation_type, self.task_type, self.inc['fe'],
                                                       fe_evaluator, self.estimator_id, self.per_run_time_limit,
-                                                      self.per_run_mem_limit, self.seed, shared_mode=self.share_fe)
+                                                      self.per_run_mem_limit, self.seed, n_jobs=self.n_jobs,
+                                                      shared_mode=self.share_fe)
         else:
             # trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
             # trials_per_iter = max(20, trials_per_iter)
@@ -386,7 +388,8 @@ class SecondLayerBandit(object):
             self.optimizer[_arm] = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, self.config_space,
                                                        output_dir=self.output_dir,
                                                        per_run_time_limit=self.per_run_time_limit,
-                                                       trials_per_iter=trials_per_iter, seed=self.seed)
+                                                       trials_per_iter=trials_per_iter,
+                                                       seed=self.seed, n_jobs=self.n_jobs)
 
         self.logger.info('=' * 30)
         self.logger.info('UPDATE OPTIMIZER: %s' % _arm)

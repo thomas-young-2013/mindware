@@ -19,7 +19,7 @@ class ExtraTreesClassifier(IterativeComponentWithSampleWeight, BaseClassificatio
         if check_none(n_estimators):
             self.n_estimators = None
         else:
-            self.n_estimators = int(self.n_estimators)
+            self.n_estimators = int(n_estimators)
         self.criterion = criterion
 
         self.min_samples_leaf = min_samples_leaf
