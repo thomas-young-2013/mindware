@@ -1,6 +1,4 @@
 import copy
-import typing
-import warnings
 import numpy as np
 from sklearn.model_selection import StratifiedShuffleSplit
 from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator
@@ -283,18 +281,6 @@ class SecondLayerBandit(object):
 
         self.final_rewards.append(self.incumbent_perf)
         return self.incumbent_perf
-
-    def fetch_local_incumbents(self):
-        return self.optimizer['fe'].local_datanodes
-
-    def sync_global_incumbents(self, global_nodes: typing.List[DataNode]):
-        fe_optimizer = self.optimizer['fe']
-        fe_optimizer.global_datanodes = []
-        for node in global_nodes:
-            _node = node.copy_()
-            _node.depth = node.depth
-            fe_optimizer.global_datanodes.append(_node)
-        fe_optimizer.refresh_beam_set()
 
     def predict_proba(self, X_test, is_weighted=False):
         """

@@ -165,15 +165,12 @@ class EvaluationBasedOptimizer(Optimizer):
                         # Evaluate this node.
                         if transformer.type != 0:
                             output_node.depth = node_.depth + 1
-                            output_node.trans_hist.append(transformer.type)
                             _score = self.evaluator(self.hp_config, data_node=output_node, name='fe')
                             output_node.score = _score
                         else:
                             _score = output_node.score
 
-                    if _score is None:
-                        status = ERROR
-                    else:
+                    if _score is not None and np.isfinite(_score):
                         self.temporary_nodes.append(output_node)
                         self.graph.add_node(output_node)
                         # Avoid self-loop.
@@ -182,6 +179,8 @@ class EvaluationBasedOptimizer(Optimizer):
                         if _score > self.incumbent_score:
                             self.incumbent_score = _score
                             self.incumbent = output_node
+                    else:
+                        status = ERROR
                 except Exception as e:
                     extra.append(str(e))
                     self.logger.error('%s: %s' % (transformer.name, str(e)))
@@ -205,12 +204,11 @@ class EvaluationBasedOptimizer(Optimizer):
                         '[Budget Runs Out]: %s, %s\n' % (self.maximum_evaluation_num, self.time_budget))
                     self.is_ended = True
                     break
-                gc.collect()
 
             # Memory Save: free the data in the unpromising nodes.
             _scores = list()
             for tmp_node in self.temporary_nodes:
-                _score = tmp_node.score if tmp_node.score is not None else 0.0
+                _score = tmp_node.score if tmp_node.score is not None else 0.
                 _scores.append(_score)
             _idxs = np.argsort(-np.array(_scores))[:self.beam_width + 1]
             self.temporary_nodes = [self.temporary_nodes[_idx] for _idx in _idxs]
@@ -224,15 +222,8 @@ class EvaluationBasedOptimizer(Optimizer):
         # Update the beam set according to their performance.
         if len(self.beam_set) == 0:
             self.beam_set = list()
-            self.local_datanodes = list()
             for node_ in TransformationGraph.sort_nodes_by_score(self.temporary_nodes)[:self.beam_width]:
                 self.beam_set.append(node_)
-                if self.shared_mode:
-                    self.local_datanodes.append(node_)
-
-            if self.shared_mode:
-                self.logger.info('The number of local nodes: %d' % len(self.local_datanodes))
-                self.logger.info('The local scores are: %s' % str([node.score for node in self.local_datanodes]))
 
             # Add the original dataset into the beam set.
             for _ in range(1 + self.beam_width - len(self.beam_set)):
@@ -240,23 +231,7 @@ class EvaluationBasedOptimizer(Optimizer):
             self.temporary_nodes = list()
             self.logger.info('Finish one level in beam search: %d: %d' % (self.iteration_id, len(self.beam_set)))
 
-        # Maintain the local incumbent data node.
-        if self.shared_mode:
-            if len(self.local_datanodes) == 0:
-                self.local_datanodes.append(self.incumbent)
-            if len(self.local_datanodes) > self.beam_width:
-                self.local_datanodes = TransformationGraph.sort_nodes_by_score(self.local_datanodes)[:self.beam_width]
-
         self.iteration_id += 1
         self.execution_history[self.iteration_id] = execution_status
         iteration_cost = time.time() - _iter_start_time
         return self.incumbent.score, iteration_cost, self.incumbent
-
-    def refresh_beam_set(self):
-        if len(self.global_datanodes) > 0:
-            self.logger.info('Sync the global nodes!')
-            # Add local nodes.
-            self.beam_set = self.local_datanodes[:self.beam_width - 1]
-            # Add Beam_size - 1 global nodes.
-            for node in self.global_datanodes[:self.beam_width - 1]:
-                self.beam_set.append(node)

@@ -487,20 +487,6 @@ class FirstLayerBandit(object):
                 self.logger.info('Nbest_algo_ids   : %s' % str(self.nbest_algo_ids))
                 self.logger.info('=' * 50)
 
-            # Sync the features data nodes.
-            if self.shared_mode and _iter_id >= arm_num * self.alpha \
-                    and _iter_id % 2 == 0 and len(arm_candidate) > 1:
-                self.logger.info('Start to SYNC features among all arms!')
-                data_nodes = list()
-                for _arm in arm_candidate:
-                    data_nodes.extend(self.fe_datanodes[_arm])
-                # Sample #beam_size-1 nodes.
-                beam_size = self.sub_bandits[arm_candidate[0]].optimizer['fe'].beam_width
-                # TODO: how to generate the global nodes.
-                global_nodes = TransformationGraph.sort_nodes_by_score(data_nodes)[:beam_size - 1]
-                for _arm in arm_candidate:
-                    self.sub_bandits[_arm].sync_global_incumbents(global_nodes)
-
         return self.final_rewards
 
     def _get_logger(self, name):
