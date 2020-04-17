@@ -352,6 +352,7 @@ class SecondLayerBandit(object):
     def prepare_optimizer(self, _arm):
         if _arm == 'fe':
             # Build the Feature Engineering component.
+            self.original_data.node_id = -1
             inc_hpo = copy.deepcopy(self.inc['hpo'])
             if self.task_type in CLS_TASKS:
                 fe_evaluator = ClassificationEvaluator(inc_hpo, scorer=self.metric,
