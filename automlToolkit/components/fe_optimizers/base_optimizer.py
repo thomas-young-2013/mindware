@@ -44,6 +44,8 @@ class Optimizer(object, metaclass=abc.ABCMeta):
     def apply(self, data_node: DataNode, ref_node: DataNode):
         path_ids = self.graph.get_path_nodes(ref_node)
         self.logger.info('The path ids: %s' % str(path_ids))
+        if len(path_ids) == 0:
+            path_ids = [0]
         inputnode = self.graph.get_node(path_ids[0])
         inputnode.set_values(data_node)
         edge_attrs = list()
