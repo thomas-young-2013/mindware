@@ -48,6 +48,7 @@ def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_
                               ensemble_size=50,
                               opt_algo=opt_algo,
                               metric=balanced_acc_metric,
+                              fe_algo='bo',
                               seed=seed)
     bandit.optimize()
     model_desc = [bandit.nbest_algo_ids, bandit.optimal_algo_id, bandit.final_rewards, bandit.action_sequence]
@@ -150,8 +151,7 @@ if __name__ == "__main__":
                       ]
     else:
         algorithms = ['adaboost', 'random_forest',
-                      'extra_trees', 'liblinear_svc', 'k_nearest_neighbors'
-                      ]
+                      'extra_trees', 'liblinear_svc', 'k_nearest_neighbors']
 
     dataset_list = dataset_str.split(',')
 

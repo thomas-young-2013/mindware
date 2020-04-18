@@ -27,6 +27,7 @@ class FirstLayerBandit(object):
                  share_feature=False,
                  logging_config=None,
                  opt_algo='rb',
+                 fe_algo='tree_based',
                  n_jobs=1,
                  seed=1):
         """
@@ -71,7 +72,7 @@ class FirstLayerBandit(object):
         self.evaluation_cost = dict()
         self.fe_datanodes = dict()
         self.eval_type = eval_type
-
+        self.fe_algo = fe_algo
         for arm in self.arms:
             self.rewards[arm] = list()
             self.evaluation_cost[arm] = list()
@@ -86,6 +87,7 @@ class FirstLayerBandit(object):
                 eval_type=eval_type,
                 dataset_id=dataset_name,
                 n_jobs=self.n_jobs,
+                fe_algo=fe_algo,
                 mth=opt_algo,
             )
 
@@ -110,9 +112,8 @@ class FirstLayerBandit(object):
             self.optimize_sw_ts()
         else:
             raise ValueError('Unsupported optimization method: %s!' % strategy)
-
+        self.stats = self.fetch_ensemble_members()
         if self.ensemble_method is not None:
-            self.stats = self.fetch_ensemble_members()
             # Ensembling all intermediate/ultimate models found in above optimization process.
             self.es = EnsembleBuilder(stats=self.stats,
                                       ensemble_method=self.ensemble_method,
@@ -132,7 +133,11 @@ class FirstLayerBandit(object):
                 best_perf = self.sub_bandits[algo_id].incumbent_perf
                 best_algo_id = algo_id
 
-        self.best_data_node = self.sub_bandits[best_algo_id].inc['fe']
+        if self.fe_algo == 'tree_based':
+            self.best_data_node = self.sub_bandits[best_algo_id].inc['fe']
+        else:
+            self.best_data_node = self.stats[best_algo_id]['train_data_list'][0]
+
         self.fe_optimizer = self.sub_bandits[best_algo_id].optimizer['fe']
         best_config = self.sub_bandits[best_algo_id].inc['hpo']
         best_estimator = fetch_predict_estimator(self.task_type, best_config, self.best_data_node.data[0],
@@ -145,7 +150,7 @@ class FirstLayerBandit(object):
         sub_bandit = self.sub_bandits[best_arm]
         # Check the validity of feature engineering.
         _train_data = self.fe_optimizer.apply(self.original_data, self.best_data_node)
-        assert _train_data in [self.best_data_node, sub_bandit.local_inc['fe']]
+        # assert _train_data in [self.best_data_node, sub_bandit.local_inc['fe']]
         test_data_node = self.fe_optimizer.apply(test_data, self.best_data_node)
         with open(os.path.join(self.output_dir, 'best_model'), 'rb') as f:
             estimator = pkl.load(f)
@@ -509,10 +514,13 @@ class FirstLayerBandit(object):
             fe_optimizer = self.sub_bandits[algo_id].optimizer['fe']
             hpo_optimizer = self.sub_bandits[algo_id].optimizer['hpo']
 
-            train_data_candidates = self.sub_bandits[algo_id].local_hist['fe']
-            for _feature_set in fe_optimizer.features_hist:
-                if _feature_set not in train_data_candidates:
-                    train_data_candidates.append(_feature_set)
+            if self.fe_algo == 'bo':
+                train_data_candidates = fe_optimizer.fetch_nodes(10)
+            else:
+                train_data_candidates = self.sub_bandits[algo_id].local_hist['fe']
+            # for _feature_set in fe_optimizer.features_hist:
+            #     if _feature_set not in train_data_candidates:
+            #         train_data_candidates.append(_feature_set)
 
             train_data_list = list()
             for item in train_data_candidates:

@@ -26,7 +26,7 @@ class DataBalancer(Transformer):
             min_cnt, max_cnt = np.min(counts), np.max(counts)
 
             if min_cnt >= self.threshold * median:
-                data = [X.copy(), y.copy]
+                data = [X.copy(), y.copy()]
             else:
                 np.random.seed(self.random_state)
                 resample_num = int(median * self.threshold)
