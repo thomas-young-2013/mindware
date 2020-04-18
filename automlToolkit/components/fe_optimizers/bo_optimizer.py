@@ -29,6 +29,7 @@ class BayesianOptimizationOptimizer(Optimizer):
         self.is_finished = False
         self.iteration_id = 0
 
+        self.evaluator.parse_needed = True
         # Prepare the hyperparameter space.
         self.hyperparameter_space = self._get_task_hyperparameter_space()
 
@@ -67,10 +68,10 @@ class BayesianOptimizationOptimizer(Optimizer):
         """
             Fetch the underlying hyperparameter space for feature engineering.
             Pipeline Space:
-                0. imputation
                 1. preprocess: continous_discretizer
                 2. preprocess: discrete_categorizer,
-                3. balancer: weight_balancer, data_balancer.
+                3. balancer: weight_balancer,
+                             data_balancer.
                 4. scaler: normalizer, scaler, quantile.
                 5. generator: all generators.
                 6. selector: all selectors.
