@@ -29,7 +29,7 @@ class AutoML(object):
                  random_state=1,
                  n_jobs=1,
                  evaluation='holdout',
-                 output_dir="/tmp/"):
+                 output_dir="./"):
         self.metric = get_metric(metric)
         self.time_limit = time_limit
         self.seed = random_state
