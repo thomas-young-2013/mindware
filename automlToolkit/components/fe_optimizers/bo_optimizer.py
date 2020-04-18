@@ -1,6 +1,5 @@
 import time
 import numpy as np
-from queue import PriorityQueue
 from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter
 
