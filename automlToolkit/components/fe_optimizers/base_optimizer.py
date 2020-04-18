@@ -41,7 +41,7 @@ class Optimizer(object, metaclass=abc.ABCMeta):
             edge_attrs.append(edge.transformer.get_attributes())
         return edge_attrs
 
-    def apply(self, data_node: DataNode, ref_node: DataNode):
+    def apply(self, data_node: DataNode, ref_node: DataNode, phase='test'):
         path_ids = self.graph.get_path_nodes(ref_node)
         self.logger.info('The path ids: %s' % str(path_ids))
         if len(path_ids) == 0:

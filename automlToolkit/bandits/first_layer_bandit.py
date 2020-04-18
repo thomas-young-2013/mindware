@@ -149,7 +149,7 @@ class FirstLayerBandit(object):
         best_arm = self.optimal_algo_id
         sub_bandit = self.sub_bandits[best_arm]
         # Check the validity of feature engineering.
-        _train_data = self.fe_optimizer.apply(self.original_data, self.best_data_node)
+        _train_data = self.fe_optimizer.apply(self.original_data, self.best_data_node, phase='train')
         # assert _train_data in [self.best_data_node, sub_bandit.local_inc['fe']]
         test_data_node = self.fe_optimizer.apply(test_data, self.best_data_node)
         with open(os.path.join(self.output_dir, 'best_model'), 'rb') as f:

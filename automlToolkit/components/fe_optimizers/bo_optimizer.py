@@ -230,14 +230,16 @@ class BayesianOptimizationOptimizer(Optimizer):
             self.node_dict[len(self.node_dict)] = [node, tran_list]
         return node_list
 
-    def apply(self, data_node: DataNode, ref_node: DataNode):
+    def apply(self, data_node: DataNode, ref_node: DataNode, phase='test'):
         input_node = data_node.copy_()
         if_fit = False
         for _, value in self.node_dict.items():
             if ref_node == value[0]:
                 if_fit = True
                 for i, tran in enumerate(value[1]):
-                    if tran is not None and i != 2:  # Disable balancer
+                    if phase == 'test' and i == 2:  # Disable balancer
+                        continue
+                    if tran is not None:
                         input_node = tran.operate(input_node)
         if not if_fit:
             raise ValueError("Ref node not in history!")
