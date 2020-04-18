@@ -237,8 +237,8 @@ class BayesianOptimizationOptimizer(Optimizer):
         for _, value in self.node_dict.items():
             if ref_node == value[0]:
                 if_fit = True
-                for tran in value[1]:
-                    if tran is not None:
+                for i, tran in enumerate(value[1]):
+                    if tran is not None and i != 2:  # Disable balancer
                         input_node = tran.operate(input_node)
         if not if_fit:
             raise ValueError("Ref node not in history!")
