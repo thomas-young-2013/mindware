@@ -1,6 +1,5 @@
 import time
 import numpy as np
-from queue import PriorityQueue
 from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter
 
@@ -44,7 +43,7 @@ class BayesianOptimizationOptimizer(Optimizer):
         self.hyperparameter_space = self._get_task_hyperparameter_space()
 
         self.optimizer = BO(objective_function=self.evaluate_function,
-                            configspace=self.hyperparameter_space,
+                            config_space=self.hyperparameter_space,
                             max_runs=int(1e10),
                             task_id=self.model_id,
                             rng=np.random.RandomState(self.seed))
