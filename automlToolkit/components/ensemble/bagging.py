@@ -32,7 +32,7 @@ class Bagging(BaseEnsembleModel):
                 for _config in configs:
                     if self.base_model_mask[model_cnt] == 1:
                         estimator = fetch_predict_estimator(self.task_type, _config, X, y)
-                        with open(os.path.join(self.output_dir, 'model%d' % model_cnt), 'wb') as f:
+                        with open(os.path.join(self.output_dir, '%s-bagging-model%d' % (self.timestamp, model_cnt)), 'wb') as f:
                             pkl.dump(estimator, f)
                     model_cnt += 1
         return self
@@ -49,7 +49,7 @@ class Bagging(BaseEnsembleModel):
                 test_node = solvers[algo_id].optimizer['fe'].apply(data, train_node)
                 for _ in configs:
                     if self.base_model_mask[model_cnt] == 1:
-                        with open(os.path.join(self.output_dir, 'model%d' % model_cnt), 'rb') as f:
+                        with open(os.path.join(self.output_dir, '%s-bagging-model%d' % (self.timestamp, model_cnt)), 'rb') as f:
                             estimator = pkl.load(f)
                             if self.task_type in CLS_TASKS:
                                 model_pred_list.append(estimator.predict_proba(test_node.data[0]))
