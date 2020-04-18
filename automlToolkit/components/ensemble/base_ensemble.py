@@ -3,6 +3,7 @@ from sklearn.model_selection import StratifiedShuffleSplit, ShuffleSplit
 import os
 import numpy as np
 import pickle as pkl
+import time
 
 from automlToolkit.components.utils.constants import CLS_TASKS
 from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
@@ -33,6 +34,7 @@ class BaseEnsembleModel(object):
         self.train_data_dict = {}
         self.train_labels = None
         self.seed = self.stats['split_seed']
+        self.timestamp = str(time.time())
         for algo_id in self.stats["include_algorithms"]:
             train_list = self.stats[algo_id]['train_data_list']
             configs = self.stats[algo_id]['configurations']
@@ -61,7 +63,8 @@ class BaseEnsembleModel(object):
                     self.train_data_dict[self.model_cnt] = (X, y)
                     estimator = fetch_predict_estimator(self.task_type, _config, X_train, y_train)
                     if self.save_model:
-                        with open(os.path.join(self.output_dir, 'model%d' % self.model_cnt), 'wb') as f:
+                        with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, self.model_cnt)),
+                                  'wb') as f:
                             pkl.dump(estimator, f)
                     if self.task_type in CLS_TASKS:
                         y_valid_pred = estimator.predict_proba(X_valid)
@@ -81,6 +84,7 @@ class BaseEnsembleModel(object):
         else:
             self.base_model_mask = choose_base_models_regression(np.array(self.train_predictions), np.array(y_valid),
                                                                  self.ensemble_size)
+        self.ensemble_size = sum(self.base_model_mask)
 
     def fit(self, data):
         raise NotImplementedError
