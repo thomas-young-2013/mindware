@@ -33,11 +33,16 @@ class BayesianOptimizationOptimizer(Optimizer):
         # Prepare the hyperparameter space.
         self.hyperparameter_space = self._get_task_hyperparameter_space()
 
-        self.optimizer = BO(objective_function=self.evaluator,
+        self.optimizer = BO(objective_function=self.evaluate_function,
                             configspace=self.hyperparameter_space,
                             max_runs=int(1e10),
                             task_id=self.model_id,
                             rng=np.random.RandomState(self.seed))
+
+    def evaluate_function(self, config):
+        input_node = self.root_node
+        outout_node = self._parse(input_node, config)
+        return self.evaluator(datanode=outout_node, name='fe')
 
     def optimize(self):
         while not self.is_finished:
@@ -63,6 +68,9 @@ class BayesianOptimizationOptimizer(Optimizer):
         self.incumbent_score = 1 - self.incumbent_score
         iteration_cost = time.time() - _start_time
         return self.incumbent_score, iteration_cost, self.incumbent
+
+    def _parse(self, data_node: DataNode, config):
+        return None
 
     def _get_task_hyperparameter_space(self):
         """

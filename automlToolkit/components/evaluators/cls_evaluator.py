@@ -61,9 +61,6 @@ class ClassificationEvaluator(_BaseEvaluator):
         else:
             data_node = self.data_node
 
-        if self.parse_needed:
-            # data_node = parse(config, data_node)
-            pass
         X_train, y_train = data_node.data
 
         # Prepare training and initial params for classifier.

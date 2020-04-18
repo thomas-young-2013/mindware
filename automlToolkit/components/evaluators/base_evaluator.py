@@ -60,7 +60,6 @@ class _BaseEvaluator(metaclass=ABCMeta):
         self.metric = get_metric(metric)
         self.evaluation_strategy = evaluation_strategy
         self.evaluation_params = evaluation_params
-        self.parse_needed = False
 
         if self.evaluation_strategy == 'holdout':
             if 'train_size' not in self.evaluation_params:
