@@ -73,7 +73,9 @@ class Stacking(BaseEnsembleModel):
                         for j, (train, test) in enumerate(kf.split(X, y)):
                             x_p1, x_p2, y_p1, _ = X[train], X[test], y[train], y[test]
                             estimator = fetch_predict_estimator(self.task_type, _config, x_p1, y_p1)
-                            with open(os.path.join(self.output_dir, 'model%d_part%d' % (model_cnt, j)), 'wb') as f:
+                            with open(
+                                    os.path.join(self.output_dir, '%s-model%d_part%d' % (self.timestamp, model_cnt, j)),
+                                    'wb') as f:
                                 pkl.dump(estimator, f)
                             if self.task_type in CLS_TASKS:
                                 pred = estimator.predict_proba(x_p2)
@@ -116,7 +118,9 @@ class Stacking(BaseEnsembleModel):
                 for _ in configs:
                     if self.base_model_mask[model_cnt] == 1:
                         for j in range(self.kfold):
-                            with open(os.path.join(self.output_dir, 'model%d_part%d' % (model_cnt, j)), 'rb') as f:
+                            with open(
+                                    os.path.join(self.output_dir, '%s-model%d_part%d' % (self.timestamp, model_cnt, j)),
+                                    'rb') as f:
                                 estimator = pkl.load(f)
                             if self.task_type in CLS_TASKS:
                                 pred = estimator.predict_proba(test_node.data[0])
@@ -130,7 +134,7 @@ class Stacking(BaseEnsembleModel):
                                 if n_dim == 1:
                                     feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = \
                                         feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] + pred[:,
-                                                                                                   1:2] / self.kfold
+                                                                                               1:2] / self.kfold
                                 else:
                                     feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = \
                                         feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] + pred / self.kfold
