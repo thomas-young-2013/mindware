@@ -151,7 +151,7 @@ class FirstLayerBandit(object):
         sub_bandit = self.sub_bandits[best_arm]
         # Check the validity of feature engineering.
         _train_data = self.fe_optimizer.apply(self.original_data, self.best_data_node, phase='train')
-        assert _train_data == self.best_data_node
+        # assert _train_data == self.best_data_node
         test_data_node = self.fe_optimizer.apply(test_data, self.best_data_node)
         with open(os.path.join(self.output_dir, '%s-best_model' % self.timestamp), 'rb') as f:
             estimator = pkl.load(f)

@@ -78,10 +78,12 @@ class BayesianOptimizationOptimizer(Optimizer):
                 print(info)
 
         runhistory = self.optimizer.get_history()
-        self.incumbent_config, self.incumbent_score = runhistory.get_incumbents()[0]
-        self.incumbent_score = 1 - self.incumbent_score
+        self.incumbent_config, iter_incumbent_score = runhistory.get_incumbents()[0]
+        iter_incumbent_score = 1 - iter_incumbent_score
         iteration_cost = time.time() - _start_time
-        self.incumbent, tran_list = self._parse(self.root_node, self.incumbent_config, record=True)
+        if iter_incumbent_score > self.incumbent_score:
+            self.incumbent_score = iter_incumbent_score
+            self.incumbent = self._parse(self.root_node, self.incumbent_config)
 
         return self.incumbent_score, iteration_cost, self.incumbent
 
@@ -232,8 +234,10 @@ class BayesianOptimizationOptimizer(Optimizer):
         min_n = min_list[:n]
 
         node_list = []
-        for config in min_n:
+        for i, config in enumerate(min_n):
             node, tran_list = self._parse(self.root_node, config[0], record=True)
+            if i == 0:
+                self.incumbent = node  # Update incumbent node
             node_list.append(node)
             self.node_dict[len(self.node_dict)] = [node, tran_list]
         return node_list
@@ -249,6 +253,7 @@ class BayesianOptimizationOptimizer(Optimizer):
                         continue
                     if tran is not None:
                         input_node = tran.operate(input_node)
+                break
         if not if_fit:
             raise ValueError("Ref node not in history!")
         return input_node

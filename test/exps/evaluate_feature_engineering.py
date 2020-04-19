@@ -168,8 +168,9 @@ def evaluate_bo_optimizer(dataset, time_limit, run_id, seed):
     print(optimizer.incumbent_score)
 
     optimizer.fetch_nodes(n=5)
+    print("Refit over!")
     final_test_data = optimizer.apply(test_data, optimizer.incumbent)
-    final_train_data = optimizer._parse(train_data, inc)
+    final_train_data = optimizer.apply(train_data, optimizer.incumbent, phase='train')
     X_train, y_train = final_train_data.data
     clf = fetch_predict_estimator(MULTICLASS_CLS, cs.get_default_configuration(), X_train, y_train)
     X_test, y_test = final_test_data.data
