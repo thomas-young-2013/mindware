@@ -8,7 +8,7 @@ import autosklearn.classification
 from tabulate import tabulate
 sys.path.append(os.getcwd())
 from automlToolkit.datasets.utils import load_train_test_data
-from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator, fetch_predict_estimator
+from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator, get_estimator
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--start_id', type=int, default=0)
@@ -57,8 +57,6 @@ def evaluate_ausk_fe(dataset, time_limit, run_id, seed):
         seed=int(seed),
         resampling_strategy='holdout',
         resampling_strategy_arguments={'train_size': 0.67}
-        # resampling_strategy='cv',
-        # resampling_strategy_arguments={'folds': 5}
     )
     print(automl)
 
@@ -145,6 +143,45 @@ def evaluate_evaluation_based_fe(dataset, time_limit, run_id, seed):
         pickle.dump([dataset, val_score, test_score], f)
 
 
+def evaluate_bo_optimizer(dataset, time_limit, run_id, seed):
+    from automlToolkit.components.fe_optimizers.bo_optimizer import BayesianOptimizationOptimizer
+    # Prepare the configuration for random forest.
+    from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
+    from autosklearn.pipeline.components.classification.random_forest import RandomForest
+    cs = RandomForest.get_hyperparameter_search_space()
+    clf_hp = UnParametrizedHyperparameter("estimator", 'random_forest')
+    cs.add_hyperparameter(clf_hp)
+    print(cs.get_default_configuration())
+    evaluator = ClassificationEvaluator(cs.get_default_configuration(), name='fe', seed=seed,
+                                        resampling_strategy='holdout')
+
+    train_data, test_data = load_train_test_data(dataset)
+    optimizer = BayesianOptimizationOptimizer('classification', train_data, evaluator,
+                                              'random_forest', 300, 10000, seed, time_budget=600)
+    optimizer.optimize()
+    inc = optimizer.incumbent_config
+    val_score = optimizer.evaluate_function(inc)
+    print(val_score)
+    print(optimizer.incumbent_score)
+
+    optimizer.fetch_nodes(n=5)
+    final_test_data = optimizer.apply(test_data, optimizer.incumbent)
+    final_train_data = optimizer._parse(train_data, inc)
+    X_train, y_train = final_train_data.data
+    clf = get_estimator(cs.get_default_configuration())
+    clf.train(X_train, y_train)
+    X_test, y_test = final_test_data.data
+    y_pred = clf.predict(X_test)
+
+    from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
+    test_score = balanced_accuracy(y_test, y_pred)
+    print('==> Test score', test_score)
+
+    save_path = save_dir + 'bo_fe_%s_%d_%d.pkl' % (dataset, time_limit, run_id)
+    with open(save_path, 'wb') as f:
+        pickle.dump([dataset, val_score, test_score], f)
+
+
 if __name__ == "__main__":
     if mths[0] != 'plot':
         for dataset in datasets:
@@ -156,6 +193,8 @@ if __name__ == "__main__":
                 for mth in mths:
                     if mth == 'ausk':
                         evaluate_ausk_fe(dataset, time_limit, run_id, seed)
+                    elif mth == 'bo':
+                        evaluate_bo_optimizer(dataset, time_limit, run_id, seed)
                     else:
                         evaluate_evaluation_based_fe(dataset, time_limit, run_id, seed)
     else:

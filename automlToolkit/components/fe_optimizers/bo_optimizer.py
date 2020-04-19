@@ -18,16 +18,18 @@ class BayesianOptimizationOptimizer(Optimizer):
                  model_id: str, time_limit_per_trans: int,
                  mem_limit_per_trans: int,
                  seed: int, n_jobs=1,
-                 number_of_unit_resource=2):
+                 number_of_unit_resource=2,
+                 time_budget=600):
         super().__init__(str(__class__.__name__), task_type, input_data, seed)
         self.number_of_unit_resource = number_of_unit_resource
         self.node_dict = {}
-        # self.iter_num_per_unit_resource = 10
         self.iter_num_per_unit_resource = 10
         self.time_limit_per_trans = time_limit_per_trans
         self.mem_limit_per_trans = mem_limit_per_trans
+        self.time_budget = time_budget
         self.evaluator = evaluator
         self.model_id = model_id
+        self.incumbent_config = None
         self.incumbent_score = -np.inf
         self.baseline_score = -np.inf
         self.start_time = time.time()
@@ -59,6 +61,8 @@ class BayesianOptimizationOptimizer(Optimizer):
             self.logger.debug('Start the ITERATION: %d' % self.iteration_id)
             self.logger.debug('=' * 50)
             self.iterate()
+            if self.start_time + self.time_budget < time.time():
+                self.is_finished = True
         return self.incumbent
 
     def iterate(self):
@@ -70,7 +74,9 @@ class BayesianOptimizationOptimizer(Optimizer):
     def _iterate(self):
         _start_time = time.time()
         for _ in range(self.iter_num_per_unit_resource):
-            self.optimizer.iterate()
+            status, info = self.optimizer.iterate()
+            if status == 1:
+                print(info)
 
         runhistory = self.optimizer.get_history()
         self.incumbent_config, self.incumbent_score = runhistory.get_incumbents()[0]
