@@ -43,7 +43,6 @@ class BayesianOptimizationOptimizer(Optimizer):
         self.evaluator.parse_needed = True
         # Prepare the hyperparameter space.
         self.hyperparameter_space = self._get_task_hyperparameter_space()
-
         self.optimizer = BO(objective_function=self.evaluate_function,
                             config_space=self.hyperparameter_space,
                             max_runs=int(1e10),
@@ -92,8 +91,11 @@ class BayesianOptimizationOptimizer(Optimizer):
         config_dict.pop('preprocessor1')
         pre2_id = config_dict['preprocessor2']
         config_dict.pop('preprocessor2')
-        bal_id = config_dict.get('balancer', 'empty')
-        config_dict.pop('balancer')
+        if 'balancer' in config_dict:
+            bal_id = config_dict['balancer']
+            config_dict.pop('balancer')
+        else:
+            bal_id = 'empty'
         gen_id = config_dict['generator']
         config_dict.pop('generator')
         res_id = config_dict['rescaler']

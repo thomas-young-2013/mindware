@@ -6,9 +6,12 @@ import argparse
 import numpy as np
 import autosklearn.classification
 from tabulate import tabulate
+
 sys.path.append(os.getcwd())
 from automlToolkit.datasets.utils import load_train_test_data
-from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator, get_estimator
+from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
+from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator
+from automlToolkit.components.utils.constants import MULTICLASS_CLS
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--start_id', type=int, default=0)
@@ -111,7 +114,7 @@ def evaluate_evaluation_based_fe(dataset, time_limit, run_id, seed):
                                         resampling_strategy='holdout')
 
     train_data, test_data = load_train_test_data(dataset)
-    optimizer = EvaluationBasedOptimizer('classification', train_data, evaluator,
+    optimizer = EvaluationBasedOptimizer(MULTICLASS_CLS, train_data, evaluator,
                                          'random_forest', 300, 10000,
                                          seed, trans_set=None)
 
@@ -130,7 +133,7 @@ def evaluate_evaluation_based_fe(dataset, time_limit, run_id, seed):
 
     final_test_data = optimizer.apply(test_data, optimizer.incumbent)
     X_train, y_train = final_train_data.data
-    clf = fetch_predict_estimator(cs.get_default_configuration(), X_train, y_train)
+    clf = fetch_predict_estimator(MULTICLASS_CLS, cs.get_default_configuration(), X_train, y_train)
     X_test, y_test = final_test_data.data
     y_pred = clf.predict(X_test)
 
@@ -156,8 +159,8 @@ def evaluate_bo_optimizer(dataset, time_limit, run_id, seed):
                                         resampling_strategy='holdout')
 
     train_data, test_data = load_train_test_data(dataset)
-    optimizer = BayesianOptimizationOptimizer('classification', train_data, evaluator,
-                                              'random_forest', 300, 10000, seed, time_budget=600)
+    optimizer = BayesianOptimizationOptimizer(MULTICLASS_CLS, train_data, evaluator,
+                                              'random_forest', 300, 10000, seed, time_budget=time_limit)
     optimizer.optimize()
     inc = optimizer.incumbent_config
     val_score = optimizer.evaluate_function(inc)
@@ -168,8 +171,7 @@ def evaluate_bo_optimizer(dataset, time_limit, run_id, seed):
     final_test_data = optimizer.apply(test_data, optimizer.incumbent)
     final_train_data = optimizer._parse(train_data, inc)
     X_train, y_train = final_train_data.data
-    clf = get_estimator(cs.get_default_configuration())
-    clf.train(X_train, y_train)
+    clf = fetch_predict_estimator(MULTICLASS_CLS, cs.get_default_configuration(), X_train, y_train)
     X_test, y_test = final_test_data.data
     y_pred = clf.predict(X_test)
 
@@ -188,7 +190,7 @@ if __name__ == "__main__":
             # Prepare random seeds.
             np.random.seed(1)
             seeds = np.random.randint(low=1, high=10000, size=start_id + rep)
-            for run_id in range(start_id, start_id+rep):
+            for run_id in range(start_id, start_id + rep):
                 seed = seeds[run_id]
                 for mth in mths:
                     if mth == 'ausk':
@@ -240,7 +242,6 @@ if __name__ == "__main__":
 
             tbl_data.append(row_data)
         print(tabulate(tbl_data, headers, tablefmt='github'))
-
 
 """
  "[(1.000000, SimpleClassificationPipeline({

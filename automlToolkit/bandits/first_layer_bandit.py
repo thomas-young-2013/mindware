@@ -35,6 +35,7 @@ class FirstLayerBandit(object):
         'gradient_boosting','k_nearest_neighbors','lda','liblinear_svc','libsvm_svc','multinomial_nb','passive_aggressive','qda',
         'random_forest','sgd'}
         """
+        self.timestamp = time.time()
         self.task_type = task_type
         self.metric = get_metric(metric)
         self.original_data = data.copy_()
@@ -142,7 +143,7 @@ class FirstLayerBandit(object):
         best_config = self.sub_bandits[best_algo_id].inc['hpo']
         best_estimator = fetch_predict_estimator(self.task_type, best_config, self.best_data_node.data[0],
                                                  self.best_data_node.data[1])
-        with open(os.path.join(self.output_dir, 'best_model'), 'wb') as f:
+        with open(os.path.join(self.output_dir, '%s-best_model' % self.timestamp), 'wb') as f:
             pkl.dump(best_estimator, f)
 
     def _best_predict(self, test_data: DataNode):
@@ -150,11 +151,10 @@ class FirstLayerBandit(object):
         sub_bandit = self.sub_bandits[best_arm]
         # Check the validity of feature engineering.
         _train_data = self.fe_optimizer.apply(self.original_data, self.best_data_node, phase='train')
-        # assert _train_data in [self.best_data_node, sub_bandit.local_inc['fe']]
+        assert _train_data == self.best_data_node
         test_data_node = self.fe_optimizer.apply(test_data, self.best_data_node)
-        with open(os.path.join(self.output_dir, 'best_model'), 'rb') as f:
+        with open(os.path.join(self.output_dir, '%s-best_model' % self.timestamp), 'rb') as f:
             estimator = pkl.load(f)
-
         return estimator.predict(test_data_node.data[0])
 
     def _es_predict(self, test_data: DataNode):
@@ -174,7 +174,7 @@ class FirstLayerBandit(object):
             return self.es.predict(test_data, self.sub_bandits)
         else:
             test_data_node = self.fe_optimizer.apply(test_data, self.best_data_node)
-            with open(os.path.join(self.output_dir, 'best_model'), 'rb') as f:
+            with open(os.path.join(self.output_dir, '%s-best_model' % self.timestamp), 'rb') as f:
                 estimator = pkl.load(f)
             if self.task_type in CLS_TASKS:
                 return estimator.predict_proba(test_data_node.data[0])
