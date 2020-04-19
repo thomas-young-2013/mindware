@@ -22,13 +22,13 @@ class BayesianOptimizationOptimizer(Optimizer):
                  time_budget=600):
         super().__init__(str(__class__.__name__), task_type, input_data, seed)
         self.number_of_unit_resource = number_of_unit_resource
-        self.node_dict = {}
         self.iter_num_per_unit_resource = 10
         self.time_limit_per_trans = time_limit_per_trans
         self.mem_limit_per_trans = mem_limit_per_trans
         self.time_budget = time_budget
         self.evaluator = evaluator
         self.model_id = model_id
+
         self.incumbent_config = None
         self.incumbent_score = -np.inf
         self.baseline_score = -np.inf
@@ -36,8 +36,9 @@ class BayesianOptimizationOptimizer(Optimizer):
         self.hp_config = None
         self.seed = seed
 
+        self.node_dict = dict()
+
         self.is_finished = False
-        self.early_stopped_flag = False
         self.iteration_id = 0
 
         self.evaluator.parse_needed = True
@@ -50,11 +51,21 @@ class BayesianOptimizationOptimizer(Optimizer):
                             rng=np.random.RandomState(self.seed))
 
     def evaluate_function(self, config):
+        """
+            The config is the configuration that specifies the FE pipeline.
+        :param config:
+        :return: the evaluation score.
+        """
         input_node = self.root_node
         output_node = self._parse(input_node, config)
         return 1 - self.evaluator(self.hp_config, data_node=output_node, name='fe')
 
     def optimize(self):
+        """
+            Interface enables user to use this FE optimizer only.
+        :return:
+        """
+        self.is_finished = False
         while not self.is_finished:
             self.logger.debug('=' * 50)
             self.logger.debug('Start the ITERATION: %d' % self.iteration_id)
@@ -88,6 +99,14 @@ class BayesianOptimizationOptimizer(Optimizer):
         return self.incumbent_score, iteration_cost, self.incumbent
 
     def _parse(self, data_node: DataNode, config, record=False):
+        """
+            Transform the data node based on the pipeline specified by configuration.
+        :param data_node:
+        :param config:
+        :param record:
+        :return: the resulting data node.
+        """
+        # Remove the indicator in config_dict.
         config_dict = config.get_dictionary().copy()
         pre1_id = config_dict['preprocessor1']
         config_dict.pop('preprocessor1')
