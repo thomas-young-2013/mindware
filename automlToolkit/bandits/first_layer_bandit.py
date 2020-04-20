@@ -498,9 +498,9 @@ class FirstLayerBandit(object):
         stats['include_algorithms'] = self.include_algorithms
         stats['split_seed'] = self.seed
         best_perf = float('-INF')
-        for algo_id in self.include_algorithms:
+        for algo_id in self.nbest_algo_ids:
             best_perf = max(best_perf, self.sub_bandits[algo_id].incumbent_perf)
-        for algo_id in self.include_algorithms:
+        for algo_id in self.nbest_algo_ids:
             data = dict()
             fe_optimizer = self.sub_bandits[algo_id].optimizer['fe']
             hpo_optimizer = self.sub_bandits[algo_id].optimizer['hpo']
@@ -545,7 +545,8 @@ class FirstLayerBandit(object):
                 if perfs[idx] >= threshold and configs[idx] not in best_configs:
                     best_configs.append(configs[idx])
                 # TODO: self.ensemble_size/len is not a good option.
-                if len(best_configs) >= self.ensemble_size / len(self.include_algorithms):
+                config_num = 5
+                if len(best_configs) >= config_num:
                     break
             data['configurations'] = best_configs
 
