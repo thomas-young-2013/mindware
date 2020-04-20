@@ -495,7 +495,8 @@ class FirstLayerBandit(object):
 
     def fetch_ensemble_members(self, threshold=0.95):
         stats = dict()
-        stats['include_algorithms'] = self.include_algorithms
+        stats['candidate_algorithms'] = self.include_algorithms
+        stats['include_algorithms'] = self.nbest_algo_ids
         stats['split_seed'] = self.seed
         best_perf = float('-INF')
         for algo_id in self.nbest_algo_ids:
