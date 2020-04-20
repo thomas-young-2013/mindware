@@ -18,7 +18,7 @@ class SMACOptimizer(BaseHPOptimizer):
         self.output_dir = output_dir
 
         self.optimizer = BO(objective_function=self.evaluator,
-                            configspace=config_space,
+                            config_space=config_space,
                             max_runs=int(1e10),
                             task_id=None,
                             rng=np.random.RandomState(self.seed))
