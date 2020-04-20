@@ -21,9 +21,6 @@ parser.add_argument('--datasets', type=str, default='dataset_small')
 parser.add_argument('--mths', type=str, default='ausk,hmab')
 args = parser.parse_args()
 
-# dataset_large = 'credit,diabetes,pc4,sick,spectf,splice,waveform,' \
-#                 'winequality_red,winequality_white,ionosphere,amazon_employee,' \
-#                 'lymphography,messidor_features,spambase,ap_omentum_ovary,a9a'
 dataset_small = 'messidor_features,lymphography,winequality_red,winequality_white,credit,' \
                 'ionosphere,splice,diabetes,pc4,spectf,spambase,amazon_employee'
 
@@ -202,7 +199,7 @@ if __name__ == "__main__":
                         evaluate_evaluation_based_fe(dataset, time_limit, run_id, seed)
     else:
         headers = ['dataset']
-        method_ids = ['hmab', 'ausk']
+        method_ids = ['bo', 'ausk', 'hmab']
         for mth in method_ids:
             headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
@@ -219,8 +216,10 @@ if __name__ == "__main__":
                     with open(file_path, 'rb') as f:
                         data = pickle.load(f)
                     val_acc, test_acc = data[1], data[2]
+                    if mth == 'bo':
+                        val_acc = 1 - val_acc
                     results.append([val_acc, test_acc])
-                    print(data)
+                    # print(data)
                 if len(results) == rep:
                     results = np.array(results)
                     stats_ = zip(np.mean(results, axis=0), np.std(results, axis=0))
