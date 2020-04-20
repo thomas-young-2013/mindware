@@ -516,7 +516,8 @@ class FirstLayerBandit(object):
                     if not isinstance(equal_flag, bool):
                         assert equal_flag.all()
                         train_data_candidates.append(tmp_data)
-                # TODO: what about empty train_data_candidates.
+                if len(train_data_candidates) == 0:
+                    train_data_candidates.append(self.original_data)
             else:
                 train_data_candidates = self.sub_bandits[algo_id].local_hist['fe']
             # for _feature_set in fe_optimizer.features_hist:
