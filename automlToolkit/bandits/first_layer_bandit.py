@@ -147,8 +147,6 @@ class FirstLayerBandit(object):
             pkl.dump(best_estimator, f)
 
     def _best_predict(self, test_data: DataNode):
-        best_arm = self.optimal_algo_id
-        sub_bandit = self.sub_bandits[best_arm]
         # Check the validity of feature engineering.
         _train_data = self.fe_optimizer.apply(self.original_data, self.best_data_node, phase='train')
         # assert _train_data == self.best_data_node
@@ -414,10 +412,6 @@ class FirstLayerBandit(object):
                 if reward > self.incumbent_perf:
                     self.incumbent_perf = reward
                     self.optimal_algo_id = _arm
-
-                if self.shared_mode:
-                    self.update_global_datanodes(_arm)
-
                 self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
                 _iter_id += 1
             else:
@@ -429,9 +423,6 @@ class FirstLayerBandit(object):
                     self.action_sequence.append(_arm)
                     self.final_rewards.append(reward)
                     self.time_records.append(time.time() - self.start_time)
-
-                    if self.shared_mode:
-                        self.update_global_datanodes(_arm)
 
                     self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
                     _iter_id += 1
@@ -522,6 +513,7 @@ class FirstLayerBandit(object):
             #     if _feature_set not in train_data_candidates:
             #         train_data_candidates.append(_feature_set)
 
+            # Remove duplicates.
             train_data_list = list()
             for item in train_data_candidates:
                 if item not in train_data_list:
@@ -530,6 +522,7 @@ class FirstLayerBandit(object):
             data['train_data_list'] = train_data_list
             print(algo_id, len(train_data_list))
 
+            # Build hyperparameter configuration candidates.
             configs = hpo_optimizer.configs
             perfs = hpo_optimizer.perfs
             best_configs = self.sub_bandits[algo_id].local_hist['hpo']

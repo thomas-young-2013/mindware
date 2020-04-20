@@ -2,6 +2,7 @@ import time
 import datetime
 import numpy as np
 from litebo.facade.bo_facade import BayesianOptimization as BO
+from litebo.utils.constants import SUCCESS
 from automlToolkit.components.hpo_optimizer.base_optimizer import BaseHPOptimizer
 
 
@@ -57,7 +58,10 @@ class SMACOptimizer(BaseHPOptimizer):
                 self.logger.warning('Already explored 70 percentage of the '
                                     'hp space or maximum configuration number: %d!' % self.maximum_config_num)
                 break
-            self.optimizer.iterate()
+            _config, _status, _perf, _ = self.optimizer.iterate()
+            if _status == SUCCESS:
+                self.configs.append(_config)
+                self.perfs.append(1. - _perf)
 
         runhistory = self.optimizer.get_history()
         self.incumbent_config, self.incumbent_perf = runhistory.get_incumbents()[0]

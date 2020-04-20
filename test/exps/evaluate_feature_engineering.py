@@ -11,7 +11,7 @@ sys.path.append(os.getcwd())
 from automlToolkit.datasets.utils import load_train_test_data
 from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
 from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator
-from automlToolkit.components.utils.constants import MULTICLASS_CLS
+from automlToolkit.components.utils.constants import MULTICLASS_CLS, BINARY_CLS
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--start_id', type=int, default=0)
@@ -156,21 +156,24 @@ def evaluate_bo_optimizer(dataset, time_limit, run_id, seed):
                                         resampling_strategy='holdout')
 
     train_data, test_data = load_train_test_data(dataset)
-    optimizer = BayesianOptimizationOptimizer(MULTICLASS_CLS, train_data, evaluator,
+    cls_task_type = BINARY_CLS if len(set(train_data.data[1])) == 2 else MULTICLASS_CLS
+    optimizer = BayesianOptimizationOptimizer(cls_task_type, train_data, evaluator,
                                               'random_forest', 300, 10000, seed, time_budget=time_limit)
     optimizer.optimize()
     inc = optimizer.incumbent_config
-    val_score = optimizer.evaluate_function(inc)
+    val_score = 1 - optimizer.evaluate_function(inc)
     print(val_score)
     print(optimizer.incumbent_score)
 
-    optimizer.fetch_nodes(n=5)
-    print("Refit over!")
-    final_test_data = optimizer.apply(test_data, optimizer.incumbent)
+    optimizer.fetch_nodes(n=10)
+    print("Refit finished!")
+
     final_train_data = optimizer.apply(train_data, optimizer.incumbent, phase='train')
     X_train, y_train = final_train_data.data
-    clf = fetch_predict_estimator(MULTICLASS_CLS, cs.get_default_configuration(), X_train, y_train)
+    final_test_data = optimizer.apply(test_data, optimizer.incumbent)
     X_test, y_test = final_test_data.data
+
+    clf = fetch_predict_estimator(cls_task_type, cs.get_default_configuration(), X_train, y_train)
     y_pred = clf.predict(X_test)
 
     from automlToolkit.components.metrics.cls_metrics import balanced_accuracy

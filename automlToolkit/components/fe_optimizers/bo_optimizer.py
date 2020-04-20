@@ -18,7 +18,7 @@ class BayesianOptimizationOptimizer(Optimizer):
                  model_id: str, time_limit_per_trans: int,
                  mem_limit_per_trans: int,
                  seed: int, n_jobs=1,
-                 number_of_unit_resource=2,
+                 number_of_unit_resource=1,
                  time_budget=600):
         super().__init__(str(__class__.__name__), task_type, input_data, seed)
         self.number_of_unit_resource = number_of_unit_resource
@@ -38,6 +38,7 @@ class BayesianOptimizationOptimizer(Optimizer):
 
         self.node_dict = dict()
 
+        self.early_stopped_flag = False
         self.is_finished = False
         self.iteration_id = 0
 
@@ -84,7 +85,7 @@ class BayesianOptimizationOptimizer(Optimizer):
     def _iterate(self):
         _start_time = time.time()
         for _ in range(self.iter_num_per_unit_resource):
-            status, info = self.optimizer.iterate()
+            _, status, _, info = self.optimizer.iterate()
             if status == 1:
                 print(info)
 
@@ -249,7 +250,8 @@ class BayesianOptimizationOptimizer(Optimizer):
     def fetch_nodes(self, n=10):
         runhistory = self.optimizer.get_history()
         hist_dict = runhistory.data
-        min_list = sorted(hist_dict.items(), key=lambda item: item[1], reverse=False)
+        # Remove param: reverse=true.
+        min_list = sorted(hist_dict.items(), key=lambda item: item[1])
         min_n = min_list[:n]
 
         node_list = []

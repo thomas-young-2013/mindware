@@ -34,6 +34,7 @@ def holdout_validation(estimator, scorer, X, y, train_size=0.3, random_state=1):
 
 def fetch_predict_estimator(task_type, config, X_train, y_train):
     # Build the ML estimator.
+    # TODO: check this in future.
     from automlToolkit.components.utils.balancing import get_weights
     _init_params, _fit_params = get_weights(
         y_train, config['estimator'], None, {}, {})
