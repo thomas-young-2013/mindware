@@ -493,7 +493,7 @@ class FirstLayerBandit(object):
         for _arm in self.arms:
             del self.sub_bandits[_arm].optimizer
 
-    def fetch_ensemble_members(self, threshold=0.85):
+    def fetch_ensemble_members(self, threshold=0.95):
         stats = dict()
         stats['include_algorithms'] = self.include_algorithms
         stats['split_seed'] = self.seed
@@ -506,7 +506,16 @@ class FirstLayerBandit(object):
             hpo_optimizer = self.sub_bandits[algo_id].optimizer['hpo']
 
             if self.fe_algo == 'bo':
-                train_data_candidates = fe_optimizer.fetch_nodes(10)
+                data_candidates = fe_optimizer.fetch_nodes(10)
+                train_data_candidates = list()
+                # Check the dimensions.
+                labels = self.original_data.data[1]
+                for tmp_data in data_candidates:
+                    equal_flag = (tmp_data.data[1] == labels)
+                    if not isinstance(equal_flag, bool):
+                        assert equal_flag.all()
+                        train_data_candidates.append(tmp_data)
+                # TODO: what about empty train_data_candidates.
             else:
                 train_data_candidates = self.sub_bandits[algo_id].local_hist['fe']
             # for _feature_set in fe_optimizer.features_hist:
@@ -535,6 +544,7 @@ class FirstLayerBandit(object):
             for idx in np.argsort(-np.array(perfs)):
                 if perfs[idx] >= threshold and configs[idx] not in best_configs:
                     best_configs.append(configs[idx])
+                # TODO: self.ensemble_size/len is not a good option.
                 if len(best_configs) >= self.ensemble_size / len(self.include_algorithms):
                     break
             data['configurations'] = best_configs
