@@ -1,4 +1,5 @@
 import numpy as np
+from collections import Counter
 
 
 def get_weights(Y, classifier, preprocessor, init_params, fit_params):
@@ -66,3 +67,43 @@ def get_weights(Y, classifier, preprocessor, init_params, fit_params):
             init_params['class_weight'] = class_weights
 
     return init_params, fit_params
+
+
+def get_data(X, y, threshold=0.6, random_state=1):
+    if y is None:
+        return X.copy(), None
+    else:
+        label_idx_dict = {}
+        for i, label in enumerate(y):
+            if label not in label_idx_dict:
+                label_idx_dict[label] = [i]
+            else:
+                label_idx_dict[label].append(i)
+
+        counts = list(Counter(y.copy()).values())
+        median = np.median(counts)
+        min_cnt, max_cnt = np.min(counts), np.max(counts)
+
+        if min_cnt >= threshold * median:
+            return X.copy(), y.copy()
+        else:
+            np.random.seed(random_state)
+            resample_num = int(median * threshold)
+            copy_X, copy_y = X.copy(), y.copy()
+            print('Before balancing', Counter(y.copy()))
+            for key in label_idx_dict:
+                length = len(label_idx_dict[key])
+                if length < resample_num:
+                    copy = int(resample_num / length)
+                    left = resample_num - copy * length
+                    copy -= 1
+                    for _ in range(copy):
+                        copy_X = np.vstack((copy_X, copy_X[label_idx_dict[key]].copy()))
+                        copy_y = np.hstack((copy_y, copy_y[label_idx_dict[key]].copy()))
+                    left_idx_list = np.random.choice(label_idx_dict[key], left, replace=False)
+                    copy_X = np.vstack((copy_X, copy_X[left_idx_list].copy()))
+                    copy_y = np.hstack((copy_y, copy_y[left_idx_list].copy()))
+
+            print('After balancing', Counter(copy_y.copy()))
+
+            return copy_X, copy_y

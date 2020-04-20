@@ -34,15 +34,12 @@ class ClassificationEvaluator(_BaseEvaluator):
         self.seed = seed
         self.eval_id = 0
         self.logger = get_logger('Evaluator-%s' % self.name)
-        self.init_params = None
-        self.fit_params = None
 
     def get_fit_params(self, y, estimator):
         from automlToolkit.components.utils.balancing import get_weights
         _init_params, _fit_params = get_weights(
             y, estimator, None, {}, {})
-        self.init_params = _init_params
-        self.fit_params = _fit_params
+        return _init_params, _fit_params
 
     def __call__(self, config, **kwargs):
         start_time = time.time()
@@ -63,14 +60,16 @@ class ClassificationEvaluator(_BaseEvaluator):
 
         X_train, y_train = data_node.data
 
-        # Prepare training and initial params for classifier.
-        if data_node.enable_balance or True:
-            if self.init_params is None or self.fit_params is None:
-                self.get_fit_params(y_train, config['estimator'])
-
         config_dict = config.get_dictionary().copy()
-        for key, val in self.init_params.items():
-            config_dict[key] = val
+        # Prepare training and initial params for classifier.
+        init_params, fit_params = {}, {}
+        if data_node.enable_balance == 1:
+            init_params, fit_params = self.get_fit_params(y_train, config['estimator'])
+            for key, val in init_params.items():
+                config_dict[key] = val
+
+        if data_node.data_balance == 1:
+            fit_params['data_balance'] = True
 
         classifier_id, clf = get_estimator(config_dict)
 
@@ -84,7 +83,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                                          n_fold=folds,
                                          random_state=self.seed,
                                          if_stratify=True,
-                                         fit_params=self.fit_params)
+                                         fit_params=fit_params)
             elif self.resampling_strategy == 'holdout':
                 if self.resampling_params is None or 'test_size' not in self.resampling_params:
                     test_size = 0.33
@@ -94,7 +93,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                                            test_size=test_size,
                                            random_state=self.seed,
                                            if_stratify=True,
-                                           fit_params=self.fit_params)
+                                           fit_params=fit_params)
             elif self.resampling_strategy == 'partial':
                 if self.resampling_params is None or 'test_size' not in self.resampling_params:
                     test_size = 0.33
@@ -104,7 +103,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                                            test_size=test_size,
                                            random_state=self.seed,
                                            if_stratify=True,
-                                           fit_params=self.fit_params)
+                                           fit_params=fit_params)
             else:
                 raise ValueError('Invalid resampling strategy: %s!' % self.resampling_strategy)
         except Exception as e:

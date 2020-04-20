@@ -4,6 +4,8 @@ from sklearn.model_selection import StratifiedKFold, KFold, StratifiedShuffleSpl
 from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 
+from automlToolkit.components.utils.balancing import get_data
+
 
 @ignore_warnings(category=ConvergenceWarning)
 def cross_validation(estimator, scorer, X, y, n_fold=5, shuffle=True, fit_params=None, if_stratify=True,
@@ -21,7 +23,10 @@ def cross_validation(estimator, scorer, X, y, n_fold=5, shuffle=True, fit_params
             train_y, valid_y = y[train_idx], y[valid_idx]
             _fit_params = dict()
             if fit_params:
-                _fit_params['sample_weight'] = fit_params['sample_weight'][train_idx]
+                if 'sample_weight' in fit_params:
+                    _fit_params['sample_weight'] = fit_params['sample_weight'][train_idx]
+                elif 'data_balance' in fit_params:
+                    X_train, y_train = get_data(X_train, y_train)
             estimator.fit(train_x, train_y, **_fit_params)
             scores.append(scorer(estimator, valid_x, valid_y))
         return np.mean(scores)
@@ -41,7 +46,10 @@ def holdout_validation(estimator, scorer, X, y, test_size=0.33, fit_params=None,
             y_train, y_test = y[train_index], y[test_index]
             _fit_params = dict()
             if fit_params:
-                _fit_params['sample_weight'] = fit_params['sample_weight'][train_index]
+                if 'sample_weight' in fit_params:
+                    _fit_params['sample_weight'] = fit_params['sample_weight'][train_index]
+                elif 'data_balance' in fit_params:
+                    X_train, y_train = get_data(X_train, y_train)
             estimator.fit(X_train, y_train, **_fit_params)
             return scorer(estimator, X_test, y_test)
 
@@ -60,8 +68,6 @@ def partial_validation(estimator, scorer, X, y, data_subsample_ratio, test_size=
             X_train, X_test = X[train_index], X[test_index]
             y_train, y_test = y[train_index], y[test_index]
             _fit_params = dict()
-            if fit_params:
-                _fit_params['sample_weight'] = fit_params['sample_weight'][train_index]
             if data_subsample_ratio == 1:
                 _X_train, _y_train = X_train, y_train
             else:
@@ -72,7 +78,10 @@ def partial_validation(estimator, scorer, X, y, data_subsample_ratio, test_size=
                 for _, _test_index in down_ss.split(X_train, y_train):
                     _X_train, _y_train = X_train[_test_index], y_train[_test_index]
                     if fit_params:
-                        _fit_params['sample_weight'] = fit_params['sample_weight'][_test_index]
+                        if 'sample_weight' in fit_params:
+                            _fit_params['sample_weight'] = fit_params['sample_weight'][train_index]
+                        elif 'data_balance' in fit_params:
+                            X_train, y_train = get_data(X_train, y_train)
 
             estimator.fit(_X_train, _y_train, **_fit_params)
             return scorer(estimator, X_test, y_test)

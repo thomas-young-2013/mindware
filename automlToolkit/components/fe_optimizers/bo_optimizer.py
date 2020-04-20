@@ -99,7 +99,7 @@ class BayesianOptimizationOptimizer(Optimizer):
 
         return self.incumbent_score, iteration_cost, self.incumbent
 
-    def _parse(self, data_node: DataNode, config, record=False):
+    def _parse(self, data_node: DataNode, config, record=False, skip_balance=False):
         """
             Transform the data node based on the pipeline specified by configuration.
         :param data_node:
@@ -113,11 +113,14 @@ class BayesianOptimizationOptimizer(Optimizer):
         config_dict.pop('preprocessor1')
         pre2_id = config_dict['preprocessor2']
         config_dict.pop('preprocessor2')
-        if 'balancer' in config_dict:
-            bal_id = config_dict['balancer']
-            config_dict.pop('balancer')
-        else:
+        if skip_balance:
             bal_id = 'empty'
+        else:
+            if 'balancer' in config_dict:
+                bal_id = config_dict['balancer']
+                config_dict.pop('balancer')
+            else:
+                bal_id = 'empty'
         gen_id = config_dict['generator']
         config_dict.pop('generator')
         res_id = config_dict['rescaler']
@@ -250,7 +253,6 @@ class BayesianOptimizationOptimizer(Optimizer):
     def fetch_nodes(self, n=10):
         runhistory = self.optimizer.get_history()
         hist_dict = runhistory.data
-        # Remove param: reverse=true.
         min_list = sorted(hist_dict.items(), key=lambda item: item[1])
         min_n = list(min_list[:n])
         # Get default configuration.
@@ -259,11 +261,14 @@ class BayesianOptimizationOptimizer(Optimizer):
 
         node_list = []
         for i, config in enumerate(min_n):
-            node, tran_list = self._parse(self.root_node, config[0], record=True)
-            if i == 0:
-                self.incumbent = node  # Update incumbent node
-            node_list.append(node)
-            self.node_dict[len(self.node_dict)] = [node, tran_list]
+            try:
+                node, tran_list = self._parse(self.root_node, config[0], record=True)
+                if i == 0:
+                    self.incumbent = node  # Update incumbent node
+                node_list.append(node)
+                self.node_dict[len(self.node_dict)] = [node, tran_list]
+            except:
+                print("Re-parse failed on config %s" % str(config[0]))
         return node_list
 
     def apply(self, data_node: DataNode, ref_node: DataNode, phase='test'):

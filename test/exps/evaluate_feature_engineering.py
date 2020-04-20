@@ -173,7 +173,9 @@ def evaluate_bo_optimizer(dataset, time_limit, run_id, seed):
     final_test_data = optimizer.apply(test_data, optimizer.incumbent)
     X_test, y_test = final_test_data.data
 
-    clf = fetch_predict_estimator(cls_task_type, cs.get_default_configuration(), X_train, y_train)
+    clf = fetch_predict_estimator(cls_task_type, cs.get_default_configuration(), X_train, y_train,
+                                  weight_balance=final_train_data.enable_balance,
+                                  data_balance=final_train_data.data_balance)
     y_pred = clf.predict(X_test)
 
     from automlToolkit.components.metrics.cls_metrics import balanced_accuracy

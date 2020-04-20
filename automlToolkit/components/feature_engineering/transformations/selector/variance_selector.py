@@ -48,6 +48,7 @@ class VarianceSelector(Transformer):
         output_datanode.trans_hist = input_datanode.trans_hist.copy()
         output_datanode.trans_hist.append(self.type)
         output_datanode.enable_balance = input_datanode.enable_balance
+        output_datanode.data_balance = input_datanode.data_balance
         self.target_fields = target_fields.copy()
 
         return output_datanode

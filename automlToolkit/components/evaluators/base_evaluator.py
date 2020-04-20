@@ -32,16 +32,19 @@ def holdout_validation(estimator, scorer, X, y, train_size=0.3, random_state=1):
         return scorer(estimator, X_test, y_test)
 
 
-def fetch_predict_estimator(task_type, config, X_train, y_train):
+def fetch_predict_estimator(task_type, config, X_train, y_train, weight_balance=0, data_balance=0):
     # Build the ML estimator.
-    # TODO: check this in future.
-    from automlToolkit.components.utils.balancing import get_weights
-    _init_params, _fit_params = get_weights(
-        y_train, config['estimator'], None, {}, {})
+    from automlToolkit.components.utils.balancing import get_weights, get_data
+    _fit_params = {}
     config_dict = config.get_dictionary().copy()
-    for key, val in _init_params.items():
-        config_dict[key] = val
-
+    if weight_balance == 1:
+        _init_params, _fit_params = get_weights(
+            y_train, config['estimator'], None, {}, {})
+        for key, val in _init_params.items():
+            config_dict[key] = val
+    if data_balance == 1:
+        print('Fetch data balance!')
+        X_train, y_train = get_data(X_train, y_train)
     if task_type in CLS_TASKS:
         from automlToolkit.components.evaluators.cls_evaluator import get_estimator
     else:

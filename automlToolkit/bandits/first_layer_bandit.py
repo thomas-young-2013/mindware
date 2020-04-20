@@ -134,15 +134,17 @@ class FirstLayerBandit(object):
                 best_perf = self.sub_bandits[algo_id].incumbent_perf
                 best_algo_id = algo_id
 
+        self.fe_optimizer = self.sub_bandits[best_algo_id].optimizer['fe']
         if self.fe_algo == 'tree_based':
             self.best_data_node = self.sub_bandits[best_algo_id].inc['fe']
         else:
             self.best_data_node = self.stats[best_algo_id]['train_data_list'][0]
 
-        self.fe_optimizer = self.sub_bandits[best_algo_id].optimizer['fe']
         best_config = self.sub_bandits[best_algo_id].inc['hpo']
         best_estimator = fetch_predict_estimator(self.task_type, best_config, self.best_data_node.data[0],
-                                                 self.best_data_node.data[1])
+                                                 self.best_data_node.data[1],
+                                                 weight_balance=self.best_data_node.enable_balance,
+                                                 data_balance=self.best_data_node.data_balance)
         with open(os.path.join(self.output_dir, '%s-best_model' % self.timestamp), 'wb') as f:
             pkl.dump(best_estimator, f)
 
@@ -513,11 +515,10 @@ class FirstLayerBandit(object):
                 labels = self.original_data.data[1]
                 for tmp_data in data_candidates:
                     equal_flag = (tmp_data.data[1] == labels)
-                    if not isinstance(equal_flag, bool):
-                        assert equal_flag.all()
-                        train_data_candidates.append(tmp_data)
-                if len(train_data_candidates) == 0:
-                    train_data_candidates.append(self.original_data)
+                    assert not isinstance(equal_flag, bool)
+                    assert equal_flag.all()
+                    train_data_candidates.append(tmp_data)
+                assert len(train_data_candidates) != 0
             else:
                 train_data_candidates = self.sub_bandits[algo_id].local_hist['fe']
             # for _feature_set in fe_optimizer.features_hist:
