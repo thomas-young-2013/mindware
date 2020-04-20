@@ -235,7 +235,7 @@ class BayesianOptimizationOptimizer(Optimizer):
         config_cand = list(config.keys())
         config_cand.append("empty")
         config_option = CategoricalHyperparameter(parent_name, config_cand,
-                                                  default_value=config_cand[0])
+                                                  default_value=config_cand[-1])
         cs.add_hyperparameter(config_option)
         for config_item in config_cand:
             if config_item == 'empty':
@@ -252,7 +252,10 @@ class BayesianOptimizationOptimizer(Optimizer):
         hist_dict = runhistory.data
         # Remove param: reverse=true.
         min_list = sorted(hist_dict.items(), key=lambda item: item[1])
-        min_n = min_list[:n]
+        min_n = list(min_list[:n])
+        # Get default configuration.
+        default_config = self.hyperparameter_space.get_default_configuration()
+        min_n.append((default_config, runhistory.data[default_config]))
 
         node_list = []
         for i, config in enumerate(min_n):

@@ -173,7 +173,7 @@ if __name__ == "__main__":
                         raise ValueError('Invalid parameter: %s' % mode)
         else:
             headers = ['dataset']
-            method_ids = ['hmab_rb_hpo', 'ausk_ens']
+            method_ids = ['hmab_ens_rb_hpo', 'ausk_ens']
             for mth in method_ids:
                 headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
@@ -191,7 +191,7 @@ if __name__ == "__main__":
                         with open(file_path, 'rb') as f:
                             data = pickle.load(f)
                         if mth.startswith('hmab'):
-                            val_acc, test_acc = data[1], data[3]
+                            val_acc, test_acc = data[1], data[2]
                         else:
                             val_acc, test_acc = data[1], data[2]
                         results.append([val_acc, test_acc])
