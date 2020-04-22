@@ -32,7 +32,7 @@ project_dir = './'
 per_run_time_limit = 180
 opt_algo = 'rb_hpo'
 hmab_flag = 'hmab_ens'
-ausk_flag = 'ausk_ens'
+ausk_flag = 'ausk_single'
 
 
 def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
@@ -95,8 +95,8 @@ def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limi
         include_estimators=include_models,
         ensemble_memory_limit=8192,
         ml_memory_limit=8192,
-        ensemble_size=50,
-        ensemble_nbest=50,
+        ensemble_size=1,
+        ensemble_nbest=1,
         initial_configurations_via_metalearning=0,
         seed=int(seed),
         resampling_strategy='holdout',
@@ -173,7 +173,7 @@ if __name__ == "__main__":
                         raise ValueError('Invalid parameter: %s' % mode)
         else:
             headers = ['dataset']
-            method_ids = ['hmab_ens_rb_hpo', 'ausk_ens']
+            method_ids = ['hmab_ens_rb_hpo', 'ausk_single']
             for mth in method_ids:
                 headers.extend(['val-%s' % mth, 'test-%s' % mth])
 

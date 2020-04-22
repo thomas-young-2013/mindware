@@ -24,12 +24,14 @@ class SecondLayerBandit(object):
                  mth='rb', sw_size=3,
                  n_jobs=1, seed=1, fe_algo='tree_based',
                  enable_intersection=True,
-                 number_of_unit_resource=2):
+                 number_of_unit_resource=2,
+                 total_resource=10):
         self.task_type = task_type
         self.metric = metric
         self.number_of_unit_resource = number_of_unit_resource
         # One unit of resource, that's, the number of trials per iteration.
         self.one_unit_of_resource = 5
+        self.total_resource = total_resource
         self.per_run_time_limit = per_run_time_limit
         self.per_run_mem_limit = per_run_mem_limit
         self.estimator_id = estimator_id
@@ -162,12 +164,12 @@ class SecondLayerBandit(object):
             self.inc[_arm] = config
             self.local_hist[_arm].append(config)
             if _arm == 'fe':
-                if self.mth not in ['alter_hpo', 'rb_hpo']:
+                if self.mth not in ['alter_hpo', 'rb_hpo', 'fixed_pipeline']:
                     self.inc['hpo'] = self.default_config
                 else:
                     self.inc['hpo'] = self.init_config
             else:
-                if self.mth not in ['alter_hpo', 'rb_hpo']:
+                if self.mth not in ['alter_hpo', 'rb_hpo', 'fixed_pipeline']:
                     self.inc['fe'] = self.original_data
 
             self.incumbent_perf = score
@@ -184,7 +186,7 @@ class SecondLayerBandit(object):
                     self.init_config = config
                     print(config == self.default_config)
 
-            if self.mth == 'alter_p':
+            if self.mth in ['alter_p']:
                 self.prepare_optimizer(arm_id)
 
     def optimize_rb(self):
@@ -233,6 +235,18 @@ class SecondLayerBandit(object):
         self.collect_iter_stats(_arm, results)
         self.action_sequence.append(_arm)
         self.pull_cnt += 1
+
+    def optimize_fixed_pipeline(self):
+        ratio_fe = int(self.total_resource * 0.75) + 1
+        for iter_id in range(self.total_resource):
+            if iter_id == 0 or iter_id > ratio_fe:
+                _arm = 'hpo'
+            else:
+                _arm = 'fe'
+            results = self.optimizer[_arm].iterate()
+            self.collect_iter_stats(_arm, results)
+            self.action_sequence.append(_arm)
+            self.pull_cnt += 1
 
     def optimize_one_component(self, mth):
         _arm = 'hpo' if mth == 'hpo_only' else 'fe'
