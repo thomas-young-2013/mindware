@@ -9,7 +9,8 @@ from sklearn.utils import check_array
 from sklearn.multiclass import OneVsRestClassifier
 
 from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
 
 from automlToolkit.utils.logging_utils import get_logger
 from automlToolkit.components.utils.constants import CLS_TASKS
@@ -1005,7 +1006,11 @@ def calculate_all_metafeatures(X, y, categorical, dataset_name, task_type,
                 # sparse matrices because of wrong sparse format)
                 sparse = scipy.sparse.issparse(X)
                 if any(categorical):
-                    ohe = OneHotEncoder(categorical_features=categorical, sparse=True)
+                    categorical_idx = []
+                    for idx, i in enumerate(categorical):
+                        if i:
+                            categorical_idx.append(idx)
+                    ohe = ColumnTransformer([('one-hot', OneHotEncoder(), categorical_idx)], remainder="passthrough")
                     X_transformed = ohe.fit_transform(X)
                 else:
                     X_transformed = X
