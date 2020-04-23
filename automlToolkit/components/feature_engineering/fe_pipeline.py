@@ -18,7 +18,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
 
     def __init__(self, task_type=CLASSIFICATION,
                  optimizer_type='eval_base',
-                 metric=None,
+                 metric='acc',
                  trans_set=None,
                  time_budget=None,
                  maximum_evaluation_num=None,

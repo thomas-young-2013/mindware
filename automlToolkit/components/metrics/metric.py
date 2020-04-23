@@ -46,7 +46,7 @@ def get_metric(metric):
         return make_scorer(median_absolute_error, greater_is_better=False)
     elif isinstance(metric, _BaseScorer):
         return metric
-    elif isinstance(metric, callable):
+    elif callable(metric):
         import warnings
         warnings.warn("metric receives a callable and we consider to maximize it!")
         return make_scorer(metric)
