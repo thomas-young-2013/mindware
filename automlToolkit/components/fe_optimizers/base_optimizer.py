@@ -63,6 +63,16 @@ class Optimizer(object, metaclass=abc.ABCMeta):
         self.logger.info('returned shape: %s' % str(output_node.shape))
         return output_node
 
+    def get_pipeline(self, ref_node: DataNode):
+        path_ids = self.graph.get_path_nodes(ref_node)
+        edge_attrs = list()
+
+        for node_id in path_ids[1:]:
+            edge = self.graph.get_edge(self.graph.input_edge_dict[node_id])
+            edge_attr = str(edge.transformer.get_attributes())
+            edge_attrs.append(edge_attr)
+        return edge_attrs
+
     def get_available_transformations(self, node: DataNode, trans_types: typing.List):
         return self.get_transformations(list(set(node.feature_types)), trans_types)
 

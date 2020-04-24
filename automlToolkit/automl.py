@@ -43,6 +43,14 @@ class AutoML(object):
         self.solvers = dict()
         self.task_type = task_type
         self.es = None
+        self.best_data_node = None
+        self.best_config = None
+        self.best_algo_id = None
+        self.best_perf = float("-INF")
+        self.fe_optimizer = None
+        self.stats = None
+        self.timestamp = time.time()
+
         if include_algorithms is not None:
             self.include_algorithms = include_algorithms
         else:
@@ -59,9 +67,6 @@ class AutoML(object):
         stats = dict()
         stats['include_algorithms'] = self.include_algorithms
         stats['split_seed'] = self.seed
-        best_perf = float('-INF')
-        for algo_id in self.include_algorithms:
-            best_perf = max(best_perf, self.solvers[algo_id].incumbent_perf)
         for algo_id in self.include_algorithms:
             data = dict()
             fe_optimizer = self.solvers[algo_id].optimizer['fe']
@@ -78,16 +83,14 @@ class AutoML(object):
                     train_data_list.append(item)
 
             data['train_data_list'] = train_data_list
-            print(algo_id, len(train_data_list))
-
             configs = hpo_optimizer.configs
             perfs = hpo_optimizer.perfs
             best_configs = self.solvers[algo_id].local_hist['hpo']
             best_configs = list(set(best_configs))
             if self.metric._sign > 0:
-                threshold = best_perf * threshold
+                threshold = self.best_perf * threshold
             else:
-                threshold = best_perf / threshold
+                threshold = self.best_perf / threshold
 
             for idx in np.argsort(-np.array(perfs)):
                 if perfs[idx] >= threshold and configs[idx] not in best_configs:
@@ -142,6 +145,14 @@ class AutoML(object):
                 if solver.early_stopped_flag:
                     break
 
+        for algo_id in self.include_algorithms:
+            if self.solvers[algo_id].incumbent_perf > self.best_perf:
+                self.best_perf = self.solvers[algo_id].incumbent_perf
+                self.best_algo_id = algo_id
+        self.best_data_node = self.solvers[self.best_algo_id].inc['fe']
+        self.fe_optimizer = self.solvers[self.best_algo_id].optimizer['fe']
+        self.best_config = self.solvers[self.best_algo_id].inc['hpo']
+
         if self.ensemble_method is not None:
             self.stats = self.fetch_ensemble_members()
             # Ensembling all intermediate/ultimate models found in above optimization process.
@@ -154,30 +165,20 @@ class AutoML(object):
                                       output_dir=self.output_dir)
             self.es.fit(data=train_data)
         else:
-            best_algo_id = None
-            best_perf = float("-INF")
-            for algo_id in self.include_algorithms:
-                if self.solvers[algo_id].incumbent_perf > best_perf:
-                    best_perf = self.solvers[algo_id].incumbent_perf
-                    best_algo_id = algo_id
 
-            self.best_data_node = self.solvers[best_algo_id].inc['fe']
-            self.fe_optimizer = self.solvers[best_algo_id].optimizer['fe']
-            best_config = self.solvers[best_algo_id].inc['hpo']
-            best_estimator = fetch_predict_estimator(self.task_type, best_config, self.best_data_node.data[0],
+            best_estimator = fetch_predict_estimator(self.task_type, self.best_config, self.best_data_node.data[0],
                                                      self.best_data_node.data[1])
-            with open(os.path.join(self.output_dir, 'best_model'), 'wb') as f:
+            with open(os.path.join(self.output_dir, '%s-best_model' % str(self.timestamp)), 'wb') as f:
                 pkl.dump(best_estimator, f)
 
     def _predict(self, test_data: DataNode, batch_size=None, n_jobs=1):
-        # TODO: Single model
         if self.ensemble_method is not None:
             if self.es is None:
                 raise AttributeError("AutoML is not fitted!")
             return self.es.predict(test_data, self.solvers)
         else:
             test_data_node = self.fe_optimizer.apply(test_data, self.best_data_node)
-            with open(os.path.join(self.output_dir, 'best_model'), 'rb') as f:
+            with open(os.path.join(self.output_dir, '%s-best_model' % str(self.timestamp)), 'rb') as f:
                 estimator = pkl.load(f)
             if self.task_type in CLS_TASKS:
                 return estimator.predict_proba(test_data_node.data[0])
@@ -195,3 +196,13 @@ class AutoML(object):
             return np.argmax(pred, axis=-1)
         else:
             return self._predict(test_data, batch_size=batch_size)
+
+    def get_ens_model_info(self):
+        model_info = []
+        if self.es:
+            ens_info = self.es.get_ens_model_info()
+            for info in ens_info:
+                algo_id, node, config = info
+                fe_optimizer = self.solvers[algo_id].optimizer['fe']
+                model_info.append((algo_id, fe_optimizer.get_pipeline(node), config))
+        return model_info
