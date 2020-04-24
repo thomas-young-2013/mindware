@@ -30,8 +30,10 @@ print('==> Start to evaluate with Budget %d' % time_limit)
 
 dm = DataManager()
 train_node = dm.load_train_csv("train_dataset.csv", label_col=-1, header='infer', na_values=['nan', '?'])
-test_node = dm.load_test_csv("test_dataset.csv", header='infer')
-pipeline = FEPipeline(fe_enabled=False)
+test_node = dm.load_test_csv("test_dataset.csv", header='infer', has_label=True)
+from automlToolkit.components.utils.constants import REGRESSION
+
+pipeline = FEPipeline(fe_enabled=False, task_type=REGRESSION)
 train_data = pipeline.fit_transform(train_node)
 test_data = pipeline.transform(test_node)
 
