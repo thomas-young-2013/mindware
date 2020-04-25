@@ -258,6 +258,7 @@ class BayesianOptimizationOptimizer(Optimizer):
         # Get default configuration.
         default_config = self.hyperparameter_space.get_default_configuration()
         min_n.append((default_config, runhistory.data[default_config]))
+        min_n.append((self.incumbent_config, runhistory.data[self.incumbent_config]))
 
         node_list = []
         for i, config in enumerate(min_n):

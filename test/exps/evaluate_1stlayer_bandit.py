@@ -151,7 +151,8 @@ if __name__ == "__main__":
                       ]
     else:
         algorithms = ['adaboost', 'random_forest',
-                      'extra_trees', 'liblinear_svc', 'k_nearest_neighbors']
+                      'extra_trees', 'liblinear_svc',
+                      'k_nearest_neighbors', 'libsvm_svc', 'gradient_boosting']
 
     dataset_list = dataset_str.split(',')
 
