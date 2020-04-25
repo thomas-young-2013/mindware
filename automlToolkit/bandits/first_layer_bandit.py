@@ -43,7 +43,7 @@ class FirstLayerBandit(object):
         self.ensemble_size = ensemble_size
         self.trial_num = trial_num
         self.n_jobs = n_jobs
-        self.alpha = 6
+        self.alpha = 4
         self.B = 0.01
         self.seed = seed
         self.shared_mode = share_feature
