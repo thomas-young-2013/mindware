@@ -80,7 +80,7 @@ class Regressor(BaseEstimator):
         :param data: DataNode
         :return: self
         """
-        metric = 'mse' if 'metric' not in kwargs else kwargs['metric']
+        self.metric = 'mse' if self.metric is None else self.metric
 
         # Check the task type: {continuous}
         task_type = type_of_target(data.data[1])
@@ -89,8 +89,7 @@ class Regressor(BaseEstimator):
         else:
             raise ValueError("Invalid Task Type: %s!" % task_type)
         self.task_type = task_type
-        self.metric = get_metric(metric)
-
+        self.metric = get_metric(self.metric)
         super().fit(data)
 
         return self

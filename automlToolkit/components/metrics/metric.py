@@ -1,4 +1,5 @@
 from sklearn.metrics.scorer import make_scorer, _BaseScorer
+from functools import partial
 
 
 def get_metric(metric):
@@ -8,7 +9,7 @@ def get_metric(metric):
         return balanced_accuracy_scorer
     elif metric == 'f1':
         from sklearn.metrics import f1_score
-        return make_scorer(f1_score)
+        return make_scorer(partial(f1_score, average='macro'))
     elif metric == 'precision':
         from sklearn.metrics import precision_score
         return make_scorer(precision_score)
@@ -26,6 +27,9 @@ def get_metric(metric):
     elif metric in ["mean_squared_error", "mse"]:
         from sklearn.metrics import mean_squared_error
         return make_scorer(mean_squared_error, greater_is_better=False)
+    elif metric == "rmse":
+        from .rgs_metrics import rmse
+        return make_scorer(rmse, greater_is_better=False)
     elif metric in ['mean_squared_log_error', "msle"]:
         from sklearn.metrics import mean_squared_log_error
         return make_scorer(mean_squared_log_error, greater_is_better=False)

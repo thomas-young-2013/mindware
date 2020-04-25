@@ -7,9 +7,14 @@ from sklearn.exceptions import ConvergenceWarning
 from automlToolkit.components.utils.balancing import get_data
 
 
+def get_onehot_y(encoder, y):
+    y_ = np.reshape(y, (len(y), 1))
+    return encoder.transform(y_).toarray()
+
+
 @ignore_warnings(category=ConvergenceWarning)
 def cross_validation(estimator, scorer, X, y, n_fold=5, shuffle=True, fit_params=None, if_stratify=True,
-                     random_state=1):
+                     onehot=None, random_state=1):
     with warnings.catch_warnings():
         # ignore all caught warnings
         warnings.filterwarnings("ignore")
@@ -28,12 +33,15 @@ def cross_validation(estimator, scorer, X, y, n_fold=5, shuffle=True, fit_params
                 elif 'data_balance' in fit_params:
                     X_train, y_train = get_data(X_train, y_train)
             estimator.fit(train_x, train_y, **_fit_params)
+            if onehot is not None:
+                valid_y = get_onehot_y(onehot, valid_y)
             scores.append(scorer(estimator, valid_x, valid_y))
         return np.mean(scores)
 
 
 @ignore_warnings(category=ConvergenceWarning)
-def holdout_validation(estimator, scorer, X, y, test_size=0.33, fit_params=None, if_stratify=True, random_state=1):
+def holdout_validation(estimator, scorer, X, y, test_size=0.33, fit_params=None, if_stratify=True, onehot=None,
+                       random_state=1):
     with warnings.catch_warnings():
         # ignore all caught warnings
         warnings.filterwarnings("ignore")
@@ -51,12 +59,14 @@ def holdout_validation(estimator, scorer, X, y, test_size=0.33, fit_params=None,
                 elif 'data_balance' in fit_params:
                     X_train, y_train = get_data(X_train, y_train)
             estimator.fit(X_train, y_train, **_fit_params)
+            if onehot is not None:
+                y_test = get_onehot_y(onehot, y_test)
             return scorer(estimator, X_test, y_test)
 
 
 @ignore_warnings(category=ConvergenceWarning)
 def partial_validation(estimator, scorer, X, y, data_subsample_ratio, test_size=0.33, fit_params=None, if_stratify=True,
-                       random_state=1):
+                       onehot=None, random_state=1):
     with warnings.catch_warnings():
         # ignore all caught warnings
         warnings.filterwarnings("ignore")
@@ -84,4 +94,6 @@ def partial_validation(estimator, scorer, X, y, data_subsample_ratio, test_size=
                             X_train, y_train = get_data(X_train, y_train)
 
             estimator.fit(_X_train, _y_train, **_fit_params)
+            if onehot is not None:
+                y_test = get_onehot_y(onehot, y_test)
             return scorer(estimator, X_test, y_test)

@@ -1,6 +1,7 @@
 import time
 import numpy as np
-from sklearn.metrics.scorer import balanced_accuracy_scorer
+from sklearn.metrics.scorer import balanced_accuracy_scorer, _ThresholdScorer
+from sklearn.preprocessing import OneHotEncoder
 
 from automlToolkit.utils.logging_utils import get_logger
 from automlToolkit.components.evaluators.base_evaluator import _BaseEvaluator
@@ -33,6 +34,7 @@ class ClassificationEvaluator(_BaseEvaluator):
         self.name = name
         self.seed = seed
         self.eval_id = 0
+        self.onehot_encoder = None
         self.logger = get_logger('Evaluator-%s' % self.name)
 
     def get_fit_params(self, y, estimator):
@@ -73,6 +75,11 @@ class ClassificationEvaluator(_BaseEvaluator):
 
         classifier_id, clf = get_estimator(config_dict)
 
+        if self.onehot_encoder is None:
+            self.onehot_encoder = OneHotEncoder(categories='auto')
+            y = np.reshape(y_train, (len(y_train), 1))
+            self.onehot_encoder.fit(y)
+
         try:
             if self.resampling_strategy == 'cv':
                 if self.resampling_params is None or 'folds' not in self.resampling_params:
@@ -83,6 +90,8 @@ class ClassificationEvaluator(_BaseEvaluator):
                                          n_fold=folds,
                                          random_state=self.seed,
                                          if_stratify=True,
+                                         onehot=self.onehot_encoder if isinstance(self.scorer,
+                                                                                  _ThresholdScorer) else None,
                                          fit_params=fit_params)
             elif self.resampling_strategy == 'holdout':
                 if self.resampling_params is None or 'test_size' not in self.resampling_params:
@@ -93,6 +102,8 @@ class ClassificationEvaluator(_BaseEvaluator):
                                            test_size=test_size,
                                            random_state=self.seed,
                                            if_stratify=True,
+                                           onehot=self.onehot_encoder if isinstance(self.scorer,
+                                                                                    _ThresholdScorer) else None,
                                            fit_params=fit_params)
             elif self.resampling_strategy == 'partial':
                 if self.resampling_params is None or 'test_size' not in self.resampling_params:
@@ -103,6 +114,8 @@ class ClassificationEvaluator(_BaseEvaluator):
                                            test_size=test_size,
                                            random_state=self.seed,
                                            if_stratify=True,
+                                           onehot=self.onehot_encoder if isinstance(self.scorer,
+                                                                                    _ThresholdScorer) else None,
                                            fit_params=fit_params)
             else:
                 raise ValueError('Invalid resampling strategy: %s!' % self.resampling_strategy)
