@@ -261,10 +261,13 @@ class BayesianOptimizationOptimizer(Optimizer):
         min_n.append((self.incumbent_config, runhistory.data[self.incumbent_config]))
 
         node_list = []
+        self.incumbent = None
         for i, config in enumerate(min_n):
             try:
                 node, tran_list = self._parse(self.root_node, config[0], record=True)
-                if i == 0:
+                if node.data[0].shape[1] == 0:
+                    continue
+                if self.incumbent is None:
                     self.incumbent = node  # Update incumbent node
                 node_list.append(node)
                 self.node_dict[len(self.node_dict)] = [node, tran_list]
