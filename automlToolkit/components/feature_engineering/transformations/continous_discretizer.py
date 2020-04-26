@@ -4,7 +4,7 @@ from automlToolkit.components.feature_engineering.transformations.base_transform
 
 
 class KBinsDiscretizer(Transformer):
-    def __init__(self, n_bins=3, strategy='quantile'):
+    def __init__(self, n_bins=3, strategy='uniform'):
         super().__init__("discretizer", 24)
         self.input_type = NUMERICAL
         self.output_type = DISCRETE
@@ -26,14 +26,11 @@ class KBinsDiscretizer(Transformer):
                 n_bins=self.n_bins, encode='ordinal', strategy=self.strategy)
             self.model.fit(X_new)
         _X = self.model.transform(X_new)
-
         return _X
 
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None):
         cs = ConfigurationSpace()
         n_bins = UniformIntegerHyperparameter('n_bins', 2, 20, default_value=5)
-        strategy = CategoricalHyperparameter(
-            'strategy', ['uniform', 'quantile', 'kmeans'], default_value='quantile')
-        cs.add_hyperparameters([n_bins, strategy])
+        cs.add_hyperparameters([n_bins])
         return cs
