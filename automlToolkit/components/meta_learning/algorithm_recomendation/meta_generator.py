@@ -3,12 +3,6 @@ import pickle
 import numpy as np
 from automlToolkit.datasets.utils import calculate_metafeatures
 
-buildin_datasets = ['diabetes', 'fri_c1', 'ionosphere']
-buildin_algorithns = ['lightgbm', 'random_forest', 'libsvm_svc', 'extra_trees', 'liblinear_svc',
-                      'k_nearest_neighbors', 'logistic_regression', 'gradient_boosting', 'adaboost']
-meta_dir = './data/meta_res/'
-seeds = [236, 5193, 906]
-
 
 def get_feature_vector(dataset, data_dir='./'):
     feature_dict = calculate_metafeatures(dataset, data_dir)
@@ -16,12 +10,13 @@ def get_feature_vector(dataset, data_dir='./'):
     return [feature_dict[key] for key in sorted_keys]
 
 
-def fetch_algorithm_runs(dataset, total_resource=20, rep=3):
+def fetch_algorithm_runs(meta_dir, dataset, metric, total_resource, rep,
+                         buildin_algorithms):
     median_score = list()
-    for algo in buildin_algorithns:
+    for algo in buildin_algorithms:
         scores = list()
         for run_id in range(rep):
-            save_path = meta_dir + '%s_%s_%d_%d_%d.pkl' % (dataset, algo, run_id, seeds[run_id], total_resource)
+            save_path = meta_dir + '%s-%s-%s-%d-%d.pkl' % (dataset, algo, metric, run_id, total_resource)
             if not os.path.exists(save_path):
                 continue
 
@@ -34,7 +29,8 @@ def fetch_algorithm_runs(dataset, total_resource=20, rep=3):
     return median_score
 
 
-def prepare_meta_dataset(datasets=None):
+def prepare_meta_dataset(meta_dir, metric, total_resource, rep,
+                         buildin_datasets, buildin_algorithms):
     X, Y = list(), list()
     sorted_keys = None
     for _dataset in buildin_datasets:
@@ -46,7 +42,7 @@ def prepare_meta_dataset(datasets=None):
         X.append(meta_instance)
 
         # Load partial relationship between algorithms.
-        scores = fetch_algorithm_runs(_dataset)
+        scores = fetch_algorithm_runs(meta_dir, _dataset, metric, total_resource, rep, buildin_algorithms)
         Y.append(scores)
 
-    return buildin_algorithns, X, Y
+    return X, Y

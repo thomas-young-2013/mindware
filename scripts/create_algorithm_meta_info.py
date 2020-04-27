@@ -56,9 +56,17 @@ def evaluate_ml_algorithm(dataset, algo, run_id, obj_metric, total_resource=20, 
     score = metric(test_data_node.data[1], pred)
     print('Test score', score)
 
-    save_path = save_dir + '%s_%s_%s_%d_%d.pkl' % (dataset, algo, obj_metric, run_id, total_resource)
+    save_path = save_dir + '%s-%s-%s-%d-%d.pkl' % (dataset, algo, obj_metric, run_id, total_resource)
     with open(save_path, 'wb') as f:
         pickle.dump([dataset, algo, score, cls_task_type], f)
+
+
+def check_datasets(datasets):
+    for _dataset in datasets:
+        try:
+            _, _ = load_train_test_data(_dataset, random_state=1)
+        except Exception as e:
+            raise ValueError('Dataset - %s does not exist!' % _dataset)
 
 
 if __name__ == "__main__":
@@ -74,7 +82,8 @@ if __name__ == "__main__":
                       'lasso_regression',
                       'gradient_boosting', 'adaboost']
     metrics = args.metrics.split(',')
-
+    check_datasets(datasets)
+    
     for obj_metric in metrics:
         for dataset in datasets:
             np.random.seed(1)
