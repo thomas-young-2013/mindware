@@ -23,7 +23,7 @@ parser.add_argument('--r', type=int, default=20)
 args = parser.parse_args()
 
 datasets = args.datasets.split(',')
-start_id, rep, algo = args.start_id, args.rep, args.algo
+start_id, rep = args.start_id, args.rep
 total_resource = args.r
 save_dir = './data/meta_res/'
 if not os.path.exists(save_dir):
@@ -86,11 +86,11 @@ if __name__ == "__main__":
                       'lasso_regression',
                       'gradient_boosting', 'adaboost']
 
-    if algo != 'all':
-        algorithms = algo.split(',')
+    if args.algo != 'all':
+        algorithms = args.algo.split(',')
 
     metrics = cls_metrics if args.task == 'cls' else reg_metrics
-    if algo != 'all':
+    if args.metrics != 'all':
         metrics = args.metrics.split(',')
 
     check_datasets(datasets, task_type=task_type)
