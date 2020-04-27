@@ -16,9 +16,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--rep', type=int, default=3)
 parser.add_argument('--datasets', type=str, default='diabetes')
-parser.add_argument('--metrics', type=str, default='acc')
+parser.add_argument('--metrics', type=str, default='all')
 parser.add_argument('--task', type=str, choices=['reg', 'cls'], default='cls')
-parser.add_argument('--algo', type=str, default='default')
+parser.add_argument('--algo', type=str, default='all')
 parser.add_argument('--r', type=int, default=20)
 args = parser.parse_args()
 
@@ -86,9 +86,12 @@ if __name__ == "__main__":
                       'lasso_regression',
                       'gradient_boosting', 'adaboost']
 
-    if algo != 'default':
+    if algo != 'all':
         algorithms = algo.split(',')
-    metrics = args.metrics.split(',')
+
+    metrics = cls_metrics if args.task == 'cls' else reg_metrics
+    if algo != 'all':
+        metrics = args.metrics.split(',')
 
     check_datasets(datasets, task_type=task_type)
     running_info = list()
