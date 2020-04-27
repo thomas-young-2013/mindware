@@ -11,12 +11,14 @@ _buildin_algorithms = ['lightgbm', 'random_forest', 'libsvm_svc', 'extra_trees',
 
 class AlgorithmAdvisor(object):
     def __init__(self, n_algorithm=3,
+                 task_type=None,
                  metric='acc',
                  rep=3,
                  total_resource=20,
                  meta_algorithm='lightgbm',
                  meta_dir=None):
         self.n_algorithm = n_algorithm
+        self.task_type = task_type
         self.meta_algo = meta_algorithm
         self.metric = metric
         self.rep = rep
@@ -28,7 +30,7 @@ class AlgorithmAdvisor(object):
             os.makedirs(self.meta_dir)
 
     def fetch_algorithm_set(self, dataset, data_dir='./'):
-        input_vector = get_feature_vector(dataset, data_dir)
+        input_vector = get_feature_vector(dataset, data_dir, task_type=self.task_type)
         _, pred_scores = self.predict_meta_learner(input_vector)
         algo_idx = np.argsort(-pred_scores)
         return [_buildin_algorithms[idx] for idx in algo_idx[:self.n_algorithm]]
@@ -36,13 +38,14 @@ class AlgorithmAdvisor(object):
     def fit_meta_learner(self):
         X, Y = prepare_meta_dataset(self.meta_dir, self.metric,
                                     self.total_resource, self.rep,
-                                    _buildin_datasets, _buildin_algorithms)
+                                    _buildin_datasets, _buildin_algorithms,
+                                    task_type=self.task_type)
         meta_X, meta_y = list(), list()
 
         for meta_feature, run_results in zip(X, Y):
             n_algo = len(run_results)
             for i in range(n_algo):
-                for j in range(i+1, n_algo):
+                for j in range(i + 1, n_algo):
                     vector_i, vector_j = np.zeros(n_algo), np.zeros(n_algo)
                     vector_i[i] = 1
                     vector_j[j] = 1
@@ -66,12 +69,12 @@ class AlgorithmAdvisor(object):
 
         print('Dumping model to PICKLE...')
 
-        with open(self.meta_dir+'/ranker_model_%s.pkl' % self.meta_algo, 'wb') as f:
+        with open(self.meta_dir + '/ranker_model_%s.pkl' % self.meta_algo, 'wb') as f:
             pk.dump(gbm, f)
         return self
 
     def predict_meta_learner(self, meta_feature):
-        with open(self.meta_dir+'/ranker_model_%s.pkl' % self.meta_algo, 'rb') as f:
+        with open(self.meta_dir + '/ranker_model_%s.pkl' % self.meta_algo, 'rb') as f:
             gbm = pk.load(f)
 
             n_algo = len(_buildin_algorithms)
@@ -98,4 +101,4 @@ class AlgorithmAdvisor(object):
                     else:
                         scores[j] += 1
                     instance_idx += 1
-            return _buildin_algorithms, np.array(scores)/np.sum(scores)
+            return _buildin_algorithms, np.array(scores) / np.sum(scores)

@@ -6,15 +6,22 @@ from automlToolkit.utils.data_manager import DataManager
 from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.meta_learning.meta_features import calculate_all_metafeatures
-from automlToolkit.components.utils.constants import MULTICLASS_CLS
+from automlToolkit.components.utils.constants import CLS_TASKS, REG_TASKS
 
 
-def load_data(dataset, data_dir='./', datanode_returned=False, preprocess=True):
+def load_data(dataset, data_dir='./', datanode_returned=False, preprocess=True, task_type=None):
     dm = DataManager()
-    data_path = data_dir + 'data/datasets/%s.csv' % dataset
+    if task_type is None:
+        data_path = data_dir + 'data/datasets/%s.csv' % dataset
+    elif task_type in CLS_TASKS:
+        data_path = data_dir + 'data/cls_datasets/%s.csv' % dataset
+    elif task_type in REG_TASKS:
+        data_path = data_dir + 'data/rgs_datasets/%s.csv' % dataset
+    else:
+        raise ValueError("Unknown task type %s" % str(task_type))
 
-    if dataset in ['credit_default']:
-        data_path = data_dir + 'data/datasets/%s.xls' % dataset
+    # if dataset in ['credit_default']:
+    #     data_path = data_dir + 'data/datasets/%s.xls' % dataset
 
     # Load train data.
     if dataset in ['higgs', 'amazon_employee', 'spectf', 'usps', 'vehicle_sensIT', 'codrna']:
@@ -38,7 +45,7 @@ def load_data(dataset, data_dir='./', datanode_returned=False, preprocess=True):
                                         na_values=["n/a", "na", "--", "-", "?"])
 
     if preprocess:
-        pipeline = FEPipeline(fe_enabled=False, metric='acc')
+        pipeline = FEPipeline(fe_enabled=False, metric='acc', task_type=task_type)
         train_data = pipeline.fit_transform(train_data_node)
     else:
         train_data = train_data_node
@@ -51,17 +58,21 @@ def load_data(dataset, data_dir='./', datanode_returned=False, preprocess=True):
         return X, y, feature_types
 
 
-def load_train_test_data(dataset, data_dir='./', test_size=0.2, random_state=45):
-    X, y, feature_type = load_data(dataset, data_dir, False)
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=test_size, random_state=random_state, stratify=y)
+def load_train_test_data(dataset, data_dir='./', test_size=0.2, task_type=None, random_state=45):
+    X, y, feature_type = load_data(dataset, data_dir, False, task_type=task_type)
+    if task_type is None or task_type in CLS_TASKS:
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=test_size, random_state=random_state, stratify=y)
+    else:
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=test_size, random_state=random_state)
     train_node = DataNode(data=[X_train, y_train], feature_type=feature_type.copy())
     test_node = DataNode(data=[X_test, y_test], feature_type=feature_type.copy())
     return train_node, test_node
 
 
-def calculate_metafeatures(dataset, data_dir='./'):
-    X, y, feature_types = load_data(dataset, data_dir, datanode_returned=False, preprocess=False)
+def calculate_metafeatures(dataset, data_dir='./', task_type=None):
+    X, y, feature_types = load_data(dataset, data_dir, datanode_returned=False, preprocess=False, task_type=task_type)
     categorical = []
     for i in feature_types:
         if i == 'categorical':
@@ -82,5 +93,5 @@ def calculate_metafeatures(dataset, data_dir='./'):
     mf = calculate_all_metafeatures(X=X, y=y,
                                     categorical=categorical_,
                                     dataset_name=dataset,
-                                    task_type=MULTICLASS_CLS)
+                                    task_type=task_type)
     return mf.load_values()

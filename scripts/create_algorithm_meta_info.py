@@ -3,9 +3,10 @@ import sys
 import pickle
 import argparse
 import numpy as np
+
 sys.path.append(os.getcwd())
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
-from automlToolkit.components.utils.constants import MULTICLASS_CLS, BINARY_CLS
+from automlToolkit.components.utils.constants import MULTICLASS_CLS, BINARY_CLS, REGRESSION, CLS_TASKS
 from automlToolkit.datasets.utils import load_train_test_data
 from automlToolkit.components.metrics.metric import get_metric
 from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
@@ -30,13 +31,14 @@ cls_metrics = ['acc', 'f1', 'auc']
 reg_metrics = ['mse', 'r2', 'mae']
 
 
-def evaluate_ml_algorithm(dataset, algo, run_id, obj_metric, total_resource=20, seed=1):
+def evaluate_ml_algorithm(dataset, algo, run_id, obj_metric, total_resource=20, seed=1, task_type=None):
     print('EVALUATE-%s-%s: run_id=%d' % (dataset, algo, run_id))
-    train_data, test_data = load_train_test_data(dataset)
-    cls_task_type = BINARY_CLS if len(set(train_data.data[1])) == 2 else MULTICLASS_CLS
+    train_data, test_data = load_train_test_data(dataset, task_type=task_type)
+    if task_type in CLS_TASKS:
+        task_type = BINARY_CLS if len(set(train_data.data[1])) == 2 else MULTICLASS_CLS
     print(set(train_data.data[1]))
     metric = get_metric(obj_metric)
-    bandit = SecondLayerBandit(cls_task_type, algo, train_data, metric, per_run_time_limit=300,
+    bandit = SecondLayerBandit(task_type, algo, train_data, metric, per_run_time_limit=300,
                                seed=seed, eval_type='holdout',
                                fe_algo='bo',
                                total_resource=total_resource)
@@ -48,23 +50,22 @@ def evaluate_ml_algorithm(dataset, algo, run_id, obj_metric, total_resource=20, 
     best_data_node = bandit.inc['fe']
     test_data_node = fe_optimizer.apply(test_data, best_data_node)
 
-    estimator = fetch_predict_estimator(cls_task_type, best_config, best_data_node.data[0],
+    estimator = fetch_predict_estimator(task_type, best_config, best_data_node.data[0],
                                         best_data_node.data[1],
                                         weight_balance=best_data_node.enable_balance,
                                         data_balance=best_data_node.data_balance)
-    pred = estimator.predict(test_data_node.data[0])
-    score = metric(test_data_node.data[1], pred)
+    score = metric(estimator, test_data_node.data[0], test_data_node.data[1]) * metric._sign
     print('Test score', score)
 
     save_path = save_dir + '%s-%s-%s-%d-%d.pkl' % (dataset, algo, obj_metric, run_id, total_resource)
     with open(save_path, 'wb') as f:
-        pickle.dump([dataset, algo, score, cls_task_type], f)
+        pickle.dump([dataset, algo, score, task_type], f)
 
 
-def check_datasets(datasets):
+def check_datasets(datasets, task_type=None):
     for _dataset in datasets:
         try:
-            _, _ = load_train_test_data(_dataset, random_state=1)
+            _, _ = load_train_test_data(_dataset, random_state=1, task_type=task_type)
         except Exception as e:
             raise ValueError('Dataset - %s does not exist!' % _dataset)
 
@@ -75,20 +76,23 @@ if __name__ == "__main__":
                   'liblinear_svc', 'k_nearest_neighbors',
                   'logistic_regression',
                   'gradient_boosting', 'adaboost']
+    task_type = MULTICLASS_CLS
     if args.task == 'reg':
+        task_type = REGRESSION
         algorithms = ['lightgbm', 'random_forest',
                       'libsvm_svr', 'extra_trees',
                       'liblinear_svr', 'k_nearest_neighbors',
                       'lasso_regression',
                       'gradient_boosting', 'adaboost']
     metrics = args.metrics.split(',')
-    check_datasets(datasets)
-    
+    check_datasets(datasets, task_type=task_type)
+
     for obj_metric in metrics:
         for dataset in datasets:
             np.random.seed(1)
             seeds = np.random.randint(low=1, high=10000, size=start_id + rep)
             for algo in algorithms:
-                for run_id in range(start_id, start_id+rep):
+                for run_id in range(start_id, start_id + rep):
                     seed = seeds[run_id]
-                    evaluate_ml_algorithm(dataset, algo, run_id, obj_metric, total_resource=total_resource, seed=seed)
+                    evaluate_ml_algorithm(dataset, algo, run_id, obj_metric, total_resource=total_resource, seed=seed,
+                                          task_type=task_type)

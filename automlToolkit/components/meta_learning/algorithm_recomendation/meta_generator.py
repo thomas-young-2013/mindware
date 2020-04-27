@@ -4,8 +4,8 @@ import numpy as np
 from automlToolkit.datasets.utils import calculate_metafeatures
 
 
-def get_feature_vector(dataset, data_dir='./'):
-    feature_dict = calculate_metafeatures(dataset, data_dir)
+def get_feature_vector(dataset, data_dir='./', task_type=None):
+    feature_dict = calculate_metafeatures(dataset, data_dir, task_type=task_type)
     sorted_keys = sorted(feature_dict.keys())
     return [feature_dict[key] for key in sorted_keys]
 
@@ -30,12 +30,12 @@ def fetch_algorithm_runs(meta_dir, dataset, metric, total_resource, rep,
 
 
 def prepare_meta_dataset(meta_dir, metric, total_resource, rep,
-                         buildin_datasets, buildin_algorithms):
+                         buildin_datasets, buildin_algorithms, task_type=None):
     X, Y = list(), list()
     sorted_keys = None
     for _dataset in buildin_datasets:
         # Calculate metafeature for datasets.
-        feature_dict = calculate_metafeatures(_dataset)
+        feature_dict = calculate_metafeatures(_dataset, task_type=task_type)
         if sorted_keys is None:
             sorted_keys = sorted(feature_dict.keys())
         meta_instance = [feature_dict[key] for key in sorted_keys]
