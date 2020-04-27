@@ -1,6 +1,7 @@
 import os
 import sys
 import pickle
+import datetime
 import argparse
 import numpy as np
 
@@ -17,7 +18,7 @@ parser.add_argument('--rep', type=int, default=3)
 parser.add_argument('--datasets', type=str, default='diabetes')
 parser.add_argument('--metrics', type=str, default='acc')
 parser.add_argument('--task', type=str, choices=['reg', 'cls'], default='cls')
-parser.add_argument('--algo', type=str, default='random_forest')
+parser.add_argument('--algo', type=str, default='default')
 parser.add_argument('--r', type=int, default=20)
 args = parser.parse_args()
 
@@ -84,8 +85,13 @@ if __name__ == "__main__":
                       'liblinear_svr', 'k_nearest_neighbors',
                       'lasso_regression',
                       'gradient_boosting', 'adaboost']
+
+    if algo != 'default':
+        algorithms = algo.split(',')
     metrics = args.metrics.split(',')
+
     check_datasets(datasets, task_type=task_type)
+    running_info = list()
 
     for obj_metric in metrics:
         for dataset in datasets:
@@ -94,5 +100,12 @@ if __name__ == "__main__":
             for algo in algorithms:
                 for run_id in range(start_id, start_id + rep):
                     seed = seeds[run_id]
-                    evaluate_ml_algorithm(dataset, algo, run_id, obj_metric, total_resource=total_resource, seed=seed,
-                                          task_type=task_type)
+                    try:
+                        evaluate_ml_algorithm(dataset, algo, run_id, obj_metric, total_resource=total_resource,
+                                              seed=seed, task_type=task_type)
+                    except Exception as e:
+                        task_id = '%s-%s-%s-%d: %s' % (dataset, algo, obj_metric, run_id, str(e))
+                        running_info.append(task_id)
+    print('\n'.join(running_info))
+    with open(save_dir+'running-%s.log' % str(datetime.datetime.now()), 'wb') as f:
+        pickle.dump(running_info, f)
