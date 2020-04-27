@@ -2,7 +2,6 @@ import time
 import os
 import numpy as np
 import pickle as pkl
-import warnings
 
 from automlToolkit.components.metrics.metric import get_metric
 from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
@@ -21,7 +20,7 @@ class AutoML(object):
                  task_type=None,
                  metric='acc',
                  time_limit=None,
-                 iter_num_per_algo=50,
+                 iter_num_per_algo=20,
                  include_algorithms=None,
                  ensemble_method='ensemble_selection',
                  ensemble_size=20,
@@ -29,6 +28,7 @@ class AutoML(object):
                  random_state=1,
                  n_jobs=1,
                  evaluation='holdout',
+                 resource_allocation_strategy='equal',
                  output_dir="/tmp/"):
         self.metric = get_metric(metric)
         self.time_limit = time_limit
@@ -39,6 +39,7 @@ class AutoML(object):
         self.iter_num_per_algo = iter_num_per_algo
         self.output_dir = output_dir
         self.evaluation_type = evaluation
+        self.res_allocation_strategy = resource_allocation_strategy
         self.n_jobs = n_jobs
         self.solvers = dict()
         self.task_type = task_type
@@ -127,20 +128,32 @@ class AutoML(object):
             time_limit_per_algo = None
             max_iter_num = self.iter_num_per_algo
 
-        # Optimize each algorithm with corresponding solver.
-        for algo in self.include_algorithms:
-            _start_time, _iter_id = time.time(), 0
-            solver = self.solvers[algo]
+        if self.res_allocation_strategy == 'equal':
+            # Optimize each algorithm with corresponding solver.
+            for algo in self.include_algorithms:
+                _start_time, _iter_id = time.time(), 0
+                solver = self.solvers[algo]
 
-            while _iter_id < max_iter_num:
-                result = solver.play_once()
-                print('optimize %s in %d-th iteration: %.3f' % (algo, _iter_id, result))
-                _iter_id += 1
-                if self.time_limit is not None:
-                    if time.time() - _start_time >= time_limit_per_algo:
+                while _iter_id < max_iter_num:
+                    result = solver.play_once()
+                    print('optimize %s in %d-th iteration: %.3f' % (algo, _iter_id, result))
+                    _iter_id += 1
+                    if self.time_limit is not None:
+                        if time.time() - _start_time >= time_limit_per_algo:
+                            break
+                    if solver.early_stopped_flag:
                         break
-                if solver.early_stopped_flag:
-                    break
+        elif self.res_allocation_strategy == 'equal_fixed':
+            if time_limit_per_algo is not None:
+                raise ValueError('Time limit is not supported!')
+
+            for algo in self.include_algorithms:
+                self.solvers[algo].total_resource = max_iter_num
+                self.solvers[algo].optimize_fixed_pipeline()
+        elif self.res_allocation_strategy == 'adaptive':
+            pass
+        else:
+            raise ValueError('Invalid resource allocation strategy: %s!' % self.res_allocation_strategy)
 
         if self.ensemble_method is not None:
             self.stats = self.fetch_ensemble_members()
