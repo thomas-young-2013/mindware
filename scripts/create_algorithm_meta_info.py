@@ -96,8 +96,8 @@ if __name__ == "__main__":
     check_datasets(datasets, task_type=task_type)
     running_info = list()
 
-    for obj_metric in metrics:
-        for dataset in datasets:
+    for dataset in datasets:
+        for obj_metric in metrics:
             np.random.seed(1)
             seeds = np.random.randint(low=1, high=10000, size=start_id + rep)
             for algo in algorithms:
