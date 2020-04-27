@@ -33,7 +33,7 @@ reg_metrics = ['mse', 'r2', 'mae']
 
 
 def evaluate_ml_algorithm(dataset, algo, run_id, obj_metric, total_resource=20, seed=1, task_type=None):
-    print('EVALUATE-%s-%s: run_id=%d' % (dataset, algo, run_id))
+    print('EVALUATE-%s-%s-%s: run_id=%d' % (dataset, algo, obj_metric, run_id))
     train_data, test_data = load_train_test_data(dataset, task_type=task_type)
     if task_type in CLS_TASKS:
         task_type = BINARY_CLS if len(set(train_data.data[1])) == 2 else MULTICLASS_CLS
@@ -95,6 +95,7 @@ if __name__ == "__main__":
 
     check_datasets(datasets, task_type=task_type)
     running_info = list()
+    log_filename = 'running-%d.txt' % os.getpid()
 
     for dataset in datasets:
         for obj_metric in metrics:
@@ -104,11 +105,17 @@ if __name__ == "__main__":
                 for run_id in range(start_id, start_id + rep):
                     seed = seeds[run_id]
                     try:
+                        task_id = '%s-%s-%s-%d: %s' % (dataset, algo, obj_metric, run_id, 'success')
                         evaluate_ml_algorithm(dataset, algo, run_id, obj_metric, total_resource=total_resource,
                                               seed=seed, task_type=task_type)
                     except Exception as e:
                         task_id = '%s-%s-%s-%d: %s' % (dataset, algo, obj_metric, run_id, str(e))
-                        running_info.append(task_id)
-    print('\n'.join(running_info))
-    with open(save_dir+'running-%s.log' % str(datetime.datetime.now()), 'wb') as f:
-        pickle.dump(running_info, f)
+
+                    print(task_id)
+                    running_info.append(task_id)
+                    with open(save_dir + log_filename, 'a') as f:
+                        f.write('\n'+task_id)
+
+    # Write down the error info.
+    with open(save_dir+'failed-%s' % log_filename, 'w') as f:
+        f.write('\n'.join(running_info))
