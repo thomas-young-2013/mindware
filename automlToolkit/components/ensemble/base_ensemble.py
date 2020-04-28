@@ -18,7 +18,6 @@ class BaseEnsembleModel(object):
                  ensemble_size: int,
                  task_type: int,
                  metric: _BaseScorer,
-                 save_model=False,
                  output_dir=None):
         self.stats = stats
         self.ensemble_method = ensemble_method
@@ -26,7 +25,6 @@ class BaseEnsembleModel(object):
         self.task_type = task_type
         self.metric = metric
         self.model_cnt = 0
-        self.save_model = save_model
         self.output_dir = output_dir
 
         self.train_predictions = []
@@ -42,7 +40,7 @@ class BaseEnsembleModel(object):
                 X, y = train_list[idx].data
 
                 # TODO: Hyperparameter
-                test_size = 0.2
+                test_size = 0.33
 
                 if self.task_type in CLS_TASKS:
                     ss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=self.seed)
@@ -62,10 +60,6 @@ class BaseEnsembleModel(object):
                     self.config_list.append(_config)
                     self.train_data_dict[self.model_cnt] = (X, y)
                     estimator = fetch_predict_estimator(self.task_type, _config, X_train, y_train)
-                    if self.save_model:
-                        with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, self.model_cnt)),
-                                  'wb') as f:
-                            pkl.dump(estimator, f)
                     if self.task_type in CLS_TASKS:
                         y_valid_pred = estimator.predict_proba(X_valid)
                     else:
