@@ -43,11 +43,13 @@ def evaluate_ml_algorithm(dataset, algo, run_id, obj_metric, total_resource=20, 
                                fe_algo='bo',
                                total_resource=total_resource)
     bandit.optimize_fixed_pipeline()
+
+    val_score = bandit.incumbent_perf
     best_config = bandit.inc['hpo']
 
     fe_optimizer = bandit.optimizer['fe']
     fe_optimizer.fetch_nodes(10)
-    best_data_node = bandit.inc['fe']
+    best_data_node = fe_optimizer.incumbent
     test_data_node = fe_optimizer.apply(test_data, best_data_node)
 
     estimator = fetch_predict_estimator(task_type, best_config, best_data_node.data[0],
@@ -59,7 +61,7 @@ def evaluate_ml_algorithm(dataset, algo, run_id, obj_metric, total_resource=20, 
 
     save_path = save_dir + '%s-%s-%s-%d-%d.pkl' % (dataset, algo, obj_metric, run_id, total_resource)
     with open(save_path, 'wb') as f:
-        pickle.dump([dataset, algo, score, task_type], f)
+        pickle.dump([dataset, algo, score, val_score, task_type], f)
 
 
 def check_datasets(datasets, task_type=None):
@@ -113,8 +115,8 @@ if __name__ == "__main__":
                     print(task_id)
                     running_info.append(task_id)
                     with open(save_dir + log_filename, 'a') as f:
-                        f.write('\n'+task_id)
+                        f.write('\n' + task_id)
 
     # Write down the error info.
-    with open(save_dir+'failed-%s' % log_filename, 'w') as f:
+    with open(save_dir + 'failed-%s' % log_filename, 'w') as f:
         f.write('\n'.join(running_info))
