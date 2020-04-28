@@ -9,8 +9,8 @@ class Optimizer(object, metaclass=abc.ABCMeta):
     def __init__(self, name, task_type, datanode, seed=1):
         self.name = name
         self._seed = seed
-        self.incumbent = datanode
-        self.root_node = datanode
+        self.root_node = datanode.copy_()
+        self.incumbent = self.root_node
         self.task_type = task_type
         self.graph = TransformationGraph()
         self.graph.add_node(self.root_node)
@@ -41,11 +41,14 @@ class Optimizer(object, metaclass=abc.ABCMeta):
             edge_attrs.append(edge.transformer.get_attributes())
         return edge_attrs
 
-    def apply(self, data_node: DataNode, ref_node: DataNode):
+    def apply(self, data_node: DataNode, ref_node: DataNode, phase='test'):
         path_ids = self.graph.get_path_nodes(ref_node)
         self.logger.info('The path ids: %s' % str(path_ids))
+        if len(path_ids) == 0:
+            path_ids = [0]
         inputnode = self.graph.get_node(path_ids[0])
         inputnode.set_values(data_node)
+        edge_attrs = list()
 
         for node_id in path_ids[1:]:
             input_node_list = list()
@@ -56,11 +59,15 @@ class Optimizer(object, metaclass=abc.ABCMeta):
 
             edge = self.graph.get_edge(self.graph.input_edge_dict[node_id])
             self.logger.info('Transformation: %s - %d' % (edge.transformer.name, edge.transformer.type))
+            edge_attr = str(edge.transformer.get_attributes())
+            self.logger.info('Edge attribute: %s' % edge_attr)
+            edge_attrs.append(edge_attr)
             outputnode = edge.transformer.operate(inputnode, edge.target_fields)
             self.logger.info('%s => %s' % (str(inputnode.shape), str(outputnode.shape)))
             self.graph.get_node(node_id).set_values(outputnode)
         output_node = self.graph.get_node(path_ids[-1]).copy_()
         self.logger.info('returned shape: %s' % str(output_node.shape))
+        self.logger.info('Attribute path: %s' % ','.join(edge_attrs))
         return output_node
 
     def get_available_transformations(self, node: DataNode, trans_types: typing.List):

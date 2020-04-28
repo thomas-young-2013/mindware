@@ -6,9 +6,12 @@ import argparse
 import numpy as np
 import autosklearn.classification
 from tabulate import tabulate
+
 sys.path.append(os.getcwd())
 from automlToolkit.datasets.utils import load_train_test_data
-from automlToolkit.components.evaluators.evaluator import Evaluator, fetch_predict_estimator
+from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
+from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator
+from automlToolkit.components.utils.constants import MULTICLASS_CLS, BINARY_CLS
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--start_id', type=int, default=0)
@@ -18,9 +21,6 @@ parser.add_argument('--datasets', type=str, default='dataset_small')
 parser.add_argument('--mths', type=str, default='ausk,hmab')
 args = parser.parse_args()
 
-# dataset_large = 'credit,diabetes,pc4,sick,spectf,splice,waveform,' \
-#                 'winequality_red,winequality_white,ionosphere,amazon_employee,' \
-#                 'lymphography,messidor_features,spambase,ap_omentum_ovary,a9a'
 dataset_small = 'messidor_features,lymphography,winequality_red,winequality_white,credit,' \
                 'ionosphere,splice,diabetes,pc4,spectf,spambase,amazon_employee'
 
@@ -57,8 +57,6 @@ def evaluate_ausk_fe(dataset, time_limit, run_id, seed):
         seed=int(seed),
         resampling_strategy='holdout',
         resampling_strategy_arguments={'train_size': 0.67}
-        # resampling_strategy='cv',
-        # resampling_strategy_arguments={'folds': 5}
     )
     print(automl)
 
@@ -109,11 +107,11 @@ def evaluate_evaluation_based_fe(dataset, time_limit, run_id, seed):
       min_weight_fraction_leaf, Constant: 0.0
       n_estimators, Constant: 100
     """
-    evaluator = Evaluator(cs.get_default_configuration(), name='fe', seed=seed,
-                          resampling_strategy='holdout')
+    evaluator = ClassificationEvaluator(cs.get_default_configuration(), name='fe', seed=seed,
+                                        resampling_strategy='holdout')
 
     train_data, test_data = load_train_test_data(dataset)
-    optimizer = EvaluationBasedOptimizer('classification', train_data, evaluator,
+    optimizer = EvaluationBasedOptimizer(MULTICLASS_CLS, train_data, evaluator,
                                          'random_forest', 300, 10000,
                                          seed, trans_set=None)
 
@@ -132,7 +130,7 @@ def evaluate_evaluation_based_fe(dataset, time_limit, run_id, seed):
 
     final_test_data = optimizer.apply(test_data, optimizer.incumbent)
     X_train, y_train = final_train_data.data
-    clf = fetch_predict_estimator(cs.get_default_configuration(), X_train, y_train)
+    clf = fetch_predict_estimator(MULTICLASS_CLS, cs.get_default_configuration(), X_train, y_train)
     X_test, y_test = final_test_data.data
     y_pred = clf.predict(X_test)
 
@@ -145,22 +143,68 @@ def evaluate_evaluation_based_fe(dataset, time_limit, run_id, seed):
         pickle.dump([dataset, val_score, test_score], f)
 
 
+def evaluate_bo_optimizer(dataset, time_limit, run_id, seed):
+    from automlToolkit.components.fe_optimizers.bo_optimizer import BayesianOptimizationOptimizer
+    # Prepare the configuration for random forest.
+    from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
+    from autosklearn.pipeline.components.classification.random_forest import RandomForest
+    cs = RandomForest.get_hyperparameter_search_space()
+    clf_hp = UnParametrizedHyperparameter("estimator", 'random_forest')
+    cs.add_hyperparameter(clf_hp)
+    print(cs.get_default_configuration())
+    evaluator = ClassificationEvaluator(cs.get_default_configuration(), name='fe', seed=seed,
+                                        resampling_strategy='holdout')
+
+    train_data, test_data = load_train_test_data(dataset)
+    cls_task_type = BINARY_CLS if len(set(train_data.data[1])) == 2 else MULTICLASS_CLS
+    optimizer = BayesianOptimizationOptimizer(cls_task_type, train_data, evaluator,
+                                              'random_forest', 300, 10000, seed, time_budget=time_limit)
+    optimizer.optimize()
+    inc = optimizer.incumbent_config
+    val_score = 1 - optimizer.evaluate_function(inc)
+    print(val_score)
+    print(optimizer.incumbent_score)
+
+    optimizer.fetch_nodes(n=10)
+    print("Refit finished!")
+
+    final_train_data = optimizer.apply(train_data, optimizer.incumbent, phase='train')
+    X_train, y_train = final_train_data.data
+    final_test_data = optimizer.apply(test_data, optimizer.incumbent)
+    X_test, y_test = final_test_data.data
+
+    clf = fetch_predict_estimator(cls_task_type, cs.get_default_configuration(), X_train, y_train,
+                                  weight_balance=final_train_data.enable_balance,
+                                  data_balance=final_train_data.data_balance)
+    y_pred = clf.predict(X_test)
+
+    from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
+    test_score = balanced_accuracy(y_test, y_pred)
+    print('==> Test score', test_score)
+
+    save_path = save_dir + 'bo_fe_%s_%d_%d.pkl' % (dataset, time_limit, run_id)
+    with open(save_path, 'wb') as f:
+        pickle.dump([dataset, val_score, test_score], f)
+
+
 if __name__ == "__main__":
     if mths[0] != 'plot':
         for dataset in datasets:
             # Prepare random seeds.
             np.random.seed(1)
             seeds = np.random.randint(low=1, high=10000, size=start_id + rep)
-            for run_id in range(start_id, start_id+rep):
+            for run_id in range(start_id, start_id + rep):
                 seed = seeds[run_id]
                 for mth in mths:
                     if mth == 'ausk':
                         evaluate_ausk_fe(dataset, time_limit, run_id, seed)
+                    elif mth == 'bo':
+                        evaluate_bo_optimizer(dataset, time_limit, run_id, seed)
                     else:
                         evaluate_evaluation_based_fe(dataset, time_limit, run_id, seed)
     else:
         headers = ['dataset']
-        method_ids = ['hmab', 'ausk']
+        method_ids = ['bo', 'ausk', 'hmab']
         for mth in method_ids:
             headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
@@ -177,8 +221,10 @@ if __name__ == "__main__":
                     with open(file_path, 'rb') as f:
                         data = pickle.load(f)
                     val_acc, test_acc = data[1], data[2]
+                    if mth == 'bo':
+                        val_acc = 1 - val_acc
                     results.append([val_acc, test_acc])
-                    print(data)
+                    # print(data)
                 if len(results) == rep:
                     results = np.array(results)
                     stats_ = zip(np.mean(results, axis=0), np.std(results, axis=0))
@@ -201,7 +247,6 @@ if __name__ == "__main__":
 
             tbl_data.append(row_data)
         print(tabulate(tbl_data, headers, tablefmt='github'))
-
 
 """
  "[(1.000000, SimpleClassificationPipeline({

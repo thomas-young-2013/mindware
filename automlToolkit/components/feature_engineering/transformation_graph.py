@@ -11,7 +11,8 @@ class DataNode(object):
         self.depth = None
         self.score = None
         self.trans_hist = list()
-        self.enable_balance = False
+        self.enable_balance = 0
+        self.data_balance = 0
 
     def __eq__(self, node):
         """Overrides the default implementation"""
@@ -40,6 +41,8 @@ class DataNode(object):
         new_node = DataNode(new_data, self.feature_types.copy(), self.task_type)
         new_node.trans_hist = self.trans_hist.copy()
         new_node.depth = self.depth
+        new_node.enable_balance = self.enable_balance
+        new_node.data_balance = self.data_balance
         return new_node
 
     def set_values(self, node):

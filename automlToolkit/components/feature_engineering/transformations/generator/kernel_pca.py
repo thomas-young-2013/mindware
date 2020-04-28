@@ -8,7 +8,7 @@ from automlToolkit.components.feature_engineering.transformations.base_transform
 
 class KernelPCA(Transformer):
     def __init__(self, n_components=0.3, kernel='rbf', degree=3, gamma=0.25, coef0=0.0,
-                 random_state=None):
+                 random_state=1):
         super().__init__("kernel_pca", 12)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'

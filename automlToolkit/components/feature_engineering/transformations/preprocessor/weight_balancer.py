@@ -1,0 +1,13 @@
+from automlToolkit.components.feature_engineering.transformations.base_transformer import *
+
+
+class WeightBalancer(Transformer):
+    def __init__(self, random_state=1):
+        super().__init__("weight_balancer", 20)
+        self.random_state = random_state
+
+    def operate(self, input_datanode: DataNode, target_fields=None):
+        output_datanode = input_datanode.copy_()
+        output_datanode.enable_balance = 1
+        output_datanode.trans_hist.append(self.type)
+        return output_datanode

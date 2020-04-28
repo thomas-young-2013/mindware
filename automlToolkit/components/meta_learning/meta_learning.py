@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 
-from automlToolkit.components.evaluators.evaluator import Evaluator
+from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator
 from automlToolkit.utils.metalearning import get_trans_from_str
 
 
@@ -75,10 +75,10 @@ def evaluate_metalearning_configs(first_bandit, n_jobs=1):
         if arm in first_bandit.arms:
             transformed_node = apply_metalearning_fe(first_bandit.sub_bandits[arm].optimizer['fe'], _config)
             default_config = cs.sample_configuration(1)
-            hpo_evaluator = Evaluator(None,
-                                      data_node=transformed_node, name='hpo',
-                                      resampling_strategy=first_bandit.eval_type,
-                                      seed=first_bandit.seed)
+            hpo_evaluator = ClassificationEvaluator(None,
+                                                    data_node=transformed_node, name='hpo',
+                                                    resampling_strategy=first_bandit.eval_type,
+                                                    seed=first_bandit.seed)
 
             start_time = time.time()
             score1 = 1 - hpo_evaluator(default_config)

@@ -10,7 +10,7 @@ class ExtraTreeBasedSelector(Transformer):
     def __init__(self, n_estimators=100, criterion='gini', min_samples_leaf=1,
                  min_samples_split=2, max_features=0.5, bootstrap='False', max_leaf_nodes='None',
                  max_depth='None', min_weight_fraction_leaf=0., min_impurity_decrease=0.,
-                 oob_score=False, n_jobs=-1, random_state=None, verbose=0,
+                 oob_score=False, n_jobs=-1, random_state=1, verbose=0,
                  class_weight=None):
         super().__init__("extra_trees_based_selector", 7)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
@@ -102,6 +102,8 @@ class ExtraTreeBasedSelector(Transformer):
         output_datanode = DataNode((new_X, y), new_feature_types, input_datanode.task_type)
         output_datanode.trans_hist = input_datanode.trans_hist.copy()
         output_datanode.trans_hist.append(self.type)
+        output_datanode.enable_balance = input_datanode.enable_balance
+        output_datanode.data_balance = input_datanode.data_balance
         self.target_fields = target_fields.copy()
 
         return output_datanode

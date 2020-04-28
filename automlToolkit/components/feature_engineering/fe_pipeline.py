@@ -3,18 +3,20 @@ import abc
 from automlToolkit.components.utils.constants import *
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.feature_engineering.transformations.preprocessor.imputer import ImputationTransformation
-from automlToolkit.components.feature_engineering.transformations.preprocessor.onehot_encoder import OneHotTransformation
+from automlToolkit.components.feature_engineering.transformations.preprocessor.onehot_encoder import \
+    OneHotTransformation
 from automlToolkit.components.feature_engineering.transformations.selector.variance_selector import VarianceSelector
-from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
+from automlToolkit.components.fe_optimizers import EvaluationBasedOptimizer
+from automlToolkit.components.metrics.metric import get_metric
 from automlToolkit.utils.logging_utils import setup_logger, get_logger
-from automlToolkit.components.utils.constants import CLASSIFICATION
 
 
 class FEPipeline(object, metaclass=abc.ABCMeta):
     """
     This controls the whole pipeline for feature engineering.
     """
-    def __init__(self, task_type='classification',
+
+    def __init__(self, task_type=CLASSIFICATION,
                  optimizer_type='eval_base',
                  metric=None,
                  trans_set=None,
@@ -35,6 +37,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         self.evaluator = evaluator
         self.optimizer = None
 
+        self.metric = get_metric(metric)
         self.task_type = task_type
         self.task_id = task_id
         self.model_id = model_id
@@ -66,7 +69,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
                 if types[idx] == CATEGORICAL:
                     num_sample = input_node.data[0].shape[0]
                     num_unique = len(set(input_node.data[0][column]))
-                    if num_unique >= int(0.8*num_sample):
+                    if num_unique >= int(0.8 * num_sample):
                         uninformative_columns.append(column)
                         uninformative_idx.append(idx)
             self.uninformative_columns, self.uninformative_idx = uninformative_columns, uninformative_idx
@@ -119,7 +122,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         return input_node
 
     def preprocess(self, input_node: DataNode, train_phase=True):
-        print('='*20)
+        print('=' * 20)
         print(input_node.shape)
         input_node = self.remove_uninf_cols(input_node, train_phase)
         print(input_node.shape)
@@ -129,8 +132,8 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         print(input_node.shape)
         input_node = self.remove_cols_with_same_values(input_node)
         print(input_node.shape)
-        print('='*20)
-        if self.task_type == CLASSIFICATION:
+        print('=' * 20)
+        if self.task_type is None or self.task_type in CLS_TASKS:
             # Label encoding.
             input_node = self.encode_label(input_node)
         return input_node

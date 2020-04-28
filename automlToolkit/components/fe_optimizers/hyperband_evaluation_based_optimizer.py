@@ -1,25 +1,27 @@
+from collections import namedtuple
+from concurrent.futures import ThreadPoolExecutor
+
 import gc
 import time
 from math import log, ceil
-from collections import namedtuple
-from sklearn.model_selection import train_test_split
-from automlToolkit.components.feature_engineering.transformation_graph import *
-from automlToolkit.components.fe_optimizers.base_optimizer import Optimizer
+
+from automlToolkit.components.fe_optimizers import Optimizer
 from automlToolkit.components.fe_optimizers.transformer_manager import TransformerManager
-from automlToolkit.components.evaluators.evaluator import Evaluator
-from automlToolkit.components.utils.constants import SUCCESS, ERROR, TIMEOUT, CLASSIFICATION, REGRESSION
-from automlToolkit.utils.decorators import time_limit, TimeoutException
+from automlToolkit.components.evaluators.base_evaluator import _BaseEvaluator
 from automlToolkit.components.feature_engineering import TRANS_CANDIDATES
+from automlToolkit.components.feature_engineering.transformation_graph import *
+from automlToolkit.components.utils.constants import SUCCESS, ERROR, TIMEOUT, CLS_TASKS
+from automlToolkit.utils.decorators import time_limit, TimeoutException
 
 EvaluationResult = namedtuple('EvaluationResult', 'status duration score extra')
 
 
 class HyperbandOptimizer(Optimizer):
-    def __init__(self, task_type, input_data: DataNode, evaluator: Evaluator,
+    def __init__(self, task_type, input_data: DataNode, evaluator: _BaseEvaluator,
                  model_id: str, time_limit_per_trans: int,
                  mem_limit_per_trans: int,
-                 seed: int, shared_mode: bool = False,
-                 batch_size: int = 2, beam_width: int = 3, n_jobs=1, trans_set=None):
+                 seed: int, shared_mode: bool = False, n_jobs=1,
+                 batch_size: int = 5, beam_width: int = 3, trans_set=None, eta=3):
         super().__init__(str(__class__.__name__), task_type, input_data, seed)
         self.transformer_manager = TransformerManager(random_state=seed)
         self.time_limit_per_trans = time_limit_per_trans
@@ -30,15 +32,16 @@ class HyperbandOptimizer(Optimizer):
         self.baseline_score = -np.inf
         self.start_time = time.time()
         self.hp_config = None
-        self.n_jobs = n_jobs
         self.early_stopped_flag = False
-
         # Parameters in beam search.
         self.hpo_batch_size = batch_size
         self.beam_width = beam_width
         self.max_depth = 6
         if trans_set is None:
-            self.trans_types = TRANS_CANDIDATES[self.task_type]
+            if self.task_type in CLS_TASKS:
+                self.trans_types = TRANS_CANDIDATES['classification']
+            else:
+                self.trans_types = TRANS_CANDIDATES['regression']
         else:
             self.trans_types = trans_set
         # Debug Example:
@@ -64,7 +67,7 @@ class HyperbandOptimizer(Optimizer):
         # Avoid transformations, which would take too long
         # Combinations of non-linear models with feature learning.
         # feature_learning = ["kitchen_sinks", "kernel_pca", "nystroem_sampler"]
-        if self.task_type == 'classification':
+        if self.task_type in CLS_TASKS:
             classifier_set = ["adaboost", "decision_tree", "extra_trees",
                               "gradient_boosting", "k_nearest_neighbors",
                               "libsvm_svc", "random_forest", "gaussian_nb", "decision_tree"]
@@ -74,10 +77,8 @@ class HyperbandOptimizer(Optimizer):
                     if tran_id in self.trans_types:
                         self.trans_types.remove(tran_id)
 
-        self.R = 9
-        self.eta = 3
-        self.s_max = int(log(self.R) / log(self.eta))
-        self.B = (self.s_max + 1) * self.R
+        self.n_jobs = n_jobs
+        self.eta = eta
 
     def optimize(self):
         while not self.is_ended:
@@ -93,16 +94,18 @@ class HyperbandOptimizer(Optimizer):
         _iter_start_time = time.time()
         _evaluation_cnt = 0
         execution_status = list()
-
         if self.iteration_id == 0:
             # Evaluate the original features.
             _start_time, status, extra = time.time(), SUCCESS, '%d,root_node' % _evaluation_cnt
-            try:
-                self.incumbent_score = self.evaluator(self.hp_config, data_node=self.root_node, name='fe')
-            except Exception as e:
-                self.logger.error('evaluating root node: %s' % str(e))
-                self.incumbent_score = -np.inf
-                status = ERROR
+            # try:
+            #     self.incumbent_score = self.evaluator(self.hp_config, data_node=self.root_node, name='fe',
+            #                                           data_subsample_ratio=1.0)
+            # except Exception as e:
+            #     self.logger.error('evaluating root node: %s' % str(e))
+            #     self.incumbent_score = -np.inf
+            #     status = ERROR
+            self.incumbent_score = self.evaluator(self.hp_config, data_node=self.root_node, name='fe',
+                                                  data_subsample_ratio=1.0)
 
             execution_status.append(EvaluationResult(status=status,
                                                      duration=time.time() - _start_time,
@@ -135,119 +138,119 @@ class HyperbandOptimizer(Optimizer):
             _trans_types = self.trans_types.copy()
             if node_.depth > 1 and 17 in _trans_types:
                 _trans_types.remove(17)
-            for s in reversed(range(self.s_max + 1)):
-                # Initial number of configurations
-                n = int(ceil(self.B / self.R / (s + 1) * self.eta ** s))
-                # Initial number of iterations per config
-                r = self.R * self.eta ** (-s)
 
-                # Fetch available transformations for this node.
-                trans_set, trans_cnt = self.transformer_manager.get_hyperband_transformations(
-                    node_, trans_types=_trans_types, batch_size=n)
+            # Fetch available transformations for this node.
+            trans_set = self.transformer_manager.get_transformations(
+                node_, trans_types=_trans_types, batch_size=self.hpo_batch_size)
 
-                num_trans = int(len(trans_set) / n)
+            R = 1
+            s = ceil(log(len(trans_set) / self.beam_width) / log(self.eta))
+            r = R * self.eta ** (-s)
 
-                for i in range(s + 1):
-                    n_configs = int(n * self.eta ** (-i))
-                    dataset_size = int(r * self.eta ** i)
-                    if dataset_size != self.R:
-                        x, y = node_.data
-                        train_x, test_x, train_y, test_y = train_test_split(x, y, stratify=y,
-                                                                            test_size=dataset_size / self.R,
-                                                                            random_state=self._seed)
-                        eval_node = node_.copy_()
-                        eval_node.data = (test_x, test_y)
-                    else:
-                        eval_node = node_
+            # TODO: Modify successive halving
+            for i in range(s + 1):
+                dataset_size = r * self.eta ** i
 
-                    score_list = []
-                    self.logger.info('The total number of transformations is: %d' % len(trans_set))
-                    for transformer in trans_set:
-                        self.logger.debug('[%s][%s]' % (self.model_id, transformer.name))
-                        self.logger.info('Dataset size: %d/%d' % (dataset_size, self.R))
+                score_list = []
+                self.logger.info('The total number of transformations is: %d' % len(trans_set))
+                pool = ThreadPoolExecutor(max_workers=self.n_jobs)
+                tasks = []
+                for transformer in trans_set:
+                    self.logger.debug('[%s][%s]' % (self.model_id, transformer.name))
+                    self.logger.info('Dataset size: %f' % dataset_size)
+                    if transformer.type != 0 and dataset_size == R:
+                        self.transformer_manager.add_execution_record(node_.node_id, transformer.type)
 
-                        if transformer.type != 0 and dataset_size == self.R:
-                            self.transformer_manager.add_execution_record(eval_node.node_id, transformer.type)
-
-                        _start_time, status, _score = time.time(), SUCCESS, float("-INF")
-                        extra = ['%d' % _evaluation_cnt, self.model_id, transformer.name]
-
-                        try:
-                            # Limit the execution and evaluation time for each transformation.
-                            with time_limit(self.time_limit_per_trans):
-                                self.logger.info('%s - %s' % (transformer.name, str(eval_node.shape)))
-                                output_node = transformer.operate(eval_node)
-                                self.logger.info('after %s - %s' % (transformer.name, str(output_node.shape)))
-
-                                # Evaluate this node.
-                                if transformer.type != 0:
-                                    output_node.depth = eval_node.depth + 1
-                                    output_node.trans_hist.append(transformer.type)
-                                    _score = self.evaluator(self.hp_config, data_node=output_node, name='fe')
-                                    output_node.score = _score
-                                else:
-                                    _score = output_node.score
-
-                            if _score is None:
-                                status = ERROR
-                                score_list.append(float("-INF"))
-                            else:
-                                score_list.append(_score)
-                                if dataset_size == self.R:
-                                    self.temporary_nodes.append(output_node)
-                                    self.graph.add_node(output_node)
-                                    # Avoid self-loop.
-                                    if transformer.type != 0 and eval_node.node_id != output_node.node_id:
-                                        self.graph.add_trans_in_graph(eval_node, output_node, transformer)
-                                    if _score > self.incumbent_score:
-                                        self.incumbent_score = _score
-                                        self.incumbent = output_node
-                        except Exception as e:
-                            score_list.append(float("-INF"))
-                            extra.append(str(e))
-                            self.logger.error('%s: %s' % (transformer.name, str(e)))
-                            status = ERROR
-                            if isinstance(e, TimeoutException):
-                                status = TIMEOUT
-
-                        execution_status.append(
-                            EvaluationResult(status=status,
-                                             duration=time.time() - _start_time,
-                                             score=_score,
-                                             extra=extra))
-
-                        if dataset_size == self.R:
-                            _evaluation_cnt += 1
-                            self.evaluation_count += 1
-
-                        if (self.maximum_evaluation_num is not None
-                            and self.evaluation_count > self.maximum_evaluation_num) or \
-                                (self.time_budget is not None
-                                 and time.time() >= self.start_time + self.time_budget):
-                            self.logger.debug(
-                                '[Budget Runs Out]: %s, %s\n' % (self.maximum_evaluation_num, self.time_budget))
-                            self.is_ended = True
-                            break
-                        gc.collect()
-
-                    temp_trans_set = []
-                    temp_trans_cnt = []
-                    cur_idx = 0
-                    for cnt in trans_cnt:
-                        tran_score = score_list[cur_idx:cur_idx + cnt]
-                        if int(cnt / self.eta) > 0:
-                            trans_next_iter = int(cnt / self.eta)
-                        elif cnt / self.eta > 0:
-                            trans_next_iter = 1
+                    def evaluate(tran, node, subsample_size):
+                        start_time = time.time()
+                        output_node = tran.operate(node)
+                        if tran.type != 0:
+                            output_node.depth = node.depth + 1
+                            output_node.trans_hist.append(tran.type)
+                            score = self.evaluator(self.hp_config, data_node=output_node, name='fe',
+                                                   data_subsample_ratio=subsample_size)
+                            output_node.score = score
                         else:
-                            trans_next_iter = 0
-                        temp_trans_cnt.append(trans_next_iter)
-                        _idxs = np.argsort(-np.array(tran_score))[:trans_next_iter]
-                        temp_trans_set.extend([trans_set[cur_idx + _idx] for _idx in _idxs])
-                        cur_idx += cnt
+                            score = output_node.score
+                        return output_node, score, time.time() - start_time
 
-                    trans_set = temp_trans_set
-                    trans_cnt = temp_trans_cnt
+                    tasks.append(pool.submit(evaluate, transformer, node_, dataset_size))
+
+                all_completed = False
+                while not all_completed:
+                    all_completed = True
+                    eval_cnt = 0
+                    for task in tasks:
+                        if not task.done():
+                            all_completed = False
+                        else:
+                            eval_cnt += 1
+                    self.logger.debug("Evaluated transformations: %d/%s" % (eval_cnt, len(tasks)))
+                    time.sleep(0.2)
+
+                for i, task in enumerate(tasks):
+                    duration, status, _score = -1, SUCCESS, float("-INF")
+                    transformer = trans_set[i]
+                    extra = ['%d' % _evaluation_cnt, self.model_id, transformer.name]
+
+                    try:
+                        output_node, _score, duration = task.result()
+                        if _score is None:
+                            status = ERROR
+                            score_list.append(float("-INF"))
+                        else:
+                            score_list.append(_score)
+                            if dataset_size == R:
+                                self.temporary_nodes.append(output_node)
+                                self.graph.add_node(output_node)
+                                # Avoid self-loop.
+                                if transformer.type != 0 and node_.node_id != output_node.node_id:
+                                    self.graph.add_trans_in_graph(node_, output_node, transformer)
+                                if _score > self.incumbent_score:
+                                    self.incumbent_score = _score
+                                    self.incumbent = output_node
+                                    self.features_hist.append(output_node)
+                    except Exception as e:
+                        score_list.append(float("-INF"))
+                        extra.append(str(e))
+                        self.logger.error('%s: %s' % (transformer.name, str(e)))
+                        status = ERROR
+                        if isinstance(e, TimeoutException):
+                            status = TIMEOUT
+
+                    execution_status.append(
+                        EvaluationResult(status=status,
+                                         duration=duration if duration != -1 else self.time_limit_per_trans,
+                                         score=_score,
+                                         extra=extra))
+
+                    if dataset_size == R:
+                        _evaluation_cnt += 1
+                        self.evaluation_count += 1
+
+                    if (self.maximum_evaluation_num is not None
+                        and self.evaluation_count > self.maximum_evaluation_num) or \
+                            (self.time_budget is not None
+                             and time.time() >= self.start_time + self.time_budget):
+                        self.logger.debug(
+                            '[Budget Runs Out]: %s, %s\n' % (self.maximum_evaluation_num, self.time_budget))
+                        self.is_ended = True
+                        break
+                    gc.collect()
+
+                trans_next_iter = max(self.beam_width, int(len(trans_set) / self.eta))
+                assert len(score_list) == len(trans_set)
+                _idxs = np.argsort(-np.array(score_list))[:trans_next_iter]
+                trans_set = [trans_set[i] for i in _idxs]
+
+                # Reset model if datasize is not 1
+                if dataset_size < 1:
+                    for tran in trans_set:
+                        if hasattr(tran, 'model'):
+                            tran.model = None
+
+                pool.shutdown(wait=True)
+
             # Memory Save: free the data in the unpromising nodes.
             _scores = list()
             for tmp_node in self.temporary_nodes:

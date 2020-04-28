@@ -8,8 +8,8 @@ from automlToolkit.components.utils.configspace_utils import check_for_bool, che
 
 
 class FastIcaDecomposer(Transformer):
-    def __init__(self, algorithm='parallel', whiten='False', fun='logcosh', n_components=None,
-                 random_state=None):
+    def __init__(self, algorithm='parallel', whiten='False', fun='logcosh', n_components=100,
+                 random_state=1):
         super().__init__("fast_ica", 10)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'

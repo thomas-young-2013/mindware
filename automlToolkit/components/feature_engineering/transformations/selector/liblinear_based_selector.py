@@ -9,7 +9,7 @@ from automlToolkit.components.utils.configspace_utils import check_for_bool, che
 
 class LibLinearBasedSelector(Transformer):
     def __init__(self, penalty='l1', loss='squared_hinge', dual='False', tol=1e-4, C=1.0, multi_class='ovr',
-                 fit_intercept='True', intercept_scaling=1, class_weight=None, random_state=None):
+                 fit_intercept='True', intercept_scaling=1, class_weight=None, random_state=1):
         super().__init__("liblinear_based_selector", 7)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
@@ -72,6 +72,8 @@ class LibLinearBasedSelector(Transformer):
         output_datanode = DataNode((new_X, y), new_feature_types, input_datanode.task_type)
         output_datanode.trans_hist = input_datanode.trans_hist.copy()
         output_datanode.trans_hist.append(self.type)
+        output_datanode.enable_balance = input_datanode.enable_balance
+        output_datanode.data_balance = input_datanode.data_balance
         self.target_fields = target_fields.copy()
 
         return output_datanode

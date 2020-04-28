@@ -5,7 +5,8 @@ from collections.abc import Iterable
 from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import KFold, train_test_split
-from automlToolkit.components.metrics.metric import fetch_scorer
+from automlToolkit.components.metrics.metric import get_metric
+from automlToolkit.components.utils.constants import *
 
 
 @ignore_warnings(category=ConvergenceWarning)
@@ -22,6 +23,7 @@ def cross_validation(reg, scorer, X, y, n_fold=5, shuffle=True, random_state=1):
         return np.mean(scores)
 
 
+@ignore_warnings(category=ConvergenceWarning)
 def holdout_validation(estimator, scorer, X, y, train_size=0.3, random_state=1):
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
@@ -30,16 +32,42 @@ def holdout_validation(estimator, scorer, X, y, train_size=0.3, random_state=1):
         return scorer(estimator, X_test, y_test)
 
 
+def fetch_predict_estimator(task_type, config, X_train, y_train, weight_balance=0, data_balance=0):
+    # Build the ML estimator.
+    from automlToolkit.components.utils.balancing import get_weights, get_data
+    _fit_params = {}
+    config_dict = config.get_dictionary().copy()
+    if weight_balance == 1:
+        _init_params, _fit_params = get_weights(
+            y_train, config['estimator'], None, {}, {})
+        for key, val in _init_params.items():
+            config_dict[key] = val
+    if data_balance == 1:
+        print('Fetch data balance!')
+        X_train, y_train = get_data(X_train, y_train)
+    if task_type in CLS_TASKS:
+        from automlToolkit.components.evaluators.cls_evaluator import get_estimator
+    else:
+        from automlToolkit.components.evaluators.reg_evaluator import get_estimator
+    _, estimator = get_estimator(config_dict)
+
+    estimator.fit(X_train, y_train, **_fit_params)
+    return estimator
+
+
 class _BaseEvaluator(metaclass=ABCMeta):
     def __init__(self, estimator, metric, task_type,
                  evaluation_strategy, **evaluation_params):
         self.estimator = estimator
-        if task_type not in ['classification', 'regression']:
+        if task_type not in TASK_TYPES:
             raise ValueError('Unsupported task type: %s' % task_type)
-        self.metric = fetch_scorer(metric, task_type)
+        self.metric = get_metric(metric)
         self.evaluation_strategy = evaluation_strategy
         self.evaluation_params = evaluation_params
 
         if self.evaluation_strategy == 'holdout':
             if 'train_size' not in self.evaluation_params:
                 self.evaluation_params['train_size']
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError()
