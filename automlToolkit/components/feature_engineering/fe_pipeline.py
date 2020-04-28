@@ -133,7 +133,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         input_node = self.remove_cols_with_same_values(input_node)
         print(input_node.shape)
         print('=' * 20)
-        if self.task_type in CLS_TASKS:
+        if self.task_type is None or self.task_type in CLS_TASKS:
             # Label encoding.
             input_node = self.encode_label(input_node)
         return input_node
