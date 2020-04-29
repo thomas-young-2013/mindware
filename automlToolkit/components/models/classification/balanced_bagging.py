@@ -8,13 +8,13 @@ from automlToolkit.components.utils.constants import DENSE, SPARSE, UNSIGNED_DAT
 from automlToolkit.components.utils.configspace_utils import check_none, check_for_bool
 from imblearn.ensemble import BalancedBaggingClassifier
 
+
 class BalancedBagging(BaseClassificationModel):
 
-    def __init__(self, n_estimators, max_samples, max_features,
+    def __init__(self, n_estimators, max_features,
                  max_depth, bootstrap, bootstrap_features,
                  sampling_strategy, replacement, random_state=None, n_jobs=-1):
         self.n_estimators = n_estimators
-        self.max_samples = max_samples
         self.max_features = max_features
         self.max_depth = max_depth
         self.bootstrap = bootstrap
@@ -26,8 +26,6 @@ class BalancedBagging(BaseClassificationModel):
         self.estimator = None
         self.time_limit = None
 
-
-
     def fit(self, X, Y, sample_weight=None):
         import sklearn.tree
         if self.estimator is None:
@@ -36,7 +34,6 @@ class BalancedBagging(BaseClassificationModel):
 
         estimator = BalancedBaggingClassifier(base_estimator=self.estimator,
                                               n_estimators=self.n_estimators,
-                                              max_samples=self.max_samples,
                                               max_features=self.max_features,
                                               bootstrap=self.bootstrap,
                                               bootstrap_features=self.bootstrap_features,
@@ -44,8 +41,7 @@ class BalancedBagging(BaseClassificationModel):
                                               replacement=self.replacement,
                                               n_jobs=self.n_jobs,
                                               random_state=self.random_state)
-
-        estimator.fit(X, Y, sample_weight=sample_weight)
+        estimator.fit(X, Y)
 
         self.estimator = estimator
         return self
@@ -78,8 +74,6 @@ class BalancedBagging(BaseClassificationModel):
             cs = ConfigurationSpace()
             n_estimators = UniformIntegerHyperparameter(
                 name="n_estimators", lower=50, upper=500, default_value=50, log=False)
-            max_samples = UniformFloatHyperparameter(
-                "max_samples", 0., 1., default_value=0.5)
             max_features = UniformFloatHyperparameter(
                 "max_features", 0., 1., default_value=0.5)
             bootstrap = CategoricalHyperparameter(
@@ -87,25 +81,27 @@ class BalancedBagging(BaseClassificationModel):
             bootstrap_features = CategoricalHyperparameter(
                 "bootstrap_features", ["True", "False"], default_value="False")
             sampling_strategy = CategoricalHyperparameter(
-                name="sampling_strategy", choices=["majority", "not minority", "not majority", "all"], default_value="not minority")
+                name="sampling_strategy", choices=["majority", "not minority", "not majority", "all"],
+                default_value="not minority")
             replacement = CategoricalHyperparameter(
                 "replacement", ["True", "False"], default_value="False")
             max_depth = UniformIntegerHyperparameter(
                 name="max_depth", lower=1, upper=10, default_value=1, log=False)
-            cs.add_hyperparameters([n_estimators, max_samples, max_features, bootstrap, bootstrap_features, sampling_strategy, replacement, max_depth])
+            cs.add_hyperparameters(
+                [n_estimators, max_features, bootstrap, bootstrap_features, sampling_strategy, replacement,
+                 max_depth])
             return cs
         elif optimizer == 'tpe':
             from hyperopt import hp
             space = {'n_estimators': hp.randint('bal_bagging_n_estimators', 451) + 50,
-                     'max_samples': hp.uniform('bal_bagging_max_features', 0, 1),
                      'max_features': hp.uniform('bal_bagging_max_features', 0, 1),
                      'bootstrap': hp.choice('bal_bagging_bootstrap', ["True", "False"]),
                      'bootstrap_features': hp.choice('bal_bagging_bootstrap_features', ["True", "False"]),
-                     'sampling_strategy': hp.choice('bal_bagging_sampling_strategy', ["majority", "not minority", "not majority", "all"]),
+                     'sampling_strategy': hp.choice('bal_bagging_sampling_strategy',
+                                                    ["majority", "not minority", "not majority", "all"]),
                      'replacement': hp.choice('bal_bagging_replacement', ["True", "False"]),
                      'max_depth': hp.randint('bal_bagging_max_depth', 10) + 1}
             init_trial = {'n_estimators': 10,
-                          'max_samples': 0.5,
                           'max_features': 0.5,
                           'bootstrap': "True",
                           'bootstrap_features': "False",

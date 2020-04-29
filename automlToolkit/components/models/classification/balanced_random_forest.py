@@ -10,23 +10,22 @@ from automlToolkit.components.utils.configspace_utils import check_none, check_f
 from imblearn.ensemble import BalancedRandomForestClassifier
 from automlToolkit.components.utils.constants import *
 
+
 class BalancedRandomForest(BaseClassificationModel):
 
     def __init__(self, n_estimators, criterion, max_features,
-                 max_depth, min_samples_split, min_samples_leaf,
-                 min_weight_fraction_leaf, bootstrap, max_leaf_nodes,
+                 min_samples_split, min_samples_leaf,
+                 min_weight_fraction_leaf, bootstrap,
                  min_impurity_decrease, sampling_strategy, replacement,
                  random_state=None, n_jobs=-1,
                  class_weight=None):
         self.n_estimators = n_estimators
         self.criterion = criterion
         self.max_features = max_features
-        self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.min_samples_leaf = min_samples_leaf
         self.min_weight_fraction_leaf = min_weight_fraction_leaf
         self.bootstrap = bootstrap
-        self.max_leaf_nodes = max_leaf_nodes
         self.min_impurity_decrease = min_impurity_decrease
         self.class_weight = class_weight
         self.sampling_strategy = sampling_strategy
@@ -37,20 +36,15 @@ class BalancedRandomForest(BaseClassificationModel):
         self.estimator = None
         self.time_limit = None
 
-
-
     def fit(self, X, Y, sample_weight=None):
-
         estimator = BalancedRandomForestClassifier(
             n_estimators=self.n_estimators,
             criterion=self.criterion,
             max_features=self.max_features,
-            max_depth=self.max_depth,
             min_samples_split=self.min_samples_split,
             min_samples_leaf=self.min_samples_leaf,
             min_weight_fraction_leaf=self.min_weight_fraction_leaf,
             bootstrap=self.bootstrap,
-            max_leaf_nodes=self.max_leaf_nodes,
             min_impurity_decrease=self.min_impurity_decrease,
             random_state=self.random_state,
             n_jobs=self.n_jobs,
@@ -58,7 +52,7 @@ class BalancedRandomForest(BaseClassificationModel):
             sampling_strategy=self.sampling_strategy,
             replacement=self.replacement)
 
-        estimator.fit(X, Y, sample_weight=sample_weight)
+        estimator.fit(X, Y)
 
         self.estimator = estimator
         return self
@@ -100,13 +94,11 @@ class BalancedRandomForest(BaseClassificationModel):
             max_features = UniformFloatHyperparameter(
                 "max_features", 0., 1., default_value=0.5)
 
-            max_depth = UnParametrizedHyperparameter("max_depth", "None")
             min_samples_split = UniformIntegerHyperparameter(
                 "min_samples_split", 2, 20, default_value=2)
             min_samples_leaf = UniformIntegerHyperparameter(
                 "min_samples_leaf", 1, 20, default_value=1)
             min_weight_fraction_leaf = UnParametrizedHyperparameter("min_weight_fraction_leaf", 0.)
-            max_leaf_nodes = UnParametrizedHyperparameter("max_leaf_nodes", "None")
             min_impurity_decrease = UnParametrizedHyperparameter('min_impurity_decrease', 0.0)
             bootstrap = CategoricalHyperparameter(
                 "bootstrap", ["True", "False"], default_value="True")
@@ -116,8 +108,8 @@ class BalancedRandomForest(BaseClassificationModel):
             replacement = CategoricalHyperparameter(
                 "replacement", ["True", "False"], default_value="False")
             cs.add_hyperparameters([n_estimators, criterion, max_features,
-                                    max_depth, min_samples_split, min_samples_leaf,
-                                    min_weight_fraction_leaf, max_leaf_nodes,
+                                    min_samples_split, min_samples_leaf,
+                                    min_weight_fraction_leaf,
                                     bootstrap, min_impurity_decrease, sampling_strategy, replacement])
             return cs
         elif optimizer == 'tpe':
@@ -125,11 +117,9 @@ class BalancedRandomForest(BaseClassificationModel):
             space = {'n_estimators': hp.choice('bal_rf_n_estimators', [100]),
                      'criterion': hp.choice('bal_rf_criterion', ["gini", "entropy"]),
                      'max_features': hp.uniform('bal_rf_max_features', 0, 1),
-                     'max_depth': hp.choice('bal_rf_max_depth', [None]),
                      'min_samples_split': hp.randint('bal_rf_min_samples_split', 19) + 2,
                      'min_samples_leaf': hp.randint('bal_rf_min_samples_leaf', 20) + 1,
                      'min_weight_fraction_leaf': hp.choice('bal_rf_min_weight_fraction_leaf', [0]),
-                     'max_leaf_nodes': hp.choice('bal_rf_max_leaf_nodes', [None]),
                      'min_impurity_decrease': hp.choice('bal_rf_min_impurity_decrease', [0]),
                      'bootstrap': hp.choice('bal_rf_bootstrap', ["True", "False"]),
                      'sampling_strategy': hp.choice('bal_rf_sampling_strategy',
@@ -140,11 +130,9 @@ class BalancedRandomForest(BaseClassificationModel):
             init_trial = {'n_estimators': 100,
                           'criterion': "gini",
                           'max_features': 0.5,
-                          'max_depth': None,
                           'min_samples_split': 2,
                           'min_samples_leaf': 1,
                           'min_weight_fraction_leaf': 0,
-                          'max_leaf_nodes': None,
                           'min_impurity_decrease': 0,
                           'bootstrap': "False",
                           'sampling_strategy': "not minority",
