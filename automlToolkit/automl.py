@@ -9,10 +9,13 @@ from automlToolkit.components.utils.constants import CLS_TASKS, REG_TASKS
 from automlToolkit.components.ensemble import EnsembleBuilder, ensemble_list
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
+from automlToolkit.components.models.classification import _classifiers
+from automlToolkit.components.models.regression import _regressors
+from automlToolkit.components.models.unbalanced_classification import _ubl_classifiers
 
-# TODO: this default value should be updated.
-classification_algorithms = ['liblinear_svc', 'random_forest', 'lightgbm']
-regression_algorithms = ['liblinear_svr', 'random_forest', 'lightgbm']
+classification_algorithms = _classifiers.keys()
+ubl_classication_algorithms = _ubl_classifiers.keys()
+regression_algorithms = _regressors.keys()
 
 
 class AutoML(object):
@@ -23,6 +26,7 @@ class AutoML(object):
                  iter_num_per_algo=20,
                  include_algorithms=None,
                  ensemble_method='ensemble_selection',
+                 enable_meta_algorithm_selection=False,
                  ensemble_size=20,
                  per_run_time_limit=150,
                  random_state=1,
@@ -40,6 +44,7 @@ class AutoML(object):
         self.output_dir = output_dir
         self.evaluation_type = evaluation
         self.res_allocation_strategy = resource_allocation_strategy
+        self.enable_meta_algorithm_selection = enable_meta_algorithm_selection
         self.n_jobs = n_jobs
         self.solvers = dict()
         self.task_type = task_type
