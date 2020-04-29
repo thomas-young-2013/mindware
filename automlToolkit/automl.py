@@ -12,6 +12,7 @@ from automlToolkit.components.evaluators.base_evaluator import fetch_predict_est
 from automlToolkit.components.models.classification import _classifiers
 from automlToolkit.components.models.regression import _regressors
 from automlToolkit.components.models.unbalanced_classification import _ubl_classifiers
+from automlToolkit.utils.functions import is_unbalanced_dataset
 
 classification_algorithms = _classifiers.keys()
 ubl_classication_algorithms = _ubl_classifiers.keys()
@@ -113,6 +114,10 @@ class AutoML(object):
         :param train_data:
         :return:
         """
+        # Check whether this dataset is balanced or not.
+        if self.task_type in CLS_TASKS and is_unbalanced_dataset(train_data):
+            self.include_algorithms = ubl_classication_algorithms
+
         # Initialize each algorithm's solver.
         for _algo in self.include_algorithms:
             self.solvers[_algo] = SecondLayerBandit(self.task_type, _algo, train_data,
