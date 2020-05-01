@@ -64,7 +64,7 @@ def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_
 
     data = [dataset, validation_accuracy, test_accuracy, test_accuracy_with_ens, time_taken, model_desc]
     print(model_desc)
-    print(data[:4])
+    print(data)
 
     save_path = project_dir + 'data/%s_%s_%s_%d_%d_%d_%d.pkl' % (
         hmab_flag, opt_algo, dataset, trial_num, len(algorithms), seed, run_id)

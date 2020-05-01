@@ -110,7 +110,7 @@ class FirstLayerBandit(object):
 
         scores = list()
         for _arm in self.arms:
-            scores.append(self.sub_bandits[_arm].rewards[-1])
+            scores.append(self.sub_bandits[_arm].incumbent_perf)
         scores = np.array(scores)
         algo_idx = np.argmax(scores)
         self.optimal_algo_id = self.arms[algo_idx]
