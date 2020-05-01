@@ -184,9 +184,10 @@ class SecondLayerBandit(object):
                 if len(self.rewards[_arm]) == 1:
                     self.prepare_optimizer(arm_id)
                     self.init_config = config
-                    print(config == self.default_config)
+                    if config != self.default_config:
+                        self.logger.info('Initial hp_config for FE has changed!')
 
-            if self.mth in ['alter_p']:
+            if self.mth in ['alter_p', 'fixed']:
                 self.prepare_optimizer(arm_id)
 
     def optimize_rb(self):
@@ -228,6 +229,20 @@ class SecondLayerBandit(object):
     def optimize_alternatedly(self):
         # First choose one arm.
         _arm = self.arms[self.pull_cnt % 2]
+        self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
+
+        # Execute one iteration.
+        results = self.optimizer[_arm].iterate()
+        self.collect_iter_stats(_arm, results)
+        self.action_sequence.append(_arm)
+        self.pull_cnt += 1
+
+    def optimize_fixed_pipeline0(self):
+        ratio_fe = int(self.total_resource * 0.65) + 1
+        if self.pull_cnt == 0 or self.pull_cnt > ratio_fe:
+            _arm = 'hpo'
+        else:
+            _arm = 'fe'
         self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
 
         # Execute one iteration.
@@ -293,6 +308,8 @@ class SecondLayerBandit(object):
             self.evaluate_joint_solution()
         elif self.mth in ['fe_only', 'hpo_only']:
             self.optimize_one_component(self.mth)
+        elif self.mth in ['fixed']:
+            self.optimize_fixed_pipeline0()
         else:
             raise ValueError('Invalid method: %s' % self.mth)
 

@@ -51,14 +51,17 @@ def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_
                               fe_algo='bo',
                               seed=seed)
     bandit.optimize()
+    time_taken = time.time() - _start_time
     model_desc = [bandit.nbest_algo_ids, bandit.optimal_algo_id, bandit.final_rewards, bandit.action_sequence]
 
-    time_taken = time.time() - _start_time
     validation_accuracy = np.max(bandit.final_rewards)
     best_pred = bandit._best_predict(test_data)
     test_accuracy = balanced_accuracy(test_data.data[1], best_pred)
+
+    bandit.refit()
     es_pred = bandit._es_predict(test_data)
     test_accuracy_with_ens = balanced_accuracy(test_data.data[1], es_pred)
+
     data = [dataset, validation_accuracy, test_accuracy, test_accuracy_with_ens, time_taken, model_desc]
     print(model_desc)
     print(data[:4])
