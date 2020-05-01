@@ -5,7 +5,7 @@ from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
 
 from automlToolkit.components.models.base_model import BaseClassificationModel
 from automlToolkit.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
-from imblearn.ensemble import RUSBoostClassifier
+
 
 class RUSBoost(BaseClassificationModel):
 
@@ -29,7 +29,7 @@ class RUSBoost(BaseClassificationModel):
         self.learning_rate = float(self.learning_rate)
         self.max_depth = int(self.max_depth)
         base_estimator = sklearn.tree.DecisionTreeClassifier(max_depth=self.max_depth)
-
+        from imblearn.ensemble import RUSBoostClassifier
         estimator = RUSBoostClassifier(
             base_estimator=base_estimator,
             n_estimators=self.n_estimators,

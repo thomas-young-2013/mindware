@@ -6,7 +6,6 @@ from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
 from automlToolkit.components.models.base_model import BaseClassificationModel
 from automlToolkit.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
 from automlToolkit.components.utils.configspace_utils import check_none, check_for_bool
-from imblearn.ensemble import EasyEnsembleClassifier
 
 
 class EasyEnsemble(BaseClassificationModel):
@@ -46,7 +45,7 @@ class EasyEnsemble(BaseClassificationModel):
                 algorithm=self.ab_algorithm,
                 random_state=self.random_state
             )
-
+        from imblearn.ensemble import EasyEnsembleClassifier
         estimator = EasyEnsembleClassifier(base_estimator=self.estimator,
                                            n_estimators=self.n_estimators,
                                            sampling_strategy=self.sampling_strategy,

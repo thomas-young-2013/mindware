@@ -8,7 +8,6 @@ class DiscreteCategorizer(Transformer):
         self.output_type = CATEGORICAL
         self.max_unique = max_unique
         self.target_fields = None
-        self.n_values = []
 
     def operate(self, input_datanode, target_fields=None):
         import numpy as np
@@ -24,15 +23,13 @@ class DiscreteCategorizer(Transformer):
             target_fields = [idx for idx in target_fields if len(set(X[:, idx])) <= self.max_unique]
             # Fetch the fields to transform.
             self.target_fields = target_fields
-            for _ in self.target_fields:
-                self.n_values.append(self.max_unique)
 
         if len(self.target_fields) == 0:
             return input_datanode.copy_()
 
         X_input = X[:, self.target_fields]
         if self.model is None:
-            self.model = OneHotEncoder(n_values=self.n_values, handle_unknown='ignore')  # Ignore values out of range
+            self.model = OneHotEncoder(handle_unknown='ignore')  # Ignore values out of range
             self.model.fit(X_input)
 
         new_X = self.model.transform(X_input).toarray()

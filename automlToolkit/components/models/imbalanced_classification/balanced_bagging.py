@@ -6,7 +6,6 @@ from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
 from automlToolkit.components.models.base_model import BaseClassificationModel
 from automlToolkit.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
 from automlToolkit.components.utils.configspace_utils import check_none, check_for_bool
-from imblearn.ensemble import BalancedBaggingClassifier
 
 
 class BalancedBagging(BaseClassificationModel):
@@ -31,7 +30,7 @@ class BalancedBagging(BaseClassificationModel):
         if self.estimator is None:
             self.max_depth = int(self.max_depth)
             self.estimator = sklearn.tree.DecisionTreeClassifier(max_depth=self.max_depth)
-
+        from imblearn.ensemble import BalancedBaggingClassifier
         estimator = BalancedBaggingClassifier(base_estimator=self.estimator,
                                               n_estimators=self.n_estimators,
                                               max_features=self.max_features,

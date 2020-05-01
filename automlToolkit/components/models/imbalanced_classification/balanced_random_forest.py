@@ -7,7 +7,6 @@ from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
 from automlToolkit.components.models.base_model import BaseClassificationModel
 from automlToolkit.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
 from automlToolkit.components.utils.configspace_utils import check_none, check_for_bool
-from imblearn.ensemble import BalancedRandomForestClassifier
 from automlToolkit.components.utils.constants import *
 
 
@@ -37,6 +36,7 @@ class BalancedRandomForest(BaseClassificationModel):
         self.time_limit = None
 
     def fit(self, X, Y, sample_weight=None):
+        from imblearn.ensemble import BalancedRandomForestClassifier
         estimator = BalancedRandomForestClassifier(
             n_estimators=self.n_estimators,
             criterion=self.criterion,
