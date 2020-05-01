@@ -49,6 +49,7 @@ class BayesianOptimizationOptimizer(Optimizer):
                             config_space=self.hyperparameter_space,
                             max_runs=int(1e10),
                             task_id=self.model_id,
+                            time_limit_per_trial=self.time_limit_per_trans,
                             rng=np.random.RandomState(self.seed))
 
     def evaluate_function(self, config):

@@ -8,7 +8,7 @@ from automlToolkit.components.hpo_optimizer.base_optimizer import BaseHPOptimize
 
 class SMACOptimizer(BaseHPOptimizer):
     def __init__(self, evaluator, config_space, time_limit=None, evaluation_limit=None,
-                 per_run_time_limit=600, per_run_mem_limit=1024, output_dir='./',
+                 per_run_time_limit=300, per_run_mem_limit=1024, output_dir='./',
                  trials_per_iter=1, seed=1, n_jobs=1):
         super().__init__(evaluator, config_space, seed)
         self.time_limit = time_limit
@@ -22,6 +22,7 @@ class SMACOptimizer(BaseHPOptimizer):
                             config_space=config_space,
                             max_runs=int(1e10),
                             task_id=None,
+                            time_limit_per_trial=self.per_run_time_limit,
                             rng=np.random.RandomState(self.seed))
 
         self.trial_cnt = 0
