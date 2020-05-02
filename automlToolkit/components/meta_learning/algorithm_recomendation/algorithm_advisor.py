@@ -94,10 +94,13 @@ class AlgorithmAdvisor(object):
         print(meta_X.shape, meta_y.shape)
 
         meta_learner_config_filename = self.meta_dir + '/meta_learner_%s_config.pkl' % self.meta_algo
-        with open(meta_learner_config_filename, 'rb') as f:
-            meta_learner_config = pk.load(f)
+        if os.path.exists(meta_learner_config_filename):
+            with open(meta_learner_config_filename, 'rb') as f:
+                meta_learner_config = pk.load(f)
+        else:
+            meta_learner_config_filename = dict()
 
-        gbm = lgb.LGBMRegressor(**meta_learner_config)
+        gbm = lgb.LGBMClassifier(**meta_learner_config)
         gbm.fit(meta_X, meta_y)
 
         print('Dumping model to PICKLE...')
@@ -124,6 +127,7 @@ class AlgorithmAdvisor(object):
                     _X.append(meta_x)
 
             preds = gbm.predict(_X)
+            print(preds)
 
             instance_idx = 0
             scores = np.zeros(n_algo)
