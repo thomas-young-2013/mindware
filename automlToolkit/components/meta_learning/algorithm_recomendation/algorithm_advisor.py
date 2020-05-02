@@ -98,7 +98,7 @@ class AlgorithmAdvisor(object):
             with open(meta_learner_config_filename, 'rb') as f:
                 meta_learner_config = pk.load(f)
         else:
-            meta_learner_config_filename = dict()
+            meta_learner_config = dict()
 
         gbm = lgb.LGBMClassifier(**meta_learner_config)
         gbm.fit(meta_X, meta_y)
