@@ -127,7 +127,7 @@ class AlgorithmAdvisor(object):
                     _X.append(meta_x)
 
             preds = gbm.predict(_X)
-            print(preds)
+            # print(preds)
 
             instance_idx = 0
             scores = np.zeros(n_algo)
