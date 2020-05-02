@@ -1,7 +1,8 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OrdinalEncoder
+from sklearn.utils.testing import ignore_warnings
+from sklearn.preprocessing._encoders import OrdinalEncoder, _BaseEncoder
 from automlToolkit.utils.data_manager import DataManager
 from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
@@ -73,24 +74,47 @@ def load_train_test_data(dataset, data_dir='./', test_size=0.2, task_type=None, 
     return train_node, test_node
 
 
+nan_replace = 'unknown_nan'
+
+
+class NanOrdinalEncoder(_BaseEncoder):
+    def __init__(self):
+        self.lbe = OrdinalEncoder()
+
+    def fit(self, X):
+        self.lbe.fit(X)
+        return self
+
+    def transform(self, X):
+        result = self.lbe.transform(X)
+        for col in range(result.shape[1]):
+            nan_idx = list(self.lbe.categories_[col]).index(nan_replace)
+            column = result[:, col]
+            column[column == nan_idx] = np.nan
+        return result
+
+
+@ignore_warnings([RuntimeWarning, FutureWarning])
 def calculate_metafeatures(dataset, data_dir='./', task_type=None):
     X, y, feature_types = load_data(dataset, data_dir, datanode_returned=False, preprocess=False, task_type=task_type)
-    categorical = []
-    for i in feature_types:
-        if i == 'categorical':
-            categorical.append(True)
-        else:
-            categorical.append(False)
+    categorical_idx = [i for i, feature_type in enumerate(feature_types) if feature_type == 'categorical']
+
+    nan_val = np.array(X.isnull()).astype('int')
+    nan_avg = np.average(nan_val, axis=0)
+    nan_idx = [idx for idx in range(len(nan_avg)) if nan_avg[idx] != 0]
+    nan_categorical_idx = list(set(nan_idx).intersection(categorical_idx))
+
+    for col in X.columns[nan_categorical_idx]:
+        X[col].fillna(nan_replace, inplace=True)
     X = np.array(X)
     y = np.array(y)
-    categorical_idx = []
-    for idx, i in enumerate(categorical):
-        if i:
-            categorical_idx.append(idx)
-    lbe = ColumnTransformer([('lbe', OrdinalEncoder(), categorical_idx)], remainder="passthrough")
+    normal_categorical_idx = list(set(categorical_idx) - set(nan_categorical_idx))
+    lbe = ColumnTransformer([('lbe', OrdinalEncoder(), normal_categorical_idx),
+                             ('nan_lbe', NanOrdinalEncoder(), nan_categorical_idx)],
+                            remainder="passthrough")
     X = lbe.fit_transform(X).astype('float64')
     categorical_ = [True] * len(categorical_idx)
-    categorical_false = [False] * (len(categorical) - len(categorical_idx))
+    categorical_false = [False] * (len(feature_types) - len(categorical_idx))
     categorical_.extend(categorical_false)
     mf = calculate_all_metafeatures(X=X, y=y,
                                     categorical=categorical_,

@@ -26,7 +26,8 @@ class AlgorithmAdvisor(object):
         meta_datasets = set()
         for _record in os.listdir(self.meta_dir):
             if _record.endswith('.pkl') and _record.find('-') != -1:
-                meta_datasets.add(_record.split('-')[0])
+                meta_name = '-'.join(_record.split('-')[:-4])
+                meta_datasets.add(meta_name)
         self._buildin_datasets = list(meta_datasets)
         if not self.meta_dir.endswith('/'):
             self.meta_dir += '/'
@@ -46,9 +47,9 @@ class AlgorithmAdvisor(object):
                 meta_X, meta_y, meta_infos = pk.load(f)
         else:
             X, Y, include_datasets = prepare_meta_dataset(self.meta_dir, self.metric,
-                                        self.total_resource, self.rep,
-                                        self._buildin_datasets, _buildin_algorithms,
-                                        task_type=self.task_type)
+                                                          self.total_resource, self.rep,
+                                                          self._buildin_datasets, _buildin_algorithms,
+                                                          task_type=self.task_type)
             meta_X, meta_y = list(), list()
 
             print('Meta information comes from %d datasets.' % len(meta_y))
