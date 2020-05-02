@@ -6,6 +6,7 @@ from automlToolkit.utils.data_manager import DataManager
 from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 from automlToolkit.components.meta_learning.meta_features import calculate_all_metafeatures
+from automlToolkit.utils.functions import is_unbalanced_dataset
 from automlToolkit.components.utils.constants import CLS_TASKS, REG_TASKS
 
 
@@ -68,6 +69,7 @@ def load_train_test_data(dataset, data_dir='./', test_size=0.2, task_type=None, 
             X, y, test_size=test_size, random_state=random_state)
     train_node = DataNode(data=[X_train, y_train], feature_type=feature_type.copy())
     test_node = DataNode(data=[X_test, y_test], feature_type=feature_type.copy())
+    print('is imbalanced dataset', is_unbalanced_dataset(train_node))
     return train_node, test_node
 
 

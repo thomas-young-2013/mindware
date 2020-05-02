@@ -42,16 +42,33 @@ For more details, please check [examples](https://github.com/thomas-young-2013/a
 
 ### Requirements
 
-Besides the listed requirements (see `requirements.txt`), Soln-ML requires SWIG (>= 3.0, <4.0) as a build dependency:
+Besides the listed requirements (see `requirements.txt`), Soln-ML requires SWIG (>= 3.0, <4.0) as a build dependency. 
+Here we recommend you to download & install [swig=3.0.12](https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/)
 
-```apt-get install swig```
-
-On Arch Linux (or any distribution with swig4 as default implementation):
+#### for Arch Linux User
+On Arch Linux (or any distribution with swig4 as default implementation), you need to confirm that the version of SWIG is in (>= 3.0, <4.0); 
+we suggest you to install `swig=3.0.12`.
 
 ```
-pacman -Syu swig3
-ln -s /usr/bin/swig-3 /usr/bin/swig
+./configure
+make & make install
 ```
+
+#### for MACOSX User
+Before installing SWIG, you need to install [pcre](https://sourceforge.net/projects/pcre/files/pcre/8.44/):
+```
+cd $pcre_dir
+./configure
+make & make install
+```
+
+Then add library path of `/usr/local/lib` for pcre:
+```
+LD_LIBRARY_PATH=/usr/local/lib:/usr/lib
+export LD_LIBRARY_PATH
+```
+
+Finally install SWIG as described above.
 
 ### Installation via pip (coming soon!)
 
