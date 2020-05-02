@@ -81,6 +81,9 @@ cd $pyrfr_dir
 python setup.py install
 ```
 
+#### for Windows User
+You need to download [swigwin](https://sourceforge.net/projects/swig/files/swigwin/swigwin-3.0.12/), and install it!
+
 ### Installation via pip (coming soon!)
 
 Soln-ML will be available on PyPI.
