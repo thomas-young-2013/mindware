@@ -68,7 +68,18 @@ LD_LIBRARY_PATH=/usr/local/lib:/usr/lib
 export LD_LIBRARY_PATH
 ```
 
-Finally install SWIG as described above.
+Install SWIG as described above.
+```
+cd $swig_dir
+./configure
+make & make install
+```
+
+Before installing python package pyrfr (version 0.8.0), download source code from [pypi](https://pypi.org/project/pyrfr/#files):
+```
+cd $pyrfr_dir
+python setup.py install
+```
 
 ### Installation via pip (coming soon!)
 
