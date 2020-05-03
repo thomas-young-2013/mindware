@@ -56,7 +56,7 @@ def tune_meta_learner():
     def_value = objective_function(cs.get_default_configuration())
     print("Default Value: %.2f" % (def_value))
 
-    bo = BayesianOptimization(objective_function, cs, max_runs=100, time_limit_per_trial=120)
+    bo = BayesianOptimization(objective_function, cs, max_runs=100, time_limit_per_trial=150)
     bo.run()
     inc_value = bo.get_incumbent()
     config = inc_value[0][0]

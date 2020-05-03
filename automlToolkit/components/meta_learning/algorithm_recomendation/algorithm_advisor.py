@@ -97,6 +97,8 @@ class AlgorithmAdvisor(object):
         if os.path.exists(meta_learner_config_filename):
             with open(meta_learner_config_filename, 'rb') as f:
                 meta_learner_config = pk.load(f)
+                print('load meta-learner config from file.')
+                print(meta_learner_config)
         else:
             meta_learner_config = dict()
 
