@@ -5,6 +5,9 @@ from functools import partial
 def get_metric(metric):
     # Metrics for classification
     if metric in ["accuracy", "acc"]:
+        from sklearn.metrics import accuracy_score
+        return make_scorer(accuracy_score)
+    elif metric in ["balanced_accuracy", "bal_acc"]:
         from sklearn.metrics.scorer import balanced_accuracy_scorer
         return balanced_accuracy_scorer
     elif metric == 'f1':
