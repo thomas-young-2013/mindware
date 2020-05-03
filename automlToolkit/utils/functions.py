@@ -24,7 +24,7 @@ def is_unbalanced_dataset(data_node: DataNode):
     cnts = list()
     for val in set(labels):
         cnts.append(labels.count(val))
-    sorted(cnts)
+    cnts = sorted(cnts)
     print('label distribution', cnts)
     assert len(cnts) > 1
     return cnts[0] * 4 <= cnts[-1]
