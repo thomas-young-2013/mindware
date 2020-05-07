@@ -254,7 +254,13 @@ class BayesianOptimizationOptimizer(Optimizer):
     def fetch_nodes(self, n=5):
         runhistory = self.optimizer.get_history()
         hist_dict = runhistory.data
-        min_list = sorted(hist_dict.items(), key=lambda item: item[1])
+        default_config = self.hyperparameter_space.get_default_configuration()
+
+        if len(hist_dict) > 0:
+            min_list = sorted(hist_dict.items(), key=lambda item: item[1])
+        else:
+            min_list = [default_config]
+
         if len(min_list) < 50:
             min_n = list(min_list[:n])
         else:
@@ -263,7 +269,6 @@ class BayesianOptimizationOptimizer(Optimizer):
             min_n = [min_list[idx] for idx in chosen_idxs]
 
         # Filter out.
-        default_config = self.hyperparameter_space.get_default_configuration()
         default_perf = runhistory.data[default_config]
         min_n = list(filter(lambda x: x[1] < default_perf, min_n))
         # Get default configuration.
