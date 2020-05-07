@@ -24,8 +24,10 @@ def fetch_algorithm_runs(meta_dir, dataset, metric, total_resource, rep,
                 res = pickle.load(f)
                 scores.append(res[2])
 
-        if len(scores) == rep:
+        if len(scores) == 3:
             median_score.append(np.median(scores))
+        else:
+            median_score.append(-1)
     return median_score
 
 
@@ -33,9 +35,14 @@ def prepare_meta_dataset(meta_dir, metric, total_resource, rep,
                          buildin_datasets, buildin_algorithms, task_type=None):
     X, Y = list(), list()
     sorted_keys = None
+    include_datasets = list()
     for _dataset in buildin_datasets:
         # Calculate metafeature for datasets.
-        feature_dict = calculate_metafeatures(_dataset, task_type=task_type)
+        try:
+            feature_dict = calculate_metafeatures(_dataset, task_type=task_type)
+        except Exception as e:
+            print(e)
+            continue
         if sorted_keys is None:
             sorted_keys = sorted(feature_dict.keys())
         meta_instance = [feature_dict[key] for key in sorted_keys]
@@ -44,5 +51,6 @@ def prepare_meta_dataset(meta_dir, metric, total_resource, rep,
         # Load partial relationship between algorithms.
         scores = fetch_algorithm_runs(meta_dir, _dataset, metric, total_resource, rep, buildin_algorithms)
         Y.append(scores)
+        include_datasets.append(_dataset)
 
-    return X, Y
+    return X, Y, include_datasets

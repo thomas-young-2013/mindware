@@ -7,6 +7,7 @@ from sklearn.metrics.scorer import _BaseScorer, _PredictScorer, _ThresholdScorer
 
 from automlToolkit.components.utils.constants import *
 from automlToolkit.components.ensemble.base_ensemble import BaseEnsembleModel
+from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
 
 
 class EnsembleSelection(BaseEnsembleModel):
@@ -25,12 +26,12 @@ class EnsembleSelection(BaseEnsembleModel):
                          ensemble_size=ensemble_size,
                          task_type=task_type,
                          metric=metric,
-                         save_model=True,
                          output_dir=output_dir)
         self.sorted_initialization = sorted_initialization
         self.bagging = bagging
         self.mode = mode
         self.encoder = OneHotEncoder()
+        self.shape = self.train_predictions[0].shape
         self.random_state = np.random.RandomState(self.seed)
 
     def calculate_score(self, pred, y_true):
@@ -62,6 +63,25 @@ class EnsembleSelection(BaseEnsembleModel):
             self._fit(self.train_predictions, self.train_labels)
         self._calculate_weights()
         self.identifiers_ = None
+
+        # Refit models on whole training data
+        self.model_idx = []
+        model_cnt = 0
+        for algo_id in self.stats["include_algorithms"]:
+            train_list = self.stats[algo_id]['train_data_list']
+            configs = self.stats[algo_id]['configurations']
+            for idx in range(len(train_list)):
+                X, y = train_list[idx].data
+                for _config in configs:
+                    if self.weights_[model_cnt] != 0:
+                        print("Refit model %d" % model_cnt)
+                        self.model_idx.append(model_cnt)
+                        estimator = fetch_predict_estimator(self.task_type, _config, X, y)
+                        with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, model_cnt)),
+                                  'wb') as f:
+                            pkl.dump(estimator, f)
+                    model_cnt += 1
+
         return self
 
     def _fit(self, predictions, labels):
@@ -202,13 +222,20 @@ class EnsembleSelection(BaseEnsembleModel):
             for train_node in self.stats[algo_id]['train_data_list']:
                 test_node = solvers[algo_id].optimizer['fe'].apply(data, train_node)
                 X_test, _ = test_node.data
+
                 for _ in self.stats[algo_id]['configurations']:
-                    with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, cur_idx)), 'rb') as f:
-                        estimator = pkl.load(f)
-                        if self.task_type in CLS_TASKS:
-                            predictions.append(estimator.predict_proba(X_test))
+                    if cur_idx in self.model_idx:
+                        with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, cur_idx)), 'rb') as f:
+                            estimator = pkl.load(f)
+                            if self.task_type in CLS_TASKS:
+                                predictions.append(estimator.predict_proba(X_test))
+                            else:
+                                predictions.append(estimator.predict(X_test))
+                    else:
+                        if len(self.shape) == 1:
+                            predictions.append(np.zeros(len(test_node.data[0])))
                         else:
-                            predictions.append(estimator.predict(X_test))
+                            predictions.append(np.zeros((len(test_node.data[0]), self.shape[1])))
                     cur_idx += 1
         predictions = np.asarray(predictions)
 

@@ -1005,17 +1005,14 @@ def calculate_all_metafeatures(X, y, categorical, dataset_name, task_type,
                 # TODO make sure this is done as efficient as possible (no copy for
                 # sparse matrices because of wrong sparse format)
                 sparse = scipy.sparse.issparse(X)
+
+                imputer = SimpleImputer(strategy='most_frequent', copy=False)
+                X_transformed = imputer.fit_transform(X.copy())
                 if any(categorical):
-                    categorical_idx = []
-                    for idx, i in enumerate(categorical):
-                        if i:
-                            categorical_idx.append(idx)
+                    categorical_idx = [idx for idx, i in enumerate(categorical) if i]
                     ohe = ColumnTransformer([('one-hot', OneHotEncoder(), categorical_idx)], remainder="passthrough")
-                    X_transformed = ohe.fit_transform(X)
-                else:
-                    X_transformed = X
-                imputer = SimpleImputer(strategy='mean', copy=False)
-                X_transformed = imputer.fit_transform(X_transformed)
+                    X_transformed = ohe.fit_transform(X_transformed)
+
                 center = not scipy.sparse.isspmatrix(X_transformed)
                 standard_scaler = StandardScaler(copy=False, with_mean=center)
                 X_transformed = standard_scaler.fit_transform(X_transformed)

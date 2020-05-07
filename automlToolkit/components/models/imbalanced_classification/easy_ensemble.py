@@ -6,13 +6,17 @@ from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
 from automlToolkit.components.models.base_model import BaseClassificationModel
 from automlToolkit.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
 from automlToolkit.components.utils.configspace_utils import check_none, check_for_bool
-from imblearn.ensemble import EasyEnsembleClassifier
+
 
 class EasyEnsemble(BaseClassificationModel):
 
     def __init__(self, n_estimators,
                  sampling_strategy,
                  replacement,
+                 ab_n_estimators,
+                 ab_max_depth,
+                 ab_learning_rate,
+                 ab_algorithm,
                  n_jobs=-1,
                  random_state=None):
         self.n_estimators = n_estimators
@@ -21,29 +25,27 @@ class EasyEnsemble(BaseClassificationModel):
         self.random_state = random_state
 
         # Parameters for Adaboost base learner
-        self.ab_max_depth = None
-        self.ab_n_estimators = None
-        self.ab_learning_rate = None
-        self.ab_algorithm = None
+        self.ab_max_depth = ab_max_depth
+        self.ab_n_estimators = ab_n_estimators
+        self.ab_learning_rate = ab_learning_rate
+        self.ab_algorithm = ab_algorithm
         self.n_jobs = n_jobs
         self.estimator = None
         self.time_limit = None
-
-
 
     def fit(self, X, Y, sample_weight=None):
         import sklearn.tree
         if self.estimator is None:
             self.ab_max_depth = int(self.ab_max_depth)
-            base_estimator = sklearn.tree.DecisionTreeClassifier(max_depth=self.max_depth)
+            base_estimator = sklearn.tree.DecisionTreeClassifier(max_depth=self.ab_max_depth)
             self.estimator = sklearn.ensemble.AdaBoostClassifier(
-            base_estimator=base_estimator,
-            n_estimators=self.ab_n_estimators,
-            learning_rate=self.ab_learning_rate,
-            algorithm=self.ab_algorithm,
-            random_state=self.random_state
-        )
-
+                base_estimator=base_estimator,
+                n_estimators=self.ab_n_estimators,
+                learning_rate=self.ab_learning_rate,
+                algorithm=self.ab_algorithm,
+                random_state=self.random_state
+            )
+        from imblearn.ensemble import EasyEnsembleClassifier
         estimator = EasyEnsembleClassifier(base_estimator=self.estimator,
                                            n_estimators=self.n_estimators,
                                            sampling_strategy=self.sampling_strategy,
@@ -51,7 +53,7 @@ class EasyEnsemble(BaseClassificationModel):
                                            n_jobs=self.n_jobs,
                                            random_state=self.random_state)
 
-        estimator.fit(X, Y, sample_weight=sample_weight)
+        estimator.fit(X, Y)
 
         self.estimator = estimator
         return self
@@ -85,7 +87,8 @@ class EasyEnsemble(BaseClassificationModel):
             n_estimators = UniformIntegerHyperparameter(
                 name="n_estimators", lower=50, upper=500, default_value=50, log=False)
             sampling_strategy = CategoricalHyperparameter(
-                name="sampling_strategy", choices=["majority", "not minority", "not majority", "all"], default_value="not minority")
+                name="sampling_strategy", choices=["majority", "not minority", "not majority", "all"],
+                default_value="not minority")
             replacement = CategoricalHyperparameter(
                 "replacement", ["True", "False"], default_value="False")
 
@@ -103,7 +106,8 @@ class EasyEnsemble(BaseClassificationModel):
         elif optimizer == 'tpe':
             from hyperopt import hp
             space = {'n_estimators': hp.randint('easy_ensemble_n_estimators', 451) + 50,
-                     'sampling_strategy': hp.choice('easy_ensemble_sampling_strategy', ["majority", "not minority", "not majority", "all"]),
+                     'sampling_strategy': hp.choice('easy_ensemble_sampling_strategy',
+                                                    ["majority", "not minority", "not majority", "all"]),
                      'replacement': hp.choice('easy_ensemble_replacement', ["True", "False"]),
 
                      'ab_n_estimators': hp.randint('ab_n_estimators', 451) + 50,

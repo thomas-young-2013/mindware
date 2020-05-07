@@ -4,7 +4,6 @@ import time
 import pickle
 import argparse
 import numpy as np
-import autosklearn.classification
 from tabulate import tabulate
 from sklearn.metrics import make_scorer
 
@@ -20,7 +19,7 @@ parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
               'messidor_features,winequality_red,winequality_white,splice,spambase,amazon_employee'
 parser.add_argument('--datasets', type=str, default=dataset_set)
-parser.add_argument('--mode', type=str, choices=['ausk', 'hmab', 'hmab,ausk', 'plot'], default='plot')
+parser.add_argument('--mode', type=str, choices=['hmab','plot'], default='plot')
 parser.add_argument('--algo_num', type=int, default=15)
 parser.add_argument('--time_cost', type=int, default=1200)
 parser.add_argument('--trial_num', type=int, default=150)
@@ -31,15 +30,15 @@ parser.add_argument('--seed', type=int, default=1)
 project_dir = './'
 per_run_time_limit = 180
 opt_algo = 'rb_hpo'
-hmab_flag = 'hmab_ens'
-ausk_flag = 'ausk_single'
+hmab_flag = 'imb_hmab'
 
 
-def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
+def evaluate_imbalanced(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
     print('%s-%s-%d: %d' % (hmab_flag, dataset, run_id, time_limit))
     _start_time = time.time()
-    train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
+    train_data, test_data = load_train_test_data(dataset)
     cls_task_type = BINARY_CLS if len(set(train_data.data[1])) == 2 else MULTICLASS_CLS
+    # ACC or Balanced_ACC
     balanced_acc_metric = make_scorer(balanced_accuracy)
     bandit = FirstLayerBandit(cls_task_type, trial_num, algorithms, train_data,
                               output_dir='logs',
@@ -51,83 +50,22 @@ def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_
                               fe_algo='bo',
                               seed=seed)
     bandit.optimize()
-    time_taken = time.time() - _start_time
     model_desc = [bandit.nbest_algo_ids, bandit.optimal_algo_id, bandit.final_rewards, bandit.action_sequence]
 
+    time_taken = time.time() - _start_time
     validation_accuracy = np.max(bandit.final_rewards)
     best_pred = bandit._best_predict(test_data)
     test_accuracy = balanced_accuracy(test_data.data[1], best_pred)
-
-    bandit.refit()
     es_pred = bandit._es_predict(test_data)
     test_accuracy_with_ens = balanced_accuracy(test_data.data[1], es_pred)
-
     data = [dataset, validation_accuracy, test_accuracy, test_accuracy_with_ens, time_taken, model_desc]
     print(model_desc)
-    print(data)
+    print(data[:4])
 
     save_path = project_dir + 'data/%s_%s_%s_%d_%d_%d_%d.pkl' % (
         hmab_flag, opt_algo, dataset, trial_num, len(algorithms), seed, run_id)
     with open(save_path, 'wb') as f:
         pickle.dump(data, f)
-
-
-def load_hmab_time_costs(start_id, rep, dataset, n_algo, trial_num, seeds):
-    time_costs = list()
-    for run_id in range(start_id, start_id + rep):
-        seed = seeds[run_id]
-        save_path = project_dir + 'data/%s_%s_%s_%d_%d_%d_%d.pkl' % (hmab_flag, opt_algo, dataset, trial_num,
-                                                                     n_algo, seed, run_id)
-        with open(save_path, 'rb') as f:
-            time_cost_ = int(pickle.load(f)[4])
-            time_costs.append(time_cost_)
-    assert len(time_costs) == rep
-    print(time_costs)
-    return time_costs
-
-
-def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
-    print('AUSK-%s-%d: %d' % (dataset, run_id, time_limit))
-    include_models = algorithms
-    automl = autosklearn.classification.AutoSklearnClassifier(
-        time_left_for_this_task=time_limit,
-        per_run_time_limit=per_run_time_limit,
-        include_preprocessors=None,
-        exclude_preprocessors=None,
-        n_jobs=1,
-        include_estimators=include_models,
-        ensemble_memory_limit=8192,
-        ml_memory_limit=8192,
-        ensemble_size=1,
-        ensemble_nbest=1,
-        initial_configurations_via_metalearning=0,
-        seed=int(seed),
-        resampling_strategy='holdout',
-        resampling_strategy_arguments={'train_size': 0.67}
-    )
-    print(automl)
-
-    train_data, test_data = load_train_test_data(dataset)
-    X, y = train_data.data
-    feat_type = ['Categorical' if _type == CATEGORICAL else 'Numerical'
-                 for _type in train_data.feature_types]
-
-    from autosklearn.metrics import balanced_accuracy
-    automl.fit(X.copy(), y.copy(), metric=balanced_accuracy, feat_type=feat_type)
-    model_desc = automl.show_models()
-    print(model_desc)
-    val_result = np.max(automl.cv_results_['mean_test_score'])
-    print('Best validation accuracy', val_result)
-
-    X_test, y_test = test_data.data
-    automl.refit(X.copy(), y.copy())
-    y_pred = automl.predict(X_test)
-    test_result = balanced_accuracy(y_test, y_pred)
-    print('Test accuracy', test_result)
-    save_path = project_dir + 'data/%s_%s_%d_%d_%d_%d.pkl' % (
-        ausk_flag, dataset, trial_num, len(algorithms), seed, run_id)
-    with open(save_path, 'wb') as f:
-        pickle.dump([dataset, val_result, test_result, model_desc], f)
 
 
 if __name__ == "__main__":
@@ -143,41 +81,25 @@ if __name__ == "__main__":
     np.random.seed(args.seed)
     seeds = np.random.randint(low=1, high=10000, size=start_id + args.rep_num)
 
-    if algo_num == 15:
-        algorithms = ['adaboost', 'random_forest',
-                      'libsvm_svc', 'sgd',
-                      'extra_trees', 'decision_tree',
-                      'liblinear_svc', 'k_nearest_neighbors',
-                      'passive_aggressive', 'xgradient_boosting',
-                      'lda', 'qda',
-                      'multinomial_nb', 'gaussian_nb', 'bernoulli_nb'
-                      ]
-    else:
-        algorithms = ['adaboost', 'random_forest',
-                      'extra_trees', 'liblinear_svc',
-                      'k_nearest_neighbors', 'libsvm_svc', 'gradient_boosting']
+    algorithms = ['balanced_bagging',
+                  'balanced_random_forest',
+                  'rusboost',
+                  'easy_ensemble']
 
     dataset_list = dataset_str.split(',')
 
     for mode in modes:
         if mode != 'plot':
             for dataset in dataset_list:
-                time_costs = list()
-                if mode == 'ausk':
-                    time_costs = load_hmab_time_costs(start_id, rep, dataset, len(algorithms), trial_num, seeds)
-
                 for run_id in range(start_id, start_id + rep):
                     seed = int(seeds[run_id])
                     if mode == 'hmab':
-                        evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed)
-                    elif mode == 'ausk':
-                        time_taken = time_costs[run_id - start_id]
-                        evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=time_taken)
+                        evaluate_imbalanced(algorithms, dataset, run_id, trial_num, seed)
                     else:
                         raise ValueError('Invalid parameter: %s' % mode)
         else:
             headers = ['dataset']
-            method_ids = ['hmab_ens_rb_hpo', 'ausk_single']
+            method_ids = ['imb_hmab_rb_hpo']
             for mth in method_ids:
                 headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
@@ -194,16 +116,8 @@ if __name__ == "__main__":
                             continue
                         with open(file_path, 'rb') as f:
                             data = pickle.load(f)
-                        if mth.startswith('hmab'):
-                            val_acc, test_acc = data[1], data[2]
-                        else:
-                            val_acc, test_acc = data[1], data[2]
+                        val_acc, test_acc = data[1], data[2]
                         results.append([val_acc, test_acc])
-                        # if mth.startswith('ausk'):
-                        #     print('='*10)
-                        #     print(val_acc, test_acc)
-                        #     print(data[3])
-                        #     print('='*10)
 
                     if len(results) == rep:
                         results = np.array(results)
