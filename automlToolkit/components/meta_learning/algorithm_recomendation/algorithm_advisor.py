@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pickle as pk
 import lightgbm as lgb
+from collections import OrderedDict
 from .meta_generator import get_feature_vector, prepare_meta_dataset
 
 _buildin_algorithms = ['lightgbm', 'random_forest', 'libsvm_svc', 'extra_trees', 'liblinear_svc',
@@ -36,9 +37,18 @@ class AlgorithmAdvisor(object):
 
     def fetch_algorithm_set(self, dataset, data_dir='./'):
         input_vector = get_feature_vector(dataset, data_dir, task_type=self.task_type)
-        _, pred_scores = self.predict_meta_learner(input_vector)
-        algo_idx = np.argsort(-pred_scores)
-        return [_buildin_algorithms[idx] for idx in algo_idx[:self.n_algorithm]]
+        pred_algos, _ = self.predict_meta_learner(input_vector)
+        return pred_algos[:self.n_algorithm]
+
+    def fetch_run_results(self, dataset):
+        X, Y, include_datasets = prepare_meta_dataset(self.meta_dir, self.metric,
+                                                      self.total_resource, self.rep,
+                                                      [dataset], _buildin_algorithms,
+                                                      task_type=self.task_type)
+        idxs = np.argsort(-np.array(Y[0]))
+        sorted_algos = [_buildin_algorithms[idx] for idx in idxs]
+        sorted_scores = [Y[0][idx] for idx in idxs]
+        return OrderedDict(zip(sorted_algos, sorted_scores))
 
     def fit_meta_learner(self):
         meta_dataset_filename = self.meta_dir + '/ranker_dataset_%s.pkl' % self.meta_algo
@@ -141,4 +151,8 @@ class AlgorithmAdvisor(object):
                     else:
                         scores[j] += 1
                     instance_idx += 1
-            return _buildin_algorithms, np.array(scores) / np.sum(scores)
+            scores = np.array(scores) / np.sum(scores)
+            idxs = np.argsort(-scores)
+            sorted_algos = [_buildin_algorithms[idx] for idx in idxs]
+            sorted_scores = [scores[idx] for idx in idxs]
+            return sorted_algos, sorted_scores

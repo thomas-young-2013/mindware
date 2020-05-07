@@ -54,6 +54,7 @@ class FirstLayerBandit(object):
         self.optimal_algo_id = None
         self.nbest_algo_ids = None
         self.best_lower_bounds = None
+        self.es = None
 
         # Set up backend.
         self.dataset_name = dataset_name
@@ -138,7 +139,6 @@ class FirstLayerBandit(object):
         if self.fe_algo == 'tree_based':
             self.best_data_node = self.sub_bandits[self.optimal_algo_id].inc['fe']
         else:
-            # self.best_data_node = self.stats[self.optimal_algo_id]['train_data_list'][0]
             self.fe_optimizer.fetch_nodes(1)
             self.best_data_node = self.fe_optimizer.incumbent
 
@@ -151,10 +151,10 @@ class FirstLayerBandit(object):
             pkl.dump(best_estimator, f)
 
     def refit(self):
-        self.stats = self.fetch_ensemble_members()
+        stats = self.fetch_ensemble_members()
         if self.ensemble_method is not None:
             # Ensembling all intermediate/ultimate models found in above optimization process.
-            self.es = EnsembleBuilder(stats=self.stats,
+            self.es = EnsembleBuilder(stats=stats,
                                       ensemble_method=self.ensemble_method,
                                       ensemble_size=self.ensemble_size,
                                       task_type=self.task_type,
@@ -359,8 +359,7 @@ class FirstLayerBandit(object):
             # Build hyperparameter configuration candidates.
             configs = hpo_optimizer.configs
             perfs = hpo_optimizer.perfs
-            best_configs = self.sub_bandits[algo_id].local_hist['hpo']
-            best_configs = list(set(best_configs))
+            best_configs = list()
             if self.metric._sign > 0:
                 threshold = best_perf * threshold
             else:
@@ -369,8 +368,12 @@ class FirstLayerBandit(object):
             for idx in np.argsort(-np.array(perfs)):
                 if perfs[idx] >= threshold and configs[idx] not in best_configs:
                     best_configs.append(configs[idx])
-                if len(best_configs) >= hpo_config_num:
-                    break
+
+            if len(best_configs) > 15:
+                idxs = np.arange(hpo_config_num) * 3
+                best_configs = [best_configs[idx] for idx in idxs]
+            else:
+                best_configs = best_configs[:hpo_config_num]
             data['configurations'] = best_configs
 
             stats[algo_id] = data

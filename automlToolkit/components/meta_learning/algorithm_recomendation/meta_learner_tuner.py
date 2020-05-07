@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pickle as pk
 import lightgbm as lgb
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, accuracy_score
 from sklearn.metrics.scorer import make_scorer
 from sklearn.model_selection import StratifiedKFold
 
@@ -18,12 +18,12 @@ if os.path.exists(meta_dataset_filename):
     with open(meta_dataset_filename, 'rb') as f:
         meta_X, meta_y, meta_infos = pk.load(f)
 print('meta instance num: %d' % len(meta_y))
-scorer = make_scorer(roc_auc_score)
+scorer = make_scorer(accuracy_score)
 X, y = np.array(meta_X), np.array(meta_y)
 
 
 def objective_function(config):
-    gbm = lgb.LGBMRegressor(**config)
+    gbm = lgb.LGBMClassifier(**config)
 
     scores = list()
     kfold = StratifiedKFold(n_splits=5, random_state=1, shuffle=True)
@@ -31,6 +31,10 @@ def objective_function(config):
         train_x, valid_x = X[train_idx], X[valid_idx]
         train_y, valid_y = y[train_idx], y[valid_idx]
         gbm.fit(train_x, train_y)
+        # print(train_y, valid_y)
+        # pred_y = gbm.predict(valid_x)
+        # print(pred_y)
+        # scores.append(accuracy_score(valid_y, pred_y))
         scores.append(scorer(gbm, valid_x, valid_y))
     print(-np.mean(scores))
     return -np.mean(scores)
@@ -56,7 +60,7 @@ def tune_meta_learner():
     def_value = objective_function(cs.get_default_configuration())
     print("Default Value: %.2f" % (def_value))
 
-    bo = BayesianOptimization(objective_function, cs, max_runs=100, time_limit_per_trial=150)
+    bo = BayesianOptimization(objective_function, cs, max_runs=50, time_limit_per_trial=150)
     bo.run()
     inc_value = bo.get_incumbent()
     config = inc_value[0][0]

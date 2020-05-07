@@ -37,6 +37,7 @@ def prepare_meta_dataset(meta_dir, metric, total_resource, rep,
     sorted_keys = None
     include_datasets = list()
     for _dataset in buildin_datasets:
+        print('Processing', _dataset)
         # Calculate metafeature for datasets.
         try:
             feature_dict = calculate_metafeatures(_dataset, task_type=task_type)
