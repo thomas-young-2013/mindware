@@ -33,30 +33,44 @@ parser.add_argument('--seed', type=int, default=1)
 
 project_dir = './data/meta_exp/'
 per_run_time_limit = 180
-metric_id = 'acc'
 opt_algo = 'rb_hpo'
-hmab_flag = 'hmab_meta'
-ausk_flag = 'eval_ausk_full'
-assert ausk_flag in ['eval_ausk_meta', 'eval_ausk_full', 'eval_ausk_vanilla']
+# 1. hmab_meta
+# 2. hmab_meta_fixed
+hmab_flag = 'hmab_meta_fixed'
+ausk_flag = 'eval_ausk_mens'
+assert ausk_flag in ['eval_ausk_meta', 'eval_ausk_full', 'eval_ausk_vanilla', 'eval_ausk_mens']
 if not os.path.exists(project_dir):
     os.makedirs(project_dir)
 
 
 def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
     print('%s-%s-%d: %d' % (hmab_flag, dataset, run_id, time_limit))
+    alad = AlgorithmAdvisor(task_type=MULTICLASS_CLS, n_algorithm=9, metric='acc')
+    meta_infos = alad.fit_meta_learner()
+    assert dataset not in meta_infos
+    model_candidates = alad.fetch_algorithm_set(dataset)
+    include_models = list()
+    print(model_candidates)
+    for algo in model_candidates:
+        if algo in algorithms and len(include_models) < 3:
+            include_models.append(algo)
+    print('After algorithm recommendation', include_models)
+
     _start_time = time.time()
     train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
     cls_task_type = BINARY_CLS if len(set(train_data.data[1])) == 2 else MULTICLASS_CLS
     balanced_acc_metric = make_scorer(balanced_accuracy)
-    bandit = FirstLayerBandit(cls_task_type, trial_num, algorithms, train_data,
+    bandit = FirstLayerBandit(cls_task_type, trial_num, include_models, train_data,
                               output_dir='logs',
                               per_run_time_limit=per_run_time_limit,
                               dataset_name=dataset,
                               ensemble_size=50,
-                              opt_algo=opt_algo,
+                              inner_opt_algorithm=opt_algo,
                               metric=balanced_acc_metric,
                               fe_algo='bo',
-                              seed=seed)
+                              seed=seed,
+                              time_limit=time_limit,
+                              eval_type='cv')
     bandit.optimize()
     time_taken = time.time() - _start_time
     model_desc = [bandit.nbest_algo_ids, bandit.optimal_algo_id, bandit.final_rewards, bandit.action_sequence]
@@ -96,7 +110,7 @@ def load_hmab_time_costs(start_id, rep, dataset, n_algo, trial_num, seeds, time_
 def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
     print('AUSK-%s-%d: %d' % (dataset, run_id, time_limit))
     if ausk_flag == 'eval_ausk_meta':
-        alad = AlgorithmAdvisor(task_type=MULTICLASS_CLS, n_algorithm=9, metric=metric_id)
+        alad = AlgorithmAdvisor(task_type=MULTICLASS_CLS, n_algorithm=9, metric='acc')
         meta_infos = alad.fit_meta_learner()
         assert dataset not in meta_infos
         model_candidates = alad.fetch_algorithm_set(dataset)
@@ -107,12 +121,19 @@ def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limi
                 include_models.append(algo)
         print('After algorithm recommendation', include_models)
         n_config_meta_learning = 0
+        ensemble_size = 1
     elif ausk_flag == 'eval_ausk_full':
         include_models = algorithms
         n_config_meta_learning = 25
+        ensemble_size = 1
+    elif ausk_flag == 'eval_ausk_mens':
+        include_models = algorithms
+        n_config_meta_learning = 25
+        ensemble_size = 50
     else:
         include_models = algorithms
         n_config_meta_learning = 0
+        ensemble_size = 1
 
     automl = autosklearn.classification.AutoSklearnClassifier(
         time_left_for_this_task=time_limit,
@@ -123,8 +144,8 @@ def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limi
         include_estimators=include_models,
         ensemble_memory_limit=8192,
         ml_memory_limit=8192,
-        ensemble_size=1,
-        ensemble_nbest=1,
+        ensemble_size=ensemble_size,
+        ensemble_nbest=ensemble_size,
         initial_configurations_via_metalearning=n_config_meta_learning,
         seed=int(seed),
         resampling_strategy='cv',
@@ -204,7 +225,7 @@ if __name__ == "__main__":
                         raise ValueError('Invalid parameter: %s' % mode)
         else:
             headers = ['dataset']
-            method_ids = ['eval_ausk_meta', 'eval_ausk_full', 'eval_ausk_vanilla']
+            method_ids = ['hmab_meta_fixed_rb_hpo', 'eval_ausk_full', 'eval_ausk_mens']
             for mth in method_ids:
                 headers.extend(['val-%s' % mth, 'test-%s' % mth])
 

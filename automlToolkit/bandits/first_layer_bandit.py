@@ -2,7 +2,6 @@ import os
 import time
 import numpy as np
 import pickle as pkl
-from scipy.stats import norm
 from typing import List
 from sklearn.metrics import accuracy_score
 from automlToolkit.components.metrics.metric import get_metric
@@ -26,8 +25,9 @@ class FirstLayerBandit(object):
                  eval_type='holdout',
                  share_feature=False,
                  logging_config=None,
-                 opt_algo='rb',
+                 inner_opt_algorithm='rb',
                  fe_algo='tree_based',
+                 time_limit=None,
                  n_jobs=1,
                  seed=1):
         """
@@ -58,6 +58,8 @@ class FirstLayerBandit(object):
 
         # Set up backend.
         self.dataset_name = dataset_name
+        self.time_limit = time_limit
+        self.start_time = time.time()
         self.tmp_directory = tmp_directory
         self.logging_config = logging_config
         if not os.path.exists(self.tmp_directory):
@@ -75,6 +77,7 @@ class FirstLayerBandit(object):
         self.fe_datanodes = dict()
         self.eval_type = eval_type
         self.fe_algo = fe_algo
+        self.inner_opt_algorithm = inner_opt_algorithm
         for arm in self.arms:
             self.rewards[arm] = list()
             self.evaluation_cost[arm] = list()
@@ -90,7 +93,7 @@ class FirstLayerBandit(object):
                 dataset_id=dataset_name,
                 n_jobs=self.n_jobs,
                 fe_algo=fe_algo,
-                mth=opt_algo,
+                mth=inner_opt_algorithm,
             )
 
         self.action_sequence = list()
@@ -101,13 +104,13 @@ class FirstLayerBandit(object):
     def get_stats(self):
         return self.time_records, self.final_rewards
 
-    def optimize(self, strategy='explore_first'):
-        if strategy == 'explore_first':
+    def optimize(self):
+        if self.inner_opt_algorithm == 'rb_hpo':
             self.optimize_explore_first()
-        elif strategy == 'equal':
+        elif self.inner_opt_algorithm == 'equal':
             self.optimize_equal_resource()
         else:
-            raise ValueError('Unsupported optimization method: %s!' % strategy)
+            raise ValueError('Unsupported optimization method: %s!' % self.inner_opt_algorithm)
 
         scores = list()
         for _arm in self.arms:
@@ -280,12 +283,17 @@ class FirstLayerBandit(object):
                 # Update the arm_candidates.
                 arm_candidate = [item for index, item in enumerate(arm_candidate) if not flags[index]]
 
+            if self.time_limit is not None and time.time() > self.start_time + self.time_limit:
+                break
         return self.final_rewards
 
     def optimize_equal_resource(self):
         arm_num = len(self.arms)
         arm_candidate = self.arms.copy()
-        resource_per_algo = self.trial_num // arm_num
+        if self.time_limit is None:
+            resource_per_algo = self.trial_num // arm_num
+        else:
+            resource_per_algo = 8
         for _arm in arm_candidate:
             self.sub_bandits[_arm].total_resource = resource_per_algo
             self.sub_bandits[_arm].mth = 'fixed'
@@ -305,6 +313,9 @@ class FirstLayerBandit(object):
                 self.optimal_algo_id = _arm
             self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
             _iter_id += 1
+
+            if self.time_limit is not None and time.time() > self.start_time + self.time_limit:
+                break
         return self.final_rewards
 
     def _get_logger(self, name):
@@ -359,15 +370,20 @@ class FirstLayerBandit(object):
             # Build hyperparameter configuration candidates.
             configs = hpo_optimizer.configs
             perfs = hpo_optimizer.perfs
-            best_configs = list()
+
             if self.metric._sign > 0:
                 threshold = best_perf * threshold
             else:
                 threshold = best_perf / threshold
 
-            for idx in np.argsort(-np.array(perfs)):
-                if perfs[idx] >= threshold and configs[idx] not in best_configs:
-                    best_configs.append(configs[idx])
+            best_configs = list()
+            if len(perfs) > 0:
+                default_perf = perfs[0]
+                for idx in np.argsort(-np.array(perfs)):
+                    if perfs[idx] >= default_perf and configs[idx] not in best_configs:
+                        best_configs.append(configs[idx])
+            else:
+                best_configs.append(hpo_optimizer.config_space.get_default_configuration())
 
             if len(best_configs) > 15:
                 idxs = np.arange(hpo_config_num) * 3

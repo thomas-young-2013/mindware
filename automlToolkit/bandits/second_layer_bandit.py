@@ -254,7 +254,7 @@ class SecondLayerBandit(object):
     def optimize_fixed_pipeline(self):
         ratio_fe = int(self.total_resource * 0.75) + 1
         for iter_id in range(self.total_resource):
-            if iter_id == 0 or iter_id > ratio_fe:
+            if iter_id == 0 or iter_id >= ratio_fe:
                 _arm = 'hpo'
             else:
                 _arm = 'fe'
