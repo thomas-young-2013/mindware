@@ -24,7 +24,7 @@ dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
 parser.add_argument('--datasets', type=str, default=dataset_set)
 parser.add_argument('--mode', type=str, choices=['ausk', 'hmab', 'hmab,ausk', 'plot'], default='plot')
 parser.add_argument('--algo_num', type=int, default=15)
-parser.add_argument('--time_cost', type=int, default=1200)
+parser.add_argument('--time_cost', type=int, default=600)
 parser.add_argument('--trial_num', type=int, default=150)
 parser.add_argument('--rep_num', type=int, default=10)
 parser.add_argument('--start_id', type=int, default=0)
@@ -36,7 +36,7 @@ per_run_time_limit = 180
 opt_algo = 'rb_hpo'
 # 1. hmab_meta
 # 2. hmab_meta_fixed
-hmab_flag = 'hmab_meta_fixed'
+hmab_flag = 'hmab_meta'
 ausk_flag = 'eval_ausk_mens'
 assert ausk_flag in ['eval_ausk_meta', 'eval_ausk_full', 'eval_ausk_vanilla', 'eval_ausk_mens']
 if not os.path.exists(project_dir):
@@ -45,7 +45,11 @@ if not os.path.exists(project_dir):
 
 def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
     print('%s-%s-%d: %d' % (hmab_flag, dataset, run_id, time_limit))
-    alad = AlgorithmAdvisor(task_type=MULTICLASS_CLS, n_algorithm=9, metric='acc')
+    exclude_datasets = ['gina_prior2', 'pc2', 'abalone', 'wind', 'waveform-5000(2)',
+                        'page-blocks(1)', 'winequality_white', 'pollen']
+    alad = AlgorithmAdvisor(task_type=MULTICLASS_CLS, n_algorithm=9,
+                            metric='acc', exclude_datasets=exclude_datasets)
+    assert dataset in exclude_datasets
     meta_infos = alad.fit_meta_learner()
     assert dataset not in meta_infos
     model_candidates = alad.fetch_algorithm_set(dataset)
@@ -70,7 +74,7 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
                               fe_algo='bo',
                               seed=seed,
                               time_limit=time_limit,
-                              eval_type='cv')
+                              eval_type='holdout')
     bandit.optimize()
     time_taken = time.time() - _start_time
     model_desc = [bandit.nbest_algo_ids, bandit.optimal_algo_id, bandit.final_rewards, bandit.action_sequence]
@@ -148,10 +152,10 @@ def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limi
         ensemble_nbest=ensemble_size,
         initial_configurations_via_metalearning=n_config_meta_learning,
         seed=int(seed),
-        resampling_strategy='cv',
-        resampling_strategy_arguments={'folds': 5}
-        # resampling_strategy='holdout',
-        # resampling_strategy_arguments={'train_size': 0.67}
+        # resampling_strategy='cv',
+        # resampling_strategy_arguments={'folds': 5}
+        resampling_strategy='holdout',
+        resampling_strategy_arguments={'train_size': 0.67}
     )
     print(automl)
 
@@ -225,7 +229,7 @@ if __name__ == "__main__":
                         raise ValueError('Invalid parameter: %s' % mode)
         else:
             headers = ['dataset']
-            method_ids = ['hmab_meta_fixed_rb_hpo', 'eval_ausk_full', 'eval_ausk_mens']
+            method_ids = ['hmab_meta_rb_hpo', 'eval_ausk_mens']
             for mth in method_ids:
                 headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
@@ -234,16 +238,21 @@ if __name__ == "__main__":
                 row_data = [dataset]
                 for mth in method_ids:
                     results = list()
+                    time_costs = load_hmab_time_costs(start_id, rep, dataset, len(algorithms), trial_num, seeds, time_limit)
                     for run_id in range(rep):
                         seed = seeds[run_id]
+                        if not mth.startswith('hmab'):
+                            time_t = time_costs[run_id]
+                        else:
+                            time_t = time_limit
                         file_path = project_dir + '%s_%s_%d_%d_%d_%d_%d.pkl' % (
-                            mth, dataset, trial_num, len(algorithms), seed, run_id, time_limit)
+                            mth, dataset, trial_num, len(algorithms), seed, run_id, time_t)
                         if not os.path.exists(file_path):
                             continue
                         with open(file_path, 'rb') as f:
                             data = pickle.load(f)
                         if mth.startswith('hmab'):
-                            val_acc, test_acc = data[1], data[2]
+                            val_acc, test_acc = data[1], data[3]
                         else:
                             val_acc, test_acc = data[1], data[2]
                         results.append([val_acc, test_acc])

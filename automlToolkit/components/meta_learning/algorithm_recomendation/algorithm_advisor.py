@@ -1,4 +1,5 @@
 import os
+import hashlib
 import numpy as np
 import pickle as pk
 import lightgbm as lgb
@@ -16,6 +17,7 @@ class AlgorithmAdvisor(object):
                  rep=3,
                  total_resource=20,
                  meta_algorithm='lightgbm',
+                 exclude_datasets=None,
                  meta_dir=None):
         self.n_algorithm = n_algorithm
         self.task_type = task_type
@@ -24,10 +26,20 @@ class AlgorithmAdvisor(object):
         self.rep = rep
         self.total_resource = total_resource
         self.meta_dir = meta_dir if meta_dir is not None else './data/meta_res_cp'
+        self.exclude_datasets = exclude_datasets
+        if self.exclude_datasets is None:
+            self.hash_id = 'none'
+        else:
+            exclude_str = ','.join(sorted(self.exclude_datasets))
+            md5 = hashlib.md5()
+            md5.update(exclude_str.encode('utf-8'))
+            self.hash_id = md5.hexdigest()
         meta_datasets = set()
         for _record in os.listdir(self.meta_dir):
             if _record.endswith('.pkl') and _record.find('-') != -1:
                 meta_name = '-'.join(_record.split('-')[:-4])
+                if self.exclude_datasets is not None and meta_name in self.exclude_datasets:
+                    continue
                 meta_datasets.add(meta_name)
         self._buildin_datasets = list(meta_datasets)
         if not self.meta_dir.endswith('/'):
@@ -51,7 +63,9 @@ class AlgorithmAdvisor(object):
         return OrderedDict(zip(sorted_algos, sorted_scores))
 
     def fit_meta_learner(self):
-        meta_dataset_filename = self.meta_dir + '/ranker_dataset_%s.pkl' % self.meta_algo
+        meta_dataset_filename = self.meta_dir + 'ranker_dataset_%s_%s.pkl' % (self.meta_algo, self.hash_id)
+        print(os.path.exists(meta_dataset_filename))
+        print(meta_dataset_filename)
         if os.path.exists(meta_dataset_filename):
             with open(meta_dataset_filename, 'rb') as f:
                 meta_X, meta_y, meta_infos = pk.load(f)
@@ -104,7 +118,7 @@ class AlgorithmAdvisor(object):
         # train
         print(meta_X.shape, meta_y.shape)
 
-        meta_learner_config_filename = self.meta_dir + '/meta_learner_%s_config.pkl' % self.meta_algo
+        meta_learner_config_filename = self.meta_dir + 'meta_learner_%s_%s_config.pkl' % (self.meta_algo, self.hash_id)
         if os.path.exists(meta_learner_config_filename):
             with open(meta_learner_config_filename, 'rb') as f:
                 meta_learner_config = pk.load(f)
@@ -118,12 +132,12 @@ class AlgorithmAdvisor(object):
 
         print('Dumping model to PICKLE...')
 
-        with open(self.meta_dir + '/ranker_model_%s.pkl' % self.meta_algo, 'wb') as f:
+        with open(self.meta_dir + 'ranker_model_%s_%s.pkl' % (self.meta_algo, self.hash_id), 'wb') as f:
             pk.dump(gbm, f)
         return meta_infos
 
     def predict_meta_learner(self, meta_feature):
-        with open(self.meta_dir + '/ranker_model_%s.pkl' % self.meta_algo, 'rb') as f:
+        with open(self.meta_dir + 'ranker_model_%s_%s.pkl' % (self.meta_algo, self.hash_id), 'rb') as f:
             gbm = pk.load(f)
 
             n_algo = len(_buildin_algorithms)

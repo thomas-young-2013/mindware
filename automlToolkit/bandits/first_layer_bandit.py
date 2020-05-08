@@ -119,7 +119,7 @@ class FirstLayerBandit(object):
         algo_idx = np.argmax(scores)
         self.optimal_algo_id = self.arms[algo_idx]
         _best_perf = scores[algo_idx]
-        _threshold, _ensemble_size = 0.93, 5
+        _threshold, _ensemble_size = 0.90, 5
 
         idxs = np.argsort(-scores)[:_ensemble_size]
         _algo_ids = [self.arms[idx] for idx in idxs]
@@ -337,6 +337,8 @@ class FirstLayerBandit(object):
         best_perf = float('-INF')
         for algo_id in self.nbest_algo_ids:
             best_perf = max(best_perf, self.sub_bandits[algo_id].incumbent_perf)
+        print('='*50)
+        print('algorithm_id', '#features', '#configs')
         for algo_id in self.nbest_algo_ids:
             data = dict()
             fe_optimizer = self.sub_bandits[algo_id].optimizer['fe']
@@ -363,9 +365,7 @@ class FirstLayerBandit(object):
             for item in train_data_candidates:
                 if item not in train_data_list:
                     train_data_list.append(item)
-
             data['train_data_list'] = train_data_list
-            print(algo_id, len(train_data_list))
 
             # Build hyperparameter configuration candidates.
             configs = hpo_optimizer.configs
@@ -391,6 +391,7 @@ class FirstLayerBandit(object):
             else:
                 best_configs = best_configs[:hpo_config_num]
             data['configurations'] = best_configs
-
+            print(algo_id, len(data['train_data_list']), len(data['configurations']))
             stats[algo_id] = data
+        print('='*30)
         return stats
