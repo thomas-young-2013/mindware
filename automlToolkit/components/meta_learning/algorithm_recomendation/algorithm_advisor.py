@@ -63,10 +63,17 @@ class AlgorithmAdvisor(object):
         return OrderedDict(zip(sorted_algos, sorted_scores))
 
     def fit_meta_learner(self):
+        meta_ranker_filename = self.meta_dir + 'ranker_model_%s_%s.pkl' % (self.meta_algo, self.hash_id)
         meta_dataset_filename = self.meta_dir + 'ranker_dataset_%s_%s.pkl' % (self.meta_algo, self.hash_id)
-        print(os.path.exists(meta_dataset_filename))
-        print(meta_dataset_filename)
+
+        if os.path.exists(meta_ranker_filename):
+            print('meta ranker has been trained!')
+            with open(meta_dataset_filename, 'rb') as f:
+                meta_X, meta_y, meta_infos = pk.load(f)
+            return meta_infos
+
         if os.path.exists(meta_dataset_filename):
+            print('meta dataset file exists:', meta_dataset_filename)
             with open(meta_dataset_filename, 'rb') as f:
                 meta_X, meta_y, meta_infos = pk.load(f)
         else:
@@ -80,14 +87,15 @@ class AlgorithmAdvisor(object):
             meta_infos = list()
             for idx in range(len(X)):
                 meta_feature, run_results, _dataset = X[idx], Y[idx], include_datasets[idx]
-                print(dict(zip(_buildin_algorithms, run_results)))
                 _instance_num = 0
                 n_algo = len(run_results)
+                topk_idxs = np.argsort(-np.array(run_results))[:3]
                 for i in range(n_algo):
                     for j in range(i + 1, n_algo):
                         if run_results[i] == -1 or run_results[j] == -1:
                             continue
-
+                        if (i in topk_idxs) ^ (j in topk_idxs):
+                            continue
                         vector_i, vector_j = np.zeros(n_algo), np.zeros(n_algo)
                         vector_i[i] = 1
                         vector_j[j] = 1

@@ -1,5 +1,6 @@
 import os
 import sys
+import numpy as np
 
 sys.path.append(os.getcwd())
 from automlToolkit.components.meta_learning.algorithm_recomendation.algorithm_advisor import AlgorithmAdvisor
@@ -11,6 +12,18 @@ alad = AlgorithmAdvisor(task_type=MULTICLASS_CLS, exclude_datasets=test_datasets
 meta_infos = alad.fit_meta_learner()
 datasets = [item[0] for item in meta_infos]
 print(datasets)
+
+
+# 1.0, 2.0
+def topk(l1, l2, k=3):
+    score = 0
+    for item in l1[:k]:
+        if item in l2[:k]:
+            score += 1
+    return score
+
+
+scores = list()
 for test_dataset in test_datasets:
     print(test_dataset in datasets)
     meta_feature = get_feature_vector(test_dataset, task_type=MULTICLASS_CLS)
@@ -18,7 +31,12 @@ for test_dataset in test_datasets:
 
     print('='*50)
     print(test_dataset, test_dataset in datasets)
-    from collections import OrderedDict
-    print(alad.fetch_run_results(test_dataset))
-    print(OrderedDict(zip(algorithms, preds)))
-    print(alad.fetch_algorithm_set(test_dataset))
+    runs = alad.fetch_run_results(test_dataset)
+    print(runs)
+    list_true = list(runs.keys())
+    list_pred = alad.fetch_algorithm_set(test_dataset)
+    print(list_true[:5])
+    print(list_pred)
+    scores.append(topk(list_true, list_pred))
+
+print('average score', np.mean(scores))
