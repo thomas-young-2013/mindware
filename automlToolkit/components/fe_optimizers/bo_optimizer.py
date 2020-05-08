@@ -29,7 +29,6 @@ class BayesianOptimizationOptimizer(Optimizer):
         self.evaluator = evaluator
         self.model_id = model_id
 
-        self.incumbent_config = None
         self.incumbent_score = -np.inf
         self.baseline_score = -np.inf
         self.start_time = time.time()
@@ -45,6 +44,7 @@ class BayesianOptimizationOptimizer(Optimizer):
         self.evaluator.parse_needed = True
         # Prepare the hyperparameter space.
         self.hyperparameter_space = self._get_task_hyperparameter_space()
+        self.incumbent_config = self.hyperparameter_space.get_default_configuration()
         self.optimizer = BO(objective_function=self.evaluate_function,
                             config_space=self.hyperparameter_space,
                             max_runs=int(1e10),
@@ -251,15 +251,34 @@ class BayesianOptimizationOptimizer(Optimizer):
             cs.add_configuration_space(config_item, sub_configuration_space,
                                        parent_hyperparameter=parent_hyperparameter)
 
-    def fetch_nodes(self, n=10):
+    def fetch_nodes(self, n=5):
         runhistory = self.optimizer.get_history()
         hist_dict = runhistory.data
-        min_list = sorted(hist_dict.items(), key=lambda item: item[1])
-        min_n = list(min_list[:n])
-        # Get default configuration.
         default_config = self.hyperparameter_space.get_default_configuration()
-        min_n.append((default_config, runhistory.data[default_config]))
-        min_n.append((self.incumbent_config, runhistory.data[self.incumbent_config]))
+
+        if len(hist_dict) > 0:
+            min_list = sorted(hist_dict.items(), key=lambda item: item[1])
+        else:
+            min_list = [(default_config, None)]
+
+        if len(min_list) < 50:
+            min_n = list(min_list[:n])
+        else:
+            amplification_rate = 3
+            chosen_idxs = np.arange(n) * amplification_rate
+            min_n = [min_list[idx] for idx in chosen_idxs]
+
+        # Filter out.
+        if len(hist_dict) > 0:
+            default_perf = hist_dict[default_config]
+            min_n = list(filter(lambda x: x[1] < default_perf, min_n))
+
+        if default_config not in [x[0] for x in min_n]:
+            # Get default configuration.
+            min_n.append((default_config, runhistory.data[default_config]))
+
+        if self.incumbent_config not in [x[0] for x in min_n]:
+            min_n.append((self.incumbent_config, runhistory.data[self.incumbent_config]))
 
         node_list = []
         self.incumbent = None
