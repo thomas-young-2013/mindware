@@ -46,7 +46,7 @@ def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_
                               per_run_time_limit=per_run_time_limit,
                               dataset_name=dataset,
                               ensemble_size=50,
-                              opt_algo=opt_algo,
+                              inner_opt_algorithm=opt_algo,
                               metric=balanced_acc_metric,
                               fe_algo='bo',
                               seed=seed)
@@ -157,7 +157,17 @@ if __name__ == "__main__":
                       'extra_trees', 'liblinear_svc',
                       'k_nearest_neighbors', 'libsvm_svc', 'gradient_boosting']
 
+
+    def check_datasets(datasets, task_type=None):
+        for _dataset in datasets:
+            try:
+                _, _ = load_train_test_data(_dataset, random_state=1, task_type=task_type)
+            except Exception as e:
+                raise ValueError('Dataset - %s does not exist!' % _dataset)
+
     dataset_list = dataset_str.split(',')
+
+    check_datasets(dataset_list)
 
     for mode in modes:
         if mode != 'plot':
@@ -195,7 +205,7 @@ if __name__ == "__main__":
                         with open(file_path, 'rb') as f:
                             data = pickle.load(f)
                         if mth.startswith('hmab'):
-                            val_acc, test_acc = data[1], data[2]
+                            val_acc, test_acc = data[1], data[3]
                         else:
                             val_acc, test_acc = data[1], data[2]
                         results.append([val_acc, test_acc])
