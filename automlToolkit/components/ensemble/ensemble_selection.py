@@ -76,7 +76,10 @@ class EnsembleSelection(BaseEnsembleModel):
                     if self.weights_[model_cnt] != 0:
                         print("Refit model %d" % model_cnt)
                         self.model_idx.append(model_cnt)
-                        estimator = fetch_predict_estimator(self.task_type, _config, X, y)
+                        estimator = fetch_predict_estimator(self.task_type, _config, X, y,
+                                                            weight_balance=train_list[idx].enable_balance,
+                                                            data_balance=train_list[idx].data_balance
+                                                            )
                         with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, model_cnt)),
                                   'wb') as f:
                             pkl.dump(estimator, f)

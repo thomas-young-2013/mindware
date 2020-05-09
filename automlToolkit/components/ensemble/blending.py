@@ -70,7 +70,10 @@ class Blending(BaseEnsembleModel):
                                                               random_state=self.seed)
                 for _config in configs:
                     if self.base_model_mask[model_cnt] == 1:
-                        estimator = fetch_predict_estimator(self.task_type, _config, x_p1, y_p1)
+                        estimator = fetch_predict_estimator(self.task_type, _config, x_p1, y_p1,
+                                                            weight_balance=train_list[idx].enable_balance,
+                                                            data_balance=train_list[idx].data_balance
+                                                            )
                         with open(os.path.join(self.output_dir, '%s-blending-model%d' % (self.timestamp, model_cnt)),
                                   'wb') as f:
                             pkl.dump(estimator, f)

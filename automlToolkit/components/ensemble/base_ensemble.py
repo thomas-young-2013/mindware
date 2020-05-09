@@ -59,7 +59,10 @@ class BaseEnsembleModel(object):
                 for _config in configs:
                     self.config_list.append(_config)
                     self.train_data_dict[self.model_cnt] = (X, y)
-                    estimator = fetch_predict_estimator(self.task_type, _config, X_train, y_train)
+                    estimator = fetch_predict_estimator(self.task_type, _config, X_train, y_train,
+                                                        weight_balance=train_list[idx].enable_balance,
+                                                        data_balance=train_list[idx].data_balance
+                                                        )
                     if self.task_type in CLS_TASKS:
                         y_valid_pred = estimator.predict_proba(X_valid)
                     else:
