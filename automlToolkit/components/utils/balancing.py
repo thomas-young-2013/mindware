@@ -107,3 +107,23 @@ def get_data(X, y, threshold=0.6, random_state=1):
             print('After balancing', Counter(copy_y.copy()))
 
             return copy_X, copy_y
+
+
+def smote(X, y, random_state=1):
+    from imblearn.combine import SMOTEENN
+    from imblearn.over_sampling import SMOTE
+
+    labels = list(y)
+    cnts = list()
+    for val in set(labels):
+        cnts.append(labels.count(val))
+    cnts = sorted(cnts)
+    if cnts[0] < 6:
+        sm = SMOTE(random_state=random_state, k_neighbors=cnts[0] - 1)
+        model = SMOTEENN(random_state=random_state, smote=sm)
+    else:
+        # The default value of k_neighbors in SMOTEENN is 5
+        model = SMOTEENN(random_state=random_state)
+
+    X_res, y_res = model.fit_resample(X, y)
+    return X_res, y_res

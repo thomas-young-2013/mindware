@@ -39,6 +39,8 @@ def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_
     print('%s-%s-%d: %d' % (hmab_flag, dataset, run_id, time_limit))
     _start_time = time.time()
     train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
+    from automlToolkit.components.feature_engineering.transformations.preprocessor.to_balanced import DataBalancer
+    train_data = DataBalancer().operate(train_data)
     cls_task_type = BINARY_CLS if len(set(train_data.data[1])) == 2 else MULTICLASS_CLS
     balanced_acc_metric = make_scorer(balanced_accuracy)
     bandit = FirstLayerBandit(cls_task_type, trial_num, algorithms, train_data,
@@ -164,6 +166,7 @@ if __name__ == "__main__":
                 _, _ = load_train_test_data(_dataset, random_state=1, task_type=task_type)
             except Exception as e:
                 raise ValueError('Dataset - %s does not exist!' % _dataset)
+
 
     dataset_list = dataset_str.split(',')
 
