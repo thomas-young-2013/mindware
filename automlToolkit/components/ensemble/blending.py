@@ -58,49 +58,48 @@ class Blending(BaseEnsembleModel):
         suc_cnt = 0
         feature_p2 = None
         for algo_id in self.stats["include_algorithms"]:
-            train_list = self.stats[algo_id]['train_data_list']
-            configs = self.stats[algo_id]['configurations']
-            for idx in range(len(train_list)):
-                X, y = train_list[idx].data
+            model_to_eval = self.stats[algo_id]['model_to_eval']
+            for idx, (node, config) in enumerate(model_to_eval):
+                X, y = node.data
                 if self.task_type in CLS_TASKS:
                     x_p1, x_p2, y_p1, y_p2 = train_test_split(X, y, test_size=test_size,
                                                               stratify=data.data[1], random_state=self.seed)
                 else:
                     x_p1, x_p2, y_p1, y_p2 = train_test_split(X, y, test_size=test_size,
                                                               random_state=self.seed)
-                for _config in configs:
-                    if self.base_model_mask[model_cnt] == 1:
-                        estimator = fetch_predict_estimator(self.task_type, _config, x_p1, y_p1,
-                                                            weight_balance=train_list[idx].enable_balance,
-                                                            data_balance=train_list[idx].data_balance
-                                                            )
-                        with open(os.path.join(self.output_dir, '%s-blending-model%d' % (self.timestamp, model_cnt)),
-                                  'wb') as f:
-                            pkl.dump(estimator, f)
-                        if self.task_type in CLS_TASKS:
-                            pred = estimator.predict_proba(x_p2)
-                            n_dim = np.array(pred).shape[1]
-                            if n_dim == 2:
-                                # Binary classificaion
-                                n_dim = 1
-                            # Initialize training matrix for phase 2
-                            if feature_p2 is None:
-                                num_samples = len(x_p2)
-                                feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
-                            if n_dim == 1:
-                                feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred[:, 1:2]
-                            else:
-                                feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred
-                        else:
-                            pred = estimator.predict(x_p2).reshape(-1, 1)
+
+                if self.base_model_mask[model_cnt] == 1:
+                    estimator = fetch_predict_estimator(self.task_type, config, x_p1, y_p1,
+                                                        weight_balance=node.enable_balance,
+                                                        data_balance=node.data_balance
+                                                        )
+                    with open(os.path.join(self.output_dir, '%s-blending-model%d' % (self.timestamp, model_cnt)),
+                              'wb') as f:
+                        pkl.dump(estimator, f)
+                    if self.task_type in CLS_TASKS:
+                        pred = estimator.predict_proba(x_p2)
+                        n_dim = np.array(pred).shape[1]
+                        if n_dim == 2:
+                            # Binary classificaion
                             n_dim = 1
-                            # Initialize training matrix for phase 2
-                            if feature_p2 is None:
-                                num_samples = len(x_p2)
-                                feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
+                        # Initialize training matrix for phase 2
+                        if feature_p2 is None:
+                            num_samples = len(x_p2)
+                            feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
+                        if n_dim == 1:
+                            feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred[:, 1:2]
+                        else:
                             feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred
-                        suc_cnt += 1
-                    model_cnt += 1
+                    else:
+                        pred = estimator.predict(x_p2).reshape(-1, 1)
+                        n_dim = 1
+                        # Initialize training matrix for phase 2
+                        if feature_p2 is None:
+                            num_samples = len(x_p2)
+                            feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
+                        feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred
+                    suc_cnt += 1
+                model_cnt += 1
         self.meta_learner.fit(feature_p2, y_p2)
 
         return self
@@ -111,39 +110,37 @@ class Blending(BaseEnsembleModel):
         model_cnt = 0
         suc_cnt = 0
         for algo_id in self.stats["include_algorithms"]:
-            train_list = self.stats[algo_id]['train_data_list']
-            configs = self.stats[algo_id]['configurations']
-            for train_node in train_list:
-                test_node = solvers[algo_id].optimizer['fe'].apply(data, train_node)
-                for _ in configs:
-                    if self.base_model_mask[model_cnt] == 1:
-                        with open(os.path.join(self.output_dir, '%s-blending-model%d' % (self.timestamp, model_cnt)),
-                                  'rb') as f:
-                            estimator = pkl.load(f)
-                        if self.task_type in CLS_TASKS:
-                            pred = estimator.predict_proba(test_node.data[0])
-                            n_dim = np.array(pred).shape[1]
-                            if n_dim == 2:
-                                # Binary classificaion
-                                n_dim = 1
-                            # Initialize training matrix for phase 2
-                            if feature_p2 is None:
-                                num_samples = len(data.data[0])
-                                feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
-                            if n_dim == 1:
-                                feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred[:, 1:2]
-                            else:
-                                feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred
-                        else:
-                            pred = estimator.predict(test_node.data[0]).reshape(-1, 1)
+            model_to_eval = self.stats[algo_id]['model_to_eval']
+            for idx, (node, config) in enumerate(model_to_eval):
+                test_node = solvers[algo_id].optimizer['fe'].apply(data, node)
+                if self.base_model_mask[model_cnt] == 1:
+                    with open(os.path.join(self.output_dir, '%s-blending-model%d' % (self.timestamp, model_cnt)),
+                              'rb') as f:
+                        estimator = pkl.load(f)
+                    if self.task_type in CLS_TASKS:
+                        pred = estimator.predict_proba(test_node.data[0])
+                        n_dim = np.array(pred).shape[1]
+                        if n_dim == 2:
+                            # Binary classificaion
                             n_dim = 1
-                            # Initialize training matrix for phase 2
-                            if feature_p2 is None:
-                                num_samples = len(data.data[0])
-                                feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
+                        # Initialize training matrix for phase 2
+                        if feature_p2 is None:
+                            num_samples = len(data.data[0])
+                            feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
+                        if n_dim == 1:
+                            feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred[:, 1:2]
+                        else:
                             feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred
-                        suc_cnt += 1
-                    model_cnt += 1
+                    else:
+                        pred = estimator.predict(test_node.data[0]).reshape(-1, 1)
+                        n_dim = 1
+                        # Initialize training matrix for phase 2
+                        if feature_p2 is None:
+                            num_samples = len(data.data[0])
+                            feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
+                        feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred
+                    suc_cnt += 1
+                model_cnt += 1
 
         return feature_p2
 

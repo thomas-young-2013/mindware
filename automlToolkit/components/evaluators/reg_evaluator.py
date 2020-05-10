@@ -24,7 +24,7 @@ class RegressionEvaluator(_BaseEvaluator):
     def __init__(self, reg_config, scorer=None, data_node=None, name=None,
                  resampling_strategy='holdout', resampling_params=None, seed=1,
                  estimator=None):
-        self.reg_config = reg_config
+        self.hpo_config = reg_config
         self.scorer = scorer
         self.data_node = data_node
         self.name = name
@@ -43,7 +43,7 @@ class RegressionEvaluator(_BaseEvaluator):
 
         # Prepare configuration.
         np.random.seed(self.seed)
-        config = config if config is not None else self.reg_config
+        config = config if config is not None else self.hpo_config
 
         downsample_ratio = kwargs.get('data_subsample_ratio', 1.0)
 

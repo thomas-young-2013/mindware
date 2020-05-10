@@ -24,7 +24,6 @@ class BaseEnsembleModel(object):
         self.ensemble_size = ensemble_size
         self.task_type = task_type
         self.metric = metric
-        self.model_cnt = 0
         self.output_dir = output_dir
 
         self.train_predictions = []
@@ -34,10 +33,9 @@ class BaseEnsembleModel(object):
         self.seed = self.stats['split_seed']
         self.timestamp = str(time.time())
         for algo_id in self.stats["include_algorithms"]:
-            train_list = self.stats[algo_id]['train_data_list']
-            configs = self.stats[algo_id]['configurations']
-            for idx in range(len(train_list)):
-                X, y = train_list[idx].data
+            model_to_eval = self.stats[algo_id]['model_to_eval']
+            for idx, (node, config) in enumerate(model_to_eval):
+                X, y = node.data
 
                 # TODO: Hyperparameter
                 test_size = 0.33
@@ -56,19 +54,15 @@ class BaseEnsembleModel(object):
                 else:
                     self.train_labels = y_valid
 
-                for _config in configs:
-                    self.config_list.append(_config)
-                    self.train_data_dict[self.model_cnt] = (X, y)
-                    estimator = fetch_predict_estimator(self.task_type, _config, X_train, y_train,
-                                                        weight_balance=train_list[idx].enable_balance,
-                                                        data_balance=train_list[idx].data_balance
-                                                        )
-                    if self.task_type in CLS_TASKS:
-                        y_valid_pred = estimator.predict_proba(X_valid)
-                    else:
-                        y_valid_pred = estimator.predict(X_valid)
-                    self.train_predictions.append(y_valid_pred)
-                    self.model_cnt += 1
+                estimator = fetch_predict_estimator(self.task_type, config, X_train, y_train,
+                                                    weight_balance=node.enable_balance,
+                                                    data_balance=node.data_balance
+                                                    )
+                if self.task_type in CLS_TASKS:
+                    y_valid_pred = estimator.predict_proba(X_valid)
+                else:
+                    y_valid_pred = estimator.predict(X_valid)
+                self.train_predictions.append(y_valid_pred)
         if len(self.train_predictions) < self.ensemble_size:
             self.ensemble_size = len(self.train_predictions)
 

@@ -13,6 +13,7 @@ class DataNode(object):
         self.trans_hist = list()
         self.enable_balance = 0
         self.data_balance = 0
+        self.config = None
 
     def __eq__(self, node):
         """Overrides the default implementation"""
