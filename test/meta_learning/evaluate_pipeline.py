@@ -16,13 +16,11 @@ from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
 from automlToolkit.components.utils.constants import MULTICLASS_CLS, BINARY_CLS
 from automlToolkit.components.meta_learning.algorithm_recomendation.algorithm_advisor import AlgorithmAdvisor
-from automlToolkit.components.metrics.metric import get_metric
+from automlToolkit.utils.functions import is_unbalanced_dataset
 
 parser = argparse.ArgumentParser()
-dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
-              'messidor_features,winequality_red,winequality_white,splice,spambase,amazon_employee'
-parser.add_argument('--datasets', type=str, default=dataset_set)
-parser.add_argument('--mode', type=str, choices=['ausk', 'hmab', 'hmab,ausk', 'plot'], default='plot')
+parser.add_argument('--datasets', type=str, default='pc4')
+parser.add_argument('--mode', type=str, choices=['hmab', 'plot'], default='plot')
 parser.add_argument('--algo_num', type=int, default=15)
 parser.add_argument('--time_cost', type=int, default=600)
 parser.add_argument('--trial_num', type=int, default=150)
@@ -33,12 +31,8 @@ parser.add_argument('--seed', type=int, default=1)
 
 project_dir = './data/meta_exp/'
 per_run_time_limit = 180
-opt_algo = 'rb_hpo'
-# 1. hmab_meta
-# 2. hmab_meta_fixed
-hmab_flag = 'hmab_meta'
-ausk_flag = 'eval_ausk_mens'
-assert ausk_flag in ['eval_ausk_meta', 'eval_ausk_full', 'eval_ausk_vanilla', 'eval_ausk_mens']
+opt_algo = 'fixed'
+hmab_flag = 'hmab_pipeline_meta'
 if not os.path.exists(project_dir):
     os.makedirs(project_dir)
 
@@ -69,6 +63,10 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
     train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
     cls_task_type = BINARY_CLS if len(set(train_data.data[1])) == 2 else MULTICLASS_CLS
     balanced_acc_metric = make_scorer(balanced_accuracy)
+
+    if is_unbalanced_dataset(train_data):
+        from automlToolkit.components.feature_engineering.transformations.preprocessor.to_balanced import DataBalancer
+        train_data = DataBalancer().operate(train_data)
     bandit = FirstLayerBandit(cls_task_type, trial_num, include_models, train_data,
                               output_dir='logs',
                               per_run_time_limit=per_run_time_limit,
@@ -102,92 +100,6 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
         pickle.dump(data, f)
 
 
-def load_hmab_time_costs(start_id, rep, dataset, n_algo, trial_num, seeds, time_limit):
-    time_costs = list()
-    for run_id in range(start_id, start_id + rep):
-        seed = seeds[run_id]
-        save_path = project_dir + '%s_%s_%s_%d_%d_%d_%d_%d.pkl' % (hmab_flag, opt_algo, dataset, trial_num,
-                                                                     n_algo, seed, run_id, time_limit)
-        if os.path.exists(save_path):
-            with open(save_path, 'rb') as f:
-                time_cost_ = int(pickle.load(f)[4])
-                time_costs.append(time_cost_)
-    print(time_costs)
-    return time_costs
-
-
-def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
-    print('AUSK-%s-%d: %d' % (dataset, run_id, time_limit))
-    if ausk_flag == 'eval_ausk_meta':
-        alad = AlgorithmAdvisor(task_type=MULTICLASS_CLS, n_algorithm=9, metric='acc')
-        meta_infos = alad.fit_meta_learner()
-        assert dataset not in meta_infos
-        model_candidates = alad.fetch_algorithm_set(dataset)
-        include_models = list()
-        print(model_candidates)
-        for algo in model_candidates:
-            if algo in algorithms and len(include_models) < 3:
-                include_models.append(algo)
-        print('After algorithm recommendation', include_models)
-        n_config_meta_learning = 0
-        ensemble_size = 1
-    elif ausk_flag == 'eval_ausk_full':
-        include_models = algorithms
-        n_config_meta_learning = 25
-        ensemble_size = 1
-    elif ausk_flag == 'eval_ausk_mens':
-        include_models = algorithms
-        n_config_meta_learning = 25
-        ensemble_size = 50
-    else:
-        include_models = algorithms
-        n_config_meta_learning = 0
-        ensemble_size = 1
-
-    automl = autosklearn.classification.AutoSklearnClassifier(
-        time_left_for_this_task=time_limit,
-        per_run_time_limit=per_run_time_limit,
-        include_preprocessors=None,
-        exclude_preprocessors=None,
-        n_jobs=1,
-        include_estimators=include_models,
-        ensemble_memory_limit=8192,
-        ml_memory_limit=8192,
-        ensemble_size=ensemble_size,
-        ensemble_nbest=ensemble_size,
-        initial_configurations_via_metalearning=n_config_meta_learning,
-        seed=int(seed),
-        # resampling_strategy='cv',
-        # resampling_strategy_arguments={'folds': 5}
-        resampling_strategy='holdout',
-        resampling_strategy_arguments={'train_size': 0.67}
-    )
-    print(automl)
-
-    train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
-    X, y = train_data.data
-    feat_type = ['Categorical' if _type == CATEGORICAL else 'Numerical'
-                 for _type in train_data.feature_types]
-    from autosklearn.metrics import balanced_accuracy
-    automl.fit(X.copy(), y.copy(), metric=balanced_accuracy, feat_type=feat_type)
-    model_desc = automl.show_models()
-    print(model_desc)
-    val_result = np.max(automl.cv_results_['mean_test_score'])
-    print('trial number', len(automl.cv_results_['mean_test_score']))
-    print('Best validation accuracy', val_result)
-
-    X_test, y_test = test_data.data
-    automl.refit(X.copy(), y.copy())
-    y_pred = automl.predict(X_test)
-    metric = balanced_accuracy
-    test_result = metric(y_test, y_pred)
-    print('Test accuracy', test_result)
-    save_path = project_dir + '%s_%s_%d_%d_%d_%d_%d.pkl' % (
-        ausk_flag, dataset, trial_num, len(algorithms), seed, run_id, time_limit)
-    with open(save_path, 'wb') as f:
-        pickle.dump([dataset, val_result, test_result, model_desc], f)
-
-
 if __name__ == "__main__":
     args = parser.parse_args()
     dataset_str = args.datasets
@@ -216,23 +128,12 @@ if __name__ == "__main__":
     for mode in modes:
         if mode != 'plot':
             for dataset in dataset_list:
-                time_costs = list()
-
                 for run_id in range(start_id, start_id + rep):
                     seed = int(seeds[run_id])
-                    if mode == 'hmab':
-                        evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=time_limit)
-                    elif mode == 'ausk':
-                        if len(time_costs) == rep:
-                            time_taken = time_costs[run_id - start_id]
-                        else:
-                            time_taken = time_limit
-                        evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=time_taken)
-                    else:
-                        raise ValueError('Invalid parameter: %s' % mode)
+                    evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=time_limit)
         else:
             headers = ['dataset']
-            method_ids = ['hmab_meta_rb_hpo', 'eval_ausk_mens']
+            method_ids = ['hmab_pipeline_meta_fixed', 'hmab_pipeline_pre_fixed']
             for mth in method_ids:
                 headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
