@@ -25,7 +25,7 @@ class SecondLayerBandit(object):
                  n_jobs=1, seed=1, fe_algo='tree_based',
                  enable_intersection=True,
                  number_of_unit_resource=2,
-                 total_resource=10):
+                 total_resource=30):
         self.task_type = task_type
         self.metric = metric
         self.number_of_unit_resource = number_of_unit_resource
@@ -237,9 +237,8 @@ class SecondLayerBandit(object):
         self.action_sequence.append(_arm)
         self.pull_cnt += 1
 
-    def optimize_fixed_pipeline0(self):
-        ratio_fe = int(self.total_resource * 0.65) + 1
-        if self.pull_cnt == 0 or self.pull_cnt > ratio_fe:
+    def _optimize_fixed_pipeline(self):
+        if self.pull_cnt <= 2:
             _arm = 'hpo'
         else:
             _arm = 'fe'
@@ -309,78 +308,12 @@ class SecondLayerBandit(object):
         elif self.mth in ['fe_only', 'hpo_only']:
             self.optimize_one_component(self.mth)
         elif self.mth in ['fixed']:
-            self.optimize_fixed_pipeline0()
+            self._optimize_fixed_pipeline()
         else:
             raise ValueError('Invalid method: %s' % self.mth)
 
         self.final_rewards.append(self.incumbent_perf)
         return self.incumbent_perf
-
-    def predict_proba(self, X_test, is_weighted=False):
-        """
-            weight source: ...
-            model 1: local_inc['fe'], default_hpo
-            model 2: default_fe, local_inc['hpo']
-            model 3: local_inc['fe'], local_inc['hpo']
-        :param X_test:
-        :param is_weighted:
-        :return:
-        """
-        X_train_ori, y_train_ori = self.original_data.data
-        X_train_inc, y_train_inc = self.local_inc['fe'].data
-
-        model1_clf = fetch_predict_estimator(self.task_type, self.default_config, X_train_inc, y_train_inc)
-        model2_clf = fetch_predict_estimator(self.task_type, self.local_inc['hpo'], X_train_ori, y_train_ori)
-        model3_clf = fetch_predict_estimator(self.task_type, self.local_inc['hpo'], X_train_inc, y_train_inc)
-        model4_clf = fetch_predict_estimator(self.task_type, self.default_config, X_train_ori, y_train_ori)
-
-        if is_weighted:
-            # Based on performance on the validation set
-            # TODO: Save the results so that the models will not be trained again
-            from automlToolkit.components.ensemble.ensemble_selection import EnsembleSelection
-            from autosklearn.metrics import balanced_accuracy
-            sss = StratifiedShuffleSplit(n_splits=1, test_size=0.33, random_state=1)
-            X, y = X_train_ori.copy(), y_train_ori.copy()
-            _X, _y = X_train_inc.copy(), y_train_inc.copy()
-            for train_index, test_index in sss.split(X, y):
-                X_train, X_val, y_train, y_val = X[train_index], X[test_index], y[train_index], y[test_index]
-                _X_train, _X_val, _y_train, _y_val = _X[train_index], _X[test_index], _y[train_index], _y[test_index]
-
-            assert (y_val == _y_val).all()
-            model1_clf_temp = fetch_predict_estimator(self.task_type, self.default_config, _X_train, _y_train)
-            model2_clf_temp = fetch_predict_estimator(self.task_type, self.local_inc['hpo'], X_train, y_train)
-            model3_clf_temp = fetch_predict_estimator(self.task_type, self.local_inc['hpo'], _X_train, _y_train)
-            model4_clf_temp = fetch_predict_estimator(self.task_type, self.default_config, X_train, y_train)
-            pred1 = model1_clf_temp.predict_proba(_X_val)
-            pred2 = model2_clf_temp.predict_proba(X_val)
-            pred3 = model3_clf_temp.predict_proba(_X_val)
-            pred4 = model4_clf_temp.predict_proba(X_val)
-
-            # Ensemble size is a hyperparameter
-            es = EnsembleSelection(ensemble_size=20, task_type=1, metric=balanced_accuracy,
-                                   random_state=np.random.RandomState(self.seed))
-            es.fit([pred1, pred2, pred3, pred4], y_val, None)
-            weights = es.weights_
-            print("weights " + str(weights))
-
-        # Make sure that the estimator has "predict_proba"
-        _test_node = DataNode(data=[X_test, None], feature_type=self.original_data.feature_types.copy())
-        _X_test = self.optimizer['fe'].apply(_test_node, self.local_inc['fe']).data[0]
-        pred1 = model1_clf.predict_proba(_X_test)
-        pred2 = model2_clf.predict_proba(X_test)
-        pred3 = model3_clf.predict_proba(_X_test)
-        pred4 = model4_clf.predict_proba(X_test)
-
-        if is_weighted:
-            final_pred = weights[0] * pred1 + weights[1] * pred2 + weights[2] * pred3 + weights[3] * pred4
-        else:
-            final_pred = (pred1 + pred2 + pred3 + pred4) / 4
-
-        return final_pred
-
-    def predict(self, X_test, is_weighted=False):
-        proba_pred = self.predict_proba(X_test, is_weighted)
-        return np.argmax(proba_pred, axis=-1)
 
     def prepare_optimizer(self, _arm):
         if _arm == 'fe':
