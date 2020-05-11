@@ -16,27 +16,21 @@ from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
 from automlToolkit.components.utils.constants import MULTICLASS_CLS, BINARY_CLS
 from automlToolkit.components.meta_learning.algorithm_recomendation.algorithm_advisor import AlgorithmAdvisor
-from automlToolkit.components.metrics.metric import get_metric
+from automlToolkit.utils.functions import is_unbalanced_dataset
 
 parser = argparse.ArgumentParser()
-dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
-              'messidor_features,winequality_red,winequality_white,splice,spambase,amazon_employee'
-parser.add_argument('--datasets', type=str, default=dataset_set)
+parser.add_argument('--datasets', type=str, default='pc2')
 parser.add_argument('--mode', type=str, choices=['ausk', 'hmab', 'hmab,ausk', 'plot'], default='plot')
 parser.add_argument('--algo_num', type=int, default=15)
 parser.add_argument('--time_cost', type=int, default=600)
-parser.add_argument('--trial_num', type=int, default=150)
 parser.add_argument('--rep_num', type=int, default=10)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--seed', type=int, default=1)
 
-
 project_dir = './data/meta_exp/'
-per_run_time_limit = 180
-opt_algo = 'rb_hpo'
-# 1. hmab_meta
-# 2. hmab_meta_fixed
-hmab_flag = 'hmab_meta'
+per_run_time_limit = 120
+opt_algo = 'fixed'
+hmab_flag = 'hmab'
 ausk_flag = 'eval_ausk_mens'
 assert ausk_flag in ['eval_ausk_meta', 'eval_ausk_full', 'eval_ausk_vanilla', 'eval_ausk_mens']
 if not os.path.exists(project_dir):
@@ -45,31 +39,17 @@ if not os.path.exists(project_dir):
 
 def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
     print('%s-%s-%d: %d' % (hmab_flag, dataset, run_id, time_limit))
-    exclude_datasets = ['gina_prior2', 'pc2', 'abalone', 'wind', 'waveform-5000(2)',
-                        'page-blocks(1)', 'winequality_white', 'pollen']
-    alad = AlgorithmAdvisor(task_type=MULTICLASS_CLS, n_algorithm=9,
-                            metric='acc', exclude_datasets=exclude_datasets)
-    assert dataset in exclude_datasets
-    meta_infos = alad.fit_meta_learner()
-    assert dataset not in meta_infos
-    model_candidates = alad.fetch_algorithm_set(dataset)
-    include_models = list()
-    print(model_candidates)
-    for algo in model_candidates:
-        if algo in algorithms and len(include_models) < 3:
-            include_models.append(algo)
-    print('After algorithm recommendation', include_models)
-    # if dataset in ['page-blocks(1)', 'pc2']:
-    #     include_models = ['libsvm_svc']
-    # elif dataset == 'winequality_white':
-    #     include_models = ['liblinear_svc']
-    # else:
-    #     pass
+
     _start_time = time.time()
     train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
     cls_task_type = BINARY_CLS if len(set(train_data.data[1])) == 2 else MULTICLASS_CLS
     balanced_acc_metric = make_scorer(balanced_accuracy)
-    bandit = FirstLayerBandit(cls_task_type, trial_num, include_models, train_data,
+
+    if is_unbalanced_dataset(train_data):
+        from automlToolkit.components.feature_engineering.transformations.preprocessor.to_balanced import DataBalancer
+        train_data = DataBalancer().operate(train_data)
+
+    bandit = FirstLayerBandit(cls_task_type, trial_num, algorithms, train_data,
                               output_dir='logs',
                               per_run_time_limit=per_run_time_limit,
                               dataset_name=dataset,
@@ -100,20 +80,6 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
         hmab_flag, opt_algo, dataset, trial_num, len(algorithms), seed, run_id, time_limit)
     with open(save_path, 'wb') as f:
         pickle.dump(data, f)
-
-
-def load_hmab_time_costs(start_id, rep, dataset, n_algo, trial_num, seeds, time_limit):
-    time_costs = list()
-    for run_id in range(start_id, start_id + rep):
-        seed = seeds[run_id]
-        save_path = project_dir + '%s_%s_%s_%d_%d_%d_%d_%d.pkl' % (hmab_flag, opt_algo, dataset, trial_num,
-                                                                     n_algo, seed, run_id, time_limit)
-        if os.path.exists(save_path):
-            with open(save_path, 'rb') as f:
-                time_cost_ = int(pickle.load(f)[4])
-                time_costs.append(time_cost_)
-    print(time_costs)
-    return time_costs
 
 
 def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
@@ -192,7 +158,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     dataset_str = args.datasets
     algo_num = args.algo_num
-    trial_num = args.trial_num
+    trial_num = 100000
     modes = args.mode.split(',')
     rep = args.rep_num
     start_id = args.start_id
@@ -223,16 +189,12 @@ if __name__ == "__main__":
                     if mode == 'hmab':
                         evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=time_limit)
                     elif mode == 'ausk':
-                        if len(time_costs) == rep:
-                            time_taken = time_costs[run_id - start_id]
-                        else:
-                            time_taken = time_limit
-                        evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=time_taken)
+                        evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=time_limit)
                     else:
                         raise ValueError('Invalid parameter: %s' % mode)
         else:
             headers = ['dataset']
-            method_ids = ['hmab_meta_rb_hpo', 'eval_ausk_mens']
+            method_ids = ['hmab_fixed', 'eval_ausk_mens']
             for mth in method_ids:
                 headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
