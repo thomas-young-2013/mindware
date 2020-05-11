@@ -1,7 +1,5 @@
 from automlToolkit.components.feature_engineering.transformations.base_transformer import *
 from automlToolkit.utils.functions import is_unbalanced_dataset
-from imblearn.combine import SMOTEENN
-from imblearn.over_sampling import SMOTE
 
 class DataBalancer(Transformer):
     def __init__(self):
