@@ -68,19 +68,20 @@ class EnsembleSelection(BaseEnsembleModel):
         self.model_idx = []
         model_cnt = 0
         for algo_id in self.stats["include_algorithms"]:
-            train_list = self.stats[algo_id]['train_data_list']
-            configs = self.stats[algo_id]['configurations']
-            for idx in range(len(train_list)):
-                X, y = train_list[idx].data
-                for _config in configs:
-                    if self.weights_[model_cnt] != 0:
-                        print("Refit model %d" % model_cnt)
-                        self.model_idx.append(model_cnt)
-                        estimator = fetch_predict_estimator(self.task_type, _config, X, y)
-                        with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, model_cnt)),
-                                  'wb') as f:
-                            pkl.dump(estimator, f)
-                    model_cnt += 1
+            model_to_eval = self.stats[algo_id]['model_to_eval']
+            for idx, (node, config) in enumerate(model_to_eval):
+                X, y = node.data
+                if self.weights_[model_cnt] != 0:
+                    print("Refit model %d" % model_cnt)
+                    self.model_idx.append(model_cnt)
+                    estimator = fetch_predict_estimator(self.task_type, config, X, y,
+                                                        weight_balance=node.enable_balance,
+                                                        data_balance=node.data_balance
+                                                        )
+                    with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, model_cnt)),
+                              'wb') as f:
+                        pkl.dump(estimator, f)
+                model_cnt += 1
 
         return self
 
@@ -219,24 +220,23 @@ class EnsembleSelection(BaseEnsembleModel):
         predictions = []
         cur_idx = 0
         for algo_id in self.stats["include_algorithms"]:
-            for train_node in self.stats[algo_id]['train_data_list']:
-                test_node = solvers[algo_id].optimizer['fe'].apply(data, train_node)
+            model_to_eval = self.stats[algo_id]['model_to_eval']
+            for idx, (node, config) in enumerate(model_to_eval):
+                test_node = solvers[algo_id].optimizer['fe'].apply(data, node)
                 X_test, _ = test_node.data
-
-                for _ in self.stats[algo_id]['configurations']:
-                    if cur_idx in self.model_idx:
-                        with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, cur_idx)), 'rb') as f:
-                            estimator = pkl.load(f)
-                            if self.task_type in CLS_TASKS:
-                                predictions.append(estimator.predict_proba(X_test))
-                            else:
-                                predictions.append(estimator.predict(X_test))
-                    else:
-                        if len(self.shape) == 1:
-                            predictions.append(np.zeros(len(test_node.data[0])))
+                if cur_idx in self.model_idx:
+                    with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, cur_idx)), 'rb') as f:
+                        estimator = pkl.load(f)
+                        if self.task_type in CLS_TASKS:
+                            predictions.append(estimator.predict_proba(X_test))
                         else:
-                            predictions.append(np.zeros((len(test_node.data[0]), self.shape[1])))
-                    cur_idx += 1
+                            predictions.append(estimator.predict(X_test))
+                else:
+                    if len(self.shape) == 1:
+                        predictions.append(np.zeros(len(test_node.data[0])))
+                    else:
+                        predictions.append(np.zeros((len(test_node.data[0]), self.shape[1])))
+                cur_idx += 1
         predictions = np.asarray(predictions)
 
         # if predictions.shape[0] == len(self.weights_),

@@ -105,7 +105,7 @@ class FirstLayerBandit(object):
         return self.time_records, self.final_rewards
 
     def optimize(self):
-        if self.inner_opt_algorithm == 'rb_hpo':
+        if self.inner_opt_algorithm in ['rb_hpo', 'fixed']:
             self.optimize_explore_first()
         elif self.inner_opt_algorithm == 'equal':
             self.optimize_equal_resource()
@@ -337,7 +337,7 @@ class FirstLayerBandit(object):
         best_perf = float('-INF')
         for algo_id in self.nbest_algo_ids:
             best_perf = max(best_perf, self.sub_bandits[algo_id].incumbent_perf)
-        print('='*50)
+        print('=' * 50)
         print('algorithm_id', '#features', '#configs')
         for algo_id in self.nbest_algo_ids:
             data = dict()
@@ -365,7 +365,6 @@ class FirstLayerBandit(object):
             for item in train_data_candidates:
                 if item not in train_data_list:
                     train_data_list.append(item)
-            data['train_data_list'] = train_data_list
 
             # Build hyperparameter configuration candidates.
             configs = hpo_optimizer.configs
@@ -390,8 +389,46 @@ class FirstLayerBandit(object):
                 best_configs = [best_configs[idx] for idx in idxs]
             else:
                 best_configs = best_configs[:hpo_config_num]
-            data['configurations'] = best_configs
-            print(algo_id, len(data['train_data_list']), len(data['configurations']))
+            model_to_eval = []
+            for node in train_data_list:
+                for config in best_configs:
+                    model_to_eval.append((node, config))
+            data['model_to_eval'] = model_to_eval
+            print(algo_id, len(train_data_list), len(best_configs))
             stats[algo_id] = data
-        print('='*30)
+        print('=' * 30)
+        return stats
+
+    def fetch_ensemble_members_ano(self):
+        stats = dict()
+        stats['candidate_algorithms'] = self.include_algorithms
+        stats['include_algorithms'] = self.nbest_algo_ids
+        stats['split_seed'] = self.seed
+        print('=' * 50)
+        print('algorithm_id', '#features', '#configs')
+        for algo_id in self.nbest_algo_ids:
+            data = dict()
+            model_num = 20
+
+            fe_eval_dict = self.sub_bandits[algo_id].optimizer['fe'].eval_dict
+            hpo_eval_dict = self.sub_bandits[algo_id].optimizer['hpo'].eval_dict
+
+            combined_dict = fe_eval_dict.copy()
+            for key in hpo_eval_dict:
+                if key not in fe_eval_dict:
+                    combined_dict[key] = hpo_eval_dict[key]
+
+            max_list = sorted(combined_dict.items(), key=lambda item: item[1], reverse=True)
+            model_items = max_list[:model_num]
+            fe_configs = [item[0][0] for item in model_items]
+            hpo_configs = [item[0][1] for item in model_items]
+            node_list = self.sub_bandits[algo_id].optimizer['fe'].fetch_nodes_by_config(fe_configs)
+            model_to_eval = []
+            for idx, node in enumerate(node_list):
+                if node is not None:
+                    model_to_eval.append((node_list[idx], hpo_configs[idx]))
+            data['model_to_eval'] = model_to_eval
+            print(algo_id, len(model_to_eval))
+            stats[algo_id] = data
+        print('=' * 30)
         return stats

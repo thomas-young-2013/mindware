@@ -4,7 +4,7 @@ from sklearn.model_selection import StratifiedKFold, KFold, StratifiedShuffleSpl
 from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 
-from automlToolkit.components.utils.balancing import get_data
+from automlToolkit.components.utils.balancing import smote
 
 
 def get_onehot_y(encoder, y):
@@ -31,7 +31,7 @@ def cross_validation(estimator, scorer, X, y, n_fold=5, shuffle=True, fit_params
                 if 'sample_weight' in fit_params:
                     _fit_params['sample_weight'] = fit_params['sample_weight'][train_idx]
                 elif 'data_balance' in fit_params:
-                    X_train, y_train = get_data(X_train, y_train)
+                    X_train, y_train = smote(X_train, y_train)
             estimator.fit(train_x, train_y, **_fit_params)
             if onehot is not None:
                 valid_y = get_onehot_y(onehot, valid_y)
@@ -57,7 +57,7 @@ def holdout_validation(estimator, scorer, X, y, test_size=0.33, fit_params=None,
                 if 'sample_weight' in fit_params:
                     _fit_params['sample_weight'] = fit_params['sample_weight'][train_index]
                 elif 'data_balance' in fit_params:
-                    X_train, y_train = get_data(X_train, y_train)
+                    X_train, y_train = smote(X_train, y_train)
             estimator.fit(X_train, y_train, **_fit_params)
             if onehot is not None:
                 y_test = get_onehot_y(onehot, y_test)
@@ -91,7 +91,7 @@ def partial_validation(estimator, scorer, X, y, data_subsample_ratio, test_size=
                         if 'sample_weight' in fit_params:
                             _fit_params['sample_weight'] = fit_params['sample_weight'][train_index]
                         elif 'data_balance' in fit_params:
-                            X_train, y_train = get_data(X_train, y_train)
+                            X_train, y_train = smote(X_train, y_train)
 
             estimator.fit(_X_train, _y_train, **_fit_params)
             if onehot is not None:

@@ -59,7 +59,12 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
         if algo in algorithms and len(include_models) < 3:
             include_models.append(algo)
     print('After algorithm recommendation', include_models)
-
+    # if dataset in ['page-blocks(1)', 'pc2']:
+    #     include_models = ['libsvm_svc']
+    # elif dataset == 'winequality_white':
+    #     include_models = ['liblinear_svc']
+    # else:
+    #     pass
     _start_time = time.time()
     train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
     cls_task_type = BINARY_CLS if len(set(train_data.data[1])) == 2 else MULTICLASS_CLS
@@ -212,8 +217,6 @@ if __name__ == "__main__":
         if mode != 'plot':
             for dataset in dataset_list:
                 time_costs = list()
-                if mode == 'ausk':
-                    time_costs = load_hmab_time_costs(start_id, rep, dataset, len(algorithms), trial_num, seeds, time_limit)
 
                 for run_id in range(start_id, start_id + rep):
                     seed = int(seeds[run_id])
@@ -238,13 +241,9 @@ if __name__ == "__main__":
                 row_data = [dataset]
                 for mth in method_ids:
                     results = list()
-                    time_costs = load_hmab_time_costs(start_id, rep, dataset, len(algorithms), trial_num, seeds, time_limit)
                     for run_id in range(rep):
                         seed = seeds[run_id]
-                        if not mth.startswith('hmab'):
-                            time_t = time_costs[run_id]
-                        else:
-                            time_t = time_limit
+                        time_t = time_limit
                         file_path = project_dir + '%s_%s_%d_%d_%d_%d_%d.pkl' % (
                             mth, dataset, trial_num, len(algorithms), seed, run_id, time_t)
                         if not os.path.exists(file_path):

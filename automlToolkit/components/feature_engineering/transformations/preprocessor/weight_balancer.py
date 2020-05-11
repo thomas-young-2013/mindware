@@ -8,6 +8,7 @@ class WeightBalancer(Transformer):
 
     def operate(self, input_datanode: DataNode, target_fields=None):
         output_datanode = input_datanode.copy_()
-        output_datanode.enable_balance = 1
+        if output_datanode.data_balance != 1:
+            output_datanode.enable_balance = 1
         output_datanode.trans_hist.append(self.type)
         return output_datanode

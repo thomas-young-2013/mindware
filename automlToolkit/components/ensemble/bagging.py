@@ -25,16 +25,17 @@ class Bagging(BaseEnsembleModel):
     def fit(self, datanode):
         model_cnt = 0
         for algo_id in self.stats["include_algorithms"]:
-            train_list = self.stats[algo_id]['train_data_list']
-            configs = self.stats[algo_id]['configurations']
-            for idx in range(len(train_list)):
-                X, y = train_list[idx].data
-                for _config in configs:
-                    if self.base_model_mask[model_cnt] == 1:
-                        estimator = fetch_predict_estimator(self.task_type, _config, X, y)
-                        with open(os.path.join(self.output_dir, '%s-bagging-model%d' % (self.timestamp, model_cnt)), 'wb') as f:
-                            pkl.dump(estimator, f)
-                    model_cnt += 1
+            model_to_eval = self.stats[algo_id]['model_to_eval']
+            for idx, (node, config) in enumerate(model_to_eval):
+                X, y = node.data
+                if self.base_model_mask[model_cnt] == 1:
+                    estimator = fetch_predict_estimator(self.task_type, config, X, y,
+                                                        weight_balance=node.enable_balance,
+                                                        data_balance=node.data_balance)
+                    with open(os.path.join(self.output_dir, '%s-bagging-model%d' % (self.timestamp, model_cnt)),
+                              'wb') as f:
+                        pkl.dump(estimator, f)
+                model_cnt += 1
         return self
 
     def predict(self, data, solvers):
@@ -43,19 +44,18 @@ class Bagging(BaseEnsembleModel):
         # Get predictions from each model
         model_cnt = 0
         for algo_id in self.stats["include_algorithms"]:
-            train_list = self.stats[algo_id]['train_data_list']
-            configs = self.stats[algo_id]['configurations']
-            for train_node in train_list:
-                test_node = solvers[algo_id].optimizer['fe'].apply(data, train_node)
-                for _ in configs:
-                    if self.base_model_mask[model_cnt] == 1:
-                        with open(os.path.join(self.output_dir, '%s-bagging-model%d' % (self.timestamp, model_cnt)), 'rb') as f:
-                            estimator = pkl.load(f)
-                            if self.task_type in CLS_TASKS:
-                                model_pred_list.append(estimator.predict_proba(test_node.data[0]))
-                            else:
-                                model_pred_list.append(estimator.predict(test_node.data[0]))
-                    model_cnt += 1
+            model_to_eval = self.stats[algo_id]['model_to_eval']
+            for idx, (node, config) in enumerate(model_to_eval):
+                test_node = solvers[algo_id].optimizer['fe'].apply(data, node)
+                if self.base_model_mask[model_cnt] == 1:
+                    with open(os.path.join(self.output_dir, '%s-bagging-model%d' % (self.timestamp, model_cnt)),
+                              'rb') as f:
+                        estimator = pkl.load(f)
+                        if self.task_type in CLS_TASKS:
+                            model_pred_list.append(estimator.predict_proba(test_node.data[0]))
+                        else:
+                            model_pred_list.append(estimator.predict(test_node.data[0]))
+                model_cnt += 1
 
         # Calculate the average of predictions
         for i in range(len(data.data[0])):

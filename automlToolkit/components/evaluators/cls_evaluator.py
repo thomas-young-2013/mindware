@@ -28,7 +28,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                  resampling_strategy='cv', resampling_params=None, seed=1):
         self.resampling_strategy = resampling_strategy
         self.resampling_params = resampling_params
-        self.clf_config = clf_config
+        self.hpo_config = clf_config
         self.scorer = scorer if scorer is not None else balanced_accuracy_scorer
         self.data_node = data_node
         self.name = name
@@ -51,7 +51,7 @@ class ClassificationEvaluator(_BaseEvaluator):
 
         # Prepare configuration.
         np.random.seed(self.seed)
-        config = config if config is not None else self.clf_config
+        config = config if config is not None else self.hpo_config
 
         downsample_ratio = kwargs.get('data_subsample_ratio', 1.0)
         # Prepare data node.

@@ -31,8 +31,8 @@ parser.add_argument('--seed', type=int, default=1)
 project_dir = './'
 per_run_time_limit = 180
 opt_algo = 'rb_hpo'
-hmab_flag = 'hmab_ens'
-ausk_flag = 'ausk_single'
+hmab_flag = 'stacking_hmab_ens'
+ausk_flag = 'ausk_ens'
 
 
 def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
@@ -47,7 +47,8 @@ def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_
                               output_dir='logs',
                               per_run_time_limit=per_run_time_limit,
                               dataset_name=dataset,
-                              ensemble_size=50,
+                              ensemble_method='stacking',
+                              ensemble_size=10,
                               inner_opt_algorithm=opt_algo,
                               metric=balanced_acc_metric,
                               fe_algo='bo',
@@ -100,8 +101,7 @@ def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limi
         include_estimators=include_models,
         ensemble_memory_limit=8192,
         ml_memory_limit=8192,
-        ensemble_size=1,
-        ensemble_nbest=1,
+        ensemble_size=50,
         initial_configurations_via_metalearning=0,
         seed=int(seed),
         resampling_strategy='holdout',
@@ -190,7 +190,7 @@ if __name__ == "__main__":
                         raise ValueError('Invalid parameter: %s' % mode)
         else:
             headers = ['dataset']
-            method_ids = ['hmab_ens_rb_hpo', 'ausk_single']
+            method_ids = [hmab_flag + '_' + opt_algo, ausk_flag]
             for mth in method_ids:
                 headers.extend(['val-%s' % mth, 'test-%s' % mth])
 

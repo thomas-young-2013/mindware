@@ -188,7 +188,10 @@ class AutoML(object):
             self.fe_optimizer = self.solvers[best_algo_id].optimizer['fe']
             best_config = self.solvers[best_algo_id].inc['hpo']
             best_estimator = fetch_predict_estimator(self.task_type, best_config, self.best_data_node.data[0],
-                                                     self.best_data_node.data[1])
+                                                     self.best_data_node.data[1],
+                                                     weight_balance=self.best_data_node.enable_balance,
+                                                     data_balance=self.best_data_node.data_balance
+                                                     )
             with open(os.path.join(self.output_dir, 'best_model'), 'wb') as f:
                 pkl.dump(best_estimator, f)
 

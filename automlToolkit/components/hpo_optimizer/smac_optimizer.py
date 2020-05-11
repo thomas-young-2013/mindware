@@ -40,6 +40,7 @@ class SMACOptimizer(BaseHPOptimizer):
         self.logger.debug('HP_THRESHOLD is: %d' % self.config_num_threshold)
         self.maximum_config_num = min(600, self.config_num_threshold)
         self.early_stopped_flag = False
+        self.eval_dict = {}
 
     def run(self):
         while True:
@@ -65,6 +66,8 @@ class SMACOptimizer(BaseHPOptimizer):
                 self.perfs.append(1. - _perf)
 
         runhistory = self.optimizer.get_history()
+        self.eval_dict = {(None, hpo_config): 1 - score for hpo_config, score in
+                          runhistory.data.items()}
         self.incumbent_config, self.incumbent_perf = runhistory.get_incumbents()[0]
         self.incumbent_perf = 1 - self.incumbent_perf
         iteration_cost = time.time() - _start_time
@@ -74,6 +77,8 @@ class SMACOptimizer(BaseHPOptimizer):
         self.optimizer.optimize()
 
         runhistory = self.optimizer.get_history()
+        self.eval_dict = {(None, hpo_config): 1 - score for hpo_config, score in
+                          runhistory.data.items()}
         self.incumbent_config, self.incumbent_perf = runhistory.get_incumbents()[-1]
         self.incumbent_perf = 1 - self.incumbent_perf
         return self.incumbent_config, self.incumbent_perf

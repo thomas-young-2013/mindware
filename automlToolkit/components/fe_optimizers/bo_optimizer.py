@@ -51,6 +51,7 @@ class BayesianOptimizationOptimizer(Optimizer):
                             task_id=self.model_id,
                             time_limit_per_trial=self.time_limit_per_trans,
                             rng=np.random.RandomState(self.seed))
+        self.eval_dict = {}
 
     def evaluate_function(self, config):
         """
@@ -60,6 +61,7 @@ class BayesianOptimizationOptimizer(Optimizer):
         """
         input_node = self.root_node
         output_node = self._parse(input_node, config)
+        output_node.config = config
         return 1 - self.evaluator(self.hp_config, data_node=output_node, name='fe')
 
     def optimize(self):
@@ -91,6 +93,8 @@ class BayesianOptimizationOptimizer(Optimizer):
                 print(info)
 
         runhistory = self.optimizer.get_history()
+        self.eval_dict = {(fe_config, self.evaluator.hpo_config): 1 - score for fe_config, score in
+                          runhistory.data.items()}
         self.incumbent_config, iter_incumbent_score = runhistory.get_incumbents()[0]
         iter_incumbent_score = 1 - iter_incumbent_score
         iteration_cost = time.time() - _start_time
@@ -252,6 +256,7 @@ class BayesianOptimizationOptimizer(Optimizer):
                                        parent_hyperparameter=parent_hyperparameter)
 
     def fetch_nodes(self, n=5):
+        self.node_dict = {}
         runhistory = self.optimizer.get_history()
         hist_dict = runhistory.data
         default_config = self.hyperparameter_space.get_default_configuration()
@@ -293,6 +298,27 @@ class BayesianOptimizationOptimizer(Optimizer):
                 self.node_dict[len(self.node_dict)] = [node, tran_list]
             except:
                 print("Re-parse failed on config %s" % str(config[0]))
+        return node_list
+
+    def fetch_nodes_by_config(self, config_list):
+        self.node_dict = {}
+        node_list = []
+        print("Re-parse %d configs" % len(config_list))
+        for i, config in enumerate(config_list):
+            try:
+                if config is None:
+                    config = self.hyperparameter_space.get_default_configuration()
+                node, tran_list = self._parse(self.root_node, config, record=True)
+                if node.data[0].shape[1] == 0:
+                    continue
+                if self.incumbent is None:
+                    self.incumbent = node  # Update incumbent node
+                node_list.append(node)
+                self.node_dict[len(self.node_dict)] = [node, tran_list]
+            except Exception as e:
+                node_list.append(None)
+                print(e)
+                print("Re-parse failed on config %s" % str(config))
         return node_list
 
     def apply(self, data_node: DataNode, ref_node: DataNode, phase='test'):
