@@ -5,6 +5,7 @@ import pickle as pk
 import lightgbm as lgb
 from collections import OrderedDict
 from .meta_generator import get_feature_vector, prepare_meta_dataset
+from automlToolkit.components.utils.constants import CLS_TASKS, REG_TASKS
 
 _buildin_algorithms = ['lightgbm', 'random_forest', 'libsvm_svc', 'extra_trees', 'liblinear_svc',
                        'k_nearest_neighbors', 'logistic_regression', 'gradient_boosting', 'adaboost']
@@ -22,9 +23,22 @@ class AlgorithmAdvisor(object):
         self.n_algorithm = n_algorithm
         self.task_type = task_type
         self.meta_algo = meta_algorithm
+        if task_type in CLS_TASKS:
+            if metric not in ['acc', 'bal_acc']:
+                print('Meta information about metric-%s does not exist, use accuracy instead.')
+                metric = 'acc'
+        elif task_type in REG_TASKS:
+            raise NotImplementedError()
+            # if metric not in []:
+            #     print('Meta information about metric-%s does not exist, use mse instead.')
+            #     metric = 'mse'
+        else:
+            raise ValueError('Invalid metric: %s.' % metric)
+
         self.metric = metric
         self.rep = rep
         self.total_resource = total_resource
+        self.meta_learner = None
         buildin_loc = os.path.dirname(__file__) + '/../meta_resource/'
         self.meta_dir = meta_dir if meta_dir is not None else buildin_loc
         self.exclude_datasets = exclude_datasets
@@ -36,7 +50,8 @@ class AlgorithmAdvisor(object):
             md5.update(exclude_str.encode('utf-8'))
             self.hash_id = md5.hexdigest()
         meta_datasets = set()
-        for _record in os.listdir(self.meta_dir):
+        meta_runs_dir = self.meta_dir + 'meta_runs/%s/' % self.metric
+        for _record in os.listdir(meta_runs_dir):
             if _record.endswith('.pkl') and _record.find('-') != -1:
                 meta_name = '-'.join(_record.split('-')[:-4])
                 if self.exclude_datasets is not None and meta_name in self.exclude_datasets:
@@ -45,8 +60,6 @@ class AlgorithmAdvisor(object):
         self._buildin_datasets = list(meta_datasets)
         if not self.meta_dir.endswith('/'):
             self.meta_dir += '/'
-        if not os.path.exists(self.meta_dir):
-            os.makedirs(self.meta_dir)
 
     def fetch_algorithm_set(self, dataset, dataset_id=None, data_dir='./'):
         input_vector = get_feature_vector(dataset, dataset_id, data_dir,
@@ -65,8 +78,8 @@ class AlgorithmAdvisor(object):
         return OrderedDict(zip(sorted_algos, sorted_scores))
 
     def fit_meta_learner(self):
-        meta_ranker_filename = self.meta_dir + 'ranker_model_%s_%s.pkl' % (self.meta_algo, self.hash_id)
-        meta_dataset_filename = self.meta_dir + 'ranker_dataset_%s_%s.pkl' % (self.meta_algo, self.hash_id)
+        meta_ranker_filename = self.meta_dir + 'ranker_model_%s_%s_%s.pkl' % (self.meta_algo, self.metric, self.hash_id)
+        meta_dataset_filename = self.meta_dir + 'ranker_dataset_%s_%s.pkl' % (self.metric, self.hash_id)
 
         if os.path.exists(meta_ranker_filename):
             print('meta ranker has been trained!')
@@ -139,6 +152,7 @@ class AlgorithmAdvisor(object):
 
         gbm = lgb.LGBMClassifier(**meta_learner_config)
         gbm.fit(meta_X, meta_y)
+        self.meta_learner = gbm
 
         print('Dumping model to PICKLE...')
 
@@ -147,37 +161,40 @@ class AlgorithmAdvisor(object):
         return meta_infos
 
     def predict_meta_learner(self, meta_feature):
-        meta_learner_filename = self.meta_dir + 'ranker_model_%s_%s.pkl' % (self.meta_algo, self.hash_id)
-        with open(meta_learner_filename, 'rb') as f:
-            gbm = pk.load(f)
-            print('Load %s meta-learner from %s.' % (self.meta_algo, meta_learner_filename))
-            n_algo = len(_buildin_algorithms)
-            _X = list()
-            for i in range(n_algo):
-                for j in range(i + 1, n_algo):
-                    vector_i, vector_j = np.zeros(n_algo), np.zeros(n_algo)
-                    vector_i[i] = 1
-                    vector_j[j] = 1
+        if self.meta_learner is None:
+            meta_learner_filename = self.meta_dir + 'ranker_model_%s_%s.pkl' % (self.meta_algo, self.hash_id)
+            with open(meta_learner_filename, 'rb') as f:
+                gbm = pk.load(f)
+                print('Load %s meta-learner from %s.' % (self.meta_algo, meta_learner_filename))
+            self.meta_learner = gbm
 
-                    meta_x = meta_feature.copy()
-                    meta_x.extend(vector_i)
-                    meta_x.extend(vector_j)
-                    _X.append(meta_x)
+        n_algo = len(_buildin_algorithms)
+        _X = list()
+        for i in range(n_algo):
+            for j in range(i + 1, n_algo):
+                vector_i, vector_j = np.zeros(n_algo), np.zeros(n_algo)
+                vector_i[i] = 1
+                vector_j[j] = 1
 
-            preds = gbm.predict(_X)
-            # print(preds)
+                meta_x = meta_feature.copy()
+                meta_x.extend(vector_i)
+                meta_x.extend(vector_j)
+                _X.append(meta_x)
 
-            instance_idx = 0
-            scores = np.zeros(n_algo)
-            for i in range(n_algo):
-                for j in range(i + 1, n_algo):
-                    if preds[instance_idx] == 1:
-                        scores[i] += 1
-                    else:
-                        scores[j] += 1
-                    instance_idx += 1
-            scores = np.array(scores) / np.sum(scores)
-            idxs = np.argsort(-scores)
-            sorted_algos = [_buildin_algorithms[idx] for idx in idxs]
-            sorted_scores = [scores[idx] for idx in idxs]
-            return sorted_algos, sorted_scores
+        preds = self.meta_learner.predict(_X)
+        # print(preds)
+
+        instance_idx = 0
+        scores = np.zeros(n_algo)
+        for i in range(n_algo):
+            for j in range(i + 1, n_algo):
+                if preds[instance_idx] == 1:
+                    scores[i] += 1
+                else:
+                    scores[j] += 1
+                instance_idx += 1
+        scores = np.array(scores) / np.sum(scores)
+        idxs = np.argsort(-scores)
+        sorted_algos = [_buildin_algorithms[idx] for idx in idxs]
+        sorted_scores = [scores[idx] for idx in idxs]
+        return sorted_algos, sorted_scores

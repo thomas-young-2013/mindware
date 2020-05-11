@@ -64,16 +64,19 @@ class AutoML(object):
         :return:
         """
         if self.enable_meta_algorithm_selection:
-            alad = AlgorithmAdvisor(task_type=self.task_type, n_algorithm=9,
-                                    metric=self.metric)
-            n_algo = 5
-            model_candidates = alad.fetch_algorithm_set(train_data, dataset_id=dataset_id)
-            include_models = list()
-            for algo in model_candidates:
-                if algo in self.include_algorithms and len(include_models) < n_algo:
-                    include_models.append(algo)
-            self.include_algorithms = include_models
-            print('Algorithms recommended:', self.include_algorithms)
+            try:
+                alad = AlgorithmAdvisor(task_type=self.task_type, n_algorithm=9,
+                                        metric=self.metric)
+                n_algo = 5
+                model_candidates = alad.fetch_algorithm_set(train_data, dataset_id=dataset_id)
+                include_models = list()
+                for algo in model_candidates:
+                    if algo in self.include_algorithms and len(include_models) < n_algo:
+                        include_models.append(algo)
+                self.include_algorithms = include_models
+                print('Algorithms recommended:', self.include_algorithms)
+            except Exception as e:
+                print(e)
 
         # Check whether this dataset is balanced or not.
         if self.task_type in CLS_TASKS and is_unbalanced_dataset(train_data):

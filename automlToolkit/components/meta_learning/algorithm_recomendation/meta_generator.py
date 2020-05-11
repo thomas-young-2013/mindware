@@ -16,7 +16,7 @@ def fetch_algorithm_runs(meta_dir, dataset, metric, total_resource, rep,
     for algo in buildin_algorithms:
         scores = list()
         for run_id in range(rep):
-            save_path = meta_dir + '%s-%s-%s-%d-%d.pkl' % (dataset, algo, metric, run_id, total_resource)
+            save_path = meta_dir + 'meta_runs/%s/%s-%s-%s-%d-%d.pkl' % (metric, dataset, algo, metric, run_id, total_resource)
             if not os.path.exists(save_path):
                 continue
 
