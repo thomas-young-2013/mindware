@@ -47,8 +47,9 @@ class AlgorithmAdvisor(object):
         if not os.path.exists(self.meta_dir):
             os.makedirs(self.meta_dir)
 
-    def fetch_algorithm_set(self, dataset, data_dir='./'):
-        input_vector = get_feature_vector(dataset, data_dir, task_type=self.task_type)
+    def fetch_algorithm_set(self, dataset, dataset_id=None, data_dir='./'):
+        input_vector = get_feature_vector(dataset, dataset_id, data_dir,
+                                          task_type=self.task_type)
         pred_algos, _ = self.predict_meta_learner(input_vector)
         return pred_algos[:self.n_algorithm]
 

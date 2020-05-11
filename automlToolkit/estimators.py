@@ -43,6 +43,9 @@ class Classifier(BaseEstimator):
             raise ValueError("X is supposed to be a Data Node, but get %s" % type(X))
         return super().predict(X, batch_size=batch_size, n_jobs=n_jobs)
 
+    def refit(self):
+        return super().refit()
+
     def predict_proba(self, X, batch_size=None, n_jobs=1):
         """
         Predict probabilities of classes for all samples X.

@@ -30,7 +30,7 @@ parser.add_argument('--seed', type=int, default=1)
 
 
 project_dir = './data/meta_exp/'
-per_run_time_limit = 180
+per_run_time_limit = 120
 opt_algo = 'fixed'
 hmab_flag = 'hmab_pipeline_meta'
 if not os.path.exists(project_dir):
@@ -43,6 +43,7 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
                         'page-blocks(1)', 'winequality_white', 'pollen']
     alad = AlgorithmAdvisor(task_type=MULTICLASS_CLS, n_algorithm=9,
                             metric='acc', exclude_datasets=exclude_datasets)
+    n_algo = 5
     assert dataset in exclude_datasets
     meta_infos = alad.fit_meta_learner()
     assert dataset not in meta_infos
@@ -50,7 +51,7 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
     include_models = list()
     print(model_candidates)
     for algo in model_candidates:
-        if algo in algorithms and len(include_models) < 3:
+        if algo in algorithms and len(include_models) < n_algo:
             include_models.append(algo)
     print('After algorithm recommendation', include_models)
     # if dataset in ['page-blocks(1)', 'pc2']:

@@ -154,7 +154,8 @@ class FirstLayerBandit(object):
             pkl.dump(best_estimator, f)
 
     def refit(self):
-        stats = self.fetch_ensemble_members()
+        # stats = self.fetch_ensemble_members()
+        stats = self.fetch_ensemble_members_ano()
         if self.ensemble_method is not None:
             # Ensembling all intermediate/ultimate models found in above optimization process.
             self.es = EnsembleBuilder(stats=stats,

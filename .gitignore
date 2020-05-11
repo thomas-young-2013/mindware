@@ -1,14 +1,11 @@
 *.DS_Store
 *.pyc
 *.swp
-*.pkl
 *.csv
 *.log
 temp/*
 dist/*
 build/*
-*.egg-info/
-
 *.egg-info/
 
 # test-related

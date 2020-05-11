@@ -7,12 +7,12 @@ from automlToolkit.components.feature_engineering.transformation_graph import Da
 class BaseEstimator(object):
     def __init__(
             self,
-            metric=None,
-            time_limit=None,
-            iter_num_per_algo=50,
+            time_limit=300,
+            amount_of_resource=None,
+            metric='acc',
             include_algorithms=None,
             ensemble_method='ensemble_selection',
-            ensemble_size=20,
+            ensemble_size=50,
             per_run_time_limit=150,
             random_state=1,
             n_jobs=1,
@@ -21,7 +21,7 @@ class BaseEstimator(object):
         self.metric = metric
         self.task_type = None
         self.time_limit = time_limit
-        self.iter_num_per_algo = iter_num_per_algo
+        self.amount_of_resource = amount_of_resource
         self.include_algorithms = include_algorithms
         self.ensemble_method = ensemble_method
         self.ensemble_size = ensemble_size
@@ -41,7 +41,7 @@ class BaseEstimator(object):
             task_type=self.task_type,
             metric=self.metric,
             time_limit=self.time_limit,
-            iter_num_per_algo=self.iter_num_per_algo,
+            amount_of_resource=self.amount_of_resource,
             include_algorithms=self.include_algorithms,
             ensemble_method=self.ensemble_method,
             ensemble_size=self.ensemble_size,
@@ -61,14 +61,16 @@ class BaseEstimator(object):
         return self
 
     def predict(self, X: DataNode, batch_size=None, n_jobs=1):
-        return self._ml_engine.predict(X, batch_size=batch_size, n_jobs=n_jobs)
+        return self._ml_engine.predict(X)
 
     def score(self, data: DataNode):
-        raise NotImplementedError()
-        # return self._ml_engine.score(data)
+        return self._ml_engine.score(data)
+
+    def refit(self):
+        return self._ml_engine.refit()
 
     def predict_proba(self, X: DataNode, batch_size=None, n_jobs=1):
-        return self._ml_engine.predict_proba(X, batch_size=batch_size, n_jobs=n_jobs)
+        return self._ml_engine.predict_proba(X)
 
     def get_automl(self):
         return AutoML

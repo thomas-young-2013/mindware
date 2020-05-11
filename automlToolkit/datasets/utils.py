@@ -95,8 +95,17 @@ class NanOrdinalEncoder(_BaseEncoder):
 
 
 @ignore_warnings([RuntimeWarning, FutureWarning])
-def calculate_metafeatures(dataset, data_dir='./', task_type=None):
-    X, y, feature_types = load_data(dataset, data_dir, datanode_returned=False, preprocess=False, task_type=task_type)
+def calculate_metafeatures(dataset, dataset_id=None, data_dir='./', task_type=None):
+    if isinstance(dataset, str):
+        X, y, feature_types = load_data(dataset, data_dir, datanode_returned=False, preprocess=False, task_type=task_type)
+        dataset_id = dataset
+    elif isinstance(dataset, DataNode):
+        X, y, feature_types = dataset.data[0], dataset.data[1], dataset.feature_types
+        import pandas as pd
+        X = pd.DataFrame(data=X)
+    else:
+        raise ValueError('Invalid dataset input!')
+
     categorical_idx = [i for i, feature_type in enumerate(feature_types) if feature_type == 'categorical']
 
     nan_val = np.array(X.isnull()).astype('int')
@@ -118,6 +127,6 @@ def calculate_metafeatures(dataset, data_dir='./', task_type=None):
     categorical_.extend(categorical_false)
     mf = calculate_all_metafeatures(X=X, y=y,
                                     categorical=categorical_,
-                                    dataset_name=dataset,
+                                    dataset_name=dataset_id,
                                     task_type=task_type)
     return mf.load_values()
