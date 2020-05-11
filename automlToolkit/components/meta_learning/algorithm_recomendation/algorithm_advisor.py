@@ -25,7 +25,8 @@ class AlgorithmAdvisor(object):
         self.metric = metric
         self.rep = rep
         self.total_resource = total_resource
-        self.meta_dir = meta_dir if meta_dir is not None else './data/meta_res_cp'
+        buildin_loc = os.path.dirname(__file__) + '/../meta_resource/'
+        self.meta_dir = meta_dir if meta_dir is not None else buildin_loc
         self.exclude_datasets = exclude_datasets
         if self.exclude_datasets is None:
             self.hash_id = 'none'
@@ -146,9 +147,10 @@ class AlgorithmAdvisor(object):
         return meta_infos
 
     def predict_meta_learner(self, meta_feature):
-        with open(self.meta_dir + 'ranker_model_%s_%s.pkl' % (self.meta_algo, self.hash_id), 'rb') as f:
+        meta_learner_filename = self.meta_dir + 'ranker_model_%s_%s.pkl' % (self.meta_algo, self.hash_id)
+        with open(meta_learner_filename, 'rb') as f:
             gbm = pk.load(f)
-
+            print('Load %s meta-learner from %s.' % (self.meta_algo, meta_learner_filename))
             n_algo = len(_buildin_algorithms)
             _X = list()
             for i in range(n_algo):
