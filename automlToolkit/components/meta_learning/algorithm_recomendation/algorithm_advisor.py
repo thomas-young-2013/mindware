@@ -141,7 +141,8 @@ class AlgorithmAdvisor(object):
         # train
         print(meta_X.shape, meta_y.shape)
 
-        meta_learner_config_filename = self.meta_dir + 'meta_learner_%s_%s_config.pkl' % (self.meta_algo, self.hash_id)
+        meta_learner_config_filename = self.meta_dir + 'meta_learner_%s_%s_%s_config.pkl' % (
+            self.meta_algo, self.metric, self.hash_id)
         if os.path.exists(meta_learner_config_filename):
             with open(meta_learner_config_filename, 'rb') as f:
                 meta_learner_config = pk.load(f)

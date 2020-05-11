@@ -8,17 +8,17 @@ from automlToolkit.components.meta_learning.algorithm_recomendation.meta_generat
 from automlToolkit.components.utils.constants import MULTICLASS_CLS
 
 test_datasets = ['gina_prior2', 'pc2', 'abalone', 'wind', 'waveform-5000(2)', 'page-blocks(1)', 'winequality_white', 'pollen']
-alad = AlgorithmAdvisor(task_type=MULTICLASS_CLS, exclude_datasets=None, n_algorithm=5)
+alad = AlgorithmAdvisor(task_type=MULTICLASS_CLS, exclude_datasets=test_datasets, n_algorithm=5, metric='bal_acc')
 meta_infos = alad.fit_meta_learner()
 datasets = [item[0] for item in meta_infos]
 print(datasets)
 
 
 # 1.0, 2.0
-def topk(l1, l2, k=3):
+def topk(l1, l2):
     score = 0
-    for item in l1[:k]:
-        if item in l2[:k]:
+    for item in l1[:3]:
+        if item in l2[:5]:
             score += 1
     return score
 

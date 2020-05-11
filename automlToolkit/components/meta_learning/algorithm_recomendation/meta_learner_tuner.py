@@ -12,9 +12,11 @@ from ConfigSpace.hyperparameters import UniformFloatHyperparameter, UniformInteg
 from litebo.facade.bo_facade import BayesianOptimization
 
 meta_algo = 'lightgbm'
-meta_dir = 'data/meta_res_cp/'
-hash_id = '0113dca840d96fa72e427ab7b6f1d888'
-meta_dataset_filename = meta_dir + 'ranker_dataset_%s_%s.pkl' % (meta_algo, hash_id)
+meta_dir = os.path.dirname(__file__) + '/../meta_resource/'
+hash_id = 'none'
+metric = 'bal_acc'
+meta_dataset_filename = meta_dir + 'ranker_dataset_%s_%s.pkl' % (metric, hash_id)
+
 if os.path.exists(meta_dataset_filename):
     with open(meta_dataset_filename, 'rb') as f:
         meta_X, meta_y, meta_infos = pk.load(f)
@@ -66,7 +68,7 @@ def tune_meta_learner():
     inc_value = bo.get_incumbent()
     config = inc_value[0][0]
 
-    with open(meta_dir + 'meta_learner_%s_%s_config.pkl' % (meta_algo, hash_id), 'wb') as f:
+    with open(meta_dir + 'meta_learner_%s_%s_%s_config.pkl' % (meta_algo, metric, hash_id), 'wb') as f:
         pk.dump(config, f)
     print('Best hyperparameter config found', config)
     return config
