@@ -110,7 +110,7 @@ def get_data(X, y, threshold=0.6, random_state=1):
 
 
 def smote(X, y, random_state=1):
-    from imblearn.combine import SMOTEENN
+    from imblearn.combine import SMOTETomek
     from imblearn.over_sampling import SMOTE
 
     labels = list(y)
@@ -120,10 +120,10 @@ def smote(X, y, random_state=1):
     cnts = sorted(cnts)
     if cnts[0] < 6:
         sm = SMOTE(random_state=random_state, k_neighbors=cnts[0] - 1)
-        model = SMOTEENN(random_state=random_state, smote=sm)
+        model = SMOTETomek(random_state=random_state, smote=sm)
     else:
-        # The default value of k_neighbors in SMOTEENN is 5
-        model = SMOTEENN(random_state=random_state)
+        # The default value of k_neighbors in SMOTETomek is 5
+        model = SMOTETomek(random_state=random_state)
 
     X_res, y_res = model.fit_resample(X, y)
     return X_res, y_res
