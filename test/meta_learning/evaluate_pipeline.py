@@ -4,14 +4,12 @@ import time
 import pickle
 import argparse
 import numpy as np
-import autosklearn.classification
 from tabulate import tabulate
 from sklearn.metrics import make_scorer
 
 sys.path.append(os.getcwd())
 
 from automlToolkit.datasets.utils import load_train_test_data
-from automlToolkit.components.utils.constants import CATEGORICAL
 from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
 from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
 from automlToolkit.components.utils.constants import MULTICLASS_CLS, BINARY_CLS
@@ -42,7 +40,7 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
     exclude_datasets = ['gina_prior2', 'pc2', 'abalone', 'wind', 'waveform-5000(2)',
                         'page-blocks(1)', 'winequality_white', 'pollen']
     alad = AlgorithmAdvisor(task_type=MULTICLASS_CLS, n_algorithm=9,
-                            metric='acc', exclude_datasets=exclude_datasets)
+                            metric='bal_acc', exclude_datasets=exclude_datasets)
     n_algo = 5
     assert dataset in exclude_datasets
     meta_infos = alad.fit_meta_learner()
