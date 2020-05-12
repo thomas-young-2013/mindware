@@ -2,15 +2,15 @@ import os
 import sys
 sys.path.append(os.getcwd())
 
-from automlToolkit.components.feature_engineering.transformations.preprocessor.imputer import ImputationTransformation
-from automlToolkit.components.feature_engineering.transformations.continous_discretizer import *
-from automlToolkit.components.feature_engineering.transformations.rescaler.scaler import ScaleTransformation
-from automlToolkit.components.feature_engineering.transformations.preprocessor.onehot_encoder import OneHotTransformation
-from automlToolkit.components.feature_engineering.transformation_graph import TransformationGraph
-from automlToolkit.components.feature_engineering.transformations.merger import Merger
-from automlToolkit.components.feature_engineering.transformation_graph import DataNode
-from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
-from automlToolkit.components.utils.constants import *
+from solnml.components.feature_engineering.transformations.preprocessor.imputer import ImputationTransformation
+from solnml.components.feature_engineering.transformations.continous_discretizer import *
+from solnml.components.feature_engineering.transformations.rescaler.scaler import ScaleTransformation
+from solnml.components.feature_engineering.transformations.preprocessor.onehot_encoder import OneHotTransformation
+from solnml.components.feature_engineering.transformation_graph import TransformationGraph
+from solnml.components.feature_engineering.transformations.merger import Merger
+from solnml.components.feature_engineering.transformation_graph import DataNode
+from solnml.components.feature_engineering.fe_pipeline import FEPipeline
+from solnml.components.utils.constants import *
 
 
 def evaluate_transformation_graph():
@@ -90,7 +90,7 @@ def evaluate_transformation_graph():
 
 
 def evaluate_fe_pipeline():
-    from automlToolkit.utils.data_manager import DataManager
+    from solnml.utils.data_manager import DataManager
     dm = DataManager()
     # file_path = "data/proprocess_data.csv"
     file_path = 'data/a9a/dataset_183_adult.csv'
@@ -118,7 +118,7 @@ def evaluate_data_manager():
     # print(dm.feature_types)
     # print(dm.missing_flags)
 
-    from automlToolkit.utils.data_manager import DataManager
+    from solnml.utils.data_manager import DataManager
     import numpy as np
     X = np.array([[1, 2, 3, 4], [1, 'asfd', 2, 1.4]])
     y = [1, 2]

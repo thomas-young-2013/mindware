@@ -3,9 +3,9 @@ import sys
 import numpy as np
 
 sys.path.append(os.getcwd())
-from automlToolkit.components.meta_learning.algorithm_recomendation.algorithm_advisor import AlgorithmAdvisor
-from automlToolkit.components.meta_learning.algorithm_recomendation.meta_generator import get_feature_vector
-from automlToolkit.components.utils.constants import MULTICLASS_CLS
+from solnml.components.meta_learning.algorithm_recomendation.algorithm_advisor import AlgorithmAdvisor
+from solnml.components.meta_learning.algorithm_recomendation.meta_generator import get_feature_vector
+from solnml.components.utils.constants import MULTICLASS_CLS
 
 test_datasets = ['gina_prior2', 'pc2', 'abalone', 'wind', 'waveform-5000(2)', 'page-blocks(1)', 'winequality_white', 'pollen']
 alad = AlgorithmAdvisor(task_type=MULTICLASS_CLS, exclude_datasets=test_datasets, n_algorithm=5, metric='bal_acc')

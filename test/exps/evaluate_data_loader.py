@@ -2,7 +2,7 @@ import os
 import sys
 import argparse
 sys.path.append(os.getcwd())
-from automlToolkit.datasets.utils import load_data
+from solnml.datasets.utils import load_data
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \

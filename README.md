@@ -27,7 +27,7 @@ The goal of Soln-ML is to make machine learning easier to apply both in industry
 Here is a brief example that uses the package.
 
 ```
-from automlToolkit.estimators import Classifier
+from solnml.estimators import Classifier
 
 train_data = dm.get_data_node(X_train, y_train)
 test_data = dm.get_data_node(X_test, y_test)

@@ -4,7 +4,7 @@ with open('requirements.txt') as fp:
     install_reqs = [r.rstrip() for r in fp.readlines()
                     if not r.startswith('#') and not r.startswith('git+')]
 
-setup(name='automlToolkit',
+setup(name='solnml',
       version='1.0',
       description='AutoML toolkit',
       author='AutoML Researcher @ DAIM',

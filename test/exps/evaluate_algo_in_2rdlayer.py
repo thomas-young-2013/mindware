@@ -6,10 +6,10 @@ import argparse
 import numpy as np
 from tabulate import tabulate
 sys.path.append(os.getcwd())
-from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator, fetch_predict_estimator
-from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
-from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
-from automlToolkit.datasets.utils import load_train_test_data
+from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator, fetch_predict_estimator
+from solnml.components.metrics.cls_metrics import balanced_accuracy
+from solnml.bandits.second_layer_bandit import SecondLayerBandit
+from solnml.datasets.utils import load_train_test_data
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,vehicle,yeast,' \

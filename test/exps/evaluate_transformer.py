@@ -3,10 +3,10 @@ import sys
 import numpy as np
 
 sys.path.append(os.getcwd())
-from automlToolkit.components.feature_engineering.transformations.selector.generic_univariate_selector import \
+from solnml.components.feature_engineering.transformations.selector.generic_univariate_selector import \
     GenericUnivariateSelector
-from automlToolkit.components.feature_engineering.transformation_graph import DataNode
-from automlToolkit.components.utils.constants import *
+from solnml.components.feature_engineering.transformation_graph import DataNode
+from solnml.components.utils.constants import *
 
 
 def evaluate_feature_selectors():
@@ -50,7 +50,7 @@ def test_selector():
     print(output_datanode.data)
 
     # Test percentile selector.
-    from automlToolkit.components.feature_engineering.transformations.selector.percentile_selector import \
+    from solnml.components.feature_engineering.transformations.selector.percentile_selector import \
         PercentileSelector
     scaler = PercentileSelector(percentile=25)
     scaler.concatenate = False
@@ -59,7 +59,7 @@ def test_selector():
     print(output_datanode.data)
 
     # Test model based selector.
-    from automlToolkit.components.feature_engineering.transformations.selector.model_based_selector import \
+    from solnml.components.feature_engineering.transformations.selector.model_based_selector import \
         ModelBasedSelector
     scaler = ModelBasedSelector(param='et')
     output_datanode = scaler.operate(datanode)
@@ -67,7 +67,7 @@ def test_selector():
     print(output_datanode.data)
 
     # Test variance threshold.
-    from automlToolkit.components.feature_engineering.transformations.selector.variance_selector import VarianceSelector
+    from solnml.components.feature_engineering.transformations.selector.variance_selector import VarianceSelector
     scaler = VarianceSelector()
     output_datanode = scaler.operate(datanode)
     print(output_datanode)
@@ -85,11 +85,11 @@ def test_additional_transformations():
     ]), np.array([1, 1, 2, 2, 3, 3]))
     feature_type = [NUMERICAL, NUMERICAL, DISCRETE, DISCRETE]
     datanode = DataNode(data, feature_type)
-    from automlToolkit.components.feature_engineering.transformations.generator.arithmetic_transformer import \
+    from solnml.components.feature_engineering.transformations.generator.arithmetic_transformer import \
         ArithmeticTransformation
-    from automlToolkit.components.feature_engineering.transformations.generator.lda_decomposer import LdaDecomposer
-    from automlToolkit.components.feature_engineering.transformations.continous_discretizer import KBinsDiscretizer
-    from automlToolkit.components.feature_engineering.transformations.discrete_categorizer import DiscreteCategorizer
+    from solnml.components.feature_engineering.transformations.generator.lda_decomposer import LdaDecomposer
+    from solnml.components.feature_engineering.transformations.continous_discretizer import KBinsDiscretizer
+    from solnml.components.feature_engineering.transformations.discrete_categorizer import DiscreteCategorizer
     # trans = ArithmeticTransformation()
     # trans = LdaDecomposer()
     # trans = KBinsDiscretizer()
@@ -110,7 +110,7 @@ def test_generator():
     datanode = DataNode(data, feature_type)
 
     # Test SVD.
-    from automlToolkit.components.feature_engineering.transformations.generator.svd_decomposer import SvdDecomposer
+    from solnml.components.feature_engineering.transformations.generator.svd_decomposer import SvdDecomposer
     scaler = SvdDecomposer()
     scaler.concatenate = False
     output_datanode = scaler.operate(datanode)
@@ -118,7 +118,7 @@ def test_generator():
     print(output_datanode.data)
 
     # Test feature agglomerate.
-    from automlToolkit.components.feature_engineering.transformations.generator.feature_agglomeration_decomposer import \
+    from solnml.components.feature_engineering.transformations.generator.feature_agglomeration_decomposer import \
         FeatureAgglomerationDecomposer
     scaler = FeatureAgglomerationDecomposer()
     scaler.concatenate = False
@@ -127,7 +127,7 @@ def test_generator():
     print(output_datanode.data)
 
     # Test PCA.
-    from automlToolkit.components.feature_engineering.transformations.generator.pca_decomposer import PcaDecomposer
+    from solnml.components.feature_engineering.transformations.generator.pca_decomposer import PcaDecomposer
     scaler = PcaDecomposer()
     scaler.concatenate = False
     output_datanode = scaler.operate(datanode)
@@ -135,7 +135,7 @@ def test_generator():
     print(output_datanode.data)
 
     # Test kernel PCA.
-    from automlToolkit.components.feature_engineering.transformations.generator.kernel_pca import KernelPCA
+    from solnml.components.feature_engineering.transformations.generator.kernel_pca import KernelPCA
     scaler = KernelPCA()
     scaler.concatenate = False
     output_datanode = scaler.operate(datanode)
@@ -143,7 +143,7 @@ def test_generator():
     print(output_datanode.data)
 
     # Test fast ICA.
-    from automlToolkit.components.feature_engineering.transformations.generator.fast_ica_decomposer import \
+    from solnml.components.feature_engineering.transformations.generator.fast_ica_decomposer import \
         FastIcaDecomposer
     scaler = FastIcaDecomposer()
     scaler.concatenate = False
@@ -160,7 +160,7 @@ def test_generator():
     # print(output_datanode.data)
 
     # Test random trees embedding.
-    from automlToolkit.components.feature_engineering.transformations.generator.random_trees_embedding import \
+    from solnml.components.feature_engineering.transformations.generator.random_trees_embedding import \
         RandomTreesEmbeddingTransformation
     scaler = RandomTreesEmbeddingTransformation()
     output_datanode = scaler.operate(datanode)
@@ -171,14 +171,14 @@ def test_generator():
 def test_balancer():
     dataset = 'winequality_red'
     sys.path.append(os.getcwd())
-    from automlToolkit.datasets.utils import load_data, load_train_test_data
+    from solnml.datasets.utils import load_data, load_train_test_data
     raw_data, test_raw_data = load_train_test_data(dataset)
     # data = (
     # np.random.random((10, 4)), np.array([0, 0, 0, 0, 0, 2, 2, 2, 2, 2]))
     # feature_type = [NUMERICAL, NUMERICAL, DISCRETE, DISCRETE]
     # datanode = DataNode(data, feature_type)
     print(raw_data, test_raw_data)
-    from automlToolkit.components.feature_engineering.transformations.preprocessor.data_balancer import DataBalancer
+    from solnml.components.feature_engineering.transformations.preprocessor.data_balancer import DataBalancer
     balancer = DataBalancer()
     a = balancer.operate(raw_data)
     b = balancer.operate(raw_data)

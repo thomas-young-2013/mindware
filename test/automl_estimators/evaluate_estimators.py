@@ -6,8 +6,8 @@ from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 
 sys.path.append(os.getcwd())
-from automlToolkit.utils.data_manager import DataManager
-from automlToolkit.estimators import Classifier
+from solnml.utils.data_manager import DataManager
+from solnml.estimators import Classifier
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--time_limit', type=int, default=150)

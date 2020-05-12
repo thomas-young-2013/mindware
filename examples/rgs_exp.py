@@ -7,8 +7,8 @@ from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 
 sys.path.append(os.getcwd())
-from automlToolkit.utils.data_manager import DataManager
-from automlToolkit.estimators import Regressor
+from solnml.utils.data_manager import DataManager
+from solnml.estimators import Regressor
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--time_limit', type=int, default=1200)

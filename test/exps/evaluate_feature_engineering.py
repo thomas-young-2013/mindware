@@ -8,10 +8,10 @@ import autosklearn.classification
 from tabulate import tabulate
 
 sys.path.append(os.getcwd())
-from automlToolkit.datasets.utils import load_train_test_data
-from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
-from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator
-from automlToolkit.components.utils.constants import MULTICLASS_CLS, BINARY_CLS
+from solnml.datasets.utils import load_train_test_data
+from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
+from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
+from solnml.components.utils.constants import MULTICLASS_CLS, BINARY_CLS
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--start_id', type=int, default=0)
@@ -38,7 +38,7 @@ if not os.path.exists(save_dir):
 
 def evaluate_ausk_fe(dataset, time_limit, run_id, seed):
     print('[Run ID: %d] Start to Evaluate' % run_id, dataset, 'Budget', time_limit)
-    from automlToolkit.utils.models.default_random_forest import DefaultRandomForest
+    from solnml.utils.models.default_random_forest import DefaultRandomForest
     # Add random forest classifier (with default hyperparameter) component to auto-sklearn.
     autosklearn.pipeline.components.classification.add_classifier(DefaultRandomForest)
     include_models = ['DefaultRandomForest']
@@ -84,7 +84,7 @@ def evaluate_ausk_fe(dataset, time_limit, run_id, seed):
 
 
 def evaluate_evaluation_based_fe(dataset, time_limit, run_id, seed):
-    from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
+    from solnml.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
 
     # Prepare the configuration for random forest.
     from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
@@ -134,7 +134,7 @@ def evaluate_evaluation_based_fe(dataset, time_limit, run_id, seed):
     X_test, y_test = final_test_data.data
     y_pred = clf.predict(X_test)
 
-    from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
+    from solnml.components.metrics.cls_metrics import balanced_accuracy
     test_score = balanced_accuracy(y_test, y_pred)
     print('==> Test score', test_score)
 
@@ -144,7 +144,7 @@ def evaluate_evaluation_based_fe(dataset, time_limit, run_id, seed):
 
 
 def evaluate_bo_optimizer(dataset, time_limit, run_id, seed):
-    from automlToolkit.components.fe_optimizers.bo_optimizer import BayesianOptimizationOptimizer
+    from solnml.components.fe_optimizers.bo_optimizer import BayesianOptimizationOptimizer
     # Prepare the configuration for random forest.
     from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
     from autosklearn.pipeline.components.classification.random_forest import RandomForest
@@ -178,7 +178,7 @@ def evaluate_bo_optimizer(dataset, time_limit, run_id, seed):
                                   data_balance=final_train_data.data_balance)
     y_pred = clf.predict(X_test)
 
-    from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
+    from solnml.components.metrics.cls_metrics import balanced_accuracy
     test_score = balanced_accuracy(y_test, y_pred)
     print('==> Test score', test_score)
 

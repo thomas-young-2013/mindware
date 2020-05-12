@@ -11,10 +11,10 @@ from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
 
-from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
-from automlToolkit.datasets.utils import load_data, load_train_test_data
-from automlToolkit.components.ensemble.ensemble_builder import EnsembleBuilder
-from automlToolkit.components.utils.constants import CATEGORICAL
+from solnml.bandits.first_layer_bandit import FirstLayerBandit
+from solnml.datasets.utils import load_data, load_train_test_data
+from solnml.components.ensemble.ensemble_builder import EnsembleBuilder
+from solnml.components.utils.constants import CATEGORICAL
 
 parser = argparse.ArgumentParser()
 dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \

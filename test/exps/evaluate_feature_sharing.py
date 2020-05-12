@@ -5,8 +5,8 @@ import pickle
 import argparse
 sys.path.append(os.getcwd())
 
-from automlToolkit.datasets.utils import load_data
-from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
+from solnml.datasets.utils import load_data
+from solnml.bandits.first_layer_bandit import FirstLayerBandit
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \

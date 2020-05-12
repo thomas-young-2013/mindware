@@ -4,10 +4,10 @@ import argparse
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 
 sys.path.append(os.getcwd())
-from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
-from automlToolkit.components.hpo_optimizer.psmac_optimizer import PSMACOptimizer
-from automlToolkit.datasets.utils import load_data
-from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator
+from solnml.components.hpo_optimizer.smac_optimizer import SMACOptimizer
+from solnml.components.hpo_optimizer.psmac_optimizer import PSMACOptimizer
+from solnml.datasets.utils import load_data
+from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \

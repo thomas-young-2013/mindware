@@ -8,9 +8,9 @@ sys.path.append(os.getcwd())
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from autosklearn.pipeline.components.classification import _classifiers
 
-from automlToolkit.datasets.utils import load_train_test_data
-from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator
-from automlToolkit.components.feature_engineering.fe_pipeline import FEPipeline
+from solnml.datasets.utils import load_train_test_data
+from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
+from solnml.components.feature_engineering.fe_pipeline import FEPipeline
 
 parser = argparse.ArgumentParser()
 dataset_set = 'yeast,diabetes,vehicle,spectf,credit,' \

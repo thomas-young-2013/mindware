@@ -3,8 +3,8 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from automlToolkit.components.meta_learning.meta_features import calculate_all_metafeatures
-from automlToolkit.components.utils.constants import MULTICLASS_CLS, REGRESSION
+from solnml.components.meta_learning.meta_features import calculate_all_metafeatures
+from solnml.components.utils.constants import MULTICLASS_CLS, REGRESSION
 
 np.random.seed(1)
 X = np.random.rand(100, 5)

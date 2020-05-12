@@ -9,11 +9,11 @@ from sklearn.metrics import make_scorer
 
 sys.path.append(os.getcwd())
 
-from automlToolkit.datasets.utils import load_train_test_data
-from automlToolkit.components.utils.constants import CATEGORICAL
-from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
-from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
-from automlToolkit.components.utils.constants import MULTICLASS_CLS, BINARY_CLS
+from solnml.datasets.utils import load_train_test_data
+from solnml.components.utils.constants import CATEGORICAL
+from solnml.bandits.first_layer_bandit import FirstLayerBandit
+from solnml.components.metrics.cls_metrics import balanced_accuracy
+from solnml.components.utils.constants import MULTICLASS_CLS, BINARY_CLS
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \

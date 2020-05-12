@@ -9,15 +9,15 @@ from tabulate import tabulate
 
 sys.path.append(os.getcwd())
 
-from automlToolkit.datasets.utils import load_train_test_data
-from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
-from automlToolkit.components.evaluators.evaluator import Evaluator
-from automlToolkit.utils.logging_utils import get_logger
+from solnml.datasets.utils import load_train_test_data
+from solnml.components.metrics.cls_metrics import balanced_accuracy
+from solnml.components.evaluators.evaluator import Evaluator
+from solnml.utils.logging_utils import get_logger
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
-from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
-from automlToolkit.components.hpo_optimizer.psmac_optimizer import PSMACOptimizer
-from automlToolkit.components.feature_engineering.transformation_graph import DataNode
-from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
+from solnml.components.hpo_optimizer.smac_optimizer import SMACOptimizer
+from solnml.components.hpo_optimizer.psmac_optimizer import PSMACOptimizer
+from solnml.components.feature_engineering.transformation_graph import DataNode
+from solnml.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 
 
@@ -36,7 +36,7 @@ def evaluate_base_model(classifier_id, dataset):
     print('X_train/test shapes: %s, %s' % (str(X_train.shape), str(X_test.shape)))
 
     # Build the ML estimator.
-    from automlToolkit.components.evaluators.cls_evaluator import fetch_predict_estimator
+    from solnml.components.evaluators.cls_evaluator import fetch_predict_estimator
     estimator = fetch_predict_estimator(default_config, X_train, y_train)
 
     y_pred = estimator.predict(X_test)
@@ -50,7 +50,7 @@ def evaluate(train_data, test_data, config):
     print('X_train/test shapes: %s, %s' % (str(X_train.shape), str(X_test.shape)))
 
     # Build the ML estimator.
-    from automlToolkit.components.evaluators.evaluator import fetch_predict_estimator
+    from solnml.components.evaluators.evaluator import fetch_predict_estimator
     estimator = fetch_predict_estimator(config, X_train, y_train)
 
     y_pred = estimator.predict(X_test)

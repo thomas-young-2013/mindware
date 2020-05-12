@@ -1,5 +1,5 @@
-from automlToolkit.datasets.utils import load_train_test_data
-from automlToolkit.estimators import Classifier
+from solnml.datasets.utils import load_train_test_data
+from solnml.estimators import Classifier
 
 
 def evaluate_package():

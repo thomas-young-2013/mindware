@@ -5,11 +5,11 @@ import argparse
 import numpy as np
 
 sys.path.append(os.getcwd())
-from automlToolkit.bandits.second_layer_bandit import SecondLayerBandit
-from automlToolkit.components.utils.constants import MULTICLASS_CLS, BINARY_CLS, REGRESSION, CLS_TASKS
-from automlToolkit.datasets.utils import load_train_test_data
-from automlToolkit.components.metrics.metric import get_metric
-from automlToolkit.components.evaluators.base_evaluator import fetch_predict_estimator
+from solnml.bandits.second_layer_bandit import SecondLayerBandit
+from solnml.components.utils.constants import MULTICLASS_CLS, BINARY_CLS, REGRESSION, CLS_TASKS
+from solnml.datasets.utils import load_train_test_data
+from solnml.components.metrics.metric import get_metric
+from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--start_id', type=int, default=0)

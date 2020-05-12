@@ -8,8 +8,8 @@ from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
 
-from automlToolkit.datasets.utils import load_train_test_data
-from automlToolkit.components.utils.constants import CATEGORICAL
+from solnml.datasets.utils import load_train_test_data
+from solnml.components.utils.constants import CATEGORICAL
 
 parser = argparse.ArgumentParser()
 dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \

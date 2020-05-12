@@ -6,9 +6,9 @@ import tabulate
 import argparse
 import numpy as np
 sys.path.append(os.getcwd())
-from automlToolkit.datasets.utils import load_data
-from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
-from automlToolkit.utils.functions import get_increasing_sequence
+from solnml.datasets.utils import load_data
+from solnml.bandits.first_layer_bandit import FirstLayerBandit
+from solnml.utils.functions import get_increasing_sequence
 
 parser = argparse.ArgumentParser()
 dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \

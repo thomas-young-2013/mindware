@@ -3,11 +3,11 @@ import sys
 import pickle
 import argparse
 import numpy as np
-from automlToolkit.tpot import TPOTClassifier
+from solnml.tpot import TPOTClassifier
 from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
-from automlToolkit.datasets.utils import load_data, load_train_test_data
+from solnml.datasets.utils import load_data, load_train_test_data
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
@@ -30,7 +30,7 @@ def evaluate_tpot(dataset, run_id, time_limit, seed=1, use_fe=True):
     # Construct the ML model.
     config = None
     if not use_fe:
-        from automlToolkit.utils.tpot_config import classifier_config_dict
+        from solnml.utils.tpot_config import classifier_config_dict
         config = classifier_config_dict
 
     automl = TPOTClassifier(config_dict=config, generations=10000, population_size=20,

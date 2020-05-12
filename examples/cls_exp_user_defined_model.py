@@ -13,12 +13,12 @@ from sklearn.metrics import balanced_accuracy_score
 from sklearn.model_selection import train_test_split
 
 sys.path.append(os.getcwd())
-from automlToolkit.utils.data_manager import DataManager
-from automlToolkit.estimators import Classifier
-from automlToolkit.components.models.base_model import BaseClassificationModel
-from automlToolkit.components.models.classification import add_classifier
-from automlToolkit.components.utils.configspace_utils import check_none
-from automlToolkit.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
+from solnml.utils.data_manager import DataManager
+from solnml.estimators import Classifier
+from solnml.components.models.base_model import BaseClassificationModel
+from solnml.components.models.classification import add_classifier
+from solnml.components.utils.configspace_utils import check_none
+from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--time_limit', type=int, default=1200)

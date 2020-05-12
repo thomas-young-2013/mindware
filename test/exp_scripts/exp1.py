@@ -8,11 +8,11 @@ import numpy as np
 import autosklearn.classification
 
 sys.path.append(os.getcwd())
-from automlToolkit.bandits.first_layer_bandit import FirstLayerBandit
-from automlToolkit.datasets.utils import load_train_test_data
-from automlToolkit.components.utils.constants import CATEGORICAL
-from automlToolkit.components.ensemble.ensemble_builder import EnsembleBuilder
-from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
+from solnml.bandits.first_layer_bandit import FirstLayerBandit
+from solnml.datasets.utils import load_train_test_data
+from solnml.components.utils.constants import CATEGORICAL
+from solnml.components.ensemble.ensemble_builder import EnsembleBuilder
+from solnml.components.metrics.cls_metrics import balanced_accuracy
 
 parser = argparse.ArgumentParser()
 dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \

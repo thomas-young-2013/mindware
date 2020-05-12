@@ -8,7 +8,7 @@ from hpsklearn import HyperoptEstimator
 from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
-from automlToolkit.datasets.utils import load_data, load_train_test_data
+from solnml.datasets.utils import load_data, load_train_test_data
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
@@ -27,7 +27,7 @@ if not os.path.exists(save_dir):
 
 
 def evaluate_hpsklearn(dataset, run_id, time_limit, seed=1):
-    from automlToolkit.utils.hpsklearn_config import tpe_classifier
+    from solnml.utils.hpsklearn_config import tpe_classifier
 
     # TODO: Specify max_evals
     automl = HyperoptEstimator(preprocessing=None,

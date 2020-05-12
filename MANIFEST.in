@@ -1,4 +1,4 @@
-include automlToolkit/utils/logging.yaml
-recursive-include automlToolkit *.pyx
+include solnml/utils/logging.yaml
+recursive-include solnml *.pyx
 include requirements.txt
-recursive-include automlToolkit/components/meta_learning/meta_resource *.pkl
+recursive-include solnml/components/meta_learning/meta_resource *.pkl

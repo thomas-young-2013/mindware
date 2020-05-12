@@ -5,11 +5,11 @@ import pickle
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 
 sys.path.append(os.getcwd())
-from automlToolkit.components.hpo_optimizer.smac_optimizer import SMACOptimizer
-from automlToolkit.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
-from automlToolkit.datasets.utils import load_train_test_data
-from automlToolkit.components.evaluators.cls_evaluator import ClassificationEvaluator, fetch_predict_estimator
-from automlToolkit.components.metrics.cls_metrics import balanced_accuracy
+from solnml.components.hpo_optimizer.smac_optimizer import SMACOptimizer
+from solnml.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
+from solnml.datasets.utils import load_train_test_data
+from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator, fetch_predict_estimator
+from solnml.components.metrics.cls_metrics import balanced_accuracy
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--datasets', type=str, default='credit')

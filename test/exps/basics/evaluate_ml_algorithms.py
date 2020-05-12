@@ -3,10 +3,10 @@ import sys
 
 sys.path.append(os.getcwd())
 
-from automlToolkit.datasets.utils import load_train_test_data
+from solnml.datasets.utils import load_train_test_data
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from autosklearn.pipeline.components.classification import _classifiers
-from automlToolkit.components.evaluators.cls_evaluator import get_estimator
+from solnml.components.evaluators.cls_evaluator import get_estimator
 
 
 if __name__ == '__main__':
