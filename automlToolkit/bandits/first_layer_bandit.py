@@ -448,10 +448,14 @@ class FirstLayerBandit(object):
             # Sort the left configs.
             combined_list = sorted(combined_list, key=lambda item: item[1], reverse=True)
 
-            if len(combined_list) > 20:
-                idxs = np.arange(model_num - 2*min_model_num) * leap
-                for idx in idxs:
-                    model_items.append(combined_list[idx])
+            left_model_num = model_num - 2 * min_model_num
+            if left_model_num > 0:
+                if len(combined_list) > 20:
+                    idxs = np.arange(left_model_num) * leap
+                    for idx in idxs:
+                        model_items.append(combined_list[idx])
+                else:
+                    model_items.extend(combined_list[:left_model_num])
 
             fe_configs = [item[0][0] for item in model_items]
             hpo_configs = [item[0][1] for item in model_items]
