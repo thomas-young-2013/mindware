@@ -409,7 +409,8 @@ class FirstLayerBandit(object):
         print('algorithm_id', '#features', '#configs')
         for algo_id in self.nbest_algo_ids:
             data = dict()
-            model_num = 20
+            leap = 2
+            model_num, min_model_num = 20, 5
 
             fe_eval_dict = self.sub_bandits[algo_id].optimizer['fe'].eval_dict
             hpo_eval_dict = self.sub_bandits[algo_id].optimizer['hpo'].eval_dict
@@ -424,28 +425,31 @@ class FirstLayerBandit(object):
 
             fe_eval_list = sorted(fe_eval_dict.items(), key=lambda item: item[1], reverse=True)
             hpo_eval_list = sorted(hpo_eval_dict.items(), key=lambda item: item[1], reverse=True)
-            model_items = []
-            leap = 2
+            model_items = list()
+            combined_list = list()
+
             if len(fe_eval_list) > 20:
-                idxs = np.arange(5) * leap
+                idxs = np.arange(min_model_num) * leap
                 for idx in idxs:
                     model_items.append(fe_eval_list[idx])
+                combined_list.extend(fe_eval_list[min_model_num*leap:])
             else:
-                model_items.extend(fe_eval_list[:5])
+                model_items.extend(fe_eval_list[:min_model_num])
+                combined_list.extend(fe_eval_list[min_model_num:])
 
             if len(hpo_eval_list) > 20:
-                idxs = np.arange(5) * leap
+                idxs = np.arange(min_model_num) * leap
                 for idx in idxs:
                     model_items.append(hpo_eval_list[idx])
+                combined_list.extend(hpo_eval_list[min_model_num * leap:])
             else:
-                model_items.extend(hpo_eval_list[:5])
-
-            combined_list = fe_eval_list[5:]
-            combined_list.extend(hpo_eval_list[5:])
+                model_items.extend(hpo_eval_list[:min_model_num])
+                combined_list.extend(hpo_eval_list[min_model_num:])
+            # Sort the left configs.
             combined_list = sorted(combined_list, key=lambda item: item[1], reverse=True)
 
             if len(combined_list) > 20:
-                idxs = np.arange(model_num - 10) * leap
+                idxs = np.arange(model_num - 2*min_model_num) * leap
                 for idx in idxs:
                     model_items.append(combined_list[idx])
 
