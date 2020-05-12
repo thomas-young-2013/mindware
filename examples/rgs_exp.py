@@ -35,7 +35,7 @@ dm = DataManager(X_train, y_train)
 train_data = dm.get_data_node(X_train, y_train)
 test_data = dm.get_data_node(X_test, y_test)
 
-save_dir = './data/eval_exps/automl-toolkit'
+save_dir = './data/eval_exps/soln-ml'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 

@@ -27,7 +27,7 @@ ensemble_method = args.ens_method
 if ensemble_method == 'none':
     ensemble_method = None
 
-save_dir = './data/eval_exps/automl-toolkit'
+save_dir = './data/eval_exps/soln-ml'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 

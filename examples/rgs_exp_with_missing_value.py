@@ -37,7 +37,7 @@ pipeline = FEPipeline(fe_enabled=False, task_type=REGRESSION)
 train_data = pipeline.fit_transform(train_node)
 test_data = pipeline.transform(test_node)
 
-save_dir = './data/eval_exps/automl-toolkit'
+save_dir = './data/eval_exps/soln-ml'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
