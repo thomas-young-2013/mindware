@@ -83,8 +83,8 @@ class AlgorithmAdvisor(object):
 
         if os.path.exists(meta_ranker_filename):
             print('meta ranker has been trained!')
-            with open(meta_dataset_filename, 'rb') as f:
-                meta_X, meta_y, meta_infos = pk.load(f)
+            with open(meta_ranker_filename, 'rb') as f:
+                _, meta_infos = pk.load(f)
             return meta_infos
 
         if os.path.exists(meta_dataset_filename):
@@ -157,15 +157,16 @@ class AlgorithmAdvisor(object):
 
         print('Dumping model to PICKLE...')
 
-        with open(self.meta_dir + 'ranker_model_%s_%s.pkl' % (self.meta_algo, self.hash_id), 'wb') as f:
-            pk.dump(gbm, f)
+        with open(meta_ranker_filename, 'wb') as f:
+            pk.dump([gbm, meta_infos], f)
         return meta_infos
 
     def predict_meta_learner(self, meta_feature):
         if self.meta_learner is None:
-            meta_learner_filename = self.meta_dir + 'ranker_model_%s_%s.pkl' % (self.meta_algo, self.hash_id)
+            meta_learner_filename = self.meta_dir + 'ranker_model_%s_%s_%s.pkl' % (
+                                   self.meta_algo, self.metric, self.hash_id)
             with open(meta_learner_filename, 'rb') as f:
-                gbm = pk.load(f)
+                gbm, _ = pk.load(f)
                 print('Load %s meta-learner from %s.' % (self.meta_algo, meta_learner_filename))
             self.meta_learner = gbm
 

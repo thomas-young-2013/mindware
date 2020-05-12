@@ -17,7 +17,7 @@ print(datasets)
 # 1.0, 2.0
 def topk(l1, l2):
     score = 0
-    for item in l1[:3]:
+    for item in l1[:5]:
         if item in l2[:5]:
             score += 1
     return score
