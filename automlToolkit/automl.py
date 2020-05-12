@@ -29,7 +29,8 @@ class AutoML(object):
                  output_dir="/tmp/",
                  random_state=1,
                  n_jobs=1):
-        self.metric = get_metric(metric)
+        self.metric_id = metric
+        self.metric = get_metric(self.metric_id)
         self.time_limit = time_limit
         self.seed = random_state
         self.amount_of_resource = amount_of_resource
@@ -66,7 +67,7 @@ class AutoML(object):
         if self.enable_meta_algorithm_selection:
             try:
                 alad = AlgorithmAdvisor(task_type=self.task_type, n_algorithm=9,
-                                        metric=self.metric)
+                                        metric=self.metric_id)
                 n_algo = 5
                 model_candidates = alad.fetch_algorithm_set(train_data, dataset_id=dataset_id)
                 include_models = list()
@@ -83,7 +84,7 @@ class AutoML(object):
             # self.include_algorithms = imb_classication_algorithms
             train_data = DataBalancer().operate(train_data)
         if self.amount_of_resource is None:
-            trial_num = 100000
+            trial_num = len(self.include_algorithms) * 30
         else:
             trial_num = self.amount_of_resource
 

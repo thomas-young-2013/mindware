@@ -1,8 +1,6 @@
-from sklearn.utils.multiclass import type_of_target
 import numpy as np
-
+from sklearn.utils.multiclass import type_of_target
 from automlToolkit.base_estimator import BaseEstimator
-from automlToolkit.components.metrics.metric import get_metric
 from automlToolkit.components.utils.constants import type_dict, MULTILABEL_CLS
 from automlToolkit.components.feature_engineering.transformation_graph import DataNode
 
@@ -25,7 +23,6 @@ class Classifier(BaseEstimator):
         else:
             raise ValueError("Invalid Task Type: %s!" % task_type)
         self.task_type = task_type
-        self.metric = get_metric(self.metric)
         super().fit(data)
 
         return self
@@ -92,7 +89,6 @@ class Regressor(BaseEstimator):
         else:
             raise ValueError("Invalid Task Type: %s!" % task_type)
         self.task_type = task_type
-        self.metric = get_metric(self.metric)
         super().fit(data)
 
         return self

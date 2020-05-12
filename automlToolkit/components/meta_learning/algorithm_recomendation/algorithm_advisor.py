@@ -25,7 +25,7 @@ class AlgorithmAdvisor(object):
         self.meta_algo = meta_algorithm
         if task_type in CLS_TASKS:
             if metric not in ['acc', 'bal_acc']:
-                print('Meta information about metric-%s does not exist, use accuracy instead.')
+                print('Meta information about metric-%s does not exist, use accuracy instead.' % str(metric))
                 metric = 'acc'
         elif task_type in REG_TASKS:
             raise NotImplementedError()
