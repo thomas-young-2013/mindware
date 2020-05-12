@@ -414,15 +414,44 @@ class FirstLayerBandit(object):
             fe_eval_dict = self.sub_bandits[algo_id].optimizer['fe'].eval_dict
             hpo_eval_dict = self.sub_bandits[algo_id].optimizer['hpo'].eval_dict
 
-            combined_dict = fe_eval_dict.copy()
-            for key in hpo_eval_dict:
-                if key not in fe_eval_dict:
-                    combined_dict[key] = hpo_eval_dict[key]
+            # combined_dict = fe_eval_dict.copy()
+            # for key in hpo_eval_dict:
+            #     if key not in fe_eval_dict:
+            #         combined_dict[key] = hpo_eval_dict[key]
+            #
+            # max_list = sorted(combined_dict.items(), key=lambda item: item[1], reverse=True)
+            # model_items = max_list[:model_num]
 
-            max_list = sorted(combined_dict.items(), key=lambda item: item[1], reverse=True)
-            model_items = max_list[:model_num]
+            fe_eval_list = sorted(fe_eval_dict.items(), key=lambda item: item[1], reverse=True)
+            hpo_eval_list = sorted(hpo_eval_dict.items(), key=lambda item: item[1], reverse=True)
+            model_items = []
+            leap = 2
+            if len(fe_eval_list) > 20:
+                idxs = np.arange(5) * leap
+                for idx in idxs:
+                    model_items.append(fe_eval_list[idx])
+            else:
+                model_items.extend(fe_eval_list[:5])
+
+            if len(hpo_eval_list) > 20:
+                idxs = np.arange(5) * leap
+                for idx in idxs:
+                    model_items.append(hpo_eval_list[idx])
+            else:
+                model_items.extend(hpo_eval_list[:5])
+
+            combined_list = fe_eval_list[5:]
+            combined_list.extend(hpo_eval_list[5:])
+            combined_list = sorted(combined_list, key=lambda item: item[1], reverse=True)
+
+            if len(combined_list) > 20:
+                idxs = np.arange(model_num - 10) * leap
+                for idx in idxs:
+                    model_items.append(combined_list[idx])
+
             fe_configs = [item[0][0] for item in model_items]
             hpo_configs = [item[0][1] for item in model_items]
+
             node_list = self.sub_bandits[algo_id].optimizer['fe'].fetch_nodes_by_config(fe_configs)
             model_to_eval = []
             for idx, node in enumerate(node_list):
