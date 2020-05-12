@@ -87,11 +87,9 @@ class BaseEnsembleModel(object):
         model_cnt = 0
         ens_info = []
         for algo_id in self.stats["include_algorithms"]:
-            train_list = self.stats[algo_id]['train_data_list']
-            configs = self.stats[algo_id]['configurations']
-            for train_node in train_list:
-                for _config in configs:
-                    if not hasattr(self, 'base_model_mask') or self.base_model_mask[model_cnt] == 1:
-                        ens_info.append((algo_id, train_node, _config))
-                    model_cnt += 1
+            model_to_eval = self.stats[algo_id]['model_to_eval']
+            for idx, (node, config) in enumerate(model_to_eval):
+                if not hasattr(self, 'base_model_mask') or self.base_model_mask[model_cnt] == 1:
+                    ens_info.append((algo_id, node, config))
+                model_cnt += 1
         return ens_info
