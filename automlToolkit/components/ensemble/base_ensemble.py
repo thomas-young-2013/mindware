@@ -82,3 +82,16 @@ class BaseEnsembleModel(object):
 
     def predict(self, data, solvers):
         raise NotImplementedError
+
+    def get_ens_model_info(self):
+        model_cnt = 0
+        ens_info = []
+        for algo_id in self.stats["include_algorithms"]:
+            train_list = self.stats[algo_id]['train_data_list']
+            configs = self.stats[algo_id]['configurations']
+            for train_node in train_list:
+                for _config in configs:
+                    if not hasattr(self, 'base_model_mask') or self.base_model_mask[model_cnt] == 1:
+                        ens_info.append((algo_id, train_node, _config))
+                    model_cnt += 1
+        return ens_info

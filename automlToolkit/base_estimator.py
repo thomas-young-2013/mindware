@@ -55,7 +55,6 @@ class BaseEstimator(object):
 
     def fit(self, data: DataNode):
         assert data is not None and isinstance(data, DataNode)
-        self.metric = get_metric(self.metric)
         self._ml_engine = self.build_engine()
         self._ml_engine.fit(data)
         return self
@@ -77,3 +76,21 @@ class BaseEstimator(object):
 
     def show_info(self):
         raise NotImplementedError()
+
+    @property
+    def best_config(self):
+        return self._ml_engine.best_config
+
+    @property
+    def best_algo_id(self):
+        return self._ml_engine.best_algo_id
+
+    @property
+    def best_perf(self):
+        return self._ml_engine.best_perf
+
+    def get_best_node_path(self):
+        return self._ml_engine.fe_optimizer.get_pipeline(self._ml_engine.best_data_node)
+
+    def get_ens_model_info(self):
+        return self._ml_engine.get_ens_model_info()

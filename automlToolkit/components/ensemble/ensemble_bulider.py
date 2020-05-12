@@ -48,3 +48,6 @@ class EnsembleBuilder:
 
     def predict(self, data, solvers):
         return self.model.predict(data, solvers)
+
+    def get_ens_model_info(self):
+        return self.model.get_ens_model_info()
