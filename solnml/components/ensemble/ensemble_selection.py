@@ -264,7 +264,7 @@ class EnsembleSelection(BaseEnsembleModel):
             for idx, (node, config) in enumerate(model_to_eval):
                 X, y = node.data
                 if self.weights_[model_cnt] != 0:
-                    print("Refit model %d" % model_cnt)
+                    self.logger.info("Refit model %d" % model_cnt)
                     estimator = fetch_predict_estimator(self.task_type, config, X, y,
                                                         weight_balance=node.enable_balance,
                                                         data_balance=node.data_balance

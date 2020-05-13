@@ -9,6 +9,7 @@ from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
 from solnml.components.ensemble.unnamed_ensemble import choose_base_models_classification, \
     choose_base_models_regression
+from solnml.utils.logging_utils import get_logger
 
 
 class BaseEnsembleModel(object):
@@ -33,6 +34,8 @@ class BaseEnsembleModel(object):
         self.train_labels = None
         self.seed = self.stats['split_seed']
         self.timestamp = str(time.time())
+        logger_name = 'EnsembleBuilder'
+        self.logger = get_logger(logger_name)
         model_cnt = 0
         for algo_id in self.stats["include_algorithms"]:
             model_to_eval = self.stats[algo_id]['model_to_eval']

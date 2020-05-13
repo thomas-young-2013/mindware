@@ -303,7 +303,7 @@ class BayesianOptimizationOptimizer(Optimizer):
     def fetch_nodes_by_config(self, config_list):
         self.node_dict = {}
         node_list = []
-        print("Re-parse %d configs" % len(config_list))
+        self.logger.info("Re-parse %d configs" % len(config_list))
         for i, config in enumerate(config_list):
             try:
                 if config is None:
@@ -317,7 +317,6 @@ class BayesianOptimizationOptimizer(Optimizer):
                 self.node_dict[len(self.node_dict)] = [node, tran_list]
             except Exception as e:
                 node_list.append(None)
-                print(e)
                 print("Re-parse failed on config %s" % str(config))
         return node_list
 
