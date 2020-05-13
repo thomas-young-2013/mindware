@@ -6,9 +6,10 @@ import argparse
 import numpy as np
 from tabulate import tabulate
 from sklearn.metrics import make_scorer
+import autosklearn.classification
 
 sys.path.append(os.getcwd())
-
+from solnml.components.utils.constants import CATEGORICAL
 from solnml.datasets.utils import load_train_test_data
 from solnml.bandits.first_layer_bandit import FirstLayerBandit
 from solnml.components.metrics.cls_metrics import balanced_accuracy
@@ -99,6 +100,77 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
         pickle.dump(data, f)
 
 
+def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
+    print('AUSK-%s-%d: %d' % (dataset, run_id, time_limit))
+    ausk_flag = 'ausk_full'
+    if ausk_flag == 'ausk_alad':
+        alad = AlgorithmAdvisor(task_type=MULTICLASS_CLS, n_algorithm=9, metric='acc')
+        meta_infos = alad.fit_meta_learner()
+        assert dataset not in meta_infos
+        model_candidates = alad.fetch_algorithm_set(dataset)
+        include_models = list()
+        print(model_candidates)
+        for algo in model_candidates:
+            if algo in algorithms and len(include_models) < 3:
+                include_models.append(algo)
+        print('After algorithm recommendation', include_models)
+        n_config_meta_learning = 0
+        ensemble_size = 1
+    elif ausk_flag == 'ausk_no_meta':
+        include_models = algorithms
+        n_config_meta_learning = 25
+        ensemble_size = 1
+    elif ausk_flag == 'ausk_full':
+        include_models = algorithms
+        n_config_meta_learning = 25
+        ensemble_size = 50
+    else:
+        include_models = algorithms
+        n_config_meta_learning = 0
+        ensemble_size = 1
+
+    automl = autosklearn.classification.AutoSklearnClassifier(
+        time_left_for_this_task=time_limit,
+        per_run_time_limit=per_run_time_limit,
+        include_preprocessors=None,
+        exclude_preprocessors=None,
+        n_jobs=1,
+        include_estimators=include_models,
+        ensemble_memory_limit=8192,
+        ml_memory_limit=8192,
+        ensemble_size=ensemble_size,
+        ensemble_nbest=ensemble_size,
+        initial_configurations_via_metalearning=n_config_meta_learning,
+        seed=int(seed),
+        resampling_strategy='holdout',
+        resampling_strategy_arguments={'train_size': 0.67}
+    )
+    print(automl)
+
+    train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
+    X, y = train_data.data
+    feat_type = ['Categorical' if _type == CATEGORICAL else 'Numerical'
+                 for _type in train_data.feature_types]
+    from autosklearn.metrics import balanced_accuracy
+    automl.fit(X.copy(), y.copy(), metric=balanced_accuracy, feat_type=feat_type)
+    model_desc = automl.show_models()
+    print(model_desc)
+    val_result = np.max(automl.cv_results_['mean_test_score'])
+    print('Trial number', len(automl.cv_results_['mean_test_score']))
+    print('Best validation accuracy', val_result)
+
+    X_test, y_test = test_data.data
+    automl.refit(X.copy(), y.copy())
+    y_pred = automl.predict(X_test)
+    metric = balanced_accuracy
+    test_result = metric(y_test, y_pred)
+    print('Test accuracy', test_result)
+    save_path = project_dir + '%s_%s_%d_%d_%d_%d_%d.pkl' % (
+        ausk_flag, dataset, trial_num, len(algorithms), seed, run_id, time_limit)
+    with open(save_path, 'wb') as f:
+        pickle.dump([dataset, val_result, test_result, model_desc], f)
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
     dataset_str = args.datasets
@@ -129,10 +201,13 @@ if __name__ == "__main__":
             for dataset in dataset_list:
                 for run_id in range(start_id, start_id + rep):
                     seed = int(seeds[run_id])
-                    evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=time_limit)
+                    if mode == 'hmab':
+                        evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=time_limit)
+                    else:
+                        evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=time_limit)
         else:
             headers = ['dataset']
-            method_ids = ['hmab_pipeline_meta_fixed', 'hmab_pipeline_pre_fixed']
+            method_ids = ['hmab_pipeline_meta_fixed', 'ausk_full']
             for mth in method_ids:
                 headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
