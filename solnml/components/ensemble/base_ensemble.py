@@ -9,6 +9,7 @@ from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
 from solnml.components.ensemble.unnamed_ensemble import choose_base_models_classification, \
     choose_base_models_regression
+from solnml.utils.logging_utils import get_logger
 
 
 class BaseEnsembleModel(object):
@@ -18,6 +19,7 @@ class BaseEnsembleModel(object):
                  ensemble_size: int,
                  task_type: int,
                  metric: _BaseScorer,
+                 base_save=False,
                  output_dir=None):
         self.stats = stats
         self.ensemble_method = ensemble_method
@@ -32,6 +34,9 @@ class BaseEnsembleModel(object):
         self.train_labels = None
         self.seed = self.stats['split_seed']
         self.timestamp = str(time.time())
+        logger_name = 'EnsembleBuilder'
+        self.logger = get_logger(logger_name)
+        model_cnt = 0
         for algo_id in self.stats["include_algorithms"]:
             model_to_eval = self.stats[algo_id]['model_to_eval']
             for idx, (node, config) in enumerate(model_to_eval):
@@ -58,11 +63,18 @@ class BaseEnsembleModel(object):
                                                     weight_balance=node.enable_balance,
                                                     data_balance=node.data_balance
                                                     )
+                if base_save:  # For ensemble selection
+                    with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, model_cnt)),
+                              'wb') as f:
+                        pkl.dump(estimator, f)
+
                 if self.task_type in CLS_TASKS:
                     y_valid_pred = estimator.predict_proba(X_valid)
                 else:
                     y_valid_pred = estimator.predict(X_valid)
                 self.train_predictions.append(y_valid_pred)
+                model_cnt += 1
+
         if len(self.train_predictions) < self.ensemble_size:
             self.ensemble_size = len(self.train_predictions)
 
@@ -93,3 +105,6 @@ class BaseEnsembleModel(object):
                     ens_info.append((algo_id, node, config))
                 model_cnt += 1
         return ens_info
+
+    def refit(self):
+        pass

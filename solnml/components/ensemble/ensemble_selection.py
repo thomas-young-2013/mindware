@@ -26,7 +26,9 @@ class EnsembleSelection(BaseEnsembleModel):
                          ensemble_size=ensemble_size,
                          task_type=task_type,
                          metric=metric,
+                         base_save=True,
                          output_dir=output_dir)
+        self.model_idx = list()
         self.sorted_initialization = sorted_initialization
         self.bagging = bagging
         self.mode = mode
@@ -64,23 +66,12 @@ class EnsembleSelection(BaseEnsembleModel):
         self._calculate_weights()
         self.identifiers_ = None
 
-        # Refit models on whole training data
-        self.model_idx = []
         model_cnt = 0
         for algo_id in self.stats["include_algorithms"]:
             model_to_eval = self.stats[algo_id]['model_to_eval']
-            for idx, (node, config) in enumerate(model_to_eval):
-                X, y = node.data
+            for _, _ in enumerate(model_to_eval):
                 if self.weights_[model_cnt] != 0:
-                    print("Refit model %d" % model_cnt)
                     self.model_idx.append(model_cnt)
-                    estimator = fetch_predict_estimator(self.task_type, config, X, y,
-                                                        weight_balance=node.enable_balance,
-                                                        data_balance=node.data_balance
-                                                        )
-                    with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, model_cnt)),
-                              'wb') as f:
-                        pkl.dump(estimator, f)
                 model_cnt += 1
 
         return self
@@ -264,6 +255,24 @@ class EnsembleSelection(BaseEnsembleModel):
                 ' '.join([str(identifier) for idx, identifier in
                           enumerate(self.identifiers_)
                           if self.weights_[idx] > 0]))
+
+    def refit(self):
+        # Refit models on whole training data
+        model_cnt = 0
+        for algo_id in self.stats["include_algorithms"]:
+            model_to_eval = self.stats[algo_id]['model_to_eval']
+            for idx, (node, config) in enumerate(model_to_eval):
+                X, y = node.data
+                if self.weights_[model_cnt] != 0:
+                    self.logger.info("Refit model %d" % model_cnt)
+                    estimator = fetch_predict_estimator(self.task_type, config, X, y,
+                                                        weight_balance=node.enable_balance,
+                                                        data_balance=node.data_balance
+                                                        )
+                    with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, model_cnt)),
+                              'wb') as f:
+                        pkl.dump(estimator, f)
+                model_cnt += 1
 
     def get_models_with_weights(self, models):
         output = []

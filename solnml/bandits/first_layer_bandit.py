@@ -24,7 +24,7 @@ class FirstLayerBandit(object):
                  eval_type='holdout',
                  share_feature=False,
                  inner_opt_algorithm='rb',
-                 fe_algo='tree_based',
+                 fe_algo='bo',
                  time_limit=None,
                  n_jobs=1,
                  seed=1):
@@ -132,24 +132,22 @@ class FirstLayerBandit(object):
 
         # Fit the best model
         self.fe_optimizer = self.sub_bandits[self.optimal_algo_id].optimizer['fe']
-        if self.fe_algo == 'tree_based':
-            self.best_data_node = self.sub_bandits[self.optimal_algo_id].inc['fe']
-        else:
+        if self.fe_algo == 'bo':
             self.fe_optimizer.fetch_nodes(1)
-            self.best_data_node = self.fe_optimizer.incumbent
 
         best_config = self.sub_bandits[self.optimal_algo_id].inc['hpo']
         best_estimator = fetch_predict_estimator(self.task_type, best_config, self.best_data_node.data[0],
                                                  self.best_data_node.data[1],
                                                  weight_balance=self.best_data_node.enable_balance,
                                                  data_balance=self.best_data_node.data_balance)
+
         with open(os.path.join(self.output_dir, '%s-best_model' % self.timestamp), 'wb') as f:
             pkl.dump(best_estimator, f)
 
-    def refit(self):
-        # stats = self.fetch_ensemble_members()
-        stats = self.fetch_ensemble_members_ano()
         if self.ensemble_method is not None:
+            # stats = self.fetch_ensemble_members()
+            stats = self.fetch_ensemble_members_ano()
+
             # Ensembling all intermediate/ultimate models found in above optimization process.
             self.es = EnsembleBuilder(stats=stats,
                                       ensemble_method=self.ensemble_method,
@@ -158,6 +156,10 @@ class FirstLayerBandit(object):
                                       metric=self.metric,
                                       output_dir=self.output_dir)
             self.es.fit(data=self.original_data)
+
+    def refit(self):
+        if self.ensemble_method is not None:
+            self.es.refit()
 
     def _best_predict(self, test_data: DataNode):
         # Check the validity of feature engineering.
@@ -420,7 +422,7 @@ class FirstLayerBandit(object):
                 idxs = np.arange(min_model_num) * leap
                 for idx in idxs:
                     model_items.append(fe_eval_list[idx])
-                combined_list.extend(fe_eval_list[min_model_num*leap:])
+                combined_list.extend(fe_eval_list[min_model_num * leap:])
             else:
                 model_items.extend(fe_eval_list[:min_model_num])
                 combined_list.extend(fe_eval_list[min_model_num:])
@@ -458,3 +460,10 @@ class FirstLayerBandit(object):
             stats[algo_id] = data
         self.logger.info('Preparing basic models finished.')
         return stats
+
+    @property
+    def best_data_node(self):
+        if self.fe_algo == 'tree_based':
+            return self.sub_bandits[self.optimal_algo_id].inc['fe']
+        else:
+            return self.fe_optimizer.incumbent
