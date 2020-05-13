@@ -16,10 +16,25 @@ handlers:
     class: logging.FileHandler
     level: DEBUG
     formatter: simple
-    filename: automl_toolkit.log
-    delay: True
+    filename: soln-ml.log
 
 root:
   level: DEBUG
   handlers: [console, file_handler]
-  propagate: no
+
+loggers:
+  litebo.facade.bo_facade.BayesianOptimization:
+    level: INFO
+    handlers: [file_handler, console]
+
+  litebo.optimizer.ei_optimization.LocalSearch:
+    level: INFO
+    handlers: [file_handler, console]
+
+  litebo.optimizer.ei_optimization.InterleavedLocalAndRandomSearch:
+    level: INFO
+    handlers: [file_handler, console]
+
+  solnml.components.evaluators.cls_evaluator.ClassificationEvaluator:
+    level: INFO
+    handlers: [file_handler, console]

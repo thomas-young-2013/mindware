@@ -1062,13 +1062,13 @@ def calculate_all_metafeatures(X, y, categorical, dataset_name, task_type,
                 continue
             elif is_helper_function and not helper_functions.is_calculated(
                     dependency):
-                logger.info("%s: Going to calculate: %s", dataset_name,
+                logger.debug("%s: Going to calculate: %s", dataset_name,
                             dependency)
                 value = helper_functions[dependency](X_, y_, categorical_)
                 helper_functions.set_value(dependency, value)
                 mf_[dependency] = value
 
-        logger.info("%s: Going to calculate: %s", dataset_name,
+        logger.debug("%s: Going to calculate: %s", dataset_name,
                     name)
 
         value = metafeatures[name](X_, y_, categorical_)

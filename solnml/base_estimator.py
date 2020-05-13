@@ -7,6 +7,7 @@ from solnml.components.feature_engineering.transformation_graph import DataNode
 class BaseEstimator(object):
     def __init__(
             self,
+            dataset_name='default_dataset_name',
             time_limit=300,
             amount_of_resource=None,
             metric='acc',
@@ -18,6 +19,7 @@ class BaseEstimator(object):
             n_jobs=1,
             evaluation='holdout',
             output_dir="/tmp/"):
+        self.dataset_name = dataset_name
         self.metric = metric
         self.task_type = None
         self.time_limit = time_limit
@@ -38,6 +40,7 @@ class BaseEstimator(object):
     def build_engine(self):
         """Build AutoML controller"""
         engine = self.get_automl()(
+            dataset_name=self.dataset_name,
             task_type=self.task_type,
             metric=self.metric,
             time_limit=self.time_limit,

@@ -8,7 +8,7 @@ from solnml.components.metrics.metric import get_metric
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.bandits.second_layer_bandit import SecondLayerBandit
 from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
-from solnml.utils.logging_utils import setup_logger, get_logger
+from solnml.utils.logging_utils import get_logger
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.ensemble import EnsembleBuilder
 
@@ -21,10 +21,8 @@ class FirstLayerBandit(object):
                  ensemble_size=10,
                  per_run_time_limit=300, output_dir=None,
                  dataset_name='default_dataset',
-                 tmp_directory='logs',
                  eval_type='holdout',
                  share_feature=False,
-                 logging_config=None,
                  inner_opt_algorithm='rb',
                  fe_algo='tree_based',
                  time_limit=None,
@@ -60,12 +58,7 @@ class FirstLayerBandit(object):
         self.dataset_name = dataset_name
         self.time_limit = time_limit
         self.start_time = time.time()
-        self.tmp_directory = tmp_directory
-        self.logging_config = logging_config
-        if not os.path.exists(self.tmp_directory):
-            os.makedirs(self.tmp_directory)
-        logger_name = "%s-%s" % (__class__.__name__, self.dataset_name)
-        self.logger = self._get_logger(logger_name)
+        self.logger = get_logger('Soln-ml: %s' % dataset_name)
 
         # Bandit settings.
         self.incumbent_perf = -1.
@@ -229,7 +222,7 @@ class FirstLayerBandit(object):
         while _iter_id < self.trial_num:
             if _iter_id < arm_num * self.alpha:
                 _arm = self.arms[_iter_id % arm_num]
-                self.logger.info('PULLING %s in %d-th round' % (_arm, _iter_id))
+                self.logger.info('Optimize %s in the %d-th iteration' % (_arm, _iter_id))
                 reward = self.sub_bandits[_arm].play_once()
 
                 self.rewards[_arm].append(reward)
@@ -239,19 +232,19 @@ class FirstLayerBandit(object):
                 if reward > self.incumbent_perf:
                     self.incumbent_perf = reward
                     self.optimal_algo_id = _arm
-                self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
+                self.logger.info('The best performance found for %s is %.4f' % (_arm, reward))
                 _iter_id += 1
             else:
                 # Pull each arm in the candidate once.
                 for _arm in arm_candidate:
-                    self.logger.info('PULLING %s in %d-th round' % (_arm, _iter_id))
+                    self.logger.info('Optimize %s in the %d-th iteration' % (_arm, _iter_id))
                     reward = self.sub_bandits[_arm].play_once()
                     self.rewards[_arm].append(reward)
                     self.action_sequence.append(_arm)
                     self.final_rewards.append(reward)
                     self.time_records.append(time.time() - self.start_time)
 
-                    self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
+                    self.logger.info('The best performance found for %s is %.4f' % (_arm, reward))
                     _iter_id += 1
 
             if _iter_id >= arm_num * self.alpha:
@@ -276,10 +269,10 @@ class FirstLayerBandit(object):
 
                 if np.sum(flags) == n:
                     self.logger.error('Removing all the arms simultaneously!')
-                self.logger.info('Candidates : %s' % ','.join(arm_candidate))
-                self.logger.info('Upper bound: %s' % ','.join(['%.4f' % val for val in upper_bounds]))
-                self.logger.info('Lower bound: %s' % ','.join(['%.4f' % val for val in lower_bounds]))
-                self.logger.info('Remove Arms: %s' % [item for idx, item in enumerate(arm_candidate) if flags[idx]])
+                self.logger.info('Candidates  : %s' % ','.join(arm_candidate))
+                self.logger.info('Upper bound : %s' % ','.join(['%.4f' % val for val in upper_bounds]))
+                self.logger.info('Lower bound : %s' % ','.join(['%.4f' % val for val in lower_bounds]))
+                self.logger.info('Arms removed: %s' % [item for idx, item in enumerate(arm_candidate) if flags[idx]])
 
                 # Update the arm_candidates.
                 arm_candidate = [item for index, item in enumerate(arm_candidate) if not flags[index]]
@@ -302,7 +295,7 @@ class FirstLayerBandit(object):
         _iter_id = 0
         while _iter_id < self.trial_num:
             _arm = self.arms[_iter_id % arm_num]
-            self.logger.info('PULLING %s in %d-th round' % (_arm, _iter_id))
+            self.logger.info('Optimize %s in the %d-th iteration' % (_arm, _iter_id))
             reward = self.sub_bandits[_arm].play_once()
 
             self.rewards[_arm].append(reward)
@@ -312,19 +305,12 @@ class FirstLayerBandit(object):
             if reward > self.incumbent_perf:
                 self.incumbent_perf = reward
                 self.optimal_algo_id = _arm
-            self.logger.info('Rewards for pulling %s = %.4f' % (_arm, reward))
+                self.logger.info('The best performance found for %s is %.4f' % (_arm, reward))
             _iter_id += 1
 
             if self.time_limit is not None and time.time() > self.start_time + self.time_limit:
                 break
         return self.final_rewards
-
-    def _get_logger(self, name):
-        logger_name = 'solnml_%s' % name
-        setup_logger(os.path.join(self.tmp_directory, '%s.log' % str(logger_name)),
-                     self.logging_config,
-                     )
-        return get_logger(logger_name)
 
     def __del__(self):
         for _arm in self.arms:
@@ -338,8 +324,9 @@ class FirstLayerBandit(object):
         best_perf = float('-INF')
         for algo_id in self.nbest_algo_ids:
             best_perf = max(best_perf, self.sub_bandits[algo_id].incumbent_perf)
-        print('=' * 50)
-        print('algorithm_id', '#features', '#configs')
+
+        self.logger.info('Prepare basic models for ensemble stage.')
+        self.logger.info('algorithm_id, #features, #configs')
         for algo_id in self.nbest_algo_ids:
             data = dict()
             fe_optimizer = self.sub_bandits[algo_id].optimizer['fe']
@@ -395,9 +382,9 @@ class FirstLayerBandit(object):
                 for config in best_configs:
                     model_to_eval.append((node, config))
             data['model_to_eval'] = model_to_eval
-            print(algo_id, len(train_data_list), len(best_configs))
+            self.logger.info('%s, %d, %d' % (algo_id, len(train_data_list), len(best_configs)))
             stats[algo_id] = data
-        print('=' * 30)
+        self.logger.info('Preparing basic models finished.')
         return stats
 
     def fetch_ensemble_members_ano(self):
@@ -405,8 +392,9 @@ class FirstLayerBandit(object):
         stats['candidate_algorithms'] = self.include_algorithms
         stats['include_algorithms'] = self.nbest_algo_ids
         stats['split_seed'] = self.seed
-        print('=' * 50)
-        print('algorithm_id', '#features', '#configs')
+
+        self.logger.info('Prepare basic models for ensemble stage.')
+        self.logger.info('algorithm_id, #models')
         for algo_id in self.nbest_algo_ids:
             data = dict()
             leap = 2
@@ -466,7 +454,7 @@ class FirstLayerBandit(object):
                 if node is not None:
                     model_to_eval.append((node_list[idx], hpo_configs[idx]))
             data['model_to_eval'] = model_to_eval
-            print(algo_id, len(model_to_eval))
+            self.logger.info('%s, %d' % (algo_id, len(model_to_eval)))
             stats[algo_id] = data
-        print('=' * 30)
+        self.logger.info('Preparing basic models finished.')
         return stats

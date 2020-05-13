@@ -20,7 +20,7 @@ time_limit = args.time_limit
 eval_type = args.eval_type
 ensemble_method = args.ens_method
 
-save_dir = './data/tmps/'
+save_dir = './logs/tmps/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
@@ -31,7 +31,8 @@ dm = DataManager(X_train, y_train)
 train_data = dm.get_data_node(X_train, y_train)
 test_data = dm.get_data_node(X_test, y_test)
 
-clf = Classifier(time_limit=150,
+clf = Classifier(dataset_name='iris',
+                 time_limit=150,
                  output_dir=save_dir,
                  ensemble_method=ensemble_method,
                  evaluation=eval_type,

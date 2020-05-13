@@ -33,7 +33,7 @@ class RegressionEvaluator(_BaseEvaluator):
         self.resampling_params = resampling_params
         self.seed = seed
         self.eval_id = 0
-        self.logger = get_logger('RegressionEvaluator-%s' % self.name)
+        self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
 
     def __call__(self, config, **kwargs):
         start_time = time.time()
@@ -92,11 +92,12 @@ class RegressionEvaluator(_BaseEvaluator):
                 raise e
             self.logger.info('%s-evaluator: %s' % (self.name, str(e)))
             return np.inf
-        # print('=' * 6 + '>', self.scorer._sign * score)
-        fmt_str = '\n' + ' ' * 5 + '==> '
-        self.logger.debug('%s%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
-                          (fmt_str, self.eval_id, regressor_id,
-                           self.scorer._sign * score, time.time() - start_time, X_train.shape))
+
+        self.logger.debug('%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
+                          (self.eval_id, regressor_id,
+                           self.scorer._sign * score,
+                           time.time() - start_time, X_train.shape)
+                          )
         self.eval_id += 1
         if self.name == 'hpo':
             score = 1 - score

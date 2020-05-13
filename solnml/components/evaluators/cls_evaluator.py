@@ -35,7 +35,7 @@ class ClassificationEvaluator(_BaseEvaluator):
         self.seed = seed
         self.eval_id = 0
         self.onehot_encoder = None
-        self.logger = get_logger('Evaluator-%s' % self.name)
+        self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
 
     def get_fit_params(self, y, estimator):
         from solnml.components.utils.balancing import get_weights
@@ -125,9 +125,8 @@ class ClassificationEvaluator(_BaseEvaluator):
             self.logger.info('%s-evaluator: %s' % (self.name, str(e)))
             score = 0.
 
-        fmt_str = '\n' + ' ' * 5 + '==> '
-        self.logger.debug('%s%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
-                          (fmt_str, self.eval_id, classifier_id,
+        self.logger.debug('%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
+                          (self.eval_id, classifier_id,
                            score, time.time() - start_time, X_train.shape))
         self.eval_id += 1
 

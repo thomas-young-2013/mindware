@@ -1,6 +1,5 @@
 import copy
 import numpy as np
-from sklearn.model_selection import StratifiedShuffleSplit
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
 from solnml.components.evaluators.reg_evaluator import RegressionEvaluator
 from solnml.utils.logging_utils import get_logger
@@ -8,8 +7,7 @@ from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.fe_optimizers import build_fe_optimizer
 from solnml.components.hpo_optimizer import build_hpo_optimizer
-from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
-from solnml.components.utils.constants import *
+from solnml.components.utils.constants import CLS_TASKS, REG_TASKS
 from solnml.utils.decorators import time_limit
 from solnml.utils.functions import get_increasing_sequence
 
@@ -43,8 +41,8 @@ class SecondLayerBandit(object):
         self.mth = mth
         self.seed = seed
         self.sliding_window_size = sw_size
-        self.logger = get_logger('%s:%s-%d=>%s' % (
-            __class__.__name__, dataset_id, seed, estimator_id))
+        task_id = '%s-%d-%s' % (dataset_id, seed, estimator_id)
+        self.logger = get_logger(self.__class__.__name__ + '-' + task_id)
         np.random.seed(self.seed)
 
         # Bandit settings.
@@ -150,7 +148,7 @@ class SecondLayerBandit(object):
             self.incumbent_perf = self.optimizer['fe'].baseline_score
             self.final_rewards.append(self.incumbent_perf)
 
-        self.logger.info('After %d-th pulling, results: %s' % (self.pull_cnt, results))
+        self.logger.debug('After %d-th pulling, results: %s' % (self.pull_cnt, results))
 
         score, iter_cost, config = results
         if score is None:
@@ -185,7 +183,7 @@ class SecondLayerBandit(object):
                     self.prepare_optimizer(arm_id)
                     self.init_config = config
                     if config != self.default_config:
-                        self.logger.info('Initial hp_config for FE has changed!')
+                        self.logger.debug('Initial hp_config for FE has changed!')
 
             if self.mth in ['alter_p', 'fixed']:
                 self.prepare_optimizer(arm_id)
@@ -220,8 +218,8 @@ class SecondLayerBandit(object):
                 return
 
         self.action_sequence.append(arm_picked)
-        self.logger.info(','.join(self.action_sequence))
-        self.logger.info('Pulling arm: %s for %s at %d-th round' % (arm_picked, self.estimator_id, self.pull_cnt))
+        self.logger.debug(','.join(self.action_sequence))
+        self.logger.debug('Pulling arm: %s for %s at %d-th round' % (arm_picked, self.estimator_id, self.pull_cnt))
         results = self.optimizer[arm_picked].iterate()
         self.collect_iter_stats(arm_picked, results)
         self.pull_cnt += 1
@@ -229,7 +227,7 @@ class SecondLayerBandit(object):
     def optimize_alternatedly(self):
         # First choose one arm.
         _arm = self.arms[self.pull_cnt % 2]
-        self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
+        self.logger.debug('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
 
         # Execute one iteration.
         results = self.optimizer[_arm].iterate()
@@ -242,7 +240,7 @@ class SecondLayerBandit(object):
             _arm = 'hpo'
         else:
             _arm = 'fe'
-        self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
+        self.logger.debug('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
 
         # Execute one iteration.
         results = self.optimizer[_arm].iterate()
@@ -264,7 +262,7 @@ class SecondLayerBandit(object):
 
     def optimize_one_component(self, mth):
         _arm = 'hpo' if mth == 'hpo_only' else 'fe'
-        self.logger.info('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
+        self.logger.debug('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
 
         # Execute one iteration.
         results = self.optimizer[_arm].iterate()
@@ -358,6 +356,6 @@ class SecondLayerBandit(object):
                                                        per_run_time_limit=self.per_run_time_limit,
                                                        trials_per_iter=trials_per_iter, seed=self.seed)
 
-        self.logger.info('=' * 30)
-        self.logger.info('UPDATE OPTIMIZER: %s' % _arm)
-        self.logger.info('=' * 30)
+        self.logger.debug('=' * 30)
+        self.logger.debug('UPDATE OPTIMIZER: %s' % _arm)
+        self.logger.debug('=' * 30)

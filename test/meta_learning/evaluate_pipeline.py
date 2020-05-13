@@ -19,7 +19,7 @@ from solnml.utils.functions import is_unbalanced_dataset
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--datasets', type=str, default='pc4')
-parser.add_argument('--mode', type=str, choices=['hmab', 'plot'], default='plot')
+parser.add_argument('--mode', type=str, choices=['hmab', 'ausk', 'plot'], default='plot')
 parser.add_argument('--algo_num', type=int, default=15)
 parser.add_argument('--time_cost', type=int, default=600)
 parser.add_argument('--trial_num', type=int, default=150)

@@ -6,6 +6,7 @@ import lightgbm as lgb
 from collections import OrderedDict
 from .meta_generator import get_feature_vector, prepare_meta_dataset
 from solnml.components.utils.constants import CLS_TASKS, REG_TASKS
+from solnml.utils.logging_utils import get_logger
 
 _buildin_algorithms = ['lightgbm', 'random_forest', 'libsvm_svc', 'extra_trees', 'liblinear_svc',
                        'k_nearest_neighbors', 'logistic_regression', 'gradient_boosting', 'adaboost']
@@ -20,12 +21,13 @@ class AlgorithmAdvisor(object):
                  meta_algorithm='lightgbm',
                  exclude_datasets=None,
                  meta_dir=None):
+        self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
         self.n_algorithm = n_algorithm
         self.task_type = task_type
         self.meta_algo = meta_algorithm
         if task_type in CLS_TASKS:
             if metric not in ['acc', 'bal_acc']:
-                print('Meta information about metric-%s does not exist, use accuracy instead.' % str(metric))
+                self.logger.info('Meta information about metric-%s does not exist, use accuracy instead.' % str(metric))
                 metric = 'acc'
         elif task_type in REG_TASKS:
             raise NotImplementedError()
@@ -82,13 +84,13 @@ class AlgorithmAdvisor(object):
         meta_dataset_filename = self.meta_dir + 'ranker_dataset_%s_%s.pkl' % (self.metric, self.hash_id)
 
         if os.path.exists(meta_ranker_filename):
-            print('meta ranker has been trained!')
+            self.logger.debug('meta ranker has been trained!')
             with open(meta_ranker_filename, 'rb') as f:
                 _, meta_infos = pk.load(f)
             return meta_infos
 
         if os.path.exists(meta_dataset_filename):
-            print('meta dataset file exists:', meta_dataset_filename)
+            self.logger.debug('meta dataset file exists:', meta_dataset_filename)
             with open(meta_dataset_filename, 'rb') as f:
                 meta_X, meta_y, meta_infos = pk.load(f)
         else:
@@ -98,7 +100,7 @@ class AlgorithmAdvisor(object):
                                                           task_type=self.task_type)
             meta_X, meta_y = list(), list()
 
-            print('Meta information comes from %d datasets.' % len(meta_y))
+            self.logger.debug('Meta information comes from %d datasets.' % len(meta_y))
             meta_infos = list()
             for idx in range(len(X)):
                 meta_feature, run_results, _dataset = X[idx], Y[idx], include_datasets[idx]
@@ -130,24 +132,24 @@ class AlgorithmAdvisor(object):
                         meta_X.append(meta_x2)
                         meta_y.append(meta_label2)
                         _instance_num += 1
-                print('meta instances: ', _dataset, _instance_num)
+                self.logger.debug('meta instances: %s - %d' % (_dataset, _instance_num))
                 meta_infos.append((_dataset, _instance_num))
 
             meta_X, meta_y = np.array(meta_X), np.array(meta_y)
             with open(meta_dataset_filename, 'wb') as f:
                 pk.dump([meta_X, meta_y, meta_infos], f)
 
-        print('Starting training...')
+        self.logger.debug('Starting training...')
         # train
-        print(meta_X.shape, meta_y.shape)
+        self.logger.debug('meta data shape: %s - %s' % (str(meta_X.shape), str(meta_y.shape)))
 
         meta_learner_config_filename = self.meta_dir + 'meta_learner_%s_%s_%s_config.pkl' % (
             self.meta_algo, self.metric, self.hash_id)
         if os.path.exists(meta_learner_config_filename):
             with open(meta_learner_config_filename, 'rb') as f:
                 meta_learner_config = pk.load(f)
-                print('load meta-learner config from file.')
-                print(meta_learner_config)
+                self.logger.debug('load meta-learner config from file.')
+                self.logger.debug('config is %s' % str(meta_learner_config))
         else:
             meta_learner_config = dict()
 
@@ -155,7 +157,7 @@ class AlgorithmAdvisor(object):
         gbm.fit(meta_X, meta_y)
         self.meta_learner = gbm
 
-        print('Dumping model to PICKLE...')
+        self.logger.debug('Dumping model to PICKLE...')
 
         with open(meta_ranker_filename, 'wb') as f:
             pk.dump([gbm, meta_infos], f)
@@ -167,7 +169,7 @@ class AlgorithmAdvisor(object):
                                    self.meta_algo, self.metric, self.hash_id)
             with open(meta_learner_filename, 'rb') as f:
                 gbm, _ = pk.load(f)
-                print('Load %s meta-learner from %s.' % (self.meta_algo, meta_learner_filename))
+                self.logger.debug('Load %s meta-learner from %s.' % (self.meta_algo, meta_learner_filename))
             self.meta_learner = gbm
 
         n_algo = len(_buildin_algorithms)
@@ -184,7 +186,6 @@ class AlgorithmAdvisor(object):
                 _X.append(meta_x)
 
         preds = self.meta_learner.predict(_X)
-        # print(preds)
 
         instance_idx = 0
         scores = np.zeros(n_algo)

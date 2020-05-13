@@ -1,5 +1,4 @@
 import time
-import datetime
 import numpy as np
 from litebo.facade.bo_facade import BayesianOptimization as BO
 from litebo.utils.constants import SUCCESS
@@ -37,7 +36,7 @@ class SMACOptimizer(BaseHPOptimizer):
         else:
             _threshold = int(len(set(self.config_space.sample_configuration(10000))) * 0.75)
             self.config_num_threshold = _threshold
-        self.logger.debug('HP_THRESHOLD is: %d' % self.config_num_threshold)
+        self.logger.debug('The maximum trial number in HPO is: %d' % self.config_num_threshold)
         self.maximum_config_num = min(600, self.config_num_threshold)
         self.early_stopped_flag = False
         self.eval_dict = {}
@@ -58,7 +57,7 @@ class SMACOptimizer(BaseHPOptimizer):
             if len(self.configs) >= self.maximum_config_num:
                 self.early_stopped_flag = True
                 self.logger.warning('Already explored 70 percentage of the '
-                                    'hp space or maximum configuration number: %d!' % self.maximum_config_num)
+                                    'hyperspace or maximum configuration number met: %d!' % self.maximum_config_num)
                 break
             _config, _status, _perf, _ = self.optimizer.iterate()
             if _status == SUCCESS:
@@ -72,13 +71,3 @@ class SMACOptimizer(BaseHPOptimizer):
         self.incumbent_perf = 1 - self.incumbent_perf
         iteration_cost = time.time() - _start_time
         return self.incumbent_perf, iteration_cost, self.incumbent_config
-
-    def optimize(self):
-        self.optimizer.optimize()
-
-        runhistory = self.optimizer.get_history()
-        self.eval_dict = {(None, hpo_config): 1 - score for hpo_config, score in
-                          runhistory.data.items()}
-        self.incumbent_config, self.incumbent_perf = runhistory.get_incumbents()[-1]
-        self.incumbent_perf = 1 - self.incumbent_perf
-        return self.incumbent_config, self.incumbent_perf

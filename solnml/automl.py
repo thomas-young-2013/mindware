@@ -1,3 +1,5 @@
+import os
+from solnml.utils.logging_utils import setup_logger, get_logger
 from solnml.components.metrics.metric import get_metric
 from solnml.components.utils.constants import CLS_TASKS, REG_TASKS
 from solnml.components.ensemble import ensemble_list
@@ -10,6 +12,7 @@ from solnml.components.feature_engineering.transformations.preprocessor.to_balan
 from solnml.components.meta_learning.algorithm_recomendation.algorithm_advisor import AlgorithmAdvisor
 from solnml.bandits.first_layer_bandit import FirstLayerBandit
 
+
 classification_algorithms = _classifiers.keys()
 imb_classication_algorithms = _imb_classifiers.keys()
 regression_algorithms = _regressors.keys()
@@ -17,6 +20,7 @@ regression_algorithms = _regressors.keys()
 
 class AutoML(object):
     def __init__(self, time_limit=300,
+                 dataset_name='default_name',
                  amount_of_resource=None,
                  task_type=None,
                  metric='bal_acc',
@@ -26,19 +30,27 @@ class AutoML(object):
                  per_run_time_limit=150,
                  ensemble_size=50,
                  evaluation='holdout',
-                 output_dir="/tmp/",
+                 output_dir="logs",
+                 logging_config=None,
                  random_state=1,
                  n_jobs=1):
         self.metric_id = metric
         self.metric = get_metric(self.metric_id)
+
+        self.dataset_name = dataset_name
         self.time_limit = time_limit
         self.seed = random_state
+        self.per_run_time_limit = per_run_time_limit
+        self.output_dir = output_dir
+        self.logging_config = logging_config
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
+        self.logger = self._get_logger(self.dataset_name)
+
+        self.evaluation_type = evaluation
         self.amount_of_resource = amount_of_resource
         self.ensemble_method = ensemble_method
         self.ensemble_size = ensemble_size
-        self.per_run_time_limit = per_run_time_limit
-        self.output_dir = output_dir
-        self.evaluation_type = evaluation
         self.enable_meta_algorithm_selection = enable_meta_algorithm_selection
         self.task_type = task_type
         self.n_jobs = n_jobs
@@ -55,6 +67,13 @@ class AutoML(object):
                 raise ValueError("Unknown task type %s" % task_type)
         if ensemble_method is not None and ensemble_method not in ensemble_list:
             raise ValueError("%s is not supported for ensemble!" % ensemble_method)
+
+    def _get_logger(self, name):
+        logger_name = 'SolnML-%s' % name
+        setup_logger(os.path.join(self.output_dir, '%s.log' % str(logger_name)),
+                     self.logging_config,
+                     )
+        return get_logger(logger_name)
 
     def fit(self, train_data: DataNode, dataset_id=None):
         """
@@ -75,13 +94,15 @@ class AutoML(object):
                     if algo in self.include_algorithms and len(include_models) < n_algo:
                         include_models.append(algo)
                 self.include_algorithms = include_models
-                print('Algorithms recommended:', self.include_algorithms)
+                self.logger.info('Executing meta-learning based algorithm recommendation!')
+                self.logger.info('Algorithms recommended: %s' % ','.join(self.include_algorithms))
             except Exception as e:
-                print(e)
+                self.logger.error(str(e))
 
         # Check whether this dataset is balanced or not.
         if self.task_type in CLS_TASKS and is_unbalanced_dataset(train_data):
             # self.include_algorithms = imb_classication_algorithms
+            self.logger.info('Conduct special procedure for imbalanced datasets!')
             train_data = DataBalancer().operate(train_data)
         if self.amount_of_resource is None:
             trial_num = len(self.include_algorithms) * 30
@@ -90,9 +111,8 @@ class AutoML(object):
 
         self.solver = FirstLayerBandit(self.task_type, trial_num,
                                        self.include_algorithms, train_data,
-                                       output_dir='logs',
                                        per_run_time_limit=self.per_run_time_limit,
-                                       dataset_name=dataset_id,
+                                       dataset_name=self.dataset_name,
                                        ensemble_size=self.ensemble_size,
                                        inner_opt_algorithm='fixed',
                                        metric=self.metric,

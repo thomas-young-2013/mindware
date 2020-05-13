@@ -14,7 +14,7 @@ class BaseHPOptimizer(object):
         self.start_time = time.time()
         self.timing_list = list()
         self.incumbent = None
-        self.logger = get_logger(__class__.__name__)
+        self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
 
     @abc.abstractmethod
     def run(self):
