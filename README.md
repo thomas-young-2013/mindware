@@ -93,9 +93,9 @@ Soln-ML will be available on PyPI.
 ### Manual Installation (recommended now!)
 
 ```
-git clone https://github.com/thomas-young-2013/automl-toolkit.git && cd automl-toolkit
+git clone https://github.com/thomas-young-2013/soln-ml.git && cd soln-ml
 cat requirements.txt | xargs -n 1 -L 1 pip install
 python setup.py install.
 ```
 
-**Note:** Currently, Soln-ML is only compatible with **Python >= 3.5** and **Scikit-learn == 0.21.3**.
+**Note:** Currently, Soln-ML is only compatible with **Python >= 3.5**.
