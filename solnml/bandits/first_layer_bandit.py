@@ -466,4 +466,4 @@ class FirstLayerBandit(object):
         if self.fe_algo == 'tree_based':
             return self.sub_bandits[self.optimal_algo_id].inc['fe']
         else:
-            return self.fe_optimizer.incumbent
+            return self.fe_optimizer.fetch_incumbent

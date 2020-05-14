@@ -30,7 +30,7 @@ class BayesianOptimizationOptimizer(Optimizer):
         self.model_id = model_id
 
         self.incumbent_score = -np.inf
-        self.incumbent = None
+        self.fetch_incumbent = None
         self.baseline_score = -np.inf
         self.start_time = time.time()
         self.hp_config = None
@@ -293,10 +293,11 @@ class BayesianOptimizationOptimizer(Optimizer):
 
             try:
                 node, tran_list = self._parse(self.root_node, config[0], record=True)
+                node.config = config[0]
                 if node.data[0].shape[1] == 0:
                     continue
-                if self.incumbent is None:
-                    self.incumbent = node  # Update incumbent node
+                if self.fetch_incumbent is None:
+                    self.fetch_incumbent = node  # Update incumbent node
                 node_list.append(node)
                 self.node_dict[config[0]] = [node, tran_list]
             except:
@@ -307,20 +308,24 @@ class BayesianOptimizationOptimizer(Optimizer):
         node_list = []
         self.logger.info("Re-parse %d configs" % len(config_list))
         for i, config in enumerate(config_list):
-            if config in self.node_dict:
-                node_list.append(self.node_dict[config][0])
-                continue
             try:
                 if config is None:
                     config = self.hyperparameter_space.get_default_configuration()
+
+                if config in self.node_dict:
+                    node_list.append(self.node_dict[config][0])
+                    continue
+
                 node, tran_list = self._parse(self.root_node, config, record=True)
+                node.config = config
                 if node.data[0].shape[1] == 0:
                     continue
-                if self.incumbent is None:
+                if self.fetch_incumbent is None:
                     # Ensure the config_list is sorted by performance
-                    self.incumbent = node  # Update incumbent node
+                    self.fetch_incumbent = node  # Update incumbent node
                 node_list.append(node)
                 self.node_dict[config] = [node, tran_list]
+                assert None not in self.node_dict
             except Exception as e:
                 node_list.append(None)
                 print("Re-parse failed on config %s" % str(config))
@@ -328,16 +333,20 @@ class BayesianOptimizationOptimizer(Optimizer):
 
     def apply(self, data_node: DataNode, ref_node: DataNode, phase='test'):
         input_node = data_node.copy_()
-        if_fit = False
-        for _, value in self.node_dict.items():
-            if ref_node == value[0]:
-                if_fit = True
-                for i, tran in enumerate(value[1]):
-                    if phase == 'test' and i == 2:  # Disable balancer
-                        continue
-                    if tran is not None:
-                        input_node = tran.operate(input_node)
-                break
-        if not if_fit:
+        fe_config = ref_node.config
+        if ref_node is None:
+            return data_node
+        elif fe_config in self.node_dict:
+            fe_trans_list = self.node_dict[fe_config][1]
+            for i, tran in enumerate(fe_trans_list):
+                if phase == 'test' and i == 2:  # Disable balancer
+                    continue
+                if tran is not None:
+                    input_node = tran.operate(input_node)
+        else:
+            self.logger.info("Ref node config:")
+            self.logger.info(str(fe_config))
+            self.logger.info("Node history in optimizer:")
+            self.logger.info(str(self.node_dict))
             raise ValueError("Ref node not in history!")
         return input_node
