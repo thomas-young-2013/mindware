@@ -30,6 +30,7 @@ class BayesianOptimizationOptimizer(Optimizer):
         self.model_id = model_id
 
         self.incumbent_score = -np.inf
+        self.incumbent = None
         self.baseline_score = -np.inf
         self.start_time = time.time()
         self.hp_config = None
@@ -256,7 +257,6 @@ class BayesianOptimizationOptimizer(Optimizer):
                                        parent_hyperparameter=parent_hyperparameter)
 
     def fetch_nodes(self, n=5):
-        self.node_dict = {}
         runhistory = self.optimizer.get_history()
         hist_dict = runhistory.data
         default_config = self.hyperparameter_space.get_default_configuration()
@@ -286,8 +286,11 @@ class BayesianOptimizationOptimizer(Optimizer):
             min_n.append((self.incumbent_config, runhistory.data[self.incumbent_config]))
 
         node_list = []
-        self.incumbent = None
         for i, config in enumerate(min_n):
+            if config[0] in self.node_dict:
+                node_list.append(self.node_dict[config[0]][0])
+                continue
+
             try:
                 node, tran_list = self._parse(self.root_node, config[0], record=True)
                 if node.data[0].shape[1] == 0:
@@ -295,16 +298,18 @@ class BayesianOptimizationOptimizer(Optimizer):
                 if self.incumbent is None:
                     self.incumbent = node  # Update incumbent node
                 node_list.append(node)
-                self.node_dict[len(self.node_dict)] = [node, tran_list]
+                self.node_dict[config[0]] = [node, tran_list]
             except:
                 print("Re-parse failed on config %s" % str(config[0]))
         return node_list
 
     def fetch_nodes_by_config(self, config_list):
-        self.node_dict = {}
         node_list = []
         self.logger.info("Re-parse %d configs" % len(config_list))
         for i, config in enumerate(config_list):
+            if config in self.node_dict:
+                node_list.append(self.node_dict[config][0])
+                continue
             try:
                 if config is None:
                     config = self.hyperparameter_space.get_default_configuration()
@@ -312,9 +317,10 @@ class BayesianOptimizationOptimizer(Optimizer):
                 if node.data[0].shape[1] == 0:
                     continue
                 if self.incumbent is None:
+                    # Ensure the config_list is sorted by performance
                     self.incumbent = node  # Update incumbent node
                 node_list.append(node)
-                self.node_dict[len(self.node_dict)] = [node, tran_list]
+                self.node_dict[config] = [node, tran_list]
             except Exception as e:
                 node_list.append(None)
                 print("Re-parse failed on config %s" % str(config))
