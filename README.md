@@ -26,12 +26,14 @@ The goal of Soln-ML is to make machine learning easier to apply both in industry
 
 Here is a brief example that uses the package.
 
-```
+```python
 from solnml.estimators import Classifier
-
-train_data = dm.get_data_node(X_train, y_train)
-test_data = dm.get_data_node(X_test, y_test)
-clf = Classifier(time_limit=time_limit)
+clf = Classifier(dataset_name='iris',
+                 time_limit=150,
+                 output_dir='logs/',
+                 ensemble_method='stacking',
+                 evaluation='holdout',
+                 metric='acc')
 clf.fit(train_data)
 predictions = clf.predict(test_data)
 ```
@@ -49,34 +51,34 @@ Here we recommend you to download & install [swig=3.0.12](https://sourceforge.ne
 On Arch Linux (or any distribution with swig4 as default implementation), you need to confirm that the version of SWIG is in (>= 3.0, <4.0); 
 we suggest you to install `swig=3.0.12`.
 
-```
+```sh
 ./configure
 make & make install
 ```
 
 #### for MACOSX User
 Before installing SWIG, you need to install [pcre](https://sourceforge.net/projects/pcre/files/pcre/8.44/):
-```
+```sh
 cd $pcre_dir
 ./configure
 make & make install
 ```
 
 Then add library path of `/usr/local/lib` for pcre:
-```
+```sh
 LD_LIBRARY_PATH=/usr/local/lib:/usr/lib
 export LD_LIBRARY_PATH
 ```
 
 Install SWIG as described above.
-```
+```sh
 cd $swig_dir
 ./configure
 make & make install
 ```
 
 Before installing python package pyrfr (version 0.8.0), download source code from [pypi](https://pypi.org/project/pyrfr/#files):
-```
+```sh
 cd $pyrfr_dir
 python setup.py install
 ```
@@ -88,11 +90,13 @@ You need to download [swigwin](https://sourceforge.net/projects/swig/files/swigw
 
 Soln-ML is available on PyPI. You can install it by tying
 
-```pip install soln-ml```
+```sh
+pip install soln-ml
+```
 
 ### Manual Installation
 
-```
+```sh
 git clone https://github.com/thomas-young-2013/soln-ml.git && cd soln-ml
 cat requirements.txt | xargs -n 1 -L 1 pip install
 python setup.py install.
