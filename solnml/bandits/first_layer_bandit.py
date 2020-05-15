@@ -19,7 +19,8 @@ class FirstLayerBandit(object):
                  metric='acc',
                  ensemble_method='ensemble_selection',
                  ensemble_size=10,
-                 per_run_time_limit=300, output_dir=None,
+                 per_run_time_limit=300,
+                 output_dir="logs",
                  dataset_name='default_dataset',
                  eval_type='holdout',
                  share_feature=False,
@@ -61,7 +62,7 @@ class FirstLayerBandit(object):
         self.logger = get_logger('Soln-ml: %s' % dataset_name)
 
         # Bandit settings.
-        self.incumbent_perf = -1.
+        self.incumbent_perf = -float("INF")
         self.arms = classifier_ids
         self.include_algorithms = classifier_ids
         self.rewards = dict()
@@ -111,19 +112,19 @@ class FirstLayerBandit(object):
         scores = np.array(scores)
         algo_idx = np.argmax(scores)
         self.optimal_algo_id = self.arms[algo_idx]
-        _best_perf = scores[algo_idx]
+        self.incumbent_perf = scores[algo_idx]
         _threshold, _ensemble_size = 0.90, 5
 
         idxs = np.argsort(-scores)[:_ensemble_size]
         _algo_ids = [self.arms[idx] for idx in idxs]
         self.nbest_algo_ids = list()
         for _idx, _arm in zip(idxs, _algo_ids):
-            if scores[_idx] >= _threshold * _best_perf:
+            if scores[_idx] >= _threshold * self.incumbent_perf:
                 self.nbest_algo_ids.append(_arm)
         assert len(self.nbest_algo_ids) > 0
 
         self.logger.info('=' * 50)
-        self.logger.info('Best_algo_perf:  %s' % str(_best_perf))
+        self.logger.info('Best_algo_perf:  %s' % str(self.incumbent_perf))
         self.logger.info('Best_algo_id:    %s' % str(self.optimal_algo_id))
         self.logger.info('Nbest_algo_ids:  %s' % str(self.nbest_algo_ids))
         self.logger.info('Arm candidates:  %s' % str(self.arms))
@@ -323,9 +324,7 @@ class FirstLayerBandit(object):
         stats['candidate_algorithms'] = self.include_algorithms
         stats['include_algorithms'] = self.nbest_algo_ids
         stats['split_seed'] = self.seed
-        best_perf = float('-INF')
-        for algo_id in self.nbest_algo_ids:
-            best_perf = max(best_perf, self.sub_bandits[algo_id].incumbent_perf)
+        best_perf = self.incumbent_perf
 
         self.logger.info('Prepare basic models for ensemble stage.')
         self.logger.info('algorithm_id, #features, #configs')
@@ -467,3 +466,7 @@ class FirstLayerBandit(object):
             return self.sub_bandits[self.optimal_algo_id].inc['fe']
         else:
             return self.fe_optimizer.fetch_incumbent
+
+    @property
+    def best_hpo_config(self):
+        return self.sub_bandits[self.optimal_algo_id].inc['hpo']

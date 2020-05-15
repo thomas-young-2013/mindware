@@ -81,19 +81,24 @@ class BaseEstimator(object):
         raise NotImplementedError()
 
     @property
-    def best_config(self):
-        return self._ml_engine.best_config
+    def best_hpo_config(self):
+        return self._ml_engine.solver.best_hpo_config
 
     @property
     def best_algo_id(self):
-        return self._ml_engine.best_algo_id
+        return self._ml_engine.solver.optimal_algo_id
+
+    @property
+    def nbest_algo_id(self):
+        return self._ml_engine.solver.nbest_algo_ids
 
     @property
     def best_perf(self):
-        return self._ml_engine.best_perf
+        return self._ml_engine.solver.incumbent_perf
 
-    def get_best_node_path(self):
-        return self._ml_engine.fe_optimizer.get_pipeline(self._ml_engine.best_data_node)
+    @property
+    def best_node(self):
+        return self._ml_engine.solver.best_data_node
 
     def get_ens_model_info(self):
         return self._ml_engine.get_ens_model_info()
