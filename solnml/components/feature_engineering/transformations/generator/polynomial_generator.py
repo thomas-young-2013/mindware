@@ -1,3 +1,4 @@
+import numpy as np
 from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter, UnParametrizedHyperparameter, \
     UniformIntegerHyperparameter
@@ -10,6 +11,13 @@ class PolynomialTransformation(Transformer):
         super().__init__("polynomial", 17)
         self.input_type = [DISCRETE, NUMERICAL]
         self.compound_mode = 'concatenate'
+        self.best_idxs = list()
+        if degree == 2:
+            self.bestn = 25
+        elif degree == 3:
+            self.bestn = 10
+        elif degree == 4:
+            self.bestn = 6
 
         self.output_type = NUMERICAL
         self.degree = degree
@@ -20,17 +28,21 @@ class PolynomialTransformation(Transformer):
     @ease_trans
     def operate(self, input_datanode, target_fields):
         from sklearn.preprocessing import PolynomialFeatures
+        from lightgbm import LGBMClassifier
         X, y = input_datanode.data
-        X_new = X[:, target_fields]
-        ori_length = X_new.shape[1]
 
-        # Skip high-dimensional features.
-        if X_new.shape[1] > 100 and self.degree == 2:
-            return X_new.copy()
+        if not self.best_idxs:
+            lgb = LGBMClassifier(random_state=1)
+            lgb.fit(X, y)
+            _importance = lgb.feature_importances_
+            idx_importance = np.argsort(-_importance)
+            cur_idx = 0
+            while len(self.best_idxs) < self.bestn and cur_idx < len(_importance):
+                if idx_importance[cur_idx] in target_fields:
+                    self.best_idxs.append(idx_importance[cur_idx])
+                cur_idx += 1
 
-        if X_new.shape[1] > 15 and self.degree == 3:
-            return X_new.copy()
-
+        X_new = X[:, self.best_idxs]
         if not self.model:
             self.degree = int(self.degree)
             self.interaction_only = check_for_bool(self.interaction_only)
@@ -42,15 +54,14 @@ class PolynomialTransformation(Transformer):
             self.model.fit(X_new)
 
         _X = self.model.transform(X_new)
-        _X = _X[:, ori_length:]
-
+        _X = _X[:, X_new.shape[1]:]
         return _X
 
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None):
-        degree = UniformIntegerHyperparameter("degree", 2, 3, 2)
+        degree = UniformIntegerHyperparameter("degree", lower=2, upper=4, default_value=2)
         interaction_only = CategoricalHyperparameter("interaction_only",
-                                                     ["False", "True"], "False")
+                                                     ["False", "True"], default_value="False")
         include_bias = UnParametrizedHyperparameter("include_bias", "False")
 
         cs = ConfigurationSpace()
