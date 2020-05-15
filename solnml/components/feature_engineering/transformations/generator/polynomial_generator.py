@@ -12,8 +12,8 @@ class PolynomialTransformation(Transformer):
 
         self.output_type = NUMERICAL
         self.degree = degree
-        self.interaction_only = interaction_only
-        self.include_bias = include_bias
+        self.interaction_only = check_for_bool(interaction_only)
+        self.include_bias = check_for_bool(include_bias)
         self.random_state = random_state
 
     @ease_trans
@@ -30,8 +30,6 @@ class PolynomialTransformation(Transformer):
 
         if not self.model:
             self.degree = int(self.degree)
-            self.interaction_only = check_for_bool(self.interaction_only)
-            self.include_bias = check_for_bool(self.include_bias)
 
             self.model = PolynomialFeatures(
                 degree=self.degree, interaction_only=self.interaction_only,
