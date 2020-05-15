@@ -2,12 +2,18 @@
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/thomas-young-2013/automl-toolkit/blob/master/LICENSE)
 
-## Soln-ML: Towards Self-Learning AutoML System.
+------------------
+
+## Soln-ML: Towards Self-Improving AutoML System.
 Soln-ML is an AutoML system, which is capable of improving its AutoML power by learning from past experience.
 It implements many basic components that enables automatic machine learning. 
 Furthermore, this toolkit can be also used to nourish new AutoML algorithms.
 Soln-ML is developed by <a href="http://net.pku.edu.cn/~cuibin/" target="_blank" rel="nofollow">DAIM Lab</a> at Peking University.
 The goal of Soln-ML is to make machine learning easier to apply both in industry and academia.
+
+Currently, Soln-ML is compatible with: **Python >= 3.5**.
+
+------------------
 
 ## Guiding principles
 
@@ -17,85 +23,110 @@ The goal of Soln-ML is to make machine learning easier to apply both in industry
 
 - __Work with Python__. No separate models configuration files in a declarative format. Models are described in Python code, which is compact, easier to debug, and allows for ease of extensibility.
 
+------------------
+
 ## Characteristics
 - Soln-ML supports AutoML on large datasets.
 
 - Soln-ML enables transfer-learning, meta-learning and reinforcement learning techniques to make AutoML with more intelligent behaviors.
 
+------------------
+
 ## Example
 
 Here is a brief example that uses the package.
 
-```
+```python
 from solnml.estimators import Classifier
-
-train_data = dm.get_data_node(X_train, y_train)
-test_data = dm.get_data_node(X_test, y_test)
-clf = Classifier(time_limit=time_limit)
+clf = Classifier(dataset_name='iris',
+                 time_limit=150,
+                 output_dir='logs/',
+                 ensemble_method='stacking',
+                 evaluation='holdout',
+                 metric='acc')
 clf.fit(train_data)
 predictions = clf.predict(test_data)
 ```
 
 For more details, please check [examples](https://github.com/thomas-young-2013/automl-toolkit/tree/master/examples).
 
+------------------
+
 ## Installation
 
-### Requirements
+Before installing Soln-ML, please install the necessary library [swig=3.0.12](https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/).
 
-Besides the listed requirements (see `requirements.txt`), Soln-ML requires SWIG (>= 3.0, <4.0) as a build dependency. 
-Here we recommend you to download & install [swig=3.0.12](https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/)
+Soln-ML requires SWIG (>= 3.0, <4.0) as a build dependency, and we suggest you to download & install [swig=3.0.12](https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/).
 
-#### for Arch Linux User
-On Arch Linux (or any distribution with swig4 as default implementation), you need to confirm that the version of SWIG is in (>= 3.0, <4.0); 
-we suggest you to install `swig=3.0.12`.
 
+Then, you can install Soln-ML itself. There are two ways to install Soln-ML:
+
+### Installation via pip
+Soln-ML is available on PyPI. You can install it by tying:
+
+```sh
+pip install soln-ml
 ```
+
+### Manual Installation from the GitHub source
+
+```sh
+git clone https://github.com/thomas-young-2013/soln-ml.git && cd soln-ml
+cat requirements.txt | xargs -n 1 -L 1 pip install
+python setup.py install
+```
+
+
+### Tips on Installing Swig
+
+
+
+- **for Arch Linux User:**
+
+On Arch Linux (or any distribution with swig4 as default implementation), you need to confirm that the version of SWIG is in (>= 3.0, <4.0).
+
+We suggest you to install [swig=3.0.12](https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/)..
+
+```sh
 ./configure
 make & make install
 ```
 
-#### for MACOSX User
+- **for MACOSX User:**
+
 Before installing SWIG, you need to install [pcre](https://sourceforge.net/projects/pcre/files/pcre/8.44/):
-```
+
+```sh
 cd $pcre_dir
 ./configure
 make & make install
 ```
 
-Then add library path of `/usr/local/lib` for pcre:
-```
+Then add library path of `/usr/local/lib` for `pcre`:
+
+```sh
 LD_LIBRARY_PATH=/usr/local/lib:/usr/lib
 export LD_LIBRARY_PATH
 ```
 
-Install SWIG as described above.
-```
+Finally, install Swig:
+
+```sh
 cd $swig_dir
 ./configure
 make & make install
 ```
 
-Before installing python package pyrfr (version 0.8.0), download source code from [pypi](https://pypi.org/project/pyrfr/#files):
-```
+Before installing python package `pyrfr=0.8.0`, download source code from [pypi](https://pypi.org/project/pyrfr/#files):
+
+```sh
 cd $pyrfr_dir
 python setup.py install
 ```
 
-#### for Windows User
-You need to download [swigwin](https://sourceforge.net/projects/swig/files/swigwin/swigwin-3.0.12/), and install it!
+- **for Windows User:**
 
-### Installation via pip
+You need to download [swigwin](https://sourceforge.net/projects/swig/files/swigwin/swigwin-3.0.12/), and then install Soln-ML!
 
-Soln-ML is available on PyPI. You can install it by tying
 
-```pip install soln-ml```
 
-### Manual Installation
-
-```
-git clone https://github.com/thomas-young-2013/soln-ml.git && cd soln-ml
-cat requirements.txt | xargs -n 1 -L 1 pip install
-python setup.py install.
-```
-
-**Note:** Currently, Soln-ML is compatible with **Python >= 3.5**.
