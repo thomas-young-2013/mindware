@@ -61,14 +61,14 @@ Soln-ML requires SWIG (>= 3.0, <4.0) as a build dependency, and we suggest you t
 
 Then, you can install Soln-ML itself. There are two ways to install Soln-ML:
 
-### Installation via pip
+#### Installation via pip
 Soln-ML is available on PyPI. You can install it by tying:
 
 ```sh
 pip install soln-ml
 ```
 
-### Manual Installation from the GitHub source
+#### Manual installation from the github source
 
 ```sh
 git clone https://github.com/thomas-young-2013/soln-ml.git && cd soln-ml
@@ -76,9 +76,7 @@ cat requirements.txt | xargs -n 1 -L 1 pip install
 python setup.py install
 ```
 
-
 ### Tips on Installing Swig
-
 
 
 - **for Arch Linux User:**
@@ -126,7 +124,4 @@ python setup.py install
 
 - **for Windows User:**
 
-You need to download [swigwin](https://sourceforge.net/projects/swig/files/swigwin/swigwin-3.0.12/), and then install Soln-ML!
-
-
-
+You need to download [swigwin](https://sourceforge.net/projects/swig/files/swigwin/swigwin-3.0.12/), and then install Soln-ML.
