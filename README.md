@@ -84,18 +84,18 @@ python setup.py install
 #### for Windows User
 You need to download [swigwin](https://sourceforge.net/projects/swig/files/swigwin/swigwin-3.0.12/), and install it!
 
-### Installation via pip (coming soon!)
+### Installation via pip
 
-Soln-ML will be available on PyPI.
+Soln-ML is available on PyPI. You can install it by tying
 
 ```pip install soln-ml```
 
-### Manual Installation (recommended now!)
+### Manual Installation
 
 ```
-git clone https://github.com/thomas-young-2013/automl-toolkit.git && cd automl-toolkit
+git clone https://github.com/thomas-young-2013/soln-ml.git && cd soln-ml
 cat requirements.txt | xargs -n 1 -L 1 pip install
 python setup.py install.
 ```
 
-**Note:** Currently, Soln-ML is only compatible with **Python >= 3.5** and **Scikit-learn == 0.21.3**.
+**Note:** Currently, Soln-ML is compatible with **Python >= 3.5**.
