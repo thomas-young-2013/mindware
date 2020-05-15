@@ -54,7 +54,7 @@ For more details, please check [examples](https://github.com/thomas-young-2013/a
 
 ## Installation
 
-Before installing Soln-ML, please install the necessary library [swig=3.0.12](https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/).
+Before installing Soln-ML, please install the necessary library [swig](https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/).
 
 Soln-ML requires SWIG (>= 3.0, <4.0) as a build dependency, and we suggest you to download & install [swig=3.0.12](https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/).
 
