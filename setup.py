@@ -12,10 +12,10 @@ HERE = pathlib.Path(__file__).parent
 README = (HERE / "README.md").read_text()
 
 setup(name='soln-ml',
-      version='1.0.1',
+      version='1.0.2',
       long_description=README,
       long_description_content_type="text/markdown",
-      description='Soln-ML: Towards Self-Learning AutoML System.',
+      description='Soln-ML: Towards Self-Improving AutoML System.',
       author='AutoML Researcher @ DAIM',
       author_email='liyang.cs@pku.edu.cn',
       url='https://github.com/thomas-young-2013/soln-ml',
