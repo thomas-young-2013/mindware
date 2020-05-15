@@ -2,7 +2,7 @@
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/thomas-young-2013/automl-toolkit/blob/master/LICENSE)
 
-## Soln-ML: Towards Self-Learning AutoML System.
+## Soln-ML: Towards Self-Improving AutoML System.
 Soln-ML is an AutoML system, which is capable of improving its AutoML power by learning from past experience.
 It implements many basic components that enables automatic machine learning. 
 Furthermore, this toolkit can be also used to nourish new AutoML algorithms.
