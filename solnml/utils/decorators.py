@@ -1,6 +1,5 @@
 import sys
 import signal
-import resource
 import platform
 from contextlib import contextmanager
 
@@ -12,6 +11,7 @@ def memory_limit(percentage: float):
     if platform.system() != "Linux":
         print('Only works on linux!')
         return
+    import resource
     soft, hard = resource.getrlimit(resource.RLIMIT_AS)
     resource.setrlimit(resource.RLIMIT_AS, (get_memory() * 1024 * percentage, hard))
 
