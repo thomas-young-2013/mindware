@@ -119,7 +119,8 @@ class AutoML(object):
                                        fe_algo='bo',
                                        seed=self.seed,
                                        time_limit=self.time_limit,
-                                       eval_type=self.evaluation_type)
+                                       eval_type=self.evaluation_type,
+                                       output_dir=self.output_dir)
         self.solver.optimize()
 
     def refit(self):
