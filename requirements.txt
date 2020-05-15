@@ -15,3 +15,5 @@ pyrfr==0.8.0
 scikit-learn==0.21.3
 imbalanced-learn==0.5.0
 tabulate>=0.8.5
+arff
+pillow
