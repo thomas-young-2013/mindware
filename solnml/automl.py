@@ -8,7 +8,7 @@ from solnml.components.models.classification import _classifiers
 from solnml.components.models.regression import _regressors
 from solnml.components.models.imbalanced_classification import _imb_classifiers
 from solnml.utils.functions import is_unbalanced_dataset
-from solnml.components.feature_engineering.transformations.preprocessor.to_balanced import DataBalancer
+from solnml.components.feature_engineering.transformations.preprocessor.smote_balancer import DataBalancer
 from solnml.components.meta_learning.algorithm_recomendation.algorithm_advisor import AlgorithmAdvisor
 from solnml.bandits.first_layer_bandit import FirstLayerBandit
 
@@ -102,7 +102,7 @@ class AutoML(object):
         # Check whether this dataset is balanced or not.
         if self.task_type in CLS_TASKS and is_unbalanced_dataset(train_data):
             # self.include_algorithms = imb_classication_algorithms
-            self.logger.info('Conduct special procedure for imbalanced datasets!')
+            self.logger.info('Input dataset is imbalanced!')
             train_data = DataBalancer().operate(train_data)
         if self.amount_of_resource is None:
             trial_num = len(self.include_algorithms) * 30
