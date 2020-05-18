@@ -20,3 +20,5 @@ build/*
 smac3-output*
 logs/
 data/
+
+local_examples/
