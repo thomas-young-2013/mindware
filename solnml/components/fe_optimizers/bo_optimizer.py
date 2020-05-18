@@ -63,7 +63,7 @@ class BayesianOptimizationOptimizer(Optimizer):
         input_node = self.root_node
         output_node = self._parse(input_node, config)
         output_node.config = config
-        return 1 - self.evaluator(self.hp_config, data_node=output_node, name='fe')
+        return self.evaluator(self.hp_config, data_node=output_node, name='fe')
 
     def optimize(self):
         """
@@ -94,15 +94,16 @@ class BayesianOptimizationOptimizer(Optimizer):
                 print(info)
 
         runhistory = self.optimizer.get_history()
-        self.eval_dict = {(fe_config, self.evaluator.hpo_config): 1 - score for fe_config, score in
+        self.eval_dict = {(fe_config, self.evaluator.hpo_config): -score for fe_config, score in
                           runhistory.data.items()}
         self.incumbent_config, iter_incumbent_score = runhistory.get_incumbents()[0]
-        iter_incumbent_score = 1 - iter_incumbent_score
+        iter_incumbent_score = -iter_incumbent_score
         iteration_cost = time.time() - _start_time
         if iter_incumbent_score > self.incumbent_score:
             self.incumbent_score = iter_incumbent_score
             self.incumbent = self._parse(self.root_node, self.incumbent_config)
 
+        # incumbent_score: the large the better
         return self.incumbent_score, iteration_cost, self.incumbent
 
     def _parse(self, data_node: DataNode, config, record=False, skip_balance=False):

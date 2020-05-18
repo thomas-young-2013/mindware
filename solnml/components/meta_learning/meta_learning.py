@@ -81,12 +81,12 @@ def evaluate_metalearning_configs(first_bandit, n_jobs=1):
                                                     seed=first_bandit.seed)
 
             start_time = time.time()
-            score1 = 1 - hpo_evaluator(default_config)
+            score1 = -hpo_evaluator(default_config)
             time_cost1 = time.time() - start_time
 
             # Evaluate the default config
             start_time = time.time()
-            score2 = 1 - hpo_evaluator(first_bandit.sub_bandits[arm].default_config)
+            score2 = -hpo_evaluator(first_bandit.sub_bandits[arm].default_config)
             time_cost2 = time.time() - start_time
             transformed_node.score2 = max(score1, score2)
 

@@ -62,12 +62,13 @@ class SMACOptimizer(BaseHPOptimizer):
             _config, _status, _perf, _ = self.optimizer.iterate()
             if _status == SUCCESS:
                 self.configs.append(_config)
-                self.perfs.append(1. - _perf)
+                self.perfs.append(-_perf)
 
         runhistory = self.optimizer.get_history()
-        self.eval_dict = {(None, hpo_config): 1 - score for hpo_config, score in
+        self.eval_dict = {(None, hpo_config): -score for hpo_config, score in
                           runhistory.data.items()}
         self.incumbent_config, self.incumbent_perf = runhistory.get_incumbents()[0]
-        self.incumbent_perf = 1 - self.incumbent_perf
+        self.incumbent_perf = -self.incumbent_perf
         iteration_cost = time.time() - _start_time
+        # incumbent_perf: the large the better
         return self.incumbent_perf, iteration_cost, self.incumbent_config

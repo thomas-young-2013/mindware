@@ -99,6 +99,6 @@ class RegressionEvaluator(_BaseEvaluator):
                            time.time() - start_time, X_train.shape)
                           )
         self.eval_id += 1
-        if self.name == 'hpo':
-            score = 1 - score
-        return score
+
+        # Turn it into a minimization problem.
+        return -score

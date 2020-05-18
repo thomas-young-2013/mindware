@@ -123,14 +123,13 @@ class ClassificationEvaluator(_BaseEvaluator):
             if self.name == 'fe':
                 raise e
             self.logger.info('%s-evaluator: %s' % (self.name, str(e)))
-            score = 0.
+            score = np.inf
 
         self.logger.debug('%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
                           (self.eval_id, classifier_id,
-                           score, time.time() - start_time, X_train.shape))
+                           self.scorer._sign * score,
+                           time.time() - start_time, X_train.shape))
         self.eval_id += 1
 
-        if self.name == 'hpo':
-            # Turn it into a minimization problem.
-            score = 1. - score
-        return score
+        # Turn it into a minimization problem.
+        return -score

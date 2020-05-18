@@ -129,7 +129,7 @@ class EnsembleSelection(BaseEnsembleModel):
                     fant_ensemble_prediction[:] = weighted_ensemble_prediction + \
                                                   (1. / float(s + 1)) * pred
 
-                scores[j] = 1 - self.calculate_score(pred=fant_ensemble_prediction, y_true=labels)
+                scores[j] = -self.calculate_score(pred=fant_ensemble_prediction, y_true=labels)
 
             all_best = np.argwhere(scores == np.nanmin(scores)).flatten()
             best = self.random_state.choice(all_best)
@@ -171,7 +171,7 @@ class EnsembleSelection(BaseEnsembleModel):
             for j, pred in enumerate(predictions):
                 ensemble.append(pred)
                 ensemble_prediction = np.mean(np.array(ensemble), axis=0)
-                scores[j] = 1 - self.calculate_score(pred=ensemble_prediction, y_true=labels)
+                scores[j] = -self.calculate_score(pred=ensemble_prediction, y_true=labels)
                 ensemble.pop()
             best = np.nanargmin(scores)
             ensemble.append(predictions[best])

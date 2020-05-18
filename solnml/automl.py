@@ -97,7 +97,7 @@ class AutoML(object):
                 self.logger.info('Executing meta-learning based algorithm recommendation!')
                 self.logger.info('Algorithms recommended: %s' % ','.join(self.include_algorithms))
             except Exception as e:
-                self.logger.error(str(e))
+                self.logger.error("Meta-learning failed!")
 
         # Check whether this dataset is balanced or not.
         if self.task_type in CLS_TASKS and is_unbalanced_dataset(train_data):

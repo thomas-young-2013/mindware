@@ -86,8 +86,9 @@ class MfseOptimizer(BaseHPOptimizer):
         iteration_cost = time.time() - _start_time
         inc_idx = np.argmin(np.array(self.incumbent_perf))
 
-        self.incumbent_perf = 1 - self.incumbent_perfs[inc_idx]
+        self.incumbent_perf = -self.incumbent_perfs[inc_idx]
         self.incumbent_config = self.incumbent_configs[inc_idx]
+        # incumbent_perf: the large the better
         return self.incumbent_perf, iteration_cost, self.incumbent_config
 
     def _iterate(self, s, skip_last=0):

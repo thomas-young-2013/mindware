@@ -118,8 +118,6 @@ class FirstLayerBandit(object):
             _threshold = self.incumbent_perf / 0.9
 
         idxs = np.argsort(-scores)[:_ensemble_size]
-        print(scores)
-        print(_threshold)
         _algo_ids = [self.arms[idx] for idx in idxs]
         self.nbest_algo_ids = list()
         for _idx, _arm in zip(idxs, _algo_ids):
