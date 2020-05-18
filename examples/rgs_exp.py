@@ -11,7 +11,7 @@ from solnml.utils.data_manager import DataManager
 from solnml.estimators import Regressor
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--time_limit', type=int, default=1200)
+parser.add_argument('--time_limit', type=int, default=300)
 parser.add_argument('--eval_type', type=str, default='holdout', choices=['holdout', 'cv', 'partial'])
 parser.add_argument('--ens_method', default='ensemble_selection',
                     choices=['none', 'bagging', 'blending', 'stacking', 'ensemble_selection'])
@@ -40,6 +40,7 @@ if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
 rgs = Regressor(metric='mse',
+                dataset_name='boston',
                 ensemble_method=ensemble_method,
                 evaluation=eval_type,
                 time_limit=time_limit,
