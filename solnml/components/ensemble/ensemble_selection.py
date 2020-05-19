@@ -299,3 +299,19 @@ class EnsembleSelection(BaseEnsembleModel):
 
     def get_validation_performance(self):
         return self.trajectory_[-1]
+
+    def get_ens_model_info(self):
+        model_cnt = 0
+        ens_info = {}
+        ens_config = []
+        for algo_id in self.stats["include_algorithms"]:
+            model_to_eval = self.stats[algo_id]['model_to_eval']
+            for idx, (node, config) in enumerate(model_to_eval):
+                if not hasattr(self, 'base_model_mask') or self.base_model_mask[model_cnt] == 1:
+                    model_path = os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, model_cnt))
+                    ens_config.append((algo_id, node.config, config, model_path))
+                model_cnt += 1
+        ens_info['ensemble_method'] = 'ensemble_selection'
+        ens_info['config'] = ens_config
+        ens_info['ensemble_weights'] = self.weights_
+        return ens_info

@@ -113,6 +113,7 @@ class AutoML(object):
                                        self.include_algorithms, train_data,
                                        per_run_time_limit=self.per_run_time_limit,
                                        dataset_name=self.dataset_name,
+                                       ensemble_method=self.ensemble_method,
                                        ensemble_size=self.ensemble_size,
                                        inner_opt_algorithm='fixed',
                                        metric=self.metric,
@@ -136,3 +137,9 @@ class AutoML(object):
         if metric_func is None:
             metric_func = self.metric
         return metric_func(self, test_data, test_data.data[1])
+
+    def get_ens_model_info(self):
+        if self.ensemble_method is not None:
+            return self.solver.es.get_ens_model_info()
+        else:
+            return None

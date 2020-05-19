@@ -96,15 +96,7 @@ class BaseEnsembleModel(object):
         raise NotImplementedError
 
     def get_ens_model_info(self):
-        model_cnt = 0
-        ens_info = []
-        for algo_id in self.stats["include_algorithms"]:
-            model_to_eval = self.stats[algo_id]['model_to_eval']
-            for idx, (node, config) in enumerate(model_to_eval):
-                if not hasattr(self, 'base_model_mask') or self.base_model_mask[model_cnt] == 1:
-                    ens_info.append((algo_id, node, config))
-                model_cnt += 1
-        return ens_info
+        raise NotImplementedError
 
     def refit(self):
         pass

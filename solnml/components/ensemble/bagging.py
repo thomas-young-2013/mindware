@@ -64,3 +64,18 @@ class Bagging(BaseEnsembleModel):
             final_pred.append(pred_average)
 
         return np.array(final_pred)
+
+    def get_ens_model_info(self):
+        model_cnt = 0
+        ens_info = {}
+        ens_config = []
+        for algo_id in self.stats["include_algorithms"]:
+            model_to_eval = self.stats[algo_id]['model_to_eval']
+            for idx, (node, config) in enumerate(model_to_eval):
+                if not hasattr(self, 'base_model_mask') or self.base_model_mask[model_cnt] == 1:
+                    model_path = os.path.join(self.output_dir, '%s-bagging-model%d' % (self.timestamp, model_cnt))
+                    ens_config.append((algo_id, node.config, config, model_path))
+                model_cnt += 1
+        ens_info['ensemble_method'] = 'bagging'
+        ens_info['config'] = ens_config
+        return ens_info
