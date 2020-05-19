@@ -82,16 +82,16 @@ def partial_validation(estimator, scorer, X, y, data_subsample_ratio, test_size=
                 _X_train, _y_train = X_train, y_train
             else:
                 if if_stratify:
-                    down_ss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
+                    down_ss = StratifiedShuffleSplit(n_splits=1, test_size=data_subsample_ratio, random_state=random_state)
                 else:
-                    down_ss = ShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
+                    down_ss = ShuffleSplit(n_splits=1, test_size=data_subsample_ratio, random_state=random_state)
                 for _, _test_index in down_ss.split(X_train, y_train):
                     _X_train, _y_train = X_train[_test_index], y_train[_test_index]
                     if fit_params:
                         if 'sample_weight' in fit_params:
-                            _fit_params['sample_weight'] = fit_params['sample_weight'][train_index]
+                            _fit_params['sample_weight'] = fit_params['sample_weight'][_test_index]
                         elif 'data_balance' in fit_params:
-                            X_train, y_train = smote(X_train, y_train)
+                            _X_train, _y_train = smote(_X_train, _y_train)
 
             estimator.fit(_X_train, _y_train, **_fit_params)
             if onehot is not None:

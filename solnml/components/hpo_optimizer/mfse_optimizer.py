@@ -72,6 +72,7 @@ class MfseOptimizer(BaseHPOptimizer):
                                                      config_space,
                                                      n_samples=max(500, 50 * self.num_config),
                                                      rng=np.random.RandomState(seed))
+        self.eval_dict = {}
 
     def iterate(self, num_iter=1):
         '''
@@ -84,8 +85,10 @@ class MfseOptimizer(BaseHPOptimizer):
             self.inner_iter_id = (self.inner_iter_id + 1) % (self.s_max + 1)
 
         iteration_cost = time.time() - _start_time
-        inc_idx = np.argmin(np.array(self.incumbent_perf))
+        inc_idx = np.argmin(np.array(self.incumbent_perfs))
 
+        for idx in range(len(self.incumbent_perfs)):
+            self.eval_dict[(None, self.incumbent_configs[idx])] = -self.incumbent_perfs[idx]
         self.incumbent_perf = -self.incumbent_perfs[inc_idx]
         self.incumbent_config = self.incumbent_configs[inc_idx]
         # incumbent_perf: the large the better
