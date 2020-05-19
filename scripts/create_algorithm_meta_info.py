@@ -49,7 +49,7 @@ def evaluate_ml_algorithm(dataset, algo, run_id, obj_metric, total_resource=20, 
 
     fe_optimizer = bandit.optimizer['fe']
     fe_optimizer.fetch_nodes(10)
-    best_data_node = fe_optimizer.incumbent
+    best_data_node = fe_optimizer.fetch_incumbent
     test_data_node = fe_optimizer.apply(test_data, best_data_node)
 
     estimator = fetch_predict_estimator(task_type, best_config, best_data_node.data[0],
