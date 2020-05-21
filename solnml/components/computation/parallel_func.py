@@ -13,7 +13,7 @@ def execute_func(params):
         else:
             score = evaluator(None, data_node=config, name='fe', data_subsample_ratio=subsample_ratio)
     except Exception as e:
-        score = -np.inf
+        score = np.inf
 
     time_taken = time.time() - start_time
     return score, time_taken

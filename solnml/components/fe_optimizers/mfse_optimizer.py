@@ -2,8 +2,13 @@ import time
 import numpy as np
 from math import log, ceil
 from sklearn.model_selection import KFold
+from ConfigSpace import ConfigurationSpace
+from ConfigSpace.hyperparameters import CategoricalHyperparameter
 
-from solnml.components.hpo_optimizer.base_optimizer import BaseHPOptimizer
+from solnml.components.feature_engineering.transformation_graph import DataNode
+from solnml.components.evaluators.base_evaluator import _BaseEvaluator
+from solnml.components.utils.constants import CLS_TASKS
+from solnml.components.fe_optimizers.bo_optimizer import BayesianOptimizationOptimizer
 from solnml.components.computation.parallel_func import ParallelExecutor
 from solnml.components.utils.mfse_utils.acquisition import EI
 from solnml.components.utils.mfse_utils.acq_optimizer import RandomSampling
@@ -14,22 +19,25 @@ from solnml.components.utils.mfse_utils.config_space_utils import convert_config
     sample_configurations, expand_configurations
 
 
-class MfseOptimizer(BaseHPOptimizer):
-    def __init__(self, evaluator, config_space, time_limit=None, evaluation_limit=None,
-                 per_run_time_limit=600, per_run_mem_limit=1024, output_dir='./', trials_per_iter=1, seed=1,
-                 R=81, eta=3, n_jobs=1):
-        super().__init__(evaluator, config_space, seed)
-        self.time_limit = time_limit
-        self.evaluation_num_limit = evaluation_limit
-        self.trials_per_iter = trials_per_iter
-        self.per_run_time_limit = per_run_time_limit
-        self.per_run_mem_limit = per_run_mem_limit
-        self.config_space = config_space
-        self.n_workers = n_jobs
-
+class MfseOptimizer(BayesianOptimizationOptimizer):
+    def __init__(self, task_type, input_data: DataNode, evaluator: _BaseEvaluator,
+                 model_id: str, time_limit_per_trans: int,
+                 mem_limit_per_trans: int,
+                 seed: int, n_jobs=1,
+                 number_of_unit_resource=1,
+                 time_budget=600,
+                 R=81, eta=3):
+        super().__init__(task_type=task_type, input_data=input_data,
+                         evaluator=evaluator, model_id=model_id,
+                         time_limit_per_trans=time_limit_per_trans,
+                         mem_limit_per_trans=mem_limit_per_trans,
+                         seed=seed, n_jobs=n_jobs,
+                         number_of_unit_resource=number_of_unit_resource,
+                         time_budget=time_budget)
         self.trial_cnt = 0
         self.configs = list()
         self.perfs = list()
+        self.config_space = self.hyperparameter_space
         self.incumbent_perf = float("-INF")
         self.incumbent_config = self.config_space.get_default_configuration()
         self.incumbent_configs = []
@@ -57,7 +65,7 @@ class MfseOptimizer(BaseHPOptimizer):
             self.target_x[r] = []
             self.target_y[r] = []
 
-        types, bounds = get_types(config_space)
+        types, bounds = get_types(self.config_space)
         self.num_config = len(bounds)
         init_weight = [0.]
         init_weight.extend([1. / self.s_max] * self.s_max)
@@ -65,11 +73,11 @@ class MfseOptimizer(BaseHPOptimizer):
                                                               self.eta, init_weight, 'gpoe')
         self.weight_changed_cnt = 0
         self.hist_weights = list()
-        self.executor = ParallelExecutor(self.evaluator, n_worker=n_jobs)
+        self.executor = ParallelExecutor(self.evaluate_function, n_worker=n_jobs)
         # TODO: need to improve with lite-bo.
         self.weighted_acquisition_func = EI(model=self.weighted_surrogate)
         self.weighted_acq_optimizer = RandomSampling(self.weighted_acquisition_func,
-                                                     config_space,
+                                                     self.config_space,
                                                      n_samples=max(500, 50 * self.num_config),
                                                      rng=np.random.RandomState(seed))
         self.eval_dict = {}
@@ -88,11 +96,11 @@ class MfseOptimizer(BaseHPOptimizer):
         inc_idx = np.argmin(np.array(self.incumbent_perfs))
 
         for idx in range(len(self.incumbent_perfs)):
-            self.eval_dict[(None, self.incumbent_configs[idx])] = -self.incumbent_perfs[idx]
+            self.eval_dict[(self.incumbent_configs[idx], self.evaluator.hpo_config)] = -self.incumbent_perfs[idx]
         self.incumbent_perf = -self.incumbent_perfs[inc_idx]
         self.incumbent_config = self.incumbent_configs[inc_idx]
         # incumbent_perf: the large the better
-        return self.incumbent_perf, iteration_cost, self.incumbent_config
+        return self.incumbent_perf, iteration_cost, self._parse(self.root_node, self.incumbent_config)
 
     def _iterate(self, s, skip_last=0):
         if self.weight_update_id > self.s_max:
@@ -148,11 +156,10 @@ class MfseOptimizer(BaseHPOptimizer):
     def fetch_candidate_configurations(self, num_config):
         if len(self.target_y[self.iterate_r[-1]]) == 0:
             return sample_configurations(self.config_space, num_config)
-
         config_cnt = 0
         config_candidates = list()
         total_sample_cnt = 0
-
+        print(num_config)
         while config_cnt < num_config and total_sample_cnt < 3 * num_config:
             incumbent = dict()
             max_r = self.iterate_r[-1]
@@ -160,7 +167,6 @@ class MfseOptimizer(BaseHPOptimizer):
             incumbent['config'] = self.target_x[max_r][best_index]
             approximate_obj = self.weighted_surrogate.predict(convert_configurations_to_array([incumbent['config']]))[0]
             incumbent['obj'] = approximate_obj
-
             self.weighted_acquisition_func.update(model=self.weighted_surrogate, eta=incumbent)
             _config = self.weighted_acq_optimizer.maximize(batch_size=1)[0]
 
@@ -168,9 +174,9 @@ class MfseOptimizer(BaseHPOptimizer):
                 config_candidates.append(_config)
                 config_cnt += 1
             total_sample_cnt += 1
-
         if config_cnt < num_config:
             config_candidates = expand_configurations(config_candidates, self.config_space, num_config)
+
         return config_candidates
 
     def update_weight(self):
@@ -244,3 +250,39 @@ class MfseOptimizer(BaseHPOptimizer):
                     order_preserving_num += 1
                 total_pair_num += 1
         return order_preserving_num, total_pair_num
+
+    def fetch_nodes(self, n=5):
+        hist_dict = dict()
+        for key, value in self.eval_dict.items():
+            hist_dict[key[0]] = value
+
+        max_list = sorted(hist_dict.items(), key=lambda item: item[1], reverse=True)
+
+        if len(max_list) < 50:
+            max_n = list(max_list[:n])
+        else:
+            amplification_rate = 3
+            chosen_idxs = np.arange(n) * amplification_rate
+            max_n = [max_list[idx] for idx in chosen_idxs]
+
+        if self.incumbent_config not in [x[0] for x in max_n]:
+            max_n.append((self.incumbent_config, hist_dict[self.incumbent_config]))
+
+        node_list = []
+        for i, config in enumerate(max_n):
+            if config[0] in self.node_dict:
+                node_list.append(self.node_dict[config[0]][0])
+                continue
+
+            try:
+                node, tran_list = self._parse(self.root_node, config[0], record=True)
+                node.config = config[0]
+                if node.data[0].shape[1] == 0:
+                    continue
+                if self.fetch_incumbent is None:
+                    self.fetch_incumbent = node  # Update incumbent node
+                node_list.append(node)
+                self.node_dict[config[0]] = [node, tran_list]
+            except:
+                print("Re-parse failed on config %s" % str(config[0]))
+        return node_list

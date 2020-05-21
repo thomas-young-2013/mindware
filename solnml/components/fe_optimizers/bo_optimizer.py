@@ -1,5 +1,7 @@
 import time
 import numpy as np
+from sklearn.utils.testing import ignore_warnings
+from sklearn.exceptions import ConvergenceWarning
 from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter
 
@@ -8,7 +10,7 @@ from solnml.components.feature_engineering.transformations import _preprocessor1
     _generator, _selector, _rescaler
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
-from solnml.components.utils.constants import SUCCESS, ERROR, TIMEOUT, CLS_TASKS
+from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.feature_engineering import TRANS_CANDIDATES
 from litebo.facade.bo_facade import BayesianOptimization as BO
 
@@ -35,6 +37,7 @@ class BayesianOptimizationOptimizer(Optimizer):
         self.start_time = time.time()
         self.hp_config = None
         self.seed = seed
+        self.n_jobs = n_jobs
 
         self.node_dict = dict()
 
@@ -54,16 +57,19 @@ class BayesianOptimizationOptimizer(Optimizer):
                             rng=np.random.RandomState(self.seed))
         self.eval_dict = {}
 
-    def evaluate_function(self, config):
+    def evaluate_function(self, config, name='fe', data_subsample_ratio=1.0):
         """
             The config is the configuration that specifies the FE pipeline.
+        :param name:
+        :param data_subsample_ratio:
         :param config:
         :return: the evaluation score.
         """
         input_node = self.root_node
         output_node = self._parse(input_node, config)
         output_node.config = config
-        return self.evaluator(self.hp_config, data_node=output_node, name='fe')
+        return self.evaluator(self.hp_config, data_node=output_node, name='fe',
+                              data_subsample_ratio=data_subsample_ratio)
 
     def optimize(self):
         """
@@ -106,6 +112,7 @@ class BayesianOptimizationOptimizer(Optimizer):
         # incumbent_score: the large the better
         return self.incumbent_score, iteration_cost, self.incumbent
 
+    @ignore_warnings([ConvergenceWarning, UserWarning, RuntimeWarning])
     def _parse(self, data_node: DataNode, config, record=False, skip_balance=False):
         """
             Transform the data node based on the pipeline specified by configuration.

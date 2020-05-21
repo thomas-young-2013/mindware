@@ -32,14 +32,11 @@ class CrossFeatureTransformation(Transformer):
             self.model = PolynomialFeatures(degree=2, interaction_only=True, include_bias=False)
             self.model.fit(X_new[:, self.features_ids])
 
-        print(X_new.shape)
         _X = self.model.transform(X_new[:, self.features_ids])
-        print(_X.shape)
         if not self._model:
             self._model = VarianceThreshold()
             self._model.fit(_X)
         _X = self._model.transform(_X)
-        print(_X.shape)
         return _X
 
     @staticmethod

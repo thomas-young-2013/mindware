@@ -16,8 +16,7 @@ class Optimizer(object, metaclass=abc.ABCMeta):
         self.graph.add_node(self.root_node)
         self.time_budget = None
         self.maximum_evaluation_num = None
-        logger_name = '%s(%d)' % (self.name, self._seed)
-        self.logger = get_logger(logger_name)
+        self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
 
     @abc.abstractmethod
     def optimize(self):
