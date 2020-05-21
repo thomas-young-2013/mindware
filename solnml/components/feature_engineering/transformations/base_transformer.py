@@ -43,7 +43,9 @@ class Transformer(object, metaclass=abc.ABCMeta):
         26: merger.
         30: percentile_selector_regression.
         31: extra_trees_based_selector_regression
-        32: to_balanced
+        32: cross_feature
+        33: smote_balancer
+        34: polynomial_regression
     """
 
     def __init__(self, name, type, random_state=1):
