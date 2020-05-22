@@ -102,6 +102,11 @@ class BaseEstimator(object):
     @property
     def best_node(self):
         return self._ml_engine.solver.best_data_node
+    
+    @property
+    def best_fe_config(self):
+        return self._ml_engine.solver.best_data_node.config
+
 
     def get_ens_model_info(self):
         return self._ml_engine.get_ens_model_info()
