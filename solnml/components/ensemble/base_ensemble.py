@@ -40,7 +40,7 @@ class BaseEnsembleModel(object):
         logger_name = 'EnsembleBuilder'
         self.logger = get_logger(logger_name)
 
-        X_valid = None
+        X_valid_list = list()
         for algo_id in self.stats["include_algorithms"]:
             model_to_eval = self.stats[algo_id]['model_to_eval']
             for idx, (node, config) in enumerate(model_to_eval):
@@ -62,7 +62,7 @@ class BaseEnsembleModel(object):
                     assert (self.train_labels == y_valid).all()
                 else:
                     self.train_labels = y_valid
-
+                X_valid_list.append(X_valid)
                 self.fetcher.submit(self.task_type, config, X_train, y_train,
                                     weight_balance=node.enable_balance,
                                     data_balance=node.data_balance)
@@ -75,9 +75,9 @@ class BaseEnsembleModel(object):
                     pkl.dump(estimator, f)
 
             if self.task_type in CLS_TASKS:
-                y_valid_pred = estimator.predict_proba(X_valid)
+                y_valid_pred = estimator.predict_proba(X_valid_list[model_cnt])
             else:
-                y_valid_pred = estimator.predict(X_valid)
+                y_valid_pred = estimator.predict(X_valid_list[model_cnt])
             self.train_predictions.append(y_valid_pred)
 
         if len(self.train_predictions) < self.ensemble_size:

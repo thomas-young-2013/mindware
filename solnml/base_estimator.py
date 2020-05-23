@@ -4,6 +4,8 @@ from solnml.components.metrics.metric import get_metric
 from solnml.components.feature_engineering.transformation_graph import DataNode
 import numpy as np
 import pandas as pd
+
+
 class BaseEstimator(object):
     def __init__(
             self,
@@ -102,57 +104,56 @@ class BaseEstimator(object):
     @property
     def best_node(self):
         return self._ml_engine.solver.best_data_node
-    
+
     @property
     def best_fe_config(self):
         return self._ml_engine.solver.best_data_node.config
 
-
-    def data_transformer(self,data: DataNode):
+    def data_transform(self, data: DataNode):
         return self._ml_engine.solver.fe_optimizer.apply(data, self._ml_engine.solver.best_data_node)
 
-    def feature_corelation(self,data: DataNode):
-        X0,y0 = data.data
-        X,y = self.data_transformer(data).data
+    def feature_corelation(self, data: DataNode):
+        X0, y0 = data.data
+        X, y = self.data_transformer(data).data
         i = X0.shape[1]
         j = X.shape[1]
-        corre_mat = np.zeros([i,j])
+        corre_mat = np.zeros([i, j])
         for it in range(i):
             for jt in range(j):
-                corre_mat[it,jt] = np.corrcoef(X0[:,it],X[:,jt])[0,1]
+                corre_mat[it, jt] = np.corrcoef(X0[:, it], X[:, jt])[0, 1]
         df = pd.DataFrame(corre_mat)
-        df.columns = ['origin_fearure'+str(it) for it in range(i)]
-        df.index = ['transformed_fearure'+str(jt) for jt in range(j)]
+        df.columns = ['origin_fearure' + str(it) for it in range(i)]
+        df.index = ['transformed_fearure' + str(jt) for jt in range(j)]
         return df
 
     def feature_origin(self):
         conf = self._ml_engine.solver.best_data_node.config
-        pro_table=[]
-        for process in ['preprocessor1','preprocessor2','balancer','rescaler','generator','selector']:
-            if(conf[process]=='empty'):
-                pro_hash = {'Processor':process,'Algorithm':None,'File_path':None,'Arguments':None}
+        pro_table = []
+        for process in ['preprocessor1', 'preprocessor2', 'balancer', 'rescaler', 'generator', 'selector']:
+            if (conf[process] == 'empty'):
+                pro_hash = {'Processor': process, 'Algorithm': None, 'File_path': None, 'Arguments': None}
                 pro_table.append(pro_hash)
                 continue
 
-            pro_hash = {'Processor':process,'Algorithm':conf[process]}
+            pro_hash = {'Processor': process, 'Algorithm': conf[process]}
             argstr = ''
             for key in conf:
-                if(key.find(conf[process])!=-1):
-                    arg = key.replace(conf[process]+':','')
+                if (key.find(conf[process]) != -1):
+                    arg = key.replace(conf[process] + ':', '')
                     argstr += (arg + '=' + str(conf[key]) + '  ')
             pro_hash['Arguments'] = argstr
             pathstr = './solnml/components/feature_engineering/transformations/'
-            if(process == 'preprocessor1'):
+            if (process == 'preprocessor1'):
                 pro_hash['File_path'] = pathstr + 'continous_discretizer.py'
                 pro_table.append(pro_hash)
                 continue
 
-            if(process == 'preprocessor2'):
+            if (process == 'preprocessor2'):
                 pro_hash['File_path'] = pathstr + 'discrete_categorizer.py'
                 pro_table.append(pro_hash)
                 continue
 
-            if(process == 'balancer'):
+            if (process == 'balancer'):
                 pro_hash['File_path'] = pathstr + 'preprocessor/' + conf[process] + '.py'
                 pro_table.append(pro_hash)
                 continue
@@ -160,8 +161,8 @@ class BaseEstimator(object):
             pro_hash['File_path'] = pathstr + process + '/' + conf[process] + '.py'
             pro_table.append(pro_hash)
 
-        df = pd.DataFrame(pro_table)[['Processor','Algorithm','File_path','Arguments']]
-        df.index = ['step'+str(i) for i in range(1,7)]
+        df = pd.DataFrame(pro_table)[['Processor', 'Algorithm', 'File_path', 'Arguments']]
+        df.index = ['step' + str(i) for i in range(1, 7)]
         return df
 
     def get_ens_model_info(self):
