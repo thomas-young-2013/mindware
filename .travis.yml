@@ -1,5 +1,5 @@
 language: python
-sudo: true
+sudo: false
 
 env:
   global:
@@ -37,6 +37,7 @@ before_install:
   - if [[ `which conda` ]]; then echo 'Conda installation successful'; else exit 1; fi
   - conda create -n testenv --yes python=$PYTHON_VERSION pip wheel pytest gxx_linux-64 gcc_linux-64 swig
   - source activate testenv
+  - chmod +x ci_scripts/unittests.sh
 
 install:
   - pip install pep8 codecov mypy flake8 pytest-cov
