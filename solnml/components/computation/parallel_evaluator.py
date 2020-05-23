@@ -19,7 +19,7 @@ def execute_func(params):
     return score, time_taken
 
 
-class ParallelExecutor(object):
+class ParallelEvaluator(object):
     def __init__(self, evaluator, n_worker=1):
         self.evaluator = evaluator
         self.n_worker = n_worker
