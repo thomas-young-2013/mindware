@@ -118,7 +118,7 @@ class UserDefinedDecisionTree(BaseClassificationModel):
 
 
 def main():
-    time_limit = 300
+    time_limit = 120
     print('==> Start to evaluate with Budget %d' % time_limit)
 
     iris = load_iris()

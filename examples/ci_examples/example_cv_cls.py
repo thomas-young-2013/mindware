@@ -12,7 +12,7 @@ def main():
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    time_limit = 300
+    time_limit = 120
     print('==> Start to evaluate with Budget %d' % time_limit)
     ensemble_method = None
     eval_type = 'cv'
