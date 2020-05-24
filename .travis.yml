@@ -40,7 +40,7 @@ before_install:
   - conda create -n testenv --yes python=$PYTHON_VERSION pip wheel pytest gxx_linux-64 gcc_linux-64 swig
   - source activate testenv
   - chmod +x ci_scripts/unittests.sh
-  - if [ $PYTHON_VERSION == '3.5' ]; then pip install numpy>=1.9.0,<1.19.0; fi
+  - if [ $PYTHON_VERSION == '3.5' ]; then `pip install numpy>=1.9.0,<1.19.0`; fi
 
 install:
   - pip install pep8 codecov mypy flake8 pytest-cov
