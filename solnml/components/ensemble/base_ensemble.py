@@ -9,6 +9,7 @@ from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
 from solnml.components.ensemble.unnamed_ensemble import choose_base_models_classification, \
     choose_base_models_regression
+from solnml.components.computation.parallel_fetcher import ParallelFetcher
 from solnml.utils.logging_utils import get_logger
 
 
@@ -27,6 +28,8 @@ class BaseEnsembleModel(object):
         self.task_type = task_type
         self.metric = metric
         self.output_dir = output_dir
+        # TODO: n_workers
+        self.fetcher = ParallelFetcher(n_worker=4)
 
         self.train_predictions = []
         self.config_list = []
@@ -36,7 +39,8 @@ class BaseEnsembleModel(object):
         self.timestamp = str(time.time())
         logger_name = 'EnsembleBuilder'
         self.logger = get_logger(logger_name)
-        model_cnt = 0
+
+        X_valid_list = list()
         for algo_id in self.stats["include_algorithms"]:
             model_to_eval = self.stats[algo_id]['model_to_eval']
             for idx, (node, config) in enumerate(model_to_eval):
@@ -58,22 +62,23 @@ class BaseEnsembleModel(object):
                     assert (self.train_labels == y_valid).all()
                 else:
                     self.train_labels = y_valid
+                X_valid_list.append(X_valid)
+                self.fetcher.submit(self.task_type, config, X_train, y_train,
+                                    weight_balance=node.enable_balance,
+                                    data_balance=node.data_balance)
 
-                estimator = fetch_predict_estimator(self.task_type, config, X_train, y_train,
-                                                    weight_balance=node.enable_balance,
-                                                    data_balance=node.data_balance
-                                                    )
-                if base_save:  # For ensemble selection
-                    with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, model_cnt)),
-                              'wb') as f:
-                        pkl.dump(estimator, f)
+        estimator_list = self.fetcher.wait_tasks_finish()
+        for model_cnt, estimator in enumerate(estimator_list):
+            if base_save:  # For ensemble selection
+                with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, model_cnt)),
+                          'wb') as f:
+                    pkl.dump(estimator, f)
 
-                if self.task_type in CLS_TASKS:
-                    y_valid_pred = estimator.predict_proba(X_valid)
-                else:
-                    y_valid_pred = estimator.predict(X_valid)
-                self.train_predictions.append(y_valid_pred)
-                model_cnt += 1
+            if self.task_type in CLS_TASKS:
+                y_valid_pred = estimator.predict_proba(X_valid_list[model_cnt])
+            else:
+                y_valid_pred = estimator.predict(X_valid_list[model_cnt])
+            self.train_predictions.append(y_valid_pred)
 
         if len(self.train_predictions) < self.ensemble_size:
             self.ensemble_size = len(self.train_predictions)

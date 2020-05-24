@@ -12,7 +12,7 @@ def test_cls():
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    time_limit = 300
+    time_limit = 120
     print('==> Start to evaluate with Budget %d' % time_limit)
     ensemble_method = 'bagging'
     eval_type = 'holdout'
@@ -36,7 +36,7 @@ def test_cls():
 
 
 def test_rgs():
-    time_limit = 300
+    time_limit = 120
     print('==> Start to evaluate with Budget %d' % time_limit)
     ensemble_method = 'bagging'
     eval_type = 'holdout'

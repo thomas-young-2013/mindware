@@ -10,7 +10,7 @@ from solnml.estimators import Regressor
 
 def main():
     ensemble_method = None
-    time_limit = 300
+    time_limit = 120
     print('==> Start to evaluate with Budget %d' % time_limit)
     eval_type = 'cv'
 

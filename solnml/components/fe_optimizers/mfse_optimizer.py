@@ -9,7 +9,7 @@ from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.fe_optimizers.bo_optimizer import BayesianOptimizationOptimizer
-from solnml.components.computation.parallel_func import ParallelExecutor
+from solnml.components.computation.parallel_evaluator import ParallelEvaluator
 from solnml.components.utils.mfse_utils.acquisition import EI
 from solnml.components.utils.mfse_utils.acq_optimizer import RandomSampling
 from solnml.components.utils.mfse_utils.prob_rf import RandomForestWithInstances
@@ -73,7 +73,7 @@ class MfseOptimizer(BayesianOptimizationOptimizer):
                                                               self.eta, init_weight, 'gpoe')
         self.weight_changed_cnt = 0
         self.hist_weights = list()
-        self.executor = ParallelExecutor(self.evaluate_function, n_worker=n_jobs)
+        self.executor = ParallelEvaluator(self.evaluate_function, n_worker=n_jobs)
         # TODO: need to improve with lite-bo.
         self.weighted_acquisition_func = EI(model=self.weighted_surrogate)
         self.weighted_acq_optimizer = RandomSampling(self.weighted_acquisition_func,

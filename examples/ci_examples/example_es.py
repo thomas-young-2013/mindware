@@ -12,9 +12,9 @@ def test_cls():
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    time_limit = 300
+    time_limit = 120
     print('==> Start to evaluate with Budget %d' % time_limit)
-    ensemble_method = 'ensemble_seleciton'
+    ensemble_method = 'ensemble_selection'
     eval_type = 'holdout'
 
     iris = load_iris()
@@ -38,7 +38,7 @@ def test_cls():
 
 
 def test_rgs():
-    time_limit = 300
+    time_limit = 120
     print('==> Start to evaluate with Budget %d' % time_limit)
     ensemble_method = 'ensemble_selection'
     eval_type = 'holdout'
