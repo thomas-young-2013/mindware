@@ -1,9 +1,18 @@
+import sys
 import pathlib
 from setuptools import setup, find_packages
 
 with open('requirements.txt') as fp:
     install_reqs = [r.rstrip() for r in fp.readlines()
                     if not r.startswith('#') and not r.startswith('git+')]
+
+if sys.version_info < (3, 5, 2):
+    raise ValueError("Soln-ML requires Python 3.5.2 or newer.")
+
+if sys.version_info < (3, 6, 0):
+    # NumPy 1.19.x doesn't support Python 3.5, only 3.6-3.8.
+    install_reqs.remove('numpy>=1.9.0')
+    install_reqs.append('numpy>=1.9.0,<1.19.0')
 
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
