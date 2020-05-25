@@ -101,7 +101,7 @@ class AbstractModel(object):
 
         self.logger = PickableLoggerAdapter(self.__module__ + "." + self.__class__.__name__)
 
-    def train(self, X: np.ndarray, Y: np.ndarray) -> 'AbstractEPM':
+    def train(self, X: np.ndarray, Y: np.ndarray) -> 'AbstractModel':
         """Trains the EPM on X and Y.
 
         Parameters

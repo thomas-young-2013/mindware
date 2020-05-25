@@ -13,7 +13,7 @@ from ConfigSpace.conditions import InCondition
 
 sys.path.append(os.getcwd())
 from solnml.components.transfer_learning.tlbo.config_space import ConfigurationSpace
-from solnml.components.transfer_learning.tlbo.tlbo_optimizer import TLBO as BayesianOptimization
+from solnml.components.transfer_learning.tlbo.bo_optimizer import BO as BayesianOptimization
 
 
 # We load the iris-dataset (a widely used benchmark)

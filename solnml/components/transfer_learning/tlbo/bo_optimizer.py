@@ -1,33 +1,56 @@
+import abc
+import logging
 import numpy as np
 
 from .acquisition_function.acquisition import EI
 from .optimizer.ei_optimization import InterleavedLocalAndRandomSearch, RandomSearch
 from .optimizer.random_configuration_chooser import ChooserProb
 from .utils.util_funcs import get_types, get_rng
+from .utils.history_container import HistoryContainer
 from .utils.constants import MAXINT, SUCCESS, FAILDED, TIMEOUT
 from .utils.limit import time_limit, TimeoutException
 from .config_space.util import convert_configurations_to_array
-from .bo_optimizer import BaseFacade
-from .models.gp_ensemble import GaussianProcessEnsemble
+from .models.gp_ensemble import create_gp_model
 
 
-class TLBO(BaseFacade):
-    def __init__(self, objective_function,
-                 config_space,
-                 past_runhistory,
-                 dataset_metafeature=None,
+class BaseFacade(object, metaclass=abc.ABCMeta):
+    def __init__(self, config_space, task_id):
+        self.logger = logging.getLogger(self.__module__ + "." + self.__class__.__name__)
+        self.history_container = HistoryContainer(task_id)
+        self.config_space = config_space
+
+    @abc.abstractmethod
+    def run(self):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def iterate(self):
+        raise NotImplementedError()
+
+    def get_history(self):
+        return self.history_container
+
+    def get_incumbent(self):
+        return self.history_container.get_incumbents()
+
+
+class BO(BaseFacade):
+    def __init__(self, objective_function, config_space,
                  time_limit_per_trial=180,
                  max_runs=200,
-                 initial_runs=5,
+                 initial_configurations=None,
+                 initial_runs=3,
                  task_id=None,
                  rng=None):
         super().__init__(config_space, task_id)
         if rng is None:
-            _, rng = get_rng()
-        self.rng = rng
-        self.past_runhistory = past_runhistory
-        self.dataset_metafeature = dataset_metafeature
+            run_id, rng = get_rng()
+
+        self.initial_configurations = initial_configurations
         self.init_num = initial_runs
+        if initial_configurations is not None:
+            self.init_num = len(initial_configurations)
+
         self.max_iterations = max_runs
         self.iteration_id = 0
         self.sls_max_steps = None
@@ -40,15 +63,13 @@ class TLBO(BaseFacade):
 
         # Initialize the basic component in BO.
         self.objective_function = objective_function
-        seed = rng.randint(MAXINT)
-        self.model = GaussianProcessEnsemble(past_runhistory, config_space, seed=seed)
-        self.initial_configurations = self.get_initial_configs()
+        self.model = create_gp_model(config_space, rng)
 
         self.acquisition_function = EI(self.model)
         self.optimizer = InterleavedLocalAndRandomSearch(
                 acquisition_function=self.acquisition_function,
                 config_space=self.config_space,
-                rng=np.random.RandomState(seed=seed),
+                rng=np.random.RandomState(seed=rng.randint(MAXINT)),
                 max_steps=self.sls_max_steps,
                 n_steps_plateau_walk=self.sls_n_steps_plateau_walk
             )
@@ -56,31 +77,6 @@ class TLBO(BaseFacade):
             self.acquisition_function, self.config_space, rng
         )
         self.random_configuration_chooser = ChooserProb(prob=0.5, rng=rng)
-
-    def get_initial_configs(self):
-        """
-            runhistory format:
-                row: [ dataset_metafeature, list([[configuration, perf],[]]) ]
-        """
-        init_configs = list()
-        n_init_configs = self.init_num
-        if self.dataset_metafeature is not None:
-            metafeatures = [np.array(row[0]) for row in self.past_runhistory]
-            euclidean_distance = list()
-            for _metafeeature in metafeatures:
-                euclidean_distance.append(np.linalg.norm(self.dataset_metafeature - _metafeeature))
-            history_idxs = np.argsort(euclidean_distance)[:n_init_configs]
-        else:
-            idxs = np.arange(len(self.past_runhistory))
-            np.random.shuffle(idxs)
-            history_idxs = idxs[:n_init_configs]
-
-        for _idx in history_idxs:
-            config_perf_pairs = self.past_runhistory[_idx]
-            perfs = [row[1] for row in config_perf_pairs]
-            optimum_idx = np.argsort(perfs)[0]
-            init_configs.append(config_perf_pairs[optimum_idx][0])
-        return init_configs
 
     def run(self):
         while self.iteration_id < self.max_iterations:
@@ -93,7 +89,6 @@ class TLBO(BaseFacade):
             X = convert_configurations_to_array(self.configurations)
         Y = np.array(self.perfs, dtype=np.float64)
         config = self.choose_next(X, Y)
-
         trial_state = SUCCESS
         trial_info = None
 
@@ -106,6 +101,7 @@ class TLBO(BaseFacade):
                 perf = MAXINT
                 trial_info = str(e)
                 trial_state = FAILDED if not isinstance(e, TimeoutException) else TIMEOUT
+                print(self.iteration_id, str(e))
 
             if len(self.configurations) == 0:
                 self.default_obj_value = perf
@@ -137,8 +133,7 @@ class TLBO(BaseFacade):
 
         incumbent_value = self.history_container.get_incumbents()[0][1]
 
-        self.acquisition_function.update(model=self.model, eta=incumbent_value,
-                                         num_data=len(self.history_container.data))
+        self.acquisition_function.update(model=self.model, eta=incumbent_value, num_data=len(self.history_container.data))
 
         challengers = self.optimizer.maximize(
             runhistory=self.history_container,

@@ -1,14 +1,15 @@
 # encoding=utf8
 import abc
-import logging
+import copy
 from typing import List
 
 import numpy as np
 from scipy.stats import norm
 
-from litebo.config_space import Configuration
-from litebo.config_space.util import convert_configurations_to_array
-from ..models.base_model import AbstractModel
+from ..config_space import Configuration
+from ..config_space.util import convert_configurations_to_array
+from ..models.abstract_model import AbstractModel
+from ..utils.logging import PickableLoggerAdapter
 
 
 class AbstractAcquisitionFunction(object, metaclass=abc.ABCMeta):
@@ -23,7 +24,7 @@ class AbstractAcquisitionFunction(object, metaclass=abc.ABCMeta):
     def __str__(self):
         return type(self).__name__ + " (" + self.long_name + ")"
 
-    def __init__(self, model: AbstractModel, **kwargs):
+    def __init__(self, model: AbstractModel):
         """Constructor
 
         Parameters
@@ -32,8 +33,7 @@ class AbstractAcquisitionFunction(object, metaclass=abc.ABCMeta):
             Models the objective function.
         """
         self.model = model
-        self.logger = logging.getLogger(
-            self.__module__ + "." + self.__class__.__name__)
+        self.logger = PickableLoggerAdapter(self.__module__ + "." + self.__class__.__name__)
 
     def update(self, **kwargs):
         """Update the acquisition functions values.
@@ -59,7 +59,7 @@ class AbstractAcquisitionFunction(object, metaclass=abc.ABCMeta):
         ----------
         configurations : list
             The configurations where the acquisition function
-            should be evaluated. 
+            should be evaluated.
 
         Returns
         -------
@@ -97,6 +97,76 @@ class AbstractAcquisitionFunction(object, metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
 
+class IntegratedAcquisitionFunction(AbstractAcquisitionFunction):
+
+    r"""Marginalize over Model hyperparameters to compute the integrated acquisition function.
+
+    See "Practical Bayesian Optimization of Machine Learning Algorithms" by Jasper Snoek et al.
+    (https://papers.nips.cc/paper/4522-practical-bayesian-optimization-of-machine-learning-algorithms.pdf)
+    for further details.
+    """
+
+    def __init__(self, model: AbstractModel, acquisition_function: AbstractAcquisitionFunction, **kwargs):
+        """Constructor
+
+        Parameters
+        ----------
+        model : AbstractEPM
+            The model needs to implement an additional attribute ``models`` which contains the different models to
+            integrate over.
+        kwargs
+            Additional keyword arguments
+        """
+
+        super().__init__(model, **kwargs)
+        self.long_name = 'Integrated Acquisition Function (%s)' % acquisition_function.long_name
+        self.acq = acquisition_function
+        self._functions = None
+        self.eta = None
+
+    def update(self, model: AbstractModel, **kwargs):
+        """Update the acquisition functions values.
+
+        This method will be called if the model is updated. E.g. entropy search uses it to update its approximation
+        of P(x=x_min), EI uses it to update the current fmin.
+
+        This implementation creates an acquisition function object for each model to integrate over and sets the
+        respective attributes for each acquisition function object.
+
+        Parameters
+        ----------
+        model : AbstractEPM
+            The model needs to implement an additional attribute ``models`` which contains the different models to
+            integrate over.
+        kwargs
+        """
+        if not hasattr(model, 'models') or len(model.models) == 0:
+            raise ValueError('IntegratedAcquisitionFunction requires at least one model to integrate!')
+        if self._functions is None or len(self._functions) != len(model.models):
+            self._functions = [copy.deepcopy(self.acq) for _ in model.models]
+        for model, func in zip(model.models, self._functions):
+            func.update(model=model, **kwargs)
+
+    def _compute(self, X: np.ndarray, **kwargs):
+        """Computes the EI value and its derivatives.
+
+        Parameters
+        ----------
+        X: np.ndarray(N, D), The input points where the acquisition function
+            should be evaluated. The dimensionality of X is (N, D), with N as
+            the number of points to evaluate at and D is the number of
+            dimensions of one X.
+
+        Returns
+        -------
+        np.ndarray(N,1)
+            Expected Improvement of X
+        """
+        if self._functions is None:
+            raise ValueError('Need to call update first!')
+        return np.array([func._compute(X) for func in self._functions]).mean(axis=0)
+
+
 class EI(AbstractAcquisitionFunction):
 
     r"""Computes for a given x the expected improvement as
@@ -108,8 +178,7 @@ class EI(AbstractAcquisitionFunction):
 
     def __init__(self,
                  model: AbstractModel,
-                 par: float=0.0,
-                 **kwargs):
+                 par: float=0.0):
         """Constructor
 
         Parameters
@@ -180,8 +249,7 @@ class EI(AbstractAcquisitionFunction):
 class EIPS(EI):
     def __init__(self,
                  model: AbstractModel,
-                 par: float=0.0,
-                 **kwargs):
+                 par: float=0.0):
         r"""Computes for a given x the expected improvement as
         acquisition value.
         :math:`EI(X) := \frac{\mathbb{E}\left[ \max\{0, f(\mathbf{X^+}) - f_{t+1}(\mathbf{X}) - \xi\right] \} ]} {np.log(r(x))}`,
@@ -266,8 +334,7 @@ class LogEI(AbstractAcquisitionFunction):
 
     def __init__(self,
                  model: AbstractModel,
-                 par: float=0.0,
-                 **kwargs):
+                 par: float=0.0):
         r"""Computes for a given x the logarithm expected improvement as
         acquisition value.
 
