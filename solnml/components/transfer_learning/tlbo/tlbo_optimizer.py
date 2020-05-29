@@ -26,6 +26,7 @@ class TLBO(BaseFacade):
             _, rng = get_rng()
         self.rng = rng
         self.past_runhistory = past_runhistory
+        self.meta_feature_scaler=None
         self.dataset_metafeature = dataset_metafeature
         self.init_num = initial_runs
         self.max_iterations = max_runs
@@ -62,13 +63,21 @@ class TLBO(BaseFacade):
             runhistory format:
                 row: [ dataset_metafeature, list([[configuration, perf],[]]) ]
         """
-        init_configs = list()
-        n_init_configs = self.init_num
+        from sklearn.preprocessing import MinMaxScaler
+        meta_features = list()
+        for _runhistory in self.past_runhistory:
+            meta_features.append(_runhistory[0])
+        meta_features = np.array(meta_features)
+        self.meta_feature_scaler = MinMaxScaler()
+        meta_features = self.meta_feature_scaler.fit_transform(meta_features)
+
+        init_configs = [self.config_space.get_default_configuration()]
+        n_init_configs = self.init_num - 1
         if self.dataset_metafeature is not None:
-            metafeatures = [np.array(row[0]) for row in self.past_runhistory]
+            dataset_metafeature = self.meta_feature_scaler.transform(self.dataset_metafeature.reshape((1, -1)))
             euclidean_distance = list()
-            for _metafeeature in metafeatures:
-                euclidean_distance.append(np.linalg.norm(self.dataset_metafeature - _metafeeature))
+            for _metafeeature in meta_features:
+                euclidean_distance.append(np.linalg.norm(dataset_metafeature - _metafeeature))
             history_idxs = np.argsort(euclidean_distance)[:n_init_configs]
         else:
             idxs = np.arange(len(self.past_runhistory))
@@ -76,11 +85,11 @@ class TLBO(BaseFacade):
             history_idxs = idxs[:n_init_configs]
 
         for _idx in history_idxs:
-            config_perf_pairs = self.past_runhistory[_idx]
+            config_perf_pairs = self.past_runhistory[_idx][1]
             perfs = [row[1] for row in config_perf_pairs]
             optimum_idx = np.argsort(perfs)[0]
             init_configs.append(config_perf_pairs[optimum_idx][0])
-        return init_configs
+        return list(set(init_configs))
 
     def run(self):
         while self.iteration_id < self.max_iterations:
@@ -111,7 +120,8 @@ class TLBO(BaseFacade):
                 self.default_obj_value = perf
             self.configurations.append(config)
             self.perfs.append(perf)
-            self.history_container.add(config, perf)
+            if trial_state == SUCCESS:
+                self.history_container.add(config, perf)
         else:
             self.logger.debug('This configuration has been evaluated! Skip it.')
             config_idx = self.configurations.index(config)

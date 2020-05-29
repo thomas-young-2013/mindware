@@ -17,7 +17,9 @@ class HistoryContainer(object):
 
     def add(self, config: Configuration, perf: Perf):
         if config in self.data:
-            raise ValueError('Repeated configuration detected!')
+            # raise ValueError('Repeated configuration detected!')
+            return
+
         self.data[config] = perf
         self.config_counter += 1
 

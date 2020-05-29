@@ -115,20 +115,91 @@ class GaussianProcessEnsemble(BaseModel):
         for _runhistory in self.past_runhistory:
             gp_model = create_gp_model(self.configspace)
             X = list()
-            for row in _runhistory:
+            for row in _runhistory[1]:
                 conf_vector = convert_configurations_to_array([row[0]])[0]
                 X.append(conf_vector)
             X = np.array(X)
-            y = np.array([row[1] for row in _runhistory]).reshape(-1, 1)
+            y = np.array([row[1] for row in _runhistory[1]]).reshape(-1, 1)
 
             gp_model.train(X, y)
             self.gp_models.append(gp_model)
             print('Training basic GP model finished.')
 
-        self.ignore_flag = [False] * len(self.past_runhistory)
+        self.n_runhistory = len(self.past_runhistory)
+        self.ignore_flag = [False] * self.n_runhistory
+        # Set initial weights.
+        self.model_weights = np.array([1]*self.n_runhistory + [0]) / self.n_runhistory
 
-    def _update_weights(self):
-        self.model_weights = 1./np.ones(len(self.past_runhistory) + 1)
+    def _update_weights(self, X: np.ndarray, y: np.ndarray):
+        n_instance = X.shape[0]
+        n_fold = 5
+        predictive_mu, predictive_std = list(), list()
+
+        for _model in self.gp_models:
+            _mu, _var = _model.predict(X)
+            predictive_mu.append(_mu)
+            predictive_std.append(np.sqrt(_var))
+
+        skip_target_model = True if n_instance < n_fold else False
+
+        if not skip_target_model:
+            fold_num = n_instance // n_fold
+            target_mu, target_std = list(), list()
+            for i in range(n_fold):
+                instance_indexs = list(range(n_instance))
+                bound = (n_instance - i * fold_num) if i == (n_fold - 1) else fold_num
+                start_id = i * fold_num
+                del instance_indexs[start_id: start_id+bound]
+                _target_model = create_gp_model(self.configspace)
+                _target_model.train(X[instance_indexs, :], y[instance_indexs])
+                _mu, _var = _target_model.predict(X)
+                target_mu.append(_mu)
+                target_std.append(np.sqrt(_var))
+            predictive_mu.append(target_mu)
+            predictive_std.append(target_std)
+
+        n_sampling = (self.n_runhistory + 1) * 10
+        argmin_cnt = [0] * (self.n_runhistory + 1)
+        ranking_loss_hist = list()
+
+        for _ in range(n_sampling):
+            ranking_loss_list = list()
+            for task_id in range(self.n_runhistory):
+                sampled_y = np.random.normal(predictive_mu[task_id], predictive_std[task_id])
+                rank_loss = 0
+                for i in range(len(y)):
+                    for j in range(len(y)):
+                        if (y[i] < y[j]) ^ (sampled_y[i] < sampled_y[j]):
+                            rank_loss += 1
+                ranking_loss_list.append(rank_loss)
+
+            # Compute ranking loss for target surrogate.
+            rank_loss = 0
+            if not skip_target_model:
+                fold_num = n_instance // n_fold
+                for i in range(n_fold):
+                    sampled_y = np.random.normal(predictive_mu[self.n_runhistory][i], predictive_std[self.n_runhistory][i])
+                    bound = (n_instance - i * fold_num) if i == (n_fold - 1) else fold_num
+                    start_id = fold_num*i
+                    for i in range(start_id, start_id + bound):
+                        for j in range(n_instance):
+                            if (y[i] < y[j]) ^ (sampled_y[i] < sampled_y[j]):
+                                rank_loss += 1
+            else:
+                rank_loss = len(y) * len(y)
+            ranking_loss_list.append(rank_loss)
+            ranking_loss_hist.append(ranking_loss_list)
+            argmin_id = np.argmin(ranking_loss_list)
+            argmin_cnt[argmin_id] += 1
+
+        self.model_weights = np.array(argmin_cnt) / n_sampling
+        print(self.model_weights)
+        ranking_loss_hist = np.array(ranking_loss_hist)
+        threshold = sorted(ranking_loss_hist[:, -1])[int(n_sampling * 0.95)]
+        for i in range(self.n_runhistory):
+            median = sorted(ranking_loss_hist[:, i])[int(n_sampling * 0.5)]
+            self.ignore_flag[i] = median > threshold
+        print(self.ignore_flag)
 
     def _train(self, X: np.ndarray, y: np.ndarray):
         """
@@ -150,7 +221,7 @@ class GaussianProcessEnsemble(BaseModel):
         self.target_model.train(X, y)
 
         self.is_trained = True
-        self._update_weights()
+        self._update_weights(X, y)
 
     def _predict(self, X_test: np.ndarray):
         r"""
