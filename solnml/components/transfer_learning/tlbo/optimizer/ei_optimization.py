@@ -5,12 +5,11 @@ from typing import Iterable, List, Union, Tuple, Optional
 
 import numpy as np
 
-from litebo.acquisition_function.acquisition import AbstractAcquisitionFunction
-from litebo.config_space import get_one_exchange_neighbourhood, \
+from ..acquisition_function.acquisition import AbstractAcquisitionFunction
+from ..config_space import get_one_exchange_neighbourhood, \
     Configuration, ConfigurationSpace
-from litebo.optimizer.random_configuration_chooser import ChooserNoCoolDown
-from litebo.utils.constants import MAXINT
-from litebo.utils.history_container import HistoryContainer
+from ..optimizer.random_configuration_chooser import ChooserNoCoolDown
+from ..utils.history_container import HistoryContainer
 
 
 class AcquisitionFunctionMaximizer(object, metaclass=abc.ABCMeta):

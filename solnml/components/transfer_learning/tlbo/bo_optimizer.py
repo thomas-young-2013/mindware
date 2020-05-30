@@ -76,7 +76,8 @@ class BO(BaseFacade):
         self._random_search = RandomSearch(
             self.acquisition_function, self.config_space, rng
         )
-        self.random_configuration_chooser = ChooserProb(prob=0.5, rng=rng)
+        # Disable random configuration.
+        self.random_configuration_chooser = ChooserProb(prob=0., rng=rng)
 
     def run(self):
         while self.iteration_id < self.max_iterations:
@@ -107,7 +108,8 @@ class BO(BaseFacade):
                 self.default_obj_value = perf
             self.configurations.append(config)
             self.perfs.append(perf)
-            self.history_container.add(config, perf)
+            if trial_state == SUCCESS:
+                self.history_container.add(config, perf)
         else:
             self.logger.debug('This configuration has been evaluated! Skip it.')
             config_idx = self.configurations.index(config)
@@ -140,4 +142,6 @@ class BO(BaseFacade):
             num_points=1000,
             random_configuration_chooser=self.random_configuration_chooser
         )
-        return list(challengers)[0]
+        config = list(challengers)[0]
+        assert config.origin != 'Random Search'
+        return config

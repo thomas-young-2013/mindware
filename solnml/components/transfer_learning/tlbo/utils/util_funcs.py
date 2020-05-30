@@ -5,7 +5,7 @@ import numpy as np
 from ConfigSpace.hyperparameters import CategoricalHyperparameter, \
     UniformFloatHyperparameter, UniformIntegerHyperparameter, Constant, \
     OrdinalHyperparameter
-from smac.utils.constants import MAXINT
+from ..utils.constants import MAXINT
 
 
 def get_types(config_space, instance_features=None):

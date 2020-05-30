@@ -48,6 +48,7 @@ class AbstractModel(object):
                  seed: int,
                  instance_features: np.ndarray=None,
                  pca_components: float=None,
+                 return_normalized_y=False
                  ):
         """Constructor
 
@@ -77,6 +78,7 @@ class AbstractModel(object):
         self.seed = seed
         self.instance_features = instance_features
         self.pca_components = pca_components
+        self.return_normalized_y = return_normalized_y
 
         if instance_features is not None:
             self.n_feats = instance_features.shape[1]
@@ -197,7 +199,10 @@ class AbstractModel(object):
         if X.shape[1] != len(self.types):
             raise ValueError('Rows in X should have %d entries but have %d!' % (len(self.types), X.shape[1]))
 
-        mean, var = self._predict(X)
+        if self.return_normalized_y:
+            mean, var = self._predict(X, return_normalized_y=self.return_normalized_y)
+        else:
+            mean, var = self._predict(X)
 
         if len(mean.shape) == 1:
             mean = mean.reshape((-1, 1))

@@ -1,3 +1,4 @@
+import typing
 import numpy as np
 
 from .acquisition_function.acquisition import EI
@@ -15,10 +16,11 @@ class TLBO(BaseFacade):
     def __init__(self, objective_function,
                  config_space,
                  past_runhistory,
+                 gp_models: typing.List=None,
                  dataset_metafeature=None,
                  time_limit_per_trial=180,
                  max_runs=200,
-                 initial_runs=5,
+                 initial_runs=3,
                  task_id=None,
                  rng=None):
         super().__init__(config_space, task_id)
@@ -42,7 +44,7 @@ class TLBO(BaseFacade):
         # Initialize the basic component in BO.
         self.objective_function = objective_function
         seed = rng.randint(MAXINT)
-        self.model = GaussianProcessEnsemble(past_runhistory, config_space, seed=seed)
+        self.model = GaussianProcessEnsemble(config_space, past_runhistory, gp_models=gp_models, seed=seed)
         self.initial_configurations = self.get_initial_configs()
 
         self.acquisition_function = EI(self.model)
@@ -56,7 +58,7 @@ class TLBO(BaseFacade):
         self._random_search = RandomSearch(
             self.acquisition_function, self.config_space, rng
         )
-        self.random_configuration_chooser = ChooserProb(prob=0.5, rng=rng)
+        self.random_configuration_chooser = ChooserProb(prob=0., rng=rng)
 
     def get_initial_configs(self):
         """

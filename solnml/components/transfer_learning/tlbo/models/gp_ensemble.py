@@ -61,7 +61,7 @@ def create_gp_model(config_space, rng=None):
         raise ValueError()
 
     seed = rng.randint(0, 2 ** 20)
-    model = GaussianProcess(config_space, types, bounds, seed, kernel)
+    model = GaussianProcess(config_space, types, bounds, seed, kernel, return_normalized_y=True)
     return model
 
 
@@ -94,9 +94,10 @@ class GaussianProcessEnsemble(BaseModel):
 
     def __init__(
             self,
-            past_runhistory: typing.List,
             configspace: ConfigurationSpace,
-            seed: int=1,
+            past_runhistory: typing.List,
+            gp_models: typing.List[GaussianProcess] = None,
+            seed: int = 1,
             **kwargs
     ):
         _, rng = get_rng(seed)
@@ -105,27 +106,31 @@ class GaussianProcessEnsemble(BaseModel):
         super().__init__(configspace=configspace, types=types, bounds=bounds, seed=seed, **kwargs)
 
         self.n_init_configs = list()
-        self.gp_models = list()
         self.target_model = None
         self.model_weights = None
         self.ignore_flag = None
+        self.gp_models = gp_models
         self._init()
 
     def _init(self):
-        for _runhistory in self.past_runhistory:
-            gp_model = create_gp_model(self.configspace)
-            X = list()
-            for row in _runhistory[1]:
-                conf_vector = convert_configurations_to_array([row[0]])[0]
-                X.append(conf_vector)
-            X = np.array(X)
-            y = np.array([row[1] for row in _runhistory[1]]).reshape(-1, 1)
+        if self.gp_models is None:
+            self.gp_models = list()
+            for _runhistory in self.past_runhistory:
+                gp_model = create_gp_model(self.configspace)
+                X = list()
+                for row in _runhistory[1]:
+                    conf_vector = convert_configurations_to_array([row[0]])[0]
+                    X.append(conf_vector)
+                X = np.array(X)
+                y = np.array([row[1] for row in _runhistory[1]]).reshape(-1, 1)
 
-            gp_model.train(X, y)
-            self.gp_models.append(gp_model)
-            print('Training basic GP model finished.')
+                gp_model.train(X, y)
+                self.gp_models.append(gp_model)
+                print('Training basic GP model finished.')
+            self.n_runhistory = len(self.past_runhistory)
+        else:
+            self.n_runhistory = len(self.gp_models)
 
-        self.n_runhistory = len(self.past_runhistory)
         self.ignore_flag = [False] * self.n_runhistory
         # Set initial weights.
         self.model_weights = np.array([1]*self.n_runhistory + [0]) / self.n_runhistory
@@ -158,7 +163,7 @@ class GaussianProcessEnsemble(BaseModel):
             predictive_mu.append(target_mu)
             predictive_std.append(target_std)
 
-        n_sampling = (self.n_runhistory + 1) * 10
+        n_sampling = (self.n_runhistory + 1) * 5
         argmin_cnt = [0] * (self.n_runhistory + 1)
         ranking_loss_hist = list()
 
@@ -255,7 +260,7 @@ class GaussianProcessEnsemble(BaseModel):
         var *= np.power(self.model_weights[-1], 2)
 
         # Base surrogate predictions with corresponding weights.
-        for i in range(0, len(self.past_runhistory)):
+        for i in range(0, self.n_runhistory):
             if not self.ignore_flag[i]:
                 _w = self.model_weights[i]
                 _mu, _var = self.gp_models[i].predict(X_test)

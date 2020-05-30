@@ -5,7 +5,7 @@ import numpy as np
 from lazy_import import lazy_callable
 from scipy import optimize
 
-from smac.configspace import ConfigurationSpace
+from ..config_space import ConfigurationSpace
 from ..models.base_model import BaseModel
 from ..utils.constants import VERY_SMALL_NUMBER
 
@@ -244,6 +244,8 @@ class GaussianProcess(BaseModel):
         # Clip negative variances and set them to the smallest
         # positive float value
         var = np.clip(var, VERY_SMALL_NUMBER, np.inf)
+        if self.return_normalized_y:
+            return mu, var
 
         if self.normalize_y:
             mu, var = self._untransform_y(mu, var)
