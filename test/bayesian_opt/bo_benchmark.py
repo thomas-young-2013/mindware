@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import argparse
 import numpy as np
 import pickle as pk
 
@@ -12,18 +13,16 @@ from solnml.datasets.utils import load_train_test_data
 from solnml.components.metrics.metric import get_metric
 from solnml.components.models.classification import _classifiers
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--algo', type=str, default='libsvm_svc')
+parser.add_argument('--datasets', type=str, default='splice')
 
-test_datasets = ['cpu_act', 'mfeat-morphological(2)', 'poker', 'mfeat-zernike(1)',
-                 'pendigits', 'hypothyroid(1)', 'winequality_red', 'delta_ailerons', 'colleges_usnews',
-                 'page-blocks(1)', 'sick', 'pc2', 'analcatdata_halloffame', 'nursery',
-                 'credit-g', 'puma32H', 'mammography', 'electricity', 'abalone', 'fried',
-                 'satimage', 'fri_c1_1000_25', 'puma8NH']
-
+args = parser.parse_args()
+test_datasets = args.datasets.split(',')
 print(len(test_datasets))
-
-algo_name = 'lightgbm'
+algo_name = args.algo
 max_runs = 70
-rep = 5
+rep = 10
 
 
 def get_configspace():
@@ -85,7 +84,7 @@ def evaluate(mth, dataset, run_id):
                              "deterministic": "true"
                              })
         smac = SMAC(scenario=scenario, rng=np.random.RandomState(42),
-                        tae_runner=objective_function)
+                    tae_runner=objective_function)
         incumbent = smac.optimize()
         perf_bo = objective_function(incumbent)
         print('SMAC BO result')
@@ -95,8 +94,6 @@ def evaluate(mth, dataset, run_id):
     return perf_bo
 
 
-eval_result = list()
-
 for dataset in test_datasets:
     for mth in ['gp_bo', 'lite_bo', 'smac']:
         result = list()
@@ -104,9 +101,7 @@ for dataset in test_datasets:
             perf_bo = evaluate(mth, dataset, run_id)
             result.append(perf_bo)
         mean_res = np.mean(result)
-        print(dataset, mth, mean_res)
-        eval_result.append((dataset, mth, mean_res))
-
-print(eval_result)
-with open('data/bo_benchmar_data_%d.pkl' % time.time(), 'wb') as f:
-    pk.dump(eval_result, f)
+        std_res = np.std(result)
+        print(dataset, mth, mean_res, std_res)
+        with open('data/bo_benchmark_%s_%s_%s.pkl' % (mth, algo_name, dataset), 'wb') as f:
+            pk.dump((dataset, mth, mean_res, std_res), f)

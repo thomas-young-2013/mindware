@@ -100,10 +100,10 @@ class AutoML(object):
                 self.logger.error("Meta-learning failed!")
 
         # Check whether this dataset is balanced or not.
-        if self.task_type in CLS_TASKS and is_unbalanced_dataset(train_data):
-            # self.include_algorithms = imb_classication_algorithms
-            self.logger.info('Input dataset is imbalanced!')
-            train_data = DataBalancer().operate(train_data)
+        # if self.task_type in CLS_TASKS and is_unbalanced_dataset(train_data):
+        #     # self.include_algorithms = imb_classication_algorithms
+        #     self.logger.info('Input dataset is imbalanced!')
+        #     train_data = DataBalancer().operate(train_data)
         if self.amount_of_resource is None:
             trial_num = len(self.include_algorithms) * 30
         else:
