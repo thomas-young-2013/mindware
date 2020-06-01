@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import time
 import pickle
 import argparse
@@ -81,6 +82,12 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
     with open(save_path, 'wb') as f:
         pickle.dump(data, f)
 
+    del_path = './logs/'
+    for i in os.listdir(del_path):
+        file_data = del_path + "/" + i
+        if os.path.isfile(file_data):
+            os.remove(file_data)
+
 
 def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
     print('AUSK-%s-%d: %d' % (dataset, run_id, time_limit))
@@ -150,6 +157,12 @@ def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limi
         ausk_flag, dataset, trial_num, len(algorithms), seed, run_id, time_limit)
     with open(save_path, 'wb') as f:
         pickle.dump([dataset, val_result, test_result, model_desc], f)
+
+    del_path = '/tmp/'
+    for i in os.listdir(del_path):
+        file_data = del_path + "/" + i
+        if 'auto' in i:
+            shutil.rmtree(file_data)
 
 
 if __name__ == "__main__":
