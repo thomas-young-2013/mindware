@@ -12,6 +12,7 @@ from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from solnml.datasets.utils import load_train_test_data
 from solnml.components.metrics.metric import get_metric
 from solnml.components.models.classification import _classifiers
+from solnml.components.utils.constants import MULTICLASS_CLS
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--algo', type=str, default='libsvm_svc')
@@ -94,7 +95,7 @@ def evaluate(mth, dataset, run_id):
     return perf_bo
 
 
-def check_datasets(datasets, task_type=None):
+def check_datasets(datasets, task_type=MULTICLASS_CLS):
     for _dataset in datasets:
         try:
             _, _ = load_train_test_data(_dataset, random_state=1, task_type=task_type)
