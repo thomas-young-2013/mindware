@@ -50,7 +50,7 @@ def get_estimator(config):
 
 def evaluate(mth, dataset, run_id):
     print(mth, dataset, run_id)
-    train_data, test_data = load_train_test_data(dataset, test_size=0.3)
+    train_data, test_data = load_train_test_data(dataset, test_size=0.3, task_type=MULTICLASS_CLS)
 
     def objective_function(config):
         metric = get_metric('bal_acc')
