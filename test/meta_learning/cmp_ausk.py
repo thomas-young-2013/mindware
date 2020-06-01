@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--datasets', type=str, default='pc2')
 parser.add_argument('--mode', type=str, choices=['ausk', 'hmab', 'hmab,ausk', 'plot'], default='plot')
 parser.add_argument('--algo_num', type=int, default=15)
-parser.add_argument('--time_cost', type=int, default=600)
+parser.add_argument('--time_cost', type=int, default=1200)
 parser.add_argument('--rep_num', type=int, default=10)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--seed', type=int, default=1)
@@ -31,8 +31,8 @@ project_dir = './data/meta_exp/'
 per_run_time_limit = 120
 opt_algo = 'fixed'
 hmab_flag = 'hmab'
-ausk_flag = 'eval_ausk_mens'
-assert ausk_flag in ['eval_ausk_meta', 'eval_ausk_full', 'eval_ausk_vanilla', 'eval_ausk_mens']
+ausk_flag = 'eval_ausk_ens'
+assert ausk_flag in ['eval_ausk_meta', 'eval_ausk_full', 'eval_ausk_vanilla', 'eval_ausk_ens']
 if not os.path.exists(project_dir):
     os.makedirs(project_dir)
 
@@ -101,9 +101,9 @@ def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limi
         include_models = algorithms
         n_config_meta_learning = 25
         ensemble_size = 1
-    elif ausk_flag == 'eval_ausk_mens':
+    elif ausk_flag == 'eval_ausk_ens':
         include_models = algorithms
-        n_config_meta_learning = 25
+        n_config_meta_learning = 0
         ensemble_size = 50
     else:
         include_models = algorithms
@@ -120,7 +120,6 @@ def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limi
         ensemble_memory_limit=8192,
         ml_memory_limit=8192,
         ensemble_size=ensemble_size,
-        ensemble_nbest=ensemble_size,
         initial_configurations_via_metalearning=n_config_meta_learning,
         seed=int(seed),
         # resampling_strategy='cv',
@@ -128,7 +127,6 @@ def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limi
         resampling_strategy='holdout',
         resampling_strategy_arguments={'train_size': 0.67}
     )
-    print(automl)
 
     train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
     X, y = train_data.data
