@@ -94,6 +94,15 @@ def evaluate(mth, dataset, run_id):
     return perf_bo
 
 
+def check_datasets(datasets, task_type=None):
+    for _dataset in datasets:
+        try:
+            _, _ = load_train_test_data(_dataset, random_state=1, task_type=task_type)
+        except Exception as e:
+            raise ValueError('Dataset - %s does not exist!' % _dataset)
+
+
+check_datasets(test_datasets)
 for dataset in test_datasets:
     for mth in ['gp_bo', 'lite_bo', 'smac']:
         result = list()
