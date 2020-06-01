@@ -199,10 +199,7 @@ class AbstractModel(object):
         if X.shape[1] != len(self.types):
             raise ValueError('Rows in X should have %d entries but have %d!' % (len(self.types), X.shape[1]))
 
-        if self.return_normalized_y:
-            mean, var = self._predict(X, return_normalized_y=self.return_normalized_y)
-        else:
-            mean, var = self._predict(X)
+        mean, var = self._predict(X)
 
         if len(mean.shape) == 1:
             mean = mean.reshape((-1, 1))

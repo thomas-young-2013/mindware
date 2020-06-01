@@ -163,7 +163,7 @@ class GaussianProcessEnsemble(BaseModel):
             predictive_mu.append(target_mu)
             predictive_std.append(target_std)
 
-        n_sampling = (self.n_runhistory + 1) * 5
+        n_sampling = 100
         argmin_cnt = [0] * (self.n_runhistory + 1)
         ranking_loss_hist = list()
 
@@ -199,8 +199,10 @@ class GaussianProcessEnsemble(BaseModel):
 
         self.model_weights = np.array(argmin_cnt) / n_sampling
         print(self.model_weights)
+
+        self.ignore_flag = [False] * self.n_runhistory
         ranking_loss_hist = np.array(ranking_loss_hist)
-        threshold = sorted(ranking_loss_hist[:, -1])[int(n_sampling * 0.95)]
+        threshold = sorted(ranking_loss_hist[:, -1])[int(n_sampling * 0.7)]
         for i in range(self.n_runhistory):
             median = sorted(ranking_loss_hist[:, i])[int(n_sampling * 0.5)]
             self.ignore_flag[i] = median > threshold
@@ -257,7 +259,7 @@ class GaussianProcessEnsemble(BaseModel):
 
         # Target surrogate predictions with weight.
         mu *= self.model_weights[-1]
-        var *= np.power(self.model_weights[-1], 2)
+        # var *= np.power(self.model_weights[-1], 2)
 
         # Base surrogate predictions with corresponding weights.
         for i in range(0, self.n_runhistory):
@@ -265,5 +267,5 @@ class GaussianProcessEnsemble(BaseModel):
                 _w = self.model_weights[i]
                 _mu, _var = self.gp_models[i].predict(X_test)
                 mu += _w * _mu
-                var += _w * _w * _var
+                # var += _w * _w * _var
         return mu, var

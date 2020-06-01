@@ -91,7 +91,12 @@ class TLBO(BaseFacade):
             perfs = [row[1] for row in config_perf_pairs]
             optimum_idx = np.argsort(perfs)[0]
             init_configs.append(config_perf_pairs[optimum_idx][0])
-        return list(set(init_configs))
+
+        init_configs = list(set(init_configs))
+        while len(init_configs) < self.init_num:
+            random_config = self._random_search.maximize(runhistory=self.history_container, num_points=1)[0]
+            init_configs.append(random_config)
+        return init_configs
 
     def run(self):
         while self.iteration_id < self.max_iterations:
@@ -154,7 +159,7 @@ class TLBO(BaseFacade):
 
         challengers = self.optimizer.maximize(
             runhistory=self.history_container,
-            num_points=1000,
+            num_points=2000,
             random_configuration_chooser=self.random_configuration_chooser
         )
         return list(challengers)[0]

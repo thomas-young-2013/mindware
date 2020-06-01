@@ -37,6 +37,8 @@ test_datasets = ['cpu_act', 'mfeat-morphological(2)', 'poker', 'mfeat-zernike(1)
                  'credit-g', 'puma32H', 'mammography', 'electricity', 'abalone', 'fried',
                  'satimage', 'fri_c1_1000_25', 'puma8NH']
 
+print(len(test_datasets))
+
 
 def get_metafeature_vector(metafeature_dict):
     sorted_keys = sorted(metafeature_dict.keys())
@@ -157,7 +159,7 @@ def evaluate(dataset, run_id, metric):
     return perf_bo, perf_tlbo
 
 
-for dataset in test_datasets[:5]:
+for dataset in test_datasets[3:5]:
     rep = 5
     result = list()
     for run_id in range(rep):
@@ -168,6 +170,7 @@ for dataset in test_datasets[:5]:
     eval_result.append((dataset, mean_res))
 
 print(eval_result)
+
 
 
 """
@@ -222,4 +225,12 @@ rep=5
  ('mfeat-zernike(1)', array([-0.78257576,  1.        ])), 
  ('pendigits', array([-0.99172984,  1.        ]))]
 
+
+[('cpu_act', array([-0.93740176,  1.        ])), ('mfeat-morphological(2)', array([-0.99810606,  1.        ])), ('poker', array([-0.67136364,  1.        ])), ('mfeat-zernike(1)', array([-0.78068182,  1.        ])), ('pendigits', array([-0.99214335,  1.        ])), ('hypothyroid(1)', array([-0.99538153,  1.        ])), ('winequality_red', array([-0.63782506,  1.        ])), ('delta_ailerons', array([-0.94165781,  1.        ])), ('colleges_usnews', array([-0.77383721,  1.        ])), ('page-blocks(1)', array([-0.97605536,  1.        ])), ('sick', array([-0.98393574,  1.        ])), ('pc2', array([-0.99593496,  1.        ])), ('analcatdata_halloffame', array([-0.97231638,  1.        ])), ('nursery', array([-0.98036236,  1.        ])), ('credit-g', array([-0.78863636,  1.        ])), ('puma32H', array([-0.88210818,  1.        ])), ('mammography', array([-0.98835083,  1.        ])), ('electricity', array([-0.89012789,  1.        ])), ('abalone', array([-0.63155032,  1.        ])), ('fried', array([-0.91344421,  1.        ])), ('satimage', array([-0.90223793,  1.        ])), ('fri_c1_1000_25', array([-0.92348485,  1.        ])), ('puma8NH', array([-0.8260749,  1.       ]))]
+
+[('cpu_act', array([ 1.        , -0.93758669])), 
+ ('mfeat-morphological(2)', array([ 1.        , -0.99810606])), 
+ ('poker', array([ 1.        , -0.65295455])), 
+ ('mfeat-zernike(1)', array([ 1.        , -0.79090909])), 
+ ('pendigits', array([ 1.        , -0.99207443]))]
 """

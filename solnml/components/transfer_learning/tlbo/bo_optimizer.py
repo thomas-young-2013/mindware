@@ -139,7 +139,7 @@ class BO(BaseFacade):
 
         challengers = self.optimizer.maximize(
             runhistory=self.history_container,
-            num_points=1000,
+            num_points=2000,
             random_configuration_chooser=self.random_configuration_chooser
         )
         config = list(challengers)[0]
