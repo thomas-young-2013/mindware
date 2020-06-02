@@ -26,6 +26,7 @@ test_datasets = ['splice', 'segment', 'abalone', 'delta_ailerons', 'space_ga',
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--mth', type=str, default='tlbo')
+parser.add_argument('--plot_mode', type=int, default=0)
 parser.add_argument('--rep', type=int, default=10)
 parser.add_argument('--max_runs', type=int, default=30)
 parser.add_argument('--datasets', type=str, default=','.join(test_datasets))
@@ -40,6 +41,7 @@ rep = args.rep
 max_runs = args.max_runs
 mode = args.mth
 datasets = args.datasets.split(',')
+plot_mode = args.plot_mode
 
 
 def get_datasets():
@@ -119,7 +121,7 @@ def get_configspace():
 
 eval_result = list()
 config_space = get_configspace()
-if mode == 'tlbo':
+if mode == 'tlbo' and plot_mode != 1:
     gp_models_dict = pretrain_gp_models(config_space)
 
 
@@ -179,7 +181,7 @@ def write_down(dataset, result):
 
 
 for dataset in datasets:
-    if mode != 'plot':
+    if plot_mode != 1:
         result = list()
         for run_id in range(rep):
             perf = evaluate(dataset, run_id, metric)
@@ -189,6 +191,6 @@ for dataset in datasets:
         print(dataset, mean_res, std_res)
         write_down(dataset, [dataset, mean_res, std_res])
     else:
-        with open('test/bayesian_opt/%s_result_%d_%d_%s.pkl' % ('tlbo', max_runs, rep, dataset), 'rb') as f:
+        with open('test/bayesian_opt/%s_result_%d_%d_%s.pkl' % (mode, max_runs, rep, dataset), 'rb') as f:
             data = pk.load(f)
         print(data[0], '%.4f\u00B1%.4f' % (data[1], data[2]))
