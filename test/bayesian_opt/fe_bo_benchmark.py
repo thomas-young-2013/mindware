@@ -20,7 +20,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--algo', type=str, default='libsvm_svc')
 parser.add_argument('--datasets', type=str, default='splice')
 parser.add_argument('--n_jobs', type=int, default=2)
-parser.add_argument('--mth', type=str, default='gp_bo', choices=['gp_bo', 'lite-bo', 'smac'])
+parser.add_argument('--mth', type=str, default='gp_bo', choices=['gp_bo', 'lite_bo', 'smac'])
 
 args = parser.parse_args()
 test_datasets = args.datasets.split(',')
