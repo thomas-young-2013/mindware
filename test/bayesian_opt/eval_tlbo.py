@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import argparse
 import pickle as pk
 import numpy as np
 
@@ -18,26 +19,41 @@ from solnml.components.models.classification import _classifiers
 from solnml.components.transfer_learning.tlbo.models.gp_ensemble import create_gp_model
 from solnml.components.transfer_learning.tlbo.config_space.util import convert_configurations_to_array
 
+test_datasets = ['splice', 'segment', 'abalone', 'delta_ailerons', 'space_ga',
+                 'pollen', 'quake', 'wind', 'dna', 'spambase', 'satimage',
+                 'waveform-5000(1)', 'optdigits', 'madelon', 'kr-vs-kp', 'isolet',
+                 'analcatdata_supreme', 'balloon', 'waveform-5000(2)', 'gina_prior2']
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--mth', type=str, default='tlbo')
+parser.add_argument('--rep', type=int, default=10)
+parser.add_argument('--max_runs', type=int, default=30)
+parser.add_argument('--datasets', type=str, default=','.join(test_datasets))
+
+args = parser.parse_args()
+
+data_dir = 'test/bayesian_opt/runhistory/config_res/'
 task_id = 'fe'
 algo_name = 'random_forest'
 metric = 'acc'
-datasets = list()
+rep = args.rep
+max_runs = args.max_runs
+mode = args.mth
+datasets = args.datasets.split(',')
 
-pattern = r'(.*)-%s-%s-%d-%s.pkl' % (algo_name, metric, 0, task_id)
-data_dir = 'test/bayesian_opt/runhistory/config_res/'
-for filename in os.listdir(data_dir):
-    result = re.search(pattern, filename, re.M | re.I)
-    if result is not None:
-        datasets.append(result.group(1))
-print(datasets)
 
-test_datasets = ['cpu_act', 'mfeat-morphological(2)', 'poker', 'mfeat-zernike(1)',
-                 'pendigits', 'hypothyroid(1)', 'winequality_red', 'delta_ailerons', 'colleges_usnews',
-                 'page-blocks(1)', 'sick', 'pc2', 'analcatdata_halloffame', 'nursery',
-                 'credit-g', 'puma32H', 'mammography', 'electricity', 'abalone', 'fried',
-                 'satimage', 'fri_c1_1000_25', 'puma8NH']
+def get_datasets():
+    _datasets = list()
+    pattern = r'(.*)-%s-%s-%d-%s.pkl' % (algo_name, metric, 0, task_id)
+    for filename in os.listdir(data_dir):
+        result = re.search(pattern, filename, re.M | re.I)
+        if result is not None:
+            _datasets.append(result.group(1))
+    print(_datasets)
+    return _datasets
 
-print(len(test_datasets))
+
+print(len(datasets))
 
 
 def get_metafeature_vector(metafeature_dict):
@@ -103,18 +119,12 @@ def get_configspace():
 
 eval_result = list()
 config_space = get_configspace()
-gp_models_dict = pretrain_gp_models(config_space)
+if mode == 'tlbo':
+    gp_models_dict = pretrain_gp_models(config_space)
 
 
 def evaluate(dataset, run_id, metric):
-    """
-        One vs Rest evaluation.
-    """
     print(dataset, run_id, metric)
-    meta_feature_vec = metafeature_dict[dataset]
-    past_datasets = test_datasets.copy()
-    past_datasets.remove(dataset)
-    past_history = load_runhistory(past_datasets)
 
     metric = get_metric(metric)
     train_data, test_data = load_train_test_data(dataset)
@@ -138,99 +148,47 @@ def evaluate(dataset, run_id, metric):
 
     def objective_function(config):
         return fe_optimizer.evaluate_function(config)
-    mode = 'tlbo'
     if mode == 'bo':
-        bo = BO(objective_function, hyper_space, max_runs=20)
+        bo = BO(objective_function, hyper_space, max_runs=max_runs)
         bo.run()
         print('BO result')
         print(bo.get_incumbent())
-        perf_bo = bo.history_container.incumbent_value
-        perf_tlbo = 1.0
+        perf = bo.history_container.incumbent_value
     elif mode == 'tlbo':
-        perf_bo = 1.0
+        meta_feature_vec = metafeature_dict[dataset]
+        past_datasets = test_datasets.copy()
+        if dataset in past_datasets:
+            past_datasets.remove(dataset)
+        past_history = load_runhistory(past_datasets)
+
         gp_models = [gp_models_dict[dataset_name] for dataset_name in past_datasets]
-        tlbo = TLBO(objective_function, hyper_space, past_history, gp_models=gp_models, dataset_metafeature=meta_feature_vec, max_runs=20)
+        tlbo = TLBO(objective_function, hyper_space, past_history, gp_models=gp_models,
+                    dataset_metafeature=meta_feature_vec, max_runs=max_runs)
         tlbo.run()
         print('TLBO result')
         print(tlbo.get_incumbent())
-        perf_tlbo = tlbo.history_container.incumbent_value
+        perf = tlbo.history_container.incumbent_value
     else:
         raise ValueError('Invalid mode.')
-    return perf_bo, perf_tlbo
+    return perf
 
 
-for dataset in test_datasets[3:5]:
-    rep = 5
-    result = list()
-    for run_id in range(rep):
-        perf_bo, perf_tlbo = evaluate(dataset, run_id, metric)
-        result.append((perf_bo, perf_tlbo))
-    mean_res = np.mean(result, axis=0)
-    print(dataset, mean_res)
-    eval_result.append((dataset, mean_res))
-
-print(eval_result)
+def write_down(dataset, result):
+    with open('test/bayesian_opt/%s_result_%d_%d_%s.pkl' % (mode, max_runs, rep, dataset), 'wb') as f:
+        pk.dump(result, f)
 
 
-
-"""
-[('cpu_act',                array([-0.93820311, -0.93712436])), 
- ('mfeat-morphological(2)', array([-0.99810606, -0.99810606])), 
- ('poker',                  array([-0.68409091, -0.68017677])), 
- ('mfeat-zernike(1)',       array([-0.79103535, -0.78219697])), 
- ('pendigits',              array([-0.99425683, -0.99172984])), 
- ('hypothyroid(1)',         array([-0.99531459, -0.99531459])), 
- ('winequality_red',        array([-0.6572104 , -0.65248227])), 
- ('delta_ailerons',         array([-0.94066596, -0.94155154])), -
- ('colleges_usnews',        array([-0.77325581, -0.77325581])), 
- ('page-blocks(1)',         array([-0.97531719, -0.97739331])), -
- ('sick',                   array([-0.97824632, -0.9832664 ])), -
- ('pc2',                    array([-0.99593496, -0.99593496])), 
- ('analcatdata_halloffame', array([-0.97457627, -0.96986817])), 
- ('nursery',                array([-0.98353789, -0.98246639])), 
- ('credit-g',               array([-0.78409091, -0.79166667])), -
- ('puma32H',                array([-0.88750193, -0.89613192])), -
- ('mammography',            array([-0.98848629, -0.98747037])), 
- ('electricity',            array([-0.89222324, -0.89016133])), 
- ('abalone',                array([-0.63251738, -0.63674826])), -
- ('fried',                  array([-0.91727833, -0.91486265])), 
- ('satimage',               array([-0.90439733, -0.90714566])), -
- ('fri_c1_1000_25',         array([-0.90782828, -0.9229798 ])), -
- ('puma8NH',                array([-0.82632147, -0.8247804 ]))]
-
-
-rep=5
-[('cpu_act', array([ 1.        , -0.93804901])), 
- ('mfeat-morphological(2)', array([ 1.        , -0.99810606])), 
- ('poker', array([ 1.        , -0.67484848])), 
- ('mfeat-zernike(1)', array([ 1.        , -0.79015152])), 
- ('pendigits', array([ 1.        , -0.99228119]))]
-# new tlbo
-[('cpu_act', array([ 1.        , -0.93712436])), 
- ('mfeat-morphological(2)', array([ 1.        , -0.99810606])), 
- ('poker', array([ 1.        , -0.66348485])), 
- ('mfeat-zernike(1)', array([ 1.        , -0.78219697])), 
- ('pendigits', array([ 1.        , -0.99172984]))]
-
-[('cpu_act', array([-0.93758669,  1.        ])), 
- ('mfeat-morphological(2)', array([-0.99810606,  1.        ])), 
- ('poker', array([-0.67757576,  1.        ])), 
- ('mfeat-zernike(1)', array([-0.78636364,  1.        ])), 
- ('pendigits', array([-0.99228119,  1.        ]))]
-
-# new bo
-[('cpu_act', array([-0.93749422,  1.        ])), 
- ('mfeat-morphological(2)', array([-0.99810606,  1.        ])), 
- ('poker', array([-0.67772727,  1.        ])), 
- ('mfeat-zernike(1)', array([-0.78257576,  1.        ])), 
- ('pendigits', array([-0.99172984,  1.        ]))]
-
-
-[('cpu_act', array([-0.93740176,  1.        ])), ('mfeat-morphological(2)', array([-0.99810606,  1.        ])), ('poker', array([-0.67136364,  1.        ])), ('mfeat-zernike(1)', array([-0.78068182,  1.        ])), ('pendigits', array([-0.99214335,  1.        ])), ('hypothyroid(1)', array([-0.99538153,  1.        ])), ('winequality_red', array([-0.63782506,  1.        ])), ('delta_ailerons', array([-0.94165781,  1.        ])), ('colleges_usnews', array([-0.77383721,  1.        ])), ('page-blocks(1)', array([-0.97605536,  1.        ])), ('sick', array([-0.98393574,  1.        ])), ('pc2', array([-0.99593496,  1.        ])), ('analcatdata_halloffame', array([-0.97231638,  1.        ])), ('nursery', array([-0.98036236,  1.        ])), ('credit-g', array([-0.78863636,  1.        ])), ('puma32H', array([-0.88210818,  1.        ])), ('mammography', array([-0.98835083,  1.        ])), ('electricity', array([-0.89012789,  1.        ])), ('abalone', array([-0.63155032,  1.        ])), ('fried', array([-0.91344421,  1.        ])), ('satimage', array([-0.90223793,  1.        ])), ('fri_c1_1000_25', array([-0.92348485,  1.        ])), ('puma8NH', array([-0.8260749,  1.       ]))]
-
-[('cpu_act', array([ 1.        , -0.93758669])), 
- ('mfeat-morphological(2)', array([ 1.        , -0.99810606])), 
- ('poker', array([ 1.        , -0.65295455])), 
- ('mfeat-zernike(1)', array([ 1.        , -0.79090909])), 
- ('pendigits', array([ 1.        , -0.99207443]))]
-"""
+for dataset in datasets:
+    if mode != 'plot':
+        result = list()
+        for run_id in range(rep):
+            perf = evaluate(dataset, run_id, metric)
+            result.append(perf)
+        mean_res = np.mean(result)
+        std_res = np.std(result)
+        print(dataset, mean_res, std_res)
+        write_down(dataset, [dataset, mean_res, std_res])
+    else:
+        with open('test/bayesian_opt/%s_result_%d_%d_%s.pkl' % ('tlbo', max_runs, rep, dataset), 'rb') as f:
+            data = pk.load(f)
+        print(data[0], '%.4f\u00B1%.4f' % (data[1], data[2]))
