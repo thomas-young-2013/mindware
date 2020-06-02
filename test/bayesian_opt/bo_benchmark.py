@@ -68,6 +68,12 @@ def evaluate(mth, dataset, run_id):
         print('new BO result')
         print(bo.get_incumbent())
         perf_bo = bo.history_container.incumbent_value
+    elif mth == 'rf_bo':
+        bo = BO(objective_function, config_space, surrogate_model='prob_rf', max_runs=max_runs)
+        bo.run()
+        print('new BO result')
+        print(bo.get_incumbent())
+        perf_bo = bo.history_container.incumbent_value
     elif mth == 'lite_bo':
         from litebo.facade.bo_facade import BayesianOptimization
         bo = BayesianOptimization(objective_function, config_space, max_runs=max_runs)

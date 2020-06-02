@@ -149,7 +149,7 @@ class AbstractModel(object):
 
         return self._train(X, Y)
 
-    def _train(self, X: np.ndarray, Y: np.ndarray) -> 'AbstractEPM':
+    def _train(self, X: np.ndarray, Y: np.ndarray) -> 'AbstractModel':
         """Trains the random forest on X and y.
 
         Parameters

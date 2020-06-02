@@ -11,6 +11,7 @@ from .utils.constants import MAXINT, SUCCESS, FAILDED, TIMEOUT
 from .utils.limit import time_limit, TimeoutException
 from .config_space.util import convert_configurations_to_array
 from .models.gp_ensemble import create_gp_model
+from .models.rf_with_instances import RandomForestWithInstances
 
 
 class BaseFacade(object, metaclass=abc.ABCMeta):
@@ -36,6 +37,7 @@ class BaseFacade(object, metaclass=abc.ABCMeta):
 
 class BO(BaseFacade):
     def __init__(self, objective_function, config_space,
+                 surrogate_model='gp',
                  time_limit_per_trial=180,
                  max_runs=200,
                  initial_configurations=None,
@@ -46,6 +48,7 @@ class BO(BaseFacade):
         if rng is None:
             run_id, rng = get_rng()
 
+        self.surrogate_model = surrogate_model
         self.initial_configurations = initial_configurations
         self.init_num = initial_runs
         if initial_configurations is not None:
@@ -63,7 +66,12 @@ class BO(BaseFacade):
 
         # Initialize the basic component in BO.
         self.objective_function = objective_function
-        self.model = create_gp_model(config_space, rng)
+        if self.surrogate_model == 'gp':
+            self.model = create_gp_model(config_space, rng)
+        elif self.surrogate_model == 'prob_rf':
+            self.model = RandomForestWithInstances(config_space, seed=rng.randint(MAXINT))
+        else:
+            raise ValueError('Unsupported surrogate model - %s!' % self.surrogate_model)
 
         self.acquisition_function = EI(self.model)
         self.optimizer = InterleavedLocalAndRandomSearch(
