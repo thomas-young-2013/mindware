@@ -189,6 +189,6 @@ for dataset in datasets:
         print(dataset, mean_res, std_res)
         write_down(dataset, [dataset, mean_res, std_res])
     else:
-        with open('test/bayesian_opt/%s_result_%d_%d_%s.pkl' % ('tlbo', max_runs, rep, dataset), 'rb') as f:
+        with open('test/bayesian_opt/%s_result_%d_%d_%s.pkl' % ('bo', max_runs, rep, dataset), 'rb') as f:
             data = pk.load(f)
         print(data[0], '%.4f\u00B1%.4f' % (data[1], data[2]))
