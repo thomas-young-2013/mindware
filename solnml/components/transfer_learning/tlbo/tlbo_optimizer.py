@@ -54,8 +54,6 @@ class TLBO(BaseFacade):
                                              gp_fusion=gp_fusion,
                                              gp_models=gp_models,
                                              seed=seed)
-        self.initial_configurations = self.get_initial_configs()
-
         self.acquisition_function = EI(self.model)
         self.optimizer = InterleavedLocalAndRandomSearch(
                 acquisition_function=self.acquisition_function,
@@ -69,6 +67,7 @@ class TLBO(BaseFacade):
             self.acquisition_function, self.config_space, rng
         )
         self.random_configuration_chooser = ChooserProb(prob=0.5, rng=rng)
+        self.initial_configurations = self.get_initial_configs()
 
     def get_initial_configs(self):
         """
