@@ -2,8 +2,9 @@ import os
 import re
 import sys
 import argparse
-import pickle as pk
 import numpy as np
+import pickle as pk
+import matplotlib.pyplot as plt
 
 sys.path.append(os.getcwd())
 
@@ -11,13 +12,18 @@ from solnml.components.transfer_learning.tlbo.tlbo_optimizer import TLBO
 from solnml.components.transfer_learning.tlbo.bo_optimizer import BO
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from solnml.components.fe_optimizers.bo_optimizer import BayesianOptimizationOptimizer
-from solnml.components.utils.constants import CLASSIFICATION, REGRESSION, MULTICLASS_CLS
+from solnml.components.utils.constants import CLASSIFICATION, MULTICLASS_CLS
 from solnml.datasets.utils import load_train_test_data
 from solnml.components.metrics.metric import get_metric
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
 from solnml.components.models.classification import _classifiers
 from solnml.components.transfer_learning.tlbo.models.gp_ensemble import create_gp_model
 from solnml.components.transfer_learning.tlbo.config_space.util import convert_configurations_to_array
+from solnml.components.transfer_learning.tlbo.models.rf_with_instances import RandomForestWithInstances
+from solnml.components.transfer_learning.tlbo.utils.util_funcs import get_rng
+from solnml.components.transfer_learning.tlbo.utils.constants import MAXINT
+from solnml.utils.functions import get_increasing_sequence
+
 
 test_datasets = ['splice', 'segment', 'abalone', 'delta_ailerons', 'space_ga',
                  'pollen', 'quake', 'wind', 'dna', 'spambase', 'satimage',
@@ -89,7 +95,9 @@ def pretrain_gp_models(config_space):
     runhistory = load_runhistory(test_datasets)
     gp_models = dict()
     for dataset, hist in zip(test_datasets, runhistory):
-        gp_model = create_gp_model(config_space)
+        # _model = create_gp_model(config_space)
+        _, rng = get_rng(1)
+        _model = RandomForestWithInstances(config_space, seed=rng.randint(MAXINT))
         X = list()
         for row in hist[1]:
             conf_vector = convert_configurations_to_array([row[0]])[0]
@@ -97,8 +105,8 @@ def pretrain_gp_models(config_space):
         X = np.array(X)
         y = np.array([row[1] for row in hist[1]]).reshape(-1, 1)
 
-        gp_model.train(X, y)
-        gp_models[dataset] = gp_model
+        _model.train(X, y)
+        gp_models[dataset] = _model
         print('%s: training basic GP model finished.' % dataset)
     return gp_models
 
@@ -180,7 +188,8 @@ def evaluate(dataset, run_id, metric):
 
         gp_models = [gp_models_dict[dataset_name] for dataset_name in past_datasets]
         tlbo = TLBO(objective_function, hyper_space, past_history, gp_models=gp_models,
-                    dataset_metafeature=meta_feature_vec, max_runs=max_runs, gp_fusion=gp_fusion)
+                    dataset_metafeature=meta_feature_vec,
+                    max_runs=max_runs, gp_fusion=gp_fusion)
         tlbo.run()
         print('TLBO result')
         print(tlbo.get_incumbent())
@@ -197,8 +206,36 @@ for dataset in datasets:
         for run_id in range(start_id, start_id + rep):
             evaluate(dataset, run_id, metric)
     else:
-        with open(data_dir + '%s_result_%d_%d_%s.pkl' % (mode, max_runs, rep, dataset), 'rb') as f:
-            data = pk.load(f)
-        data = [item[0] for item in data]
-        mu, std = np.mean(data), np.std(data)
-        print(data[0], '%.4f\u00B1%.4f' % (mu, std))
+        print('='*10)
+        cmp_methods = ['tlbo_gpoe', 'tlbo_no-unct', 'lite_bo']
+        perfs = list()
+        for mth in cmp_methods:
+            _result = list()
+            _runs = list()
+            for run_id in range(start_id, start_id + rep):
+                with open(data_dir + '%s_%s_result_%d_%d.pkl' % (mth, dataset, max_runs, run_id), 'rb') as f:
+                    perf, runs = pk.load(f)
+                _result.append(perf)
+                inc_seq = get_increasing_sequence(-np.array(runs[1]))
+                while len(inc_seq) < max_runs:
+                    inc_seq.append(inc_seq[-1])
+                _runs.append(inc_seq)
+
+            perfs.append(np.mean(np.array(_runs), axis=0))
+            print(dataset.ljust(20), mth.ljust(10), '%.4f\u00B1%.4f' % (np.mean(_result), np.std(_result)))
+        # print(perfs)
+
+        fig = plt.figure()
+        ax = plt.subplot(111)
+        x = np.arange(1, max_runs+1)
+        y_min, y_max = 1, 0
+        for idx, y in enumerate(perfs):
+            ax.plot(x, y, label=cmp_methods[idx])
+            if y[0] >= 0:
+                y_min = min(y_min, y[0])
+            y_max = max(y_max, y[-1])
+        plt.title(dataset)
+        ax.legend()
+        epsilon = (y_max - y_min) * 0.05
+        plt.ylim(y_min - epsilon, y_max + epsilon)
+        plt.show()

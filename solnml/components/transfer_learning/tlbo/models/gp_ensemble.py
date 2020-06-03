@@ -9,6 +9,8 @@ from .gp import GaussianProcess
 from .gp_kernels import ConstantKernel, Matern, WhiteKernel, HammingKernel
 from .gp_base_priors import LognormalPrior, HorseshoePrior
 from ..utils.util_funcs import get_types, get_rng
+from ..models.rf_with_instances import RandomForestWithInstances
+from ..utils.constants import MAXINT
 
 
 def create_gp_model(config_space, rng=None):
@@ -98,7 +100,8 @@ class GaussianProcessEnsemble(BaseModel):
             configspace: ConfigurationSpace,
             past_runhistory: typing.List,
             gp_models: typing.List[GaussianProcess] = None,
-            gp_fusion: str = 'indp_aspt',
+            gp_fusion: str = 'indp-aspt',
+            surrogate_model: str = 'prob_rf',
             n_steps_update: int = 2,
             seed: int = 1,
             **kwargs
@@ -106,9 +109,10 @@ class GaussianProcessEnsemble(BaseModel):
         _, rng = get_rng(seed)
         types, bounds = get_types(configspace, instance_features=None)
         self.past_runhistory = past_runhistory
+        self.surrogate_model = surrogate_model
         self.gp_fusion = gp_fusion
         self.n_steps_update = n_steps_update
-        assert self.gp_fusion in ['indp_aspt', 'gpoe', 'no_unct']
+        assert self.gp_fusion in ['indp-aspt', 'gpoe', 'no-unct']
         super().__init__(configspace=configspace, types=types, bounds=bounds, seed=seed, **kwargs)
 
         self.n_init_configs = list()
@@ -119,11 +123,18 @@ class GaussianProcessEnsemble(BaseModel):
         self.weight_update_id = 0
         self._init()
 
+    def create_basic_model(self):
+        if self.surrogate_model == 'gp':
+            _model = create_gp_model(self.configspace)
+        else:
+            _model = RandomForestWithInstances(self.configspace, seed=self.rng.randint(MAXINT))
+        return _model
+
     def _init(self):
         if self.gp_models is None:
             self.gp_models = list()
             for _runhistory in self.past_runhistory:
-                gp_model = create_gp_model(self.configspace)
+                _model = self.create_basic_model()
                 X = list()
                 for row in _runhistory[1]:
                     conf_vector = convert_configurations_to_array([row[0]])[0]
@@ -131,8 +142,8 @@ class GaussianProcessEnsemble(BaseModel):
                 X = np.array(X)
                 y = np.array([row[1] for row in _runhistory[1]]).reshape(-1, 1)
 
-                gp_model.train(X, y)
-                self.gp_models.append(gp_model)
+                _model.train(X, y)
+                self.gp_models.append(_model)
                 print('Training basic GP model finished.')
             self.n_runhistory = len(self.past_runhistory)
         else:
@@ -163,7 +174,7 @@ class GaussianProcessEnsemble(BaseModel):
                 bound = (n_instance - i * fold_num) if i == (n_fold - 1) else fold_num
                 start_id = i * fold_num
                 del instance_indexs[start_id: start_id+bound]
-                _target_model = create_gp_model(self.configspace)
+                _target_model = self.create_basic_model()
                 _target_model.train(X[instance_indexs, :], y[instance_indexs])
                 _mu, _var = _target_model.predict(X)
                 target_mu.append(_mu)
@@ -215,7 +226,7 @@ class GaussianProcessEnsemble(BaseModel):
             median = sorted(ranking_loss_hist[:, i])[int(n_sampling * 0.5)]
             self.ignore_flag[i] = median > threshold
         print(self.ignore_flag)
-        print('Updating weights took %d sec.' % (time.time() - _start_time))
+        print('Updating weights took %.3f sec.' % (time.time() - _start_time))
 
     def _train(self, X: np.ndarray, y: np.ndarray):
         """
@@ -233,7 +244,7 @@ class GaussianProcessEnsemble(BaseModel):
         """
 
         X = self._impute_inactive(X)
-        self.target_model = create_gp_model(self.configspace)
+        self.target_model = self.create_basic_model()
         self.target_model.train(X, y)
 
         self.is_trained = True
@@ -269,9 +280,9 @@ class GaussianProcessEnsemble(BaseModel):
             mu, var = self.target_model.predict(X_test)
 
         # Target surrogate predictions with weight.
-        if self.gp_fusion in ['indp_aspt', 'no_unct']:
+        if self.gp_fusion in ['indp-aspt', 'no-unct']:
             mu *= self.model_weights[-1]
-            if self.gp_fusion == 'indp_aspt':
+            if self.gp_fusion == 'indp-aspt':
                 var *= np.power(self.model_weights[-1], 2)
 
             # Base surrogate predictions with corresponding weights.
@@ -280,21 +291,22 @@ class GaussianProcessEnsemble(BaseModel):
                     _w = self.model_weights[i]
                     _mu, _var = self.gp_models[i].predict(X_test)
                     mu += _w * _mu
-                    if self.gp_fusion == 'indp_aspt':
+                    if self.gp_fusion == 'indp-aspt':
                         var += _w * _w * _var
             return mu, var
         else:
             m = self.n_runhistory + 1
+            ep = 1e-8
             mu_, var_ = np.zeros((n, m)), np.zeros((n, m))
-            mu_t, var_t = mu.flatten(), var.flatten()
 
+            mu_t, var_t = mu.flatten(), var.flatten() + ep
             var_[:, -1] = 1. / var_t * self.model_weights[-1]
             mu_[:, -1] = 1. / var_t * mu_t * self.model_weights[-1]
 
             # Predictions from basic surrogates.
             for i in range(self.n_runhistory):
                 mu_t, var_t = self.gp_models[i].predict(X_test)
-                mu_t, var_t = mu_t.flatten(), var_t.flatten()
+                mu_t, var_t = mu_t.flatten(), var_t.flatten() + ep
 
                 # compute the gaussian experts.
                 var_[:, i] = 1. / var_t * self.model_weights[i]
