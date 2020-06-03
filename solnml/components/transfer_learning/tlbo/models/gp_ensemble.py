@@ -99,7 +99,7 @@ class GaussianProcessEnsemble(BaseModel):
             self,
             configspace: ConfigurationSpace,
             past_runhistory: typing.List,
-            gp_models: typing.List[GaussianProcess] = None,
+            gp_models: typing.List = None,
             gp_fusion: str = 'indp-aspt',
             surrogate_model: str = 'prob_rf',
             n_steps_update: int = 2,
