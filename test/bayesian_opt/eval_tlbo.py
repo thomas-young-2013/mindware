@@ -104,7 +104,7 @@ def pretrain_gp_models(config_space):
 
 
 def get_configspace():
-    train_data, test_data = load_train_test_data('pc2')
+    train_data, test_data = load_train_test_data('splice')
     cs = _classifiers[algo_name].get_hyperparameter_search_space()
     model = UnParametrizedHyperparameter("estimator", algo_name)
     cs.add_hyperparameter(model)
