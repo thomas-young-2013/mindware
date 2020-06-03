@@ -207,7 +207,7 @@ for dataset in datasets:
             evaluate(dataset, run_id, metric)
     else:
         print('='*10)
-        cmp_methods = ['tlbo_gpoe', 'tlbo_no-unct', 'lite_bo']
+        cmp_methods = ['tlbo_gpoe', 'tlbo_no-unct', 'tlbo_indp-aspt', 'lite_bo']
         perfs = list()
         for mth in cmp_methods:
             _result = list()
