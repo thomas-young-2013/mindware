@@ -11,7 +11,7 @@ from solnml.components.transfer_learning.tlbo.tlbo_optimizer import TLBO
 from solnml.components.transfer_learning.tlbo.bo_optimizer import BO
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from solnml.components.fe_optimizers.bo_optimizer import BayesianOptimizationOptimizer
-from solnml.components.utils.constants import CLASSIFICATION, REGRESSION
+from solnml.components.utils.constants import CLASSIFICATION, REGRESSION, MULTICLASS_CLS
 from solnml.datasets.utils import load_train_test_data
 from solnml.components.metrics.metric import get_metric
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
@@ -104,7 +104,7 @@ def pretrain_gp_models(config_space):
 
 
 def get_configspace():
-    train_data, test_data = load_train_test_data('splice')
+    train_data, test_data = load_train_test_data('splice', task_type=MULTICLASS_CLS)
     cs = _classifiers[algo_name].get_hyperparameter_search_space()
     model = UnParametrizedHyperparameter("estimator", algo_name)
     cs.add_hyperparameter(model)
@@ -134,7 +134,7 @@ def evaluate(dataset, run_id, metric):
     print(dataset, run_id, metric)
 
     metric = get_metric(metric)
-    train_data, test_data = load_train_test_data(dataset)
+    train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
 
     cs = _classifiers[algo_name].get_hyperparameter_search_space()
     model = UnParametrizedHyperparameter("estimator", algo_name)
