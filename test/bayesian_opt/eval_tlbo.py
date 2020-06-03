@@ -27,27 +27,32 @@ test_datasets = ['splice', 'segment', 'abalone', 'delta_ailerons', 'space_ga',
 parser = argparse.ArgumentParser()
 parser.add_argument('--mth', type=str, default='tlbo')
 parser.add_argument('--plot_mode', type=int, default=0)
+parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--rep', type=int, default=10)
-parser.add_argument('--max_runs', type=int, default=30)
+parser.add_argument('--max_runs', type=int, default=50)
 parser.add_argument('--datasets', type=str, default=','.join(test_datasets))
 
 args = parser.parse_args()
 
-data_dir = 'test/bayesian_opt/runhistory/config_res/'
+data_dir = 'data/tlbo/'
+hist_dir = 'test/bayesian_opt/runhistory/config_res/'
 task_id = 'fe'
 algo_name = 'random_forest'
 metric = 'acc'
 rep = args.rep
+start_id = args.start_id
 max_runs = args.max_runs
 mode = args.mth
 datasets = args.datasets.split(',')
 plot_mode = args.plot_mode
+if not os.path.exists(data_dir):
+    os.makedirs(data_dir)
 
 
 def get_datasets():
     _datasets = list()
     pattern = r'(.*)-%s-%s-%d-%s.pkl' % (algo_name, metric, 0, task_id)
-    for filename in os.listdir(data_dir):
+    for filename in os.listdir(hist_dir):
         result = re.search(pattern, filename, re.M | re.I)
         if result is not None:
             _datasets.append(result.group(1))
@@ -63,7 +68,7 @@ def get_metafeature_vector(metafeature_dict):
     return np.array([metafeature_dict[key] for key in sorted_keys])
 
 
-with open(data_dir + '../metafeature.pkl', 'rb') as f:
+with open(hist_dir + '../metafeature.pkl', 'rb') as f:
     metafeature_dict = pk.load(f)
     for dataset in metafeature_dict.keys():
         vec = get_metafeature_vector(metafeature_dict[dataset])
@@ -74,7 +79,7 @@ def load_runhistory(dataset_names):
     runhistory = list()
     for dataset in dataset_names:
         _filename = '%s-%s-%s-%d-%s.pkl' % (dataset, 'random_forest', 'acc', 0, task_id)
-        with open(data_dir + _filename, 'rb') as f:
+        with open(hist_dir + _filename, 'rb') as f:
             data = pk.load(f)
         runhistory.append((metafeature_dict[dataset], list(data.items())))
     return runhistory
@@ -121,7 +126,7 @@ def get_configspace():
 
 eval_result = list()
 config_space = get_configspace()
-if mode == 'tlbo' and plot_mode != 1:
+if mode.startswith('tlbo') and plot_mode != 1:
     gp_models_dict = pretrain_gp_models(config_space)
 
 
@@ -156,7 +161,17 @@ def evaluate(dataset, run_id, metric):
         print('BO result')
         print(bo.get_incumbent())
         perf = bo.history_container.incumbent_value
-    elif mode == 'tlbo':
+        runs = [bo.configurations, bo.perfs]
+    elif mode == 'lite_bo':
+        from litebo.facade.bo_facade import BayesianOptimization
+        bo = BayesianOptimization(objective_function, hyper_space, max_runs=max_runs)
+        bo.run()
+        print('BO result')
+        print(bo.get_incumbent())
+        perf = bo.history_container.incumbent_value
+        runs = [bo.configurations, bo.perfs]
+    elif mode.startswith('tlbo'):
+        _, gp_fusion = mode.split('_')
         meta_feature_vec = metafeature_dict[dataset]
         past_datasets = test_datasets.copy()
         if dataset in past_datasets:
@@ -165,32 +180,25 @@ def evaluate(dataset, run_id, metric):
 
         gp_models = [gp_models_dict[dataset_name] for dataset_name in past_datasets]
         tlbo = TLBO(objective_function, hyper_space, past_history, gp_models=gp_models,
-                    dataset_metafeature=meta_feature_vec, max_runs=max_runs)
+                    dataset_metafeature=meta_feature_vec, max_runs=max_runs, gp_fusion=gp_fusion)
         tlbo.run()
         print('TLBO result')
         print(tlbo.get_incumbent())
+        runs = [tlbo.configurations, tlbo.perfs]
         perf = tlbo.history_container.incumbent_value
     else:
         raise ValueError('Invalid mode.')
-    return perf
-
-
-def write_down(dataset, result):
-    with open('test/bayesian_opt/%s_result_%d_%d_%s.pkl' % (mode, max_runs, rep, dataset), 'wb') as f:
-        pk.dump(result, f)
+    with open(data_dir + '%s_%s_result_%d_%d.pkl' % (mode, dataset, max_runs, run_id), 'wb') as f:
+        pk.dump([perf, runs], f)
 
 
 for dataset in datasets:
     if plot_mode != 1:
-        result = list()
-        for run_id in range(rep):
-            perf = evaluate(dataset, run_id, metric)
-            result.append(perf)
-        mean_res = np.mean(result)
-        std_res = np.std(result)
-        print(dataset, mean_res, std_res)
-        write_down(dataset, [dataset, mean_res, std_res])
+        for run_id in range(start_id, start_id + rep):
+            evaluate(dataset, run_id, metric)
     else:
-        with open('test/bayesian_opt/%s_result_%d_%d_%s.pkl' % (mode, max_runs, rep, dataset), 'rb') as f:
+        with open(data_dir + '%s_result_%d_%d_%s.pkl' % (mode, max_runs, rep, dataset), 'rb') as f:
             data = pk.load(f)
-        print(data[0], '%.4f\u00B1%.4f' % (data[1], data[2]))
+        data = [item[0] for item in data]
+        mu, std = np.mean(data), np.std(data)
+        print(data[0], '%.4f\u00B1%.4f' % (mu, std))

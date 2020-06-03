@@ -1,3 +1,4 @@
+import time
 import typing
 import numpy as np
 
@@ -97,12 +98,17 @@ class GaussianProcessEnsemble(BaseModel):
             configspace: ConfigurationSpace,
             past_runhistory: typing.List,
             gp_models: typing.List[GaussianProcess] = None,
+            gp_fusion: str = 'indp_aspt',
+            n_steps_update: int = 2,
             seed: int = 1,
             **kwargs
     ):
         _, rng = get_rng(seed)
         types, bounds = get_types(configspace, instance_features=None)
         self.past_runhistory = past_runhistory
+        self.gp_fusion = gp_fusion
+        self.n_steps_update = n_steps_update
+        assert self.gp_fusion in ['indp_aspt', 'gpoe', 'no_unct']
         super().__init__(configspace=configspace, types=types, bounds=bounds, seed=seed, **kwargs)
 
         self.n_init_configs = list()
@@ -110,6 +116,7 @@ class GaussianProcessEnsemble(BaseModel):
         self.model_weights = None
         self.ignore_flag = None
         self.gp_models = gp_models
+        self.weight_update_id = 0
         self._init()
 
     def _init(self):
@@ -136,6 +143,7 @@ class GaussianProcessEnsemble(BaseModel):
         self.model_weights = np.array([1]*self.n_runhistory + [0]) / self.n_runhistory
 
     def _update_weights(self, X: np.ndarray, y: np.ndarray):
+        _start_time = time.time()
         n_instance = X.shape[0]
         n_fold = 5
         predictive_mu, predictive_std = list(), list()
@@ -207,6 +215,7 @@ class GaussianProcessEnsemble(BaseModel):
             median = sorted(ranking_loss_hist[:, i])[int(n_sampling * 0.5)]
             self.ignore_flag[i] = median > threshold
         print(self.ignore_flag)
+        print('Updating weights took %d sec.' % (time.time() - _start_time))
 
     def _train(self, X: np.ndarray, y: np.ndarray):
         """
@@ -228,7 +237,9 @@ class GaussianProcessEnsemble(BaseModel):
         self.target_model.train(X, y)
 
         self.is_trained = True
-        self._update_weights(X, y)
+        if self.weight_update_id % self.n_steps_update == 0:
+            self._update_weights(X, y)
+        self.weight_update_id += 1
 
     def _predict(self, X_test: np.ndarray):
         r"""
@@ -258,14 +269,39 @@ class GaussianProcessEnsemble(BaseModel):
             mu, var = self.target_model.predict(X_test)
 
         # Target surrogate predictions with weight.
-        mu *= self.model_weights[-1]
-        # var *= np.power(self.model_weights[-1], 2)
+        if self.gp_fusion in ['indp_aspt', 'no_unct']:
+            mu *= self.model_weights[-1]
+            if self.gp_fusion == 'indp_aspt':
+                var *= np.power(self.model_weights[-1], 2)
 
-        # Base surrogate predictions with corresponding weights.
-        for i in range(0, self.n_runhistory):
-            if not self.ignore_flag[i]:
-                _w = self.model_weights[i]
-                _mu, _var = self.gp_models[i].predict(X_test)
-                mu += _w * _mu
-                # var += _w * _w * _var
-        return mu, var
+            # Base surrogate predictions with corresponding weights.
+            for i in range(0, self.n_runhistory):
+                if not self.ignore_flag[i]:
+                    _w = self.model_weights[i]
+                    _mu, _var = self.gp_models[i].predict(X_test)
+                    mu += _w * _mu
+                    if self.gp_fusion == 'indp_aspt':
+                        var += _w * _w * _var
+            return mu, var
+        else:
+            m = self.n_runhistory + 1
+            mu_, var_ = np.zeros((n, m)), np.zeros((n, m))
+            mu_t, var_t = mu.flatten(), var.flatten()
+
+            var_[:, -1] = 1. / var_t * self.model_weights[-1]
+            mu_[:, -1] = 1. / var_t * mu_t * self.model_weights[-1]
+
+            # Predictions from basic surrogates.
+            for i in range(self.n_runhistory):
+                mu_t, var_t = self.gp_models[i].predict(X_test)
+                mu_t, var_t = mu_t.flatten(), var_t.flatten()
+
+                # compute the gaussian experts.
+                var_[:, i] = 1. / var_t * self.model_weights[i]
+                mu_[:, i] = 1. / var_t * mu_t * self.model_weights[i]
+
+            var = 1. / np.sum(var_, axis=1)
+            mu = np.sum(mu_, axis=1) * var
+            assert np.isfinite(var).all()
+            assert np.isfinite(mu).all()
+            return mu.reshape((-1, 1)), var.reshape((-1, 1))
