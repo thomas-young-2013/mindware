@@ -151,5 +151,5 @@ class BO(BaseFacade):
             random_configuration_chooser=self.random_configuration_chooser
         )
         config = list(challengers)[0]
-        assert config.origin != 'Random Search'
+        # assert config.origin != 'Random Search'
         return config
