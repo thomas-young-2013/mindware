@@ -124,8 +124,11 @@ class BO(BaseFacade):
                 self.failed_configurations.append(config)
         else:
             self.logger.debug('This configuration has been evaluated! Skip it.')
-            config_idx = self.configurations.index(config)
-            perf = self.perfs[config_idx]
+            if config in self.configurations:
+                config_idx = self.configurations.index(config)
+                trial_state, perf = SUCCESS, self.perfs[config_idx]
+            else:
+                trial_state, perf = FAILDED, MAXINT
 
         self.iteration_id += 1
         print(self.iteration_id)
