@@ -14,22 +14,20 @@ from solnml.datasets.utils import load_data
 from solnml.components.metrics.metric import get_metric
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--start_id', type=int, default=0)
-parser.add_argument('--rep', type=int, default=1)
+parser.add_argument('--iter', type=int, default=100)
 parser.add_argument('--datasets', type=str, default='diabetes')
 parser.add_argument('--metric', type=str, default='bal_acc')
 parser.add_argument('--algo', type=str, default='random_forest')
 args = parser.parse_args()
 
 datasets = args.datasets.split(',')
-start_id, rep = args.start_id, args.rep
 save_dir = './data/config_res/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
 
-def evaluate_ml_algorithm(dataset, algo, run_id, obj_metric, seed=1, task_type=None):
-    print('EVALUATE-%s-%s-%s: run_id=%d' % (dataset, algo, obj_metric, run_id))
+def evaluate_ml_algorithm(dataset, algo, obj_metric, seed=1, task_type=None):
+    print('EVALUATE-%s-%s-%s' % (dataset, algo, obj_metric))
     train_data = load_data(dataset, task_type=task_type, datanode_returned=True)
     print(set(train_data.data[1]))
     metric = get_metric(obj_metric)
@@ -47,13 +45,13 @@ def evaluate_ml_algorithm(dataset, algo, run_id, obj_metric, seed=1, task_type=N
                                   per_run_time_limit=600,
                                   per_run_mem_limit=5120,
                                   output_dir='./logs',
-                                  trials_per_iter=10)
+                                  trials_per_iter=args.iter)
     hpo_optimizer.iterate()
     hpo_eval_dict = dict()
     for key, value in hpo_optimizer.eval_dict.items():
         hpo_eval_dict[key[1]] = value
 
-    save_path = save_dir + '%s-%s-%s-%d-hpo.pkl' % (dataset, algo, obj_metric, run_id)
+    save_path = save_dir + '%s-%s-%s-hpo.pkl' % (dataset, algo, obj_metric)
     with open(save_path, 'wb') as f:
         pickle.dump(hpo_eval_dict, f)
 
@@ -77,21 +75,20 @@ if __name__ == "__main__":
 
     for dataset in datasets:
         np.random.seed(1)
-        seeds = np.random.randint(low=1, high=10000, size=start_id + rep)
+        seeds = np.random.randint(low=1, high=10000, size=1)
 
-        for run_id in range(start_id, start_id + rep):
-            seed = seeds[run_id]
-            try:
-                task_id = '%s-%s-%s-%d: %s' % (dataset, algo, metric, run_id, 'success')
-                evaluate_ml_algorithm(dataset, algo, run_id, metric,
-                                      seed=seed, task_type=task_type)
-            except Exception as e:
-                task_id = '%s-%s-%s-%d: %s' % (dataset, algo, metric, run_id, str(e))
+        seed = seeds[0]
+        try:
+            task_id = '%s-%s-%s: %s' % (dataset, algo, metric, 'success')
+            evaluate_ml_algorithm(dataset, algo, metric,
+                                  seed=seed, task_type=task_type)
+        except Exception as e:
+            task_id = '%s-%s-%s: %s' % (dataset, algo, metric, str(e))
 
-            print(task_id)
-            running_info.append(task_id)
-            with open(save_dir + log_filename, 'a') as f:
-                f.write('\n' + task_id)
+        print(task_id)
+        running_info.append(task_id)
+        with open(save_dir + log_filename, 'a') as f:
+            f.write('\n' + task_id)
 
     # Write down the error info.
     with open(save_dir + 'failed-%s' % log_filename, 'w') as f:
