@@ -5,7 +5,6 @@ import time
 import pickle
 import argparse
 import numpy as np
-import autosklearn.classification
 from tabulate import tabulate
 from sklearn.metrics import make_scorer
 
@@ -90,6 +89,7 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
 
 
 def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
+    import autosklearn.classification
     print('AUSK-%s-%d: %d' % (dataset, run_id, time_limit))
     if ausk_flag == 'eval_ausk_meta':
         alad = AlgorithmAdvisor(task_type=MULTICLASS_CLS, n_algorithm=9, metric='acc')
@@ -200,7 +200,7 @@ if __name__ == "__main__":
                         raise ValueError('Invalid parameter: %s' % mode)
         else:
             headers = ['dataset']
-            method_ids = ['hmab_fixed', 'eval_ausk_mens']
+            method_ids = ['hmab_fixed', 'eval_ausk_ens']
             for mth in method_ids:
                 headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
@@ -215,11 +215,12 @@ if __name__ == "__main__":
                         file_path = project_dir + '%s_%s_%d_%d_%d_%d_%d.pkl' % (
                             mth, dataset, trial_num, len(algorithms), seed, run_id, time_t)
                         if not os.path.exists(file_path):
+                            print(file_path)
                             continue
                         with open(file_path, 'rb') as f:
                             data = pickle.load(f)
                         if mth.startswith('hmab'):
-                            val_acc, test_acc = data[1], data[3]
+                            val_acc, test_acc = data[1], data[2]
                         else:
                             val_acc, test_acc = data[1], data[2]
                         results.append([val_acc, test_acc])
