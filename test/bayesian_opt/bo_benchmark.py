@@ -16,6 +16,8 @@ from solnml.components.utils.constants import MULTICLASS_CLS
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--algo', type=str, default='libsvm_svc')
+parser.add_argument('--mths', type=str, default='gp_bo,lite_bo,smac')
+parser.add_argument('--plot_mode', type=int, default=0)
 parser.add_argument('--datasets', type=str, default='splice')
 parser.add_argument('--n_jobs', type=int, default=2)
 
@@ -23,6 +25,8 @@ args = parser.parse_args()
 test_datasets = args.datasets.split(',')
 print(len(test_datasets))
 algo_name = args.algo
+mths = args.mths.split(',')
+plot_mode = args.plot_mode
 max_runs = 70
 rep = 10
 
@@ -112,13 +116,19 @@ def check_datasets(datasets, task_type=MULTICLASS_CLS):
 
 check_datasets(test_datasets)
 for dataset in test_datasets:
-    for mth in ['gp_bo', 'lite_bo', 'smac']:
-        result = list()
-        for run_id in range(rep):
-            perf_bo = evaluate(mth, dataset, run_id)
-            result.append(perf_bo)
-        mean_res = np.mean(result)
-        std_res = np.std(result)
-        print(dataset, mth, mean_res, std_res)
-        with open('data/bo_benchmark_%s_%s_%s.pkl' % (mth, algo_name, dataset), 'wb') as f:
-            pk.dump((dataset, mth, mean_res, std_res), f)
+    if plot_mode != 1:
+        for mth in mths:
+            result = list()
+            for run_id in range(rep):
+                perf_bo = evaluate(mth, dataset, run_id)
+                result.append(perf_bo)
+            mean_res = np.mean(result)
+            std_res = np.std(result)
+            print(dataset, mth, mean_res, std_res)
+            with open('data/bo_benchmark_%s_%s_%s.pkl' % (mth, algo_name, dataset), 'wb') as f:
+                pk.dump((dataset, mth, mean_res, std_res), f)
+    else:
+        for mth in mths:
+            with open('data/bo_benchmark_%s_%s_%s.pkl' % (mth, algo_name, dataset), 'rb') as f:
+                data = pk.load(f)
+            print(data[0], data[1], '%.4f\u00B1%.4f' % (data[2], data[3]))

@@ -16,27 +16,33 @@ class TLBO(BaseFacade):
     def __init__(self, objective_function,
                  config_space,
                  past_runhistory,
+                 gp_fusion: str = 'gpoe',
                  gp_models: typing.List=None,
                  dataset_metafeature=None,
+                 meta_warmstart: bool = False,
                  time_limit_per_trial=180,
                  max_runs=200,
-                 initial_runs=3,
+                 initial_runs=5,
                  task_id=None,
                  rng=None):
         super().__init__(config_space, task_id)
-        if rng is None:
-            _, rng = get_rng()
-        self.rng = rng
+        self.gp_fusion = gp_fusion
+        self.meta_warmstart = meta_warmstart
         self.past_runhistory = past_runhistory
-        self.meta_feature_scaler=None
+        self.meta_feature_scaler = None
         self.dataset_metafeature = dataset_metafeature
         self.init_num = initial_runs
         self.max_iterations = max_runs
+
         self.iteration_id = 0
-        self.sls_max_steps = None
+        self.sls_max_steps = 1000
         self.sls_n_steps_plateau_walk = 10
         self.time_limit_per_trial = time_limit_per_trial
         self.default_obj_value = MAXINT
+
+        if rng is None:
+            _, rng = get_rng()
+        self.rng = rng
 
         self.configurations = list()
         self.perfs = list()
@@ -44,27 +50,38 @@ class TLBO(BaseFacade):
         # Initialize the basic component in BO.
         self.objective_function = objective_function
         seed = rng.randint(MAXINT)
-        self.model = GaussianProcessEnsemble(config_space, past_runhistory, gp_models=gp_models, seed=seed)
-        self.initial_configurations = self.get_initial_configs()
-
+        self.model = GaussianProcessEnsemble(config_space, past_runhistory,
+                                             gp_fusion=gp_fusion,
+                                             gp_models=gp_models,
+                                             seed=seed)
         self.acquisition_function = EI(self.model)
         self.optimizer = InterleavedLocalAndRandomSearch(
                 acquisition_function=self.acquisition_function,
                 config_space=self.config_space,
                 rng=np.random.RandomState(seed=seed),
                 max_steps=self.sls_max_steps,
-                n_steps_plateau_walk=self.sls_n_steps_plateau_walk
+                n_steps_plateau_walk=self.sls_n_steps_plateau_walk,
+                n_sls_iterations=3
             )
         self._random_search = RandomSearch(
             self.acquisition_function, self.config_space, rng
         )
-        self.random_configuration_chooser = ChooserProb(prob=0., rng=rng)
+        self.random_configuration_chooser = ChooserProb(prob=0.5, rng=rng)
+        self.initial_configurations = self.get_initial_configs()
 
     def get_initial_configs(self):
         """
             runhistory format:
                 row: [ dataset_metafeature, list([[configuration, perf],[]]) ]
         """
+        if self.meta_warmstart is False:
+            init_configs = [self.config_space.get_default_configuration()]
+            while len(init_configs) < self.init_num:
+                _config = self._random_search.maximize(runhistory=self.history_container, num_points=1)[0]
+                if _config not in init_configs:
+                    init_configs.append(_config)
+            return init_configs
+
         from sklearn.preprocessing import MinMaxScaler
         meta_features = list()
         for _runhistory in self.past_runhistory:
@@ -159,7 +176,7 @@ class TLBO(BaseFacade):
 
         challengers = self.optimizer.maximize(
             runhistory=self.history_container,
-            num_points=2000,
+            num_points=1000,
             random_configuration_chooser=self.random_configuration_chooser
         )
         return list(challengers)[0]
