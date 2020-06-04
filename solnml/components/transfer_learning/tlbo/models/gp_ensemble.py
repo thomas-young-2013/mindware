@@ -127,7 +127,9 @@ class GaussianProcessEnsemble(BaseModel):
         if self.surrogate_model == 'gp':
             _model = create_gp_model(self.configspace)
         else:
-            _model = RandomForestWithInstances(self.configspace, seed=self.rng.randint(MAXINT))
+            _model = RandomForestWithInstances(self.configspace,
+                                               normalize_y=True,
+                                               seed=self.rng.randint(MAXINT))
         return _model
 
     def _init(self):

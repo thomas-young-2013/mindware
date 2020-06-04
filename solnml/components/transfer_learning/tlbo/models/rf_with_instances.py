@@ -31,6 +31,7 @@ class RandomForestWithInstances(AbstractModel):
     """
 
     def __init__(self, config_space,
+                 normalize_y: bool = True,
                  log_y: bool=False,
                  num_trees: int=N_TREES,
                  do_bootstrapping: bool=True,
@@ -83,6 +84,7 @@ class RandomForestWithInstances(AbstractModel):
         types, bounds = get_types(config_space, instance_features=None)
         super().__init__(config_space, types, bounds, seed, **kwargs)
 
+        self.normalize_y = normalize_y
         self.log_y = log_y
         self.rng = regression.default_random_engine(seed)
 
@@ -128,6 +130,8 @@ class RandomForestWithInstances(AbstractModel):
 
         self.X = X
         self.y = y.flatten()
+        if self.normalize_y:
+            self.y = self._normalize_y(self.y)
 
         if self.n_points_per_tree <= 0:
             self.rf_opts.num_data_points_per_tree = self.X.shape[0]

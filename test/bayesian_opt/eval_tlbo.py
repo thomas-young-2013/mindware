@@ -97,7 +97,7 @@ def pretrain_gp_models(config_space):
     for dataset, hist in zip(test_datasets, runhistory):
         # _model = create_gp_model(config_space)
         _, rng = get_rng(1)
-        _model = RandomForestWithInstances(config_space, seed=rng.randint(MAXINT))
+        _model = RandomForestWithInstances(config_space, seed=rng.randint(MAXINT), normalize_y=True)
         X = list()
         for row in hist[1]:
             conf_vector = convert_configurations_to_array([row[0]])[0]
@@ -207,7 +207,8 @@ for dataset in datasets:
             evaluate(dataset, run_id, metric)
     else:
         print('='*10)
-        cmp_methods = ['tlbo_gpoe', 'tlbo_no-unct', 'tlbo_indp-aspt', 'lite_bo']
+        # cmp_methods = ['tlbo_gpoe', 'tlbo_no-unct', 'tlbo_indp-aspt', 'lite_bo']
+        cmp_methods = ['tlbo_no-unct', 'lite_bo']
         perfs = list()
         for mth in cmp_methods:
             _result = list()

@@ -14,50 +14,6 @@ class BaseModel(AbstractModel):
 
         self.rng = np.random.RandomState(seed)
 
-    def _normalize_y(self, y: np.ndarray) -> np.ndarray:
-        """Normalize data to zero mean unit standard deviation.
-
-        Parameters
-        ----------
-        y : np.ndarray
-            Targets for the Gaussian process
-
-        Returns
-        -------
-        np.ndarray
-        """
-        self.mean_y_ = np.mean(y)
-        self.std_y_ = np.std(y)
-        if self.std_y_ == 0:
-            self.std_y_ = 1
-        return (y - self.mean_y_) / self.std_y_
-
-    def _untransform_y(
-        self,
-        y: np.ndarray,
-        var: Optional[np.ndarray] = None,
-    ) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
-        """Transform zeromean unit standard deviation data into the regular space.
-
-        This function should be used after a prediction with the Gaussian process which was trained on normalized data.
-
-        Parameters
-        ----------
-        y : np.ndarray
-            Normalized data.
-        var : np.ndarray (optional)
-            Normalized variance
-
-        Returns
-        -------
-        np.ndarray on Tuple[np.ndarray, np.ndarray]
-        """
-        y = y * self.std_y_ + self.mean_y_
-        if var is not None:
-            var = var * self.std_y_ ** 2
-            return y, var
-        return y
-
     def _get_all_priors(
         self,
         add_bound_priors: bool = True,

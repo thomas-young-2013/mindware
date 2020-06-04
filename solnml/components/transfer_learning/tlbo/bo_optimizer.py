@@ -69,7 +69,7 @@ class BO(BaseFacade):
         if self.surrogate_model == 'gp':
             self.model = create_gp_model(config_space, rng)
         elif self.surrogate_model == 'prob_rf':
-            self.model = RandomForestWithInstances(config_space, seed=rng.randint(MAXINT))
+            self.model = RandomForestWithInstances(config_space, seed=rng.randint(MAXINT), normalize_y=True)
         else:
             raise ValueError('Unsupported surrogate model - %s!' % self.surrogate_model)
 
