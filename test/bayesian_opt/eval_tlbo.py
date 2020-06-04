@@ -32,7 +32,7 @@ test_datasets = ['splice', 'segment', 'abalone', 'delta_ailerons', 'space_ga',
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--benchmark', type=str, default='fe')
-parser.add_argument('--mth', type=str, default='tlbo_no-unct')
+parser.add_argument('--mths', type=str, default='lite_bo,tlbo_no-unct')
 parser.add_argument('--plot_mode', type=int, default=0)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--rep', type=int, default=10)
@@ -50,7 +50,7 @@ metric = 'acc'
 rep = args.rep
 start_id = args.start_id
 max_runs = args.max_runs
-mode = args.mth
+mths = args.mths.split(',')
 datasets = args.datasets.split(',')
 plot_mode = args.plot_mode
 if not os.path.exists(data_dir):
@@ -86,7 +86,7 @@ with open(hist_dir + '../metafeature.pkl', 'rb') as f:
 def load_runhistory(dataset_names):
     runhistory = list()
     for dataset in dataset_names:
-        _filename = '%s-%s-%s-%d-%s.pkl' % (dataset, 'random_forest', 'acc', 0, task_id)
+        _filename = '%s-%s-%s-%d-%s.pkl' % (dataset, 'random_forest', metric, 0, task_id)
         with open(hist_dir + _filename, 'rb') as f:
             data = pk.load(f)
         runhistory.append((metafeature_dict[dataset], list(data.items())))
@@ -142,17 +142,21 @@ def get_configspace():
 
 eval_result = list()
 config_space = get_configspace()
-if mode.startswith('tlbo') and plot_mode != 1:
+if plot_mode != 1:
     gp_models_dict = pretrain_gp_models(config_space)
 
 
-def evaluate(dataset, run_id, metric):
-    print(dataset, run_id, metric)
+def evaluate(mode, dataset, run_id, metric):
+    print(mode, dataset, run_id, metric)
 
     metric = get_metric(metric)
     train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
 
-    default_hpo_config = config_space.get_default_configuration()
+    cs = _classifiers[algo_name].get_hyperparameter_search_space()
+    model = UnParametrizedHyperparameter("estimator", algo_name)
+    cs.add_hyperparameter(model)
+    default_hpo_config = cs.get_default_configuration()
+
     fe_evaluator = ClassificationEvaluator(default_hpo_config, scorer=metric,
                                            name='fe', resampling_strategy='holdout',
                                            seed=1)
@@ -178,7 +182,7 @@ def evaluate(dataset, run_id, metric):
             return hpo_evaluator(config)
 
     if mode == 'bo':
-        bo = BO(objective_function, config_space, max_runs=max_runs)
+        bo = BO(objective_function, config_space, max_runs=max_runs, surrogate_model='prob_rf')
         bo.run()
         print('BO result')
         print(bo.get_incumbent())
@@ -211,24 +215,34 @@ def evaluate(dataset, run_id, metric):
         perf = tlbo.history_container.incumbent_value
     else:
         raise ValueError('Invalid mode.')
-    with open(data_dir + '%s_%s_result_%d_%d.pkl' % (mode, dataset, max_runs, run_id), 'wb') as f:
+    if benchmark == 'fe':
+        file_saved = '%s_%s_result_%d_%d.pkl' % (mode, dataset, max_runs, run_id)
+    else:
+        file_saved = '%s_%s_result_%d_%d_%s.pkl' % (mode, dataset, max_runs, run_id, benchmark)
+    with open(data_dir + file_saved, 'wb') as f:
         pk.dump([perf, runs], f)
 
 
 for dataset in datasets:
     if plot_mode != 1:
-        for run_id in range(start_id, start_id + rep):
-            evaluate(dataset, run_id, metric)
+        for mth in mths:
+            for run_id in range(start_id, start_id + rep):
+                evaluate(mth, dataset, run_id, metric)
     else:
         print('='*10)
         # cmp_methods = ['tlbo_gpoe', 'tlbo_no-unct', 'tlbo_indp-aspt', 'lite_bo']
-        cmp_methods = ['tlbo_no-unct', 'lite_bo']
+        cmp_methods = mths
         perfs = list()
         for mth in cmp_methods:
             _result = list()
             _runs = list()
             for run_id in range(start_id, start_id + rep):
-                with open(data_dir + '%s_%s_result_%d_%d.pkl' % (mth, dataset, max_runs, run_id), 'rb') as f:
+                if benchmark == 'fe':
+                    file_saved = '%s_%s_result_%d_%d.pkl' % (mth, dataset, max_runs, run_id)
+                else:
+                    file_saved = '%s_%s_result_%d_%d_%s.pkl' % (mth, dataset, max_runs, run_id, benchmark)
+
+                with open(data_dir + file_saved, 'rb') as f:
                     perf, runs = pk.load(f)
                 _result.append(perf)
                 inc_seq = get_increasing_sequence(-np.array(runs[1]))
