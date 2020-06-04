@@ -31,7 +31,8 @@ test_datasets = ['splice', 'segment', 'abalone', 'delta_ailerons', 'space_ga',
                  'analcatdata_supreme', 'balloon', 'waveform-5000(2)', 'gina_prior2']
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--mth', type=str, default='tlbo')
+parser.add_argument('--benchmark', type=str, default='fe')
+parser.add_argument('--mth', type=str, default='tlbo_no-unct')
 parser.add_argument('--plot_mode', type=int, default=0)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--rep', type=int, default=10)
@@ -42,7 +43,8 @@ args = parser.parse_args()
 
 data_dir = 'data/tlbo/'
 hist_dir = 'test/bayesian_opt/runhistory/config_res/'
-task_id = 'fe'
+benchmark = args.benchmark
+task_id = benchmark
 algo_name = 'random_forest'
 metric = 'acc'
 rep = args.rep
@@ -112,6 +114,12 @@ def pretrain_gp_models(config_space):
 
 
 def get_configspace():
+    if benchmark == 'hpo':
+        cs = _classifiers[algo_name].get_hyperparameter_search_space()
+        model = UnParametrizedHyperparameter("estimator", algo_name)
+        cs.add_hyperparameter(model)
+        return cs
+
     train_data, test_data = load_train_test_data('splice', task_type=MULTICLASS_CLS)
     cs = _classifiers[algo_name].get_hyperparameter_search_space()
     model = UnParametrizedHyperparameter("estimator", algo_name)
@@ -144,13 +152,16 @@ def evaluate(dataset, run_id, metric):
     metric = get_metric(metric)
     train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
 
-    cs = _classifiers[algo_name].get_hyperparameter_search_space()
-    model = UnParametrizedHyperparameter("estimator", algo_name)
-    cs.add_hyperparameter(model)
-    default_hpo_config = cs.get_default_configuration()
+    default_hpo_config = config_space.get_default_configuration()
     fe_evaluator = ClassificationEvaluator(default_hpo_config, scorer=metric,
                                            name='fe', resampling_strategy='holdout',
                                            seed=1)
+
+    hpo_evaluator = ClassificationEvaluator(default_hpo_config, scorer=metric,
+                                            data_node=train_data, name='hpo',
+                                            resampling_strategy='holdout',
+                                            seed=1)
+
     fe_optimizer = BayesianOptimizationOptimizer(task_type=CLASSIFICATION,
                                                  input_data=train_data,
                                                  evaluator=fe_evaluator,
@@ -159,12 +170,15 @@ def evaluate(dataset, run_id, metric):
                                                  mem_limit_per_trans=5120,
                                                  number_of_unit_resource=10,
                                                  seed=1)
-    hyper_space = fe_optimizer.hyperparameter_space
 
     def objective_function(config):
-        return fe_optimizer.evaluate_function(config)
+        if benchmark == 'fe':
+            return fe_optimizer.evaluate_function(config)
+        else:
+            return hpo_evaluator(config)
+
     if mode == 'bo':
-        bo = BO(objective_function, hyper_space, max_runs=max_runs)
+        bo = BO(objective_function, config_space, max_runs=max_runs)
         bo.run()
         print('BO result')
         print(bo.get_incumbent())
@@ -172,7 +186,7 @@ def evaluate(dataset, run_id, metric):
         runs = [bo.configurations, bo.perfs]
     elif mode == 'lite_bo':
         from litebo.facade.bo_facade import BayesianOptimization
-        bo = BayesianOptimization(objective_function, hyper_space, max_runs=max_runs)
+        bo = BayesianOptimization(objective_function, config_space, max_runs=max_runs)
         bo.run()
         print('BO result')
         print(bo.get_incumbent())
@@ -187,7 +201,7 @@ def evaluate(dataset, run_id, metric):
         past_history = load_runhistory(past_datasets)
 
         gp_models = [gp_models_dict[dataset_name] for dataset_name in past_datasets]
-        tlbo = TLBO(objective_function, hyper_space, past_history, gp_models=gp_models,
+        tlbo = TLBO(objective_function, config_space, past_history, gp_models=gp_models,
                     dataset_metafeature=meta_feature_vec,
                     max_runs=max_runs, gp_fusion=gp_fusion)
         tlbo.run()
