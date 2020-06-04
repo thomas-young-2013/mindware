@@ -45,6 +45,7 @@ class TLBO(BaseFacade):
         self.rng = rng
 
         self.configurations = list()
+        self.failed_configurations = list()
         self.perfs = list()
 
         # Initialize the basic component in BO.
@@ -130,7 +131,7 @@ class TLBO(BaseFacade):
         trial_state = SUCCESS
         trial_info = None
 
-        if config not in self.configurations:
+        if config not in (self.configurations + self.failed_configurations):
             # Evaluate this configuration.
             try:
                 with time_limit(self.time_limit_per_trial):
@@ -142,10 +143,13 @@ class TLBO(BaseFacade):
 
             if len(self.configurations) == 0:
                 self.default_obj_value = perf
-            self.configurations.append(config)
-            self.perfs.append(perf)
-            if trial_state == SUCCESS:
+
+            if trial_state == SUCCESS and perf < MAXINT:
+                self.configurations.append(config)
+                self.perfs.append(perf)
                 self.history_container.add(config, perf)
+            else:
+                self.failed_configurations.append(config)
         else:
             self.logger.debug('This configuration has been evaluated! Skip it.')
             config_idx = self.configurations.index(config)

@@ -103,8 +103,8 @@ def pretrain_gp_models(config_space):
             conf_vector = convert_configurations_to_array([row[0]])[0]
             X.append(conf_vector)
         X = np.array(X)
-        y = np.array([row[1] for row in hist[1]]).reshape(-1, 1)
-
+        # Turning it to a minimization problem.
+        y = -np.array([row[1] for row in hist[1]]).reshape(-1, 1)
         _model.train(X, y)
         gp_models[dataset] = _model
         print('%s: training basic GP model finished.' % dataset)

@@ -85,7 +85,7 @@ class BO(BaseFacade):
             self.acquisition_function, self.config_space, rng
         )
         # Disable random configuration.
-        self.random_configuration_chooser = ChooserProb(prob=0., rng=rng)
+        self.random_configuration_chooser = ChooserProb(prob=0.5, rng=rng)
 
     def run(self):
         while self.iteration_id < self.max_iterations:
