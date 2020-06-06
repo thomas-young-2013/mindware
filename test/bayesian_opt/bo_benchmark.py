@@ -31,10 +31,13 @@ max_runs = 70
 rep = 10
 
 
-def get_configspace():
-    cs = _classifiers[algo_name].get_hyperparameter_search_space()
-    model = UnParametrizedHyperparameter("estimator", algo_name)
-    cs.add_hyperparameter(model)
+def get_configspace(optimizer='smac'):
+    cs = _classifiers[algo_name].get_hyperparameter_search_space(optimizer=optimizer)
+    if optimizer == 'smac':
+        model = UnParametrizedHyperparameter("estimator", algo_name)
+        cs.add_hyperparameter(model)
+    else:
+        cs['estimator'] = algo_name
     return cs
 
 
@@ -60,6 +63,14 @@ def evaluate(mth, dataset, run_id):
     def objective_function(config):
         metric = get_metric('bal_acc')
         _, estimator = get_estimator(config.get_dictionary())
+        X_train, y_train = train_data.data
+        X_test, y_test = test_data.data
+        estimator.fit(X_train, y_train)
+        return -metric(estimator, X_test, y_test)
+
+    def tpe_objective_function(config):
+        metric = get_metric('bal_acc')
+        _, estimator = get_estimator(config)
         X_train, y_train = train_data.data
         X_test, y_test = test_data.data
         estimator.fit(X_train, y_train)
@@ -101,6 +112,13 @@ def evaluate(mth, dataset, run_id):
         perf_bo = objective_function(incumbent)
         print('SMAC BO result')
         print(perf_bo)
+    elif mth == 'tpe':
+        config_space = get_configspace('tpe')
+        from hyperopt import tpe, fmin, Trials
+        trials = Trials()
+        fmin(tpe_objective_function, config_space, tpe.suggest, max_runs, trials=trials)
+        perfs = [trial['result']['loss'] for trial in trials.trials]
+        perf_bo = min(perfs)
     else:
         raise ValueError('Invalid method.')
     return perf_bo
