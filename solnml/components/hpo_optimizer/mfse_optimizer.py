@@ -70,7 +70,7 @@ class MfseOptimizer(BaseHPOptimizer):
         self.weighted_acquisition_func = EI(model=self.weighted_surrogate)
         self.weighted_acq_optimizer = RandomSampling(self.weighted_acquisition_func,
                                                      config_space,
-                                                     n_samples=max(500, 50 * self.num_config),
+                                                     n_samples=max(1000, 50 * self.num_config),
                                                      rng=np.random.RandomState(seed))
         self.eval_dict = {}
 

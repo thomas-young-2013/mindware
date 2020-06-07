@@ -70,7 +70,7 @@ class MfseOptimizer(BayesianOptimizationOptimizer):
         init_weight = [0.]
         init_weight.extend([1. / self.s_max] * self.s_max)
         self.weighted_surrogate = WeightedRandomForestCluster(types, bounds, self.s_max,
-                                                              self.eta, init_weight, 'gpoe')
+                                                              self.eta, init_weight, 'idp')
         self.weight_changed_cnt = 0
         self.hist_weights = list()
         self.executor = ParallelEvaluator(self.evaluate_function, n_worker=n_jobs)

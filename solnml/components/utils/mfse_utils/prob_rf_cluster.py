@@ -42,6 +42,14 @@ class WeightedRandomForestCluster(AbstractEPM):
                 means += self.surrogate_weight[r] * mean
                 vars += self.surrogate_weight[r] * self.surrogate_weight[r] * var
             return means.reshape((-1, 1)), vars.reshape((-1, 1))
+        elif self.fusion == 'unct_ignore':
+            means, vars = np.zeros((X.shape[0], 1)), np.zeros((X.shape[0], 1))
+            for r in self.surrogate_r:
+                mean, var = self.surrogate_container[r].predict(X)
+                means += self.surrogate_weight[r] * mean
+                if r == self.surrogate_r[-1]:
+                    vars = var
+            return means.reshape((-1, 1)), vars.reshape((-1, 1))
         elif self.fusion == 'gpoe':
             n = X.shape[0]
             m = len(self.surrogate_r)

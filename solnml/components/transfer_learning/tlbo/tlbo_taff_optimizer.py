@@ -42,7 +42,7 @@ class TLBO_AF(BaseFacade):
     def __init__(self, objective_function,
                  config_space,
                  past_runhistory,
-                 acq_method = 'taff',
+                 acq_method='taff',
                  dataset_metafeature=None,
                  meta_warmstart: bool = False,
                  time_limit_per_trial=180,
