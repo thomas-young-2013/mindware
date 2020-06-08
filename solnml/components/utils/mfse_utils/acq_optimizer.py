@@ -80,5 +80,5 @@ class RandomSampling(BaseOptimizer):
         y = self.objective_func(X)
         if batch_size == 1:
             return [configs_list[np.argmax(y)]]
-        candidate_idxs = np.argsort(-y)[:batch_size]
+        candidate_idxs = list(np.argsort(-y)[:batch_size])
         return [configs_list[idx] for idx in candidate_idxs]
