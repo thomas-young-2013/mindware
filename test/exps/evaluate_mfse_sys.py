@@ -30,7 +30,7 @@ parser.add_argument('--seed', type=int, default=1)
 project_dir = './data/meta_exp/'
 per_run_time_limit = 120
 opt_algo = 'fixed'
-hmab_flag = 'hmab'
+hmab_flag = 'mfse'
 ausk_flag = 'eval_ausk_ens'
 assert ausk_flag in ['eval_ausk_meta', 'eval_ausk_full', 'eval_ausk_vanilla', 'eval_ausk_ens']
 if not os.path.exists(project_dir):
@@ -60,15 +60,12 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
                               seed=seed,
                               time_limit=time_limit,
                               eval_type='partial')
-    while time.time()-_start_time<time_limit:
-        bandit.sub_bandits['random_forest'].optimizer['fe'].iterate()
-        # print(bandit.sub_bandits['random_forest'].optimizer['hpo'].exp_output)
-    # bandit.optimize()
+    # while time.time()-_start_time<time_limit:
+    #     bandit.sub_bandits['random_forest'].optimizer['fe'].iterate()
+    #     # print(bandit.sub_bandits['random_forest'].optimizer['hpo'].exp_output)
+    bandit.optimize()
     fe_exp_output = bandit.sub_bandits['random_forest'].optimizer['fe'].exp_output
     hpo_exp_output = bandit.sub_bandits['random_forest'].optimizer['hpo'].exp_output
-    # print(fe_exp_output)
-    # print(hpo_exp_output)
-    exit(0)
 
     validation_accuracy = np.max(bandit.final_rewards)
     best_pred = bandit._best_predict(test_data)
@@ -78,9 +75,8 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
     es_pred = bandit._es_predict(test_data)
     test_accuracy_with_ens = balanced_accuracy(test_data.data[1], es_pred)
 
-    data = [dataset, validation_accuracy, test_accuracy, test_accuracy_with_ens, time_taken, model_desc]
-    print(model_desc)
-    print(data)
+    data = [dataset, validation_accuracy, test_accuracy, test_accuracy_with_ens, fe_exp_output, hpo_exp_output,
+            _start_time]
 
     save_path = project_dir + '%s_%s_%s_%d_%d_%d_%d_%d.pkl' % (
         hmab_flag, opt_algo, dataset, trial_num, len(algorithms), seed, run_id, time_limit)
@@ -204,7 +200,8 @@ if __name__ == "__main__":
                         raise ValueError('Invalid parameter: %s' % mode)
         else:
             headers = ['dataset']
-            method_ids = ['hmab_fixed', 'eval_ausk_ens']
+            # method_ids = ['mfse', 'eval_ausk_ens']
+            method_ids = ['mfse_fixed']
             for mth in method_ids:
                 headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
@@ -227,6 +224,19 @@ if __name__ == "__main__":
                             val_acc, test_acc = data[1], data[2]
                         else:
                             val_acc, test_acc = data[1], data[2]
+                        fe_output = data[4]
+                        hpo_output = data[5]
+                        # start_time = data[6]
+                        output = dict(fe_output, **hpo_output)
+                        plot_x, plot_y = list(), list()
+                        best_val = float('inf')
+                        for timestamp in output.keys():
+                            # plot_x.append(timestamp - start_time)
+                            cur_val = min(output[timestamp][2])
+                            if cur_val < best_val:
+                                best_val = cur_val
+                            plot_y.append(best_val)
+                        print(plot_y)
                         results.append([val_acc, test_acc])
                         # if mth.startswith('ausk'):
                         #     print('='*10)
