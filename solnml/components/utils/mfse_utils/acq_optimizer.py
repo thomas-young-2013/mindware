@@ -77,8 +77,9 @@ class RandomSampling(BaseOptimizer):
         configs_list.extend(rand_configs)
 
         X = np.concatenate((rand_incs, rand), axis=0)
-        y = self.objective_func(X)
-        if batch_size == 1:
-            return [configs_list[np.argmax(y)]]
+        y = self.objective_func(X).flatten()
         candidate_idxs = list(np.argsort(-y)[:batch_size])
+        # print(candidate_idxs)
+        # print(type(candidate_idxs))
+        # print(configs_list[:5])
         return [configs_list[idx] for idx in candidate_idxs]
