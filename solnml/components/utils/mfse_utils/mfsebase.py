@@ -81,7 +81,7 @@ class MfseBase:
         start_time = time.time()
         T = self.fetch_candidate_configurations(n)
         time_elapsed = time.time() - start_time
-        self.logger.info("Choosing next configurations took %.2f sec." % time_elapsed)
+        self.logger.info("Choosing next batch of configurations took %.2f sec." % time_elapsed)
 
         for i in range((s + 1) - int(skip_last)):  # changed from s + 1
 
@@ -91,13 +91,15 @@ class MfseBase:
             n_configs = n * self.eta ** (-i)
             n_resource = r * self.eta ** i
 
-            self.logger.info("MFSE: %d configurations x size %f each" %
-                             (int(n_configs), float(n_resource / self.R)))
+            self.logger.info("MFSE: %d configurations x size %d / %d each" %
+                             (int(n_configs), n_resource, self.R))
 
             val_losses = self.executor.parallel_execute(T, subsample_ratio=float(n_resource / self.R))
+            for _id, _val_loss in enumerate(val_losses):
+                if np.isfinite(_val_loss):
+                    self.target_x[int(n_resource)].append(T[_id])
+                    self.target_y[int(n_resource)].append(_val_loss)
 
-            self.target_x[int(n_resource)].extend(T)
-            self.target_y[int(n_resource)].extend(val_losses)
             self.exp_output[time.time()] = (int(n_resource), T, val_losses)
 
             if int(n_resource) == self.R:
@@ -199,9 +201,9 @@ class MfseBase:
             ranking_loss_hist = list()
             for i, r in enumerate(r_list):
                 if i != K - 1:
-                    mean, var = self.weighted_surrogate.surrogate_container[r].predict(test_x)
-                    predictive_mu.append(mean)
-                    predictive_std.append(var)
+                    _mean, _var = self.weighted_surrogate.surrogate_container[r].predict(test_x)
+                    predictive_mu.append(_mean)
+                    predictive_std.append(np.sqrt(_var))
                 else:
                     fold_num = n_instance // n_fold
                     target_mu, target_std = list(), list()
