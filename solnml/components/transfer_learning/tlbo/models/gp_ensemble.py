@@ -205,15 +205,20 @@ class GaussianProcessEnsemble(BaseModel):
             # Compute ranking loss for target surrogate.
             rank_loss = 0
             if not skip_target_model:
-                fold_num = n_instance // n_fold
-                for i in range(n_fold):
-                    sampled_y = np.random.normal(predictive_mu[self.n_runhistory][i], predictive_std[self.n_runhistory][i])
-                    bound = (n_instance - i * fold_num) if i == (n_fold - 1) else fold_num
-                    start_id = fold_num*i
-                    for i in range(start_id, start_id + bound):
-                        for j in range(n_instance):
-                            if (y[i] < y[j]) ^ (sampled_y[i] < sampled_y[j]):
-                                rank_loss += 1
+                # fold_num = n_instance // n_fold
+                # for i in range(n_fold):
+                #     sampled_y = np.random.normal(predictive_mu[self.n_runhistory][i], predictive_std[self.n_runhistory][i])
+                #     bound = (n_instance - i * fold_num) if i == (n_fold - 1) else fold_num
+                #     start_id = fold_num*i
+                #     for i in range(start_id, start_id + bound):
+                #         for j in range(n_instance):
+                #             if (y[i] < y[j]) ^ (sampled_y[i] < sampled_y[j]):
+                #                 rank_loss += 1
+                sampled_y = np.random.normal(predictive_mu[self.n_runhistory], predictive_std[self.n_runhistory])
+                for i in range(len(y)):
+                    for j in range(len(y)):
+                        if (y[i] < y[j]) ^ (sampled_y[i] < sampled_y[j]):
+                            rank_loss += 1
             else:
                 rank_loss = len(y) * len(y)
             ranking_loss_list.append(rank_loss)
