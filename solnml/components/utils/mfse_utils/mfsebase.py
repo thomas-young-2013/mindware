@@ -1,5 +1,6 @@
 import time
 import numpy as np
+import random as rd
 from math import log, ceil
 from sklearn.model_selection import KFold
 from solnml.components.utils.mfse_utils.prob_rf import RandomForestWithInstances
@@ -63,9 +64,9 @@ class MfseBase:
         self.weighted_acquisition_func = EI(model=self.weighted_surrogate)
         self.weighted_acq_optimizer = RandomSampling(self.weighted_acquisition_func,
                                                      self.config_space,
-                                                     n_samples=1000,
+                                                     n_samples=2000,
                                                      rng=np.random.RandomState(seed))
-        self.eval_dict = {}
+        self.eval_dict = dict()
 
     def _mfse_iterate(self, s, skip_last=0):
         if self.weight_update_id > self.s_max:
@@ -137,19 +138,22 @@ class MfseBase:
         self.weighted_acquisition_func.update(model=self.weighted_surrogate, eta=incumbent)
 
         config_candidates = self.weighted_acq_optimizer.maximize(batch_size=num_config)
-        return config_candidates
-        # config_cnt, total_sample_cnt = 0, 0
-        # config_candidates = list()
-        # while config_cnt < num_config and total_sample_cnt < 3 * num_config:
-        #     _config = self.weighted_acq_optimizer.maximize(batch_size=1)[0]
-        #     if _config not in config_candidates:
-        #         config_candidates.append(_config)
-        #         config_cnt += 1
-        #     total_sample_cnt += 1
-        #
-        # if config_cnt < num_config:
-        #     config_candidates = expand_configurations(config_candidates, self.config_space, num_config)
-        # return config_candidates
+        p_threshold = 0.3
+        n_acq = self.eta * self.eta
+
+        if num_config <= n_acq:
+            return config_candidates
+
+        candidates = config_candidates[: n_acq]
+        idx_acq = n_acq
+        for _id in range(num_config - n_acq):
+            if rd.random() < p_threshold:
+                config = sample_configurations(self.config_space, 1)[0]
+            else:
+                config = config_candidates[idx_acq]
+                idx_acq += 1
+            candidates.append(config)
+        return candidates
 
     def update_weight(self):
         max_r = self.iterate_r[-1]
