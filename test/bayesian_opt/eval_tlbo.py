@@ -223,10 +223,7 @@ def evaluate(mode, dataset, run_id, metric):
         perf = tlbo.history_container.incumbent_value
     else:
         raise ValueError('Invalid mode.')
-    if benchmark == 'fe':
-        file_saved = '%s_%s_result_%d_%d.pkl' % (mode, dataset, max_runs, run_id)
-    else:
-        file_saved = '%s_%s_result_%d_%d_%s.pkl' % (mode, dataset, max_runs, run_id, benchmark)
+    file_saved = '%s_%s_%s_result_%d_%d_%s.pkl' % (mode, algo_name, dataset, max_runs, run_id, benchmark)
     with open(data_dir + file_saved, 'wb') as f:
         pk.dump([perf, runs], f)
 
@@ -245,10 +242,7 @@ for dataset in datasets:
             _result = list()
             _runs = list()
             for run_id in range(start_id, start_id + rep):
-                if benchmark == 'fe':
-                    file_saved = '%s_%s_result_%d_%d.pkl' % (mth, dataset, max_runs, run_id)
-                else:
-                    file_saved = '%s_%s_result_%d_%d_%s.pkl' % (mth, dataset, max_runs, run_id, benchmark)
+                file_saved = '%s_%s_%s_result_%d_%d_%s.pkl' % (mth, algo_name, dataset, max_runs, run_id, benchmark)
 
                 with open(data_dir + file_saved, 'rb') as f:
                     perf, runs = pk.load(f)

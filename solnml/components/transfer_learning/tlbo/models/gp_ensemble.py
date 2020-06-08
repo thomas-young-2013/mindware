@@ -178,9 +178,12 @@ class GaussianProcessEnsemble(BaseModel):
                 del instance_indexs[start_id: start_id+bound]
                 _target_model = self.create_basic_model()
                 _target_model.train(X[instance_indexs, :], y[instance_indexs])
-                _mu, _var = _target_model.predict(X)
-                target_mu.append(_mu)
-                target_std.append(np.sqrt(_var))
+                _mu, _var = _target_model.predict(X[start_id: start_id+bound])
+                target_mu.extend(_mu.flatten())
+                target_std.extend(np.sqrt(_var).flatten())
+                # target_mu.append(_mu)
+                # target_std.append(np.sqrt(_var))
+
             predictive_mu.append(target_mu)
             predictive_std.append(target_std)
 

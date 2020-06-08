@@ -63,31 +63,18 @@ class RandomSampling(BaseOptimizer):
         np.ndarray(N,D)
             Point with highest acquisition value.
         """
-        eta = 0.3
-        incs_num = int(eta * self.n_samples)
+
         incs_configs = list(
             get_one_exchange_neighbourhood(self.objective_func.eta['config'], seed=self.rng.randint(int(1e6))))
-        # TODO: need to implement
-        # extra_num = incs_num - len(incs_configs)
-        # if extra_num > 0:
-        #     incs_configs.extend(get_random_neighborhood(self.objective_func.eta['config'], extra_num, MAXINT))
 
         configs_list = list(incs_configs)
         rand_incs = convert_configurations_to_array(configs_list)
 
         # Sample random points uniformly over the whole space
-        # rand_configs = self.config_space.sample_configuration(self.n_samples - rand_incs.shape[0])
         rand_configs = sample_configurations(self.config_space, self.n_samples - rand_incs.shape[0])
         rand = convert_configurations_to_array(rand_configs)
 
         configs_list.extend(rand_configs)
-
-        # TODO: Put a Gaussian on the incumbent and sample from that (support categorical feature)
-        # loc = self.objective_func.model.get_incumbent()[0],
-        # scale = np.ones([self.lower.shape[0]]) * 0.1
-        # rand_incs = np.array([np.clip(np.random.normal(loc, scale), self.lower, self.upper)[0]
-        #                       for _ in range(int(self.n_samples * 0.3))])
-        #
 
         X = np.concatenate((rand_incs, rand), axis=0)
         y = self.objective_func(X)

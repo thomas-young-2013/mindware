@@ -9,7 +9,7 @@ from solnml.components.utils.mfse_utils.acquisition import EI
 from solnml.components.utils.mfse_utils.acq_optimizer import RandomSampling
 from solnml.components.utils.mfse_utils.prob_rf import RandomForestWithInstances
 from solnml.components.utils.mfse_utils.prob_rf_cluster import WeightedRandomForestCluster
-from solnml.components.utils.mfse_utils.funcs import get_types, minmax_normalization
+from solnml.components.utils.mfse_utils.funcs import get_types, minmax_normalization, std_normalization
 from solnml.components.utils.mfse_utils.config_space_utils import convert_configurations_to_array, \
     sample_configurations, expand_configurations
 
@@ -59,8 +59,7 @@ class MfseOptimizer(BaseHPOptimizer):
 
         types, bounds = get_types(config_space)
         self.num_config = len(bounds)
-        init_weight = [0.]
-        init_weight.extend([1. / self.s_max] * self.s_max)
+        init_weight = [1. / self.s_max] * self.s_max + [0.]
         self.weighted_surrogate = WeightedRandomForestCluster(types, bounds, self.s_max,
                                                               self.eta, init_weight, 'gpoe')
         self.weight_changed_cnt = 0
@@ -70,7 +69,7 @@ class MfseOptimizer(BaseHPOptimizer):
         self.weighted_acquisition_func = EI(model=self.weighted_surrogate)
         self.weighted_acq_optimizer = RandomSampling(self.weighted_acquisition_func,
                                                      config_space,
-                                                     n_samples=max(1000, 50 * self.num_config),
+                                                     n_samples=500,
                                                      rng=np.random.RandomState(seed))
         self.eval_dict = {}
 
@@ -140,8 +139,8 @@ class MfseOptimizer(BaseHPOptimizer):
             else:
                 T = [T[indices[0]]]
         for item in self.iterate_r[self.iterate_r.index(r):]:
-            # NORMALIZE Objective value: MinMax linear normalization
-            normalized_y = minmax_normalization(self.target_y[item])
+            # NORMALIZE Objective value: MinMax or std normalization
+            normalized_y = std_normalization(self.target_y[item])
             self.weighted_surrogate.train(convert_configurations_to_array(self.target_x[item]),
                                           np.array(normalized_y, dtype=np.float64), r=item)
 
@@ -149,21 +148,20 @@ class MfseOptimizer(BaseHPOptimizer):
         if len(self.target_y[self.iterate_r[-1]]) == 0:
             return sample_configurations(self.config_space, num_config)
 
-        config_cnt = 0
+        config_cnt, total_sample_cnt = 0, 0
         config_candidates = list()
-        total_sample_cnt = 0
+
+        incumbent = dict()
+        max_r = self.iterate_r[-1]
+        # LOWER, THE BETTER.
+        best_index = np.argmin(self.target_y[max_r])
+        incumbent['config'] = self.target_x[max_r][best_index]
+        approximate_obj = self.weighted_surrogate.predict(convert_configurations_to_array([incumbent['config']]))[0]
+        incumbent['obj'] = approximate_obj
+        self.weighted_acquisition_func.update(model=self.weighted_surrogate, eta=incumbent)
 
         while config_cnt < num_config and total_sample_cnt < 3 * num_config:
-            incumbent = dict()
-            max_r = self.iterate_r[-1]
-            best_index = np.argmin(self.target_y[max_r])
-            incumbent['config'] = self.target_x[max_r][best_index]
-            approximate_obj = self.weighted_surrogate.predict(convert_configurations_to_array([incumbent['config']]))[0]
-            incumbent['obj'] = approximate_obj
-
-            self.weighted_acquisition_func.update(model=self.weighted_surrogate, eta=incumbent)
             _config = self.weighted_acq_optimizer.maximize(batch_size=1)[0]
-
             if _config not in config_candidates:
                 config_candidates.append(_config)
                 config_cnt += 1
