@@ -127,9 +127,6 @@ class MfseBase:
         if len(self.target_y[self.iterate_r[-1]]) == 0:
             return sample_configurations(self.config_space, num_config)
 
-        config_cnt, total_sample_cnt = 0, 0
-        config_candidates = list()
-
         incumbent = dict()
         max_r = self.iterate_r[-1]
         # LOWER, THE BETTER.
@@ -140,6 +137,9 @@ class MfseBase:
         self.weighted_acquisition_func.update(model=self.weighted_surrogate, eta=incumbent)
 
         config_candidates = self.weighted_acq_optimizer.maximize(batch_size=num_config)
+        return config_candidates
+        # config_cnt, total_sample_cnt = 0, 0
+        # config_candidates = list()
         # while config_cnt < num_config and total_sample_cnt < 3 * num_config:
         #     _config = self.weighted_acq_optimizer.maximize(batch_size=1)[0]
         #     if _config not in config_candidates:
@@ -149,7 +149,7 @@ class MfseBase:
         #
         # if config_cnt < num_config:
         #     config_candidates = expand_configurations(config_candidates, self.config_space, num_config)
-        return config_candidates
+        # return config_candidates
 
     def update_weight(self):
         max_r = self.iterate_r[-1]
