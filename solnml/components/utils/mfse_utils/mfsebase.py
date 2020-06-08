@@ -49,8 +49,8 @@ class MfseBase:
         for index, item in enumerate(np.logspace(0, self.s_max, self.s_max + 1, base=self.eta)):
             r = int(item)
             self.iterate_r.append(r)
-            self.target_x[r] = []
-            self.target_y[r] = []
+            self.target_x[r] = list()
+            self.target_y[r] = list()
 
         types, bounds = get_types(self.config_space)
         self.num_config = len(bounds)
@@ -63,7 +63,7 @@ class MfseBase:
         self.weighted_acquisition_func = EI(model=self.weighted_surrogate)
         self.weighted_acq_optimizer = RandomSampling(self.weighted_acquisition_func,
                                                      self.config_space,
-                                                     n_samples=500,
+                                                     n_samples=1000,
                                                      rng=np.random.RandomState(seed))
         self.eval_dict = {}
 
@@ -117,6 +117,8 @@ class MfseBase:
                 T = [T[indices[0]]]
         for item in self.iterate_r[self.iterate_r.index(r):]:
             # NORMALIZE Objective value: Std normalization
+            if len(self.target_y[item]) == 0:
+                continue
             normalized_y = std_normalization(self.target_y[item])
             self.weighted_surrogate.train(convert_configurations_to_array(self.target_x[item]),
                                           np.array(normalized_y, dtype=np.float64), r=item)
@@ -137,15 +139,16 @@ class MfseBase:
         incumbent['obj'] = approximate_obj
         self.weighted_acquisition_func.update(model=self.weighted_surrogate, eta=incumbent)
 
-        while config_cnt < num_config and total_sample_cnt < 3 * num_config:
-            _config = self.weighted_acq_optimizer.maximize(batch_size=1)[0]
-            if _config not in config_candidates:
-                config_candidates.append(_config)
-                config_cnt += 1
-            total_sample_cnt += 1
-
-        if config_cnt < num_config:
-            config_candidates = expand_configurations(config_candidates, self.config_space, num_config)
+        config_candidates = self.weighted_acq_optimizer.maximize(batch_size=num_config)
+        # while config_cnt < num_config and total_sample_cnt < 3 * num_config:
+        #     _config = self.weighted_acq_optimizer.maximize(batch_size=1)[0]
+        #     if _config not in config_candidates:
+        #         config_candidates.append(_config)
+        #         config_cnt += 1
+        #     total_sample_cnt += 1
+        #
+        # if config_cnt < num_config:
+        #     config_candidates = expand_configurations(config_candidates, self.config_space, num_config)
         return config_candidates
 
     def update_weight(self):
@@ -245,7 +248,7 @@ class MfseBase:
                 old_weights.append(_weight)
             new_weights = old_weights.copy()
 
-        self.logger.info(' %d-th Updating weights: %s' % (self.weight_changed_cnt, str(new_weights)))
+        self.logger.info('Model weights[%d]: %s' % (self.weight_changed_cnt, str(new_weights)))
         # Assign the weight to each basic surrogate.
         for i, r in enumerate(r_list):
             self.weighted_surrogate.surrogate_weight[r] = new_weights[i]
