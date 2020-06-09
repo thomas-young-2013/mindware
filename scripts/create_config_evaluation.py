@@ -21,6 +21,7 @@ parser.add_argument('--algo', type=str, default='random_forest')
 args = parser.parse_args()
 
 datasets = args.datasets.split(',')
+algos=args.algo.split(',')
 save_dir = './data/config_res/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
@@ -65,7 +66,6 @@ def check_datasets(datasets, task_type=None):
 
 
 if __name__ == "__main__":
-    algo = args.algo
     task_type = MULTICLASS_CLS
     metric = args.metric
 
@@ -74,21 +74,22 @@ if __name__ == "__main__":
     log_filename = 'running-%d.txt' % os.getpid()
 
     for dataset in datasets:
-        np.random.seed(1)
-        seeds = np.random.randint(low=1, high=10000, size=1)
+        for algo in algos:
+            np.random.seed(1)
+            seeds = np.random.randint(low=1, high=10000, size=1)
 
-        seed = seeds[0]
-        try:
-            task_id = '%s-%s-%s: %s' % (dataset, algo, metric, 'success')
-            evaluate_ml_algorithm(dataset, algo, metric,
-                                  seed=seed, task_type=task_type)
-        except Exception as e:
-            task_id = '%s-%s-%s: %s' % (dataset, algo, metric, str(e))
+            seed = seeds[0]
+            try:
+                task_id = '%s-%s-%s: %s' % (dataset, algo, metric, 'success')
+                evaluate_ml_algorithm(dataset, algo, metric,
+                                      seed=seed, task_type=task_type)
+            except Exception as e:
+                task_id = '%s-%s-%s: %s' % (dataset, algo, metric, str(e))
 
-        print(task_id)
-        running_info.append(task_id)
-        with open(save_dir + log_filename, 'a') as f:
-            f.write('\n' + task_id)
+            print(task_id)
+            running_info.append(task_id)
+            with open(save_dir + log_filename, 'a') as f:
+                f.write('\n' + task_id)
 
     # Write down the error info.
     with open(save_dir + 'failed-%s' % log_filename, 'w') as f:
