@@ -20,7 +20,8 @@ class SecondLayerBandit(object):
                  dataset_id='default',
                  eval_type='holdout',
                  mth='rb', sw_size=3,
-                 n_jobs=1, seed=1, fe_algo='tree_based',
+                 n_jobs=1, seed=1,
+                 enable_fe=True, fe_algo='tree_based',
                  enable_intersection=True,
                  number_of_unit_resource=2,
                  total_resource=30):
@@ -117,6 +118,7 @@ class SecondLayerBandit(object):
         else:
             raise ValueError('Invalid task type!')
 
+        self.enable_fe = enable_fe
         self.fe_algo = fe_algo
         self.optimizer['fe'] = build_fe_optimizer(self.fe_algo, self.evaluation_type,
                                                   self.task_type, self.original_data,

@@ -1,21 +1,20 @@
 import os
 from solnml.utils.logging_utils import setup_logger, get_logger
 from solnml.components.metrics.metric import get_metric
-from solnml.components.utils.constants import CLS_TASKS, REG_TASKS
+from solnml.components.utils.constants import CLS_TASKS, REG_TASKS, IMG_CLS
 from solnml.components.ensemble import ensemble_list
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.models.classification import _classifiers
 from solnml.components.models.regression import _regressors
 from solnml.components.models.imbalanced_classification import _imb_classifiers
-from solnml.utils.functions import is_unbalanced_dataset
-from solnml.components.feature_engineering.transformations.preprocessor.smote_balancer import DataBalancer
+from solnml.components.models.img_classification import _classifiers as _img_classifiers
 from solnml.components.meta_learning.algorithm_recomendation.algorithm_advisor import AlgorithmAdvisor
 from solnml.bandits.first_layer_bandit import FirstLayerBandit
-
 
 classification_algorithms = _classifiers.keys()
 imb_classication_algorithms = _imb_classifiers.keys()
 regression_algorithms = _regressors.keys()
+img_classification_algorithms = _img_classifiers.keys()
 
 
 class AutoML(object):
@@ -27,6 +26,7 @@ class AutoML(object):
                  include_algorithms=None,
                  ensemble_method='ensemble_selection',
                  enable_meta_algorithm_selection=True,
+                 enable_fe=True,
                  per_run_time_limit=150,
                  ensemble_size=50,
                  evaluation='holdout',
@@ -52,6 +52,7 @@ class AutoML(object):
         self.ensemble_method = ensemble_method
         self.ensemble_size = ensemble_size
         self.enable_meta_algorithm_selection = enable_meta_algorithm_selection
+        self.enable_fe = enable_fe
         self.task_type = task_type
         self.n_jobs = n_jobs
         self.solver = None
@@ -60,7 +61,10 @@ class AutoML(object):
             self.include_algorithms = include_algorithms
         else:
             if task_type in CLS_TASKS:
-                self.include_algorithms = list(classification_algorithms)
+                if task_type == IMG_CLS:
+                    self.include_algorithms = list(img_classification_algorithms)
+                else:
+                    self.include_algorithms = list(classification_algorithms)
             elif task_type in REG_TASKS:
                 self.include_algorithms = list(regression_algorithms)
             else:
@@ -117,6 +121,7 @@ class AutoML(object):
                                        ensemble_size=self.ensemble_size,
                                        inner_opt_algorithm='fixed',
                                        metric=self.metric,
+                                       enable_fe=self.enable_fe,
                                        fe_algo='bo',
                                        seed=self.seed,
                                        time_limit=self.time_limit,

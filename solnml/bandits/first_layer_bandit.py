@@ -25,6 +25,7 @@ class FirstLayerBandit(object):
                  eval_type='holdout',
                  share_feature=False,
                  inner_opt_algorithm='rb',
+                 enable_fe=True,
                  fe_algo='bo',
                  time_limit=None,
                  n_jobs=1,
@@ -70,6 +71,7 @@ class FirstLayerBandit(object):
         self.evaluation_cost = dict()
         self.fe_datanodes = dict()
         self.eval_type = eval_type
+        self.enable_fe = enable_fe
         self.fe_algo = fe_algo
         self.inner_opt_algorithm = inner_opt_algorithm
         for arm in self.arms:
