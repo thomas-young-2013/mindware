@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from torch.optim.adam import Adam
+from torch.optim import Adam, SGD
 from torch.optim.lr_scheduler import StepLR
 
 from solnml.components.models.base_model import BaseClassificationModel
@@ -14,7 +14,10 @@ class BaseImgClassificationNeuralNetwork(BaseClassificationModel):
     def __init__(self):
         super(BaseImgClassificationNeuralNetwork, self).__init__()
         self.model = None
-        self.learning_rate = None
+        self.optimizer = None
+        self.sgd_learning_rate = None
+        self.sgd_momentum = None
+        self.adam_learning_rate = None
         self.beta1 = None
         self.batch_size = None
         self.epoch_num = None
@@ -26,7 +29,11 @@ class BaseImgClassificationNeuralNetwork(BaseClassificationModel):
         assert self.model is not None
         params = self.model.parameters()
         loader = DataLoader(dataset=ArrayDataset(X, y), batch_size=self.batch_size, shuffle=True)
-        optimizer = Adam(params=params, lr=self.learning_rate, betas=(self.beta1, 0.999))
+        if self.optimizer == 'SGD':
+            optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
+        elif self.optimizer == 'Adam':
+            optimizer = Adam(params=params, lr=self.adam_learning_rate, betas=(self.beta1, 0.999))
+
         scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
         for epoch in range(self.epoch_num):
@@ -64,7 +71,10 @@ class BaseTextClassificationNeuralNetwork(BaseClassificationModel):
     def __init__(self):
         super(BaseTextClassificationNeuralNetwork, self).__init__()
         self.model = None
-        self.learning_rate = None
+        self.optimizer = None
+        self.sgd_learning_rate = None
+        self.sgd_momentum = None
+        self.adam_learning_rate = None
         self.beta1 = None
         self.batch_size = None
         self.epoch_num = None
@@ -76,7 +86,11 @@ class BaseTextClassificationNeuralNetwork(BaseClassificationModel):
         assert self.model is not None
         params = self.model.parameters()
         loader = DataLoader(dataset=ArrayDataset(X, y), batch_size=self.batch_size, shuffle=True)
-        optimizer = Adam(params=params, lr=self.learning_rate, betas=(self.beta1, 0.999))
+        if self.optimizer == 'SGD':
+            optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
+        elif self.optimizer == 'Adam':
+            optimizer = Adam(params=params, lr=self.adam_learning_rate, betas=(self.beta1, 0.999))
+
         scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
         for epoch in range(self.epoch_num):
