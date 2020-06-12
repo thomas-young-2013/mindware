@@ -66,19 +66,24 @@ class FastIcaDecomposer(Transformer):
         return X_new
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
-        cs = ConfigurationSpace()
-
-        n_components = UniformIntegerHyperparameter(
-            "n_components", 10, 2000, default_value=100)
-        algorithm = CategoricalHyperparameter('algorithm',
-                                              ['parallel', 'deflation'], 'parallel')
-        whiten = CategoricalHyperparameter('whiten',
-                                           ['False', 'True'], 'False')
-        fun = CategoricalHyperparameter(
-            'fun', ['logcosh', 'exp', 'cube'], 'logcosh')
-        cs.add_hyperparameters([n_components, algorithm, whiten, fun])
-
-        cs.add_condition(EqualsCondition(n_components, whiten, "True"))
-
-        return cs
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='samc'):
+        if optimizer == 'smac':
+            cs = ConfigurationSpace()
+            n_components = UniformIntegerHyperparameter(
+                "n_components", 10, 2000, default_value=100)
+            algorithm = CategoricalHyperparameter('algorithm',
+                                                  ['parallel', 'deflation'], 'parallel')
+            whiten = CategoricalHyperparameter('whiten',
+                                               ['False', 'True'], 'False')
+            fun = CategoricalHyperparameter(
+                'fun', ['logcosh', 'exp', 'cube'], 'logcosh')
+            cs.add_hyperparameters([n_components, algorithm, whiten, fun])
+            cs.add_condition(EqualsCondition(n_components, whiten, "True"))
+            return cs
+        elif optimizer == 'tpe':
+            from hyperopt import hp
+            space = {'n_components': hp.randint('ica_n_components', 1990) + 10,
+                     'algorithm': hp.choice('ica_algorithm', ['parallel', 'deflation']),
+                     'whiten': 'False',
+                     'fun': hp.choice('ica_fun', ['logcosh', 'exo', 'cube'])}
+            return space

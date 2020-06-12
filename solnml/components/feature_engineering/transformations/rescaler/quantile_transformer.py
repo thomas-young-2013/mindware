@@ -34,14 +34,20 @@ class QuantileTransformation(Transformer):
         return _X
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
-        cs = ConfigurationSpace()
-        # TODO parametrize like the Random Forest as n_quantiles = n_features^param
-        n_quantiles = UniformIntegerHyperparameter(
-            'n_quantiles', lower=10, upper=2000, default_value=1000
-        )
-        output_distribution = CategoricalHyperparameter(
-            'output_distribution', ['uniform', 'normal'], default_value="uniform"
-        )
-        cs.add_hyperparameters([n_quantiles, output_distribution])
-        return cs
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
+        if optimizer == 'smac':
+            cs = ConfigurationSpace()
+            # TODO parametrize like the Random Forest as n_quantiles = n_features^param
+            n_quantiles = UniformIntegerHyperparameter(
+                'n_quantiles', lower=10, upper=2000, default_value=1000
+            )
+            output_distribution = CategoricalHyperparameter(
+                'output_distribution', ['uniform', 'normal'], default_value="uniform"
+            )
+            cs.add_hyperparameters([n_quantiles, output_distribution])
+            return cs
+        elif optimizer == 'tpe':
+            from hyperopt import hp
+            space = {'n_quantiles': hp.randint('quantile_n_quantiles', 1990) + 10,
+                     'output_distribution': hp.choice('quantile_output_distribution', ['uniform', 'normal'])}
+            return space

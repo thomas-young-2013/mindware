@@ -63,27 +63,34 @@ class GenericUnivariateSelector(Transformer):
         self.target_fields = target_fields.copy()
 
         return output_datanode
-    
+
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
-        alpha = UniformFloatHyperparameter(
-            name="alpha", lower=0.01, upper=0.5, default_value=0.1)
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
+        if optimizer == 'smac':
+            alpha = UniformFloatHyperparameter(
+                name="alpha", lower=0.01, upper=0.5, default_value=0.1)
 
-        score_func = CategoricalHyperparameter(
-            name="score_func",
-            choices=["chi2", "f_classif"],
-            default_value="chi2")
-        if dataset_properties is not None:
-            # Chi2 can handle sparse data, so we respect this
-            if 'sparse' in dataset_properties and dataset_properties['sparse']:
-                score_func = Constant(
-                    name="score_func", value="chi2")
+            score_func = CategoricalHyperparameter(
+                name="score_func",
+                choices=["chi2", "f_classif"],
+                default_value="chi2")
+            if dataset_properties is not None:
+                # Chi2 can handle sparse data, so we respect this
+                if 'sparse' in dataset_properties and dataset_properties['sparse']:
+                    score_func = Constant(
+                        name="score_func", value="chi2")
 
-        mode = CategoricalHyperparameter('mode', ['fpr', 'fdr', 'fwe'], 'fpr')
+            mode = CategoricalHyperparameter('mode', ['fpr', 'fdr', 'fwe'], 'fpr')
 
-        cs = ConfigurationSpace()
-        cs.add_hyperparameter(alpha)
-        cs.add_hyperparameter(score_func)
-        cs.add_hyperparameter(mode)
+            cs = ConfigurationSpace()
+            cs.add_hyperparameter(alpha)
+            cs.add_hyperparameter(score_func)
+            cs.add_hyperparameter(mode)
 
-        return cs
+            return cs
+        elif optimizer == 'tpe':
+            from hyperopt import hp
+            space = {'alpha': hp.uniform('gus_alpha', 0.01, 0.5),
+                     'score_func': hp.choice('gus_score_func', ['chi2', 'f_classif', 'mutual_info']),
+                     'mode': hp.choice('gus_mode', ['fpr', 'fdr', 'fwe'])}
+            return space

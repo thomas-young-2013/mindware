@@ -64,24 +64,30 @@ class PercentileSelector(Transformer):
         self.target_fields = target_fields.copy()
 
         return output_datanode
-    
+
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
-        percentile = UniformFloatHyperparameter(
-            name="percentile", lower=1, upper=99, default_value=50)
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
+        if optimizer == 'smac':
+            percentile = UniformFloatHyperparameter(
+                name="percentile", lower=5, upper=99, default_value=50)
 
-        score_func = CategoricalHyperparameter(
-            name="score_func",
-            choices=["chi2", "f_classif", "mutual_info"],
-            default_value="chi2"
-        )
-        if dataset_properties is not None:
-            # Chi2 can handle sparse data, so we respect this
-            if 'sparse' in dataset_properties and dataset_properties['sparse']:
-                score_func = Constant(
-                    name="score_func", value="chi2")
+            score_func = CategoricalHyperparameter(
+                name="score_func",
+                choices=["chi2", "f_classif", "mutual_info"],
+                default_value="chi2"
+            )
+            if dataset_properties is not None:
+                # Chi2 can handle sparse data, so we respect this
+                if 'sparse' in dataset_properties and dataset_properties['sparse']:
+                    score_func = Constant(
+                        name="score_func", value="chi2")
 
-        cs = ConfigurationSpace()
-        cs.add_hyperparameters([percentile, score_func])
+            cs = ConfigurationSpace()
+            cs.add_hyperparameters([percentile, score_func])
 
-        return cs
+            return cs
+        elif optimizer == 'tpe':
+            from hyperopt import hp
+            space = {'percentile': hp.uniform('percentile_percentile', 5, 99),
+                     'score_func': hp.choice('percentile_score_func', ['chi2', 'f_classif', 'mutual_info'])}
+            return space

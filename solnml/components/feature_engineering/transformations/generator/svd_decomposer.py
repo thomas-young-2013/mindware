@@ -35,9 +35,14 @@ class SvdDecomposer(Transformer):
         return X_new
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
-        target_dim = UniformIntegerHyperparameter(
-            "target_dim", 10, 256, default_value=128)
-        cs = ConfigurationSpace()
-        cs.add_hyperparameter(target_dim)
-        return cs
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
+        if optimizer == 'smac':
+            target_dim = UniformIntegerHyperparameter(
+                "target_dim", 10, 256, default_value=128)
+            cs = ConfigurationSpace()
+            cs.add_hyperparameter(target_dim)
+            return cs
+        elif optimizer == 'tpe':
+            from hyperopt import hp
+            space = {'target_dim': hp.randint('svd_target_dim', 247) + 10}
+            return space

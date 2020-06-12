@@ -1,3 +1,4 @@
+import numpy as np
 from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
     UniformIntegerHyperparameter
@@ -31,11 +32,17 @@ class KitchenSinks(Transformer):
         return _X
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
-        gamma = UniformFloatHyperparameter(
-            "gamma", 3.0517578125e-05, 8, default_value=1.0, log=True)
-        n_components = UniformIntegerHyperparameter(
-            "n_components", 50, 2000, default_value=100, log=True)
-        cs = ConfigurationSpace()
-        cs.add_hyperparameters([gamma, n_components])
-        return cs
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
+        if optimizer == 'smac':
+            gamma = UniformFloatHyperparameter(
+                "gamma", 3.0517578125e-05, 8, default_value=1.0, log=True)
+            n_components = UniformIntegerHyperparameter(
+                "n_components", 50, 2000, default_value=100, log=True)
+            cs = ConfigurationSpace()
+            cs.add_hyperparameters([gamma, n_components])
+            return cs
+        elif optimizer == 'tpe':
+            from hyperopt import hp
+            space = {'gamma': hp.loguniform('kitchen_gamma', np.log(3.05e05), np.log(8)),
+                     'n_components': hp.randint('kitchen_n_components', 1950) + 50}
+            return space

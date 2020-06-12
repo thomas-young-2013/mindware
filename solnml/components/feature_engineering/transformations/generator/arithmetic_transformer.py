@@ -45,9 +45,14 @@ class ArithmeticTransformation(Transformer):
             raise ValueError("Unknown param name %s!" % str(param))
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
-        cs = ConfigurationSpace()
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
         optional_funcs = ['log', 'sqrt', 'square', 'freq', 'round', 'sigmoid', 'tanh']
-        scaler = CategoricalHyperparameter('func', optional_funcs, default_value='sqrt')
-        cs.add_hyperparameter(scaler)
-        return cs
+        if optimizer == 'smac':
+            cs = ConfigurationSpace()
+            scaler = CategoricalHyperparameter('func', optional_funcs, default_value='sqrt')
+            cs.add_hyperparameter(scaler)
+            return cs
+        elif optimizer == 'tpe':
+            from hyperopt import hp
+            space = {'func': hp.choice('arithmetic_func', optional_funcs)}
+            return space

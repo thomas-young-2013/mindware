@@ -29,8 +29,13 @@ class KBinsDiscretizer(Transformer):
         return _X
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
-        cs = ConfigurationSpace()
-        n_bins = UniformIntegerHyperparameter('n_bins', 2, 20, default_value=5)
-        cs.add_hyperparameters([n_bins])
-        return cs
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
+        if optimizer == 'smac':
+            cs = ConfigurationSpace()
+            n_bins = UniformIntegerHyperparameter('n_bins', 2, 20, default_value=5)
+            cs.add_hyperparameters([n_bins])
+            return cs
+        elif optimizer == 'tpe':
+            from hyperopt import hp
+            space = {'n_bins': hp.randint('p1_n_bins', 19) + 2}
+            return space

@@ -1,3 +1,4 @@
+import numpy as np
 from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
     CategoricalHyperparameter, Constant
@@ -79,27 +80,40 @@ class LibLinearBasedSelector(Transformer):
         return output_datanode
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
-        cs = ConfigurationSpace()
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
+        if optimizer == 'smac':
+            cs = ConfigurationSpace()
 
-        penalty = Constant("penalty", "l1")
-        loss = CategoricalHyperparameter(
-            "loss", ["hinge", "squared_hinge"], default_value="squared_hinge")
-        dual = Constant("dual", "False")
-        # This is set ad-hoc
-        tol = UniformFloatHyperparameter("tol", 1e-5, 1e-1, default_value=1e-4, log=True)
-        C = UniformFloatHyperparameter("C", 0.03125, 32768, log=True, default_value=1.0)
-        multi_class = Constant("multi_class", "ovr")
-        # These are set ad-hoc
-        fit_intercept = Constant("fit_intercept", "True")
-        intercept_scaling = Constant("intercept_scaling", 1)
+            penalty = Constant("penalty", "l1")
+            loss = CategoricalHyperparameter(
+                "loss", ["hinge", "squared_hinge"], default_value="squared_hinge")
+            dual = Constant("dual", "False")
+            # This is set ad-hoc
+            tol = UniformFloatHyperparameter("tol", 1e-5, 1e-1, default_value=1e-4, log=True)
+            C = UniformFloatHyperparameter("C", 0.03125, 32768, log=True, default_value=1.0)
+            multi_class = Constant("multi_class", "ovr")
+            # These are set ad-hoc
+            fit_intercept = Constant("fit_intercept", "True")
+            intercept_scaling = Constant("intercept_scaling", 1)
 
-        cs.add_hyperparameters([penalty, loss, dual, tol, C, multi_class,
-                                fit_intercept, intercept_scaling])
+            cs.add_hyperparameters([penalty, loss, dual, tol, C, multi_class,
+                                    fit_intercept, intercept_scaling])
 
-        penalty_and_loss = ForbiddenAndConjunction(
-            ForbiddenEqualsClause(penalty, "l1"),
-            ForbiddenEqualsClause(loss, "hinge")
-        )
-        cs.add_forbidden_clause(penalty_and_loss)
-        return cs
+            penalty_and_loss = ForbiddenAndConjunction(
+                ForbiddenEqualsClause(penalty, "l1"),
+                ForbiddenEqualsClause(loss, "hinge")
+            )
+            cs.add_forbidden_clause(penalty_and_loss)
+            return cs
+        elif optimizer == 'tpe':
+            from hyperopt import hp
+            space = {'tol': hp.loguniform('lbs_tol', np.log(1e-5), np.log(1e-1)),
+                     'C': hp.loguniform('lbs_C', np.log(0.03125), np.log(32768)),
+                     'loss': 'squared_hinge',
+                     'multi_class': 'ovr',
+                     'dual': 'False',
+                     'fit_intercept': 'True',
+                     'intercept_scaling': 1,
+                     'penalty': 'L1'
+                     }
+            return space

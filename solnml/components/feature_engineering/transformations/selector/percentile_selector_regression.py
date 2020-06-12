@@ -52,14 +52,20 @@ class PercentileSelectorRegression(Transformer):
         return output_datanode
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
-        percentile = UniformFloatHyperparameter(
-            "percentile", lower=5, upper=60, default_value=10, q=5)
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
+        if optimizer == 'smac':
+            percentile = UniformFloatHyperparameter(
+                "percentile", lower=5, upper=60, default_value=10, q=5)
 
-        # score_func = CategoricalHyperparameter(
-        #     name="score_func", choices=["f_regression", "mutual_info"], default_value='f_regression')
-        score_func = CategoricalHyperparameter(
-            name="score_func", choices=["f_regression"], default_value='f_regression')
-        cs = ConfigurationSpace()
-        cs.add_hyperparameters([percentile, score_func])
-        return cs
+            # score_func = CategoricalHyperparameter(
+            #     name="score_func", choices=["f_regression", "mutual_info"], default_value='f_regression')
+            score_func = CategoricalHyperparameter(
+                name="score_func", choices=["f_regression"], default_value='f_regression')
+            cs = ConfigurationSpace()
+            cs.add_hyperparameters([percentile, score_func])
+            return cs
+        elif optimizer == 'tpe':
+            from hyperopt import hp
+            space = {'percentile': hp.uniform('percentilereg_percentile', 5, 60),
+                     'score_func': 'f_regression'}
+            return space

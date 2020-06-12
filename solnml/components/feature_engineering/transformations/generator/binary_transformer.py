@@ -43,9 +43,14 @@ class BinaryTransformation(Transformer):
             raise ValueError("Unknown param name %s!" % str(param))
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
-        cs = ConfigurationSpace()
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
         optional_funcs = ['add', 'sub', 'mul', 'div']
-        func = CategoricalHyperparameter('func', optional_funcs, default_value='mul')
-        cs.add_hyperparameter(func)
-        return cs
+        if optimizer == 'smac':
+            cs = ConfigurationSpace()
+            func = CategoricalHyperparameter('func', optional_funcs, default_value='mul')
+            cs.add_hyperparameter(func)
+            return cs
+        elif optimizer == 'tpe':
+            from hyperopt import hp
+            space = {'func': hp.choice('binary_func', optional_funcs)}
+            return space

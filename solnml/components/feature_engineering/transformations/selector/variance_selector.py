@@ -54,6 +54,11 @@ class VarianceSelector(Transformer):
         return output_datanode
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
-        cs = ConfigurationSpace()
-        return cs
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
+        if optimizer == 'smac':
+            cs = ConfigurationSpace()
+            return cs
+        elif optimizer == 'tpe':
+            from hyperopt import hp
+            space = {}
+            return space

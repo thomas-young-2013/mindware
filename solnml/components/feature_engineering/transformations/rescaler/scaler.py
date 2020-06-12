@@ -52,10 +52,16 @@ class ScaleTransformation(Transformer):
         return _X
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
-        cs = ConfigurationSpace()
-        scaler = CategoricalHyperparameter(
-            'scaler', ['min_max', 'max_abs', 'standard', 'robust'], default_value='min_max'
-        )
-        cs.add_hyperparameter(scaler)
-        return cs
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
+        if optimizer == 'smac':
+            cs = ConfigurationSpace()
+            scaler = CategoricalHyperparameter(
+                'scaler', ['min_max', 'max_abs', 'standard', 'robust'], default_value='min_max'
+            )
+            cs.add_hyperparameter(scaler)
+            return cs
+        elif optimizer == 'tpe':
+            from hyperopt import hp
+            space = {'scaler': hp.choice('scaler_scaler', ['min_max', 'max_abs', 'standard', 'robust'])
+                     }
+            return space

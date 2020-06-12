@@ -33,7 +33,7 @@ class Text2VectorTransformation(Transformer):
         return _X
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='tpe'):
         method = CategoricalHyperparameter("method", ['average', 'weighted'], default_value='weighted')
         alpha = UniformFloatHyperparameter("alpha", 1e-5, 1e-3, log=True, default_value=1e-4)
 
