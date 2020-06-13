@@ -8,20 +8,23 @@ sys.path.append(os.getcwd())
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from solnml.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
+from solnml.components.evaluators.reg_evaluator import RegressionEvaluator
 from solnml.components.models.classification import _classifiers
+from solnml.components.models.regression import _regressors
 from solnml.components.utils.constants import MULTICLASS_CLS, BINARY_CLS, REGRESSION, CLS_TASKS
 from solnml.datasets.utils import load_data
 from solnml.components.metrics.metric import get_metric
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--iter', type=int, default=100)
+parser.add_argument('--task_type', type=str, default='cls')
 parser.add_argument('--datasets', type=str, default='diabetes')
 parser.add_argument('--metric', type=str, default='bal_acc')
 parser.add_argument('--algo', type=str, default='random_forest')
 args = parser.parse_args()
 
 datasets = args.datasets.split(',')
-algos=args.algo.split(',')
+algos = args.algo.split(',')
 save_dir = './data/config_res/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
@@ -33,11 +36,22 @@ def evaluate_ml_algorithm(dataset, algo, obj_metric, seed=1, task_type=None):
     print(set(train_data.data[1]))
     metric = get_metric(obj_metric)
 
-    cs = _classifiers[algo].get_hyperparameter_search_space()
-    model = UnParametrizedHyperparameter("estimator", algo)
-    cs.add_hyperparameter(model)
-    default_hpo_config = cs.get_default_configuration()
-    hpo_evaluator = ClassificationEvaluator(default_hpo_config, scorer=metric,
+
+    if args.task_type == 'cls':
+        cs = _classifiers[algo].get_hyperparameter_search_space()
+        model = UnParametrizedHyperparameter("estimator", algo)
+        cs.add_hyperparameter(model)
+        default_hpo_config = cs.get_default_configuration()
+        hpo_evaluator = ClassificationEvaluator(default_hpo_config, scorer=metric,
+                                                data_node=train_data, name='hpo',
+                                                resampling_strategy='holdout',
+                                                seed=seed)
+    else:
+        cs = _regressors[algo].get_hyperparameter_search_space()
+        model = UnParametrizedHyperparameter("estimator", algo)
+        cs.add_hyperparameter(model)
+        default_hpo_config = cs.get_default_configuration()
+        hpo_evaluator = RegressionEvaluator(default_hpo_config, scorer=metric,
                                             data_node=train_data, name='hpo',
                                             resampling_strategy='holdout',
                                             seed=seed)
@@ -66,7 +80,7 @@ def check_datasets(datasets, task_type=None):
 
 
 if __name__ == "__main__":
-    task_type = MULTICLASS_CLS
+    task_type = MULTICLASS_CLS if args.task_type == 'cls' else REGRESSION
     metric = args.metric
 
     check_datasets(datasets, task_type=task_type)
