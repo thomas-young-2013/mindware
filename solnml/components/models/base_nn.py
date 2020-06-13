@@ -121,3 +121,52 @@ class BaseTextClassificationNeuralNetwork(BaseClassificationModel):
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
         raise NotImplementedError()
+
+
+class BaseODClassificationNeuralNetwork(BaseClassificationModel):
+    def __init__(self):
+        super(BaseODClassificationNeuralNetwork, self).__init__()
+        self.model = None
+        self.optimizer = None
+        self.sgd_learning_rate = None
+        self.sgd_momentum = None
+        self.adam_learning_rate = None
+        self.beta1 = None
+        self.batch_size = None
+        self.epoch_num = None
+        self.lr_decay = None
+        self.step_decay = None
+        self.device = None
+
+    def fit(self, X, targets):
+        # TODO: OD process
+        assert self.model is not None
+        params = self.model.parameters()
+        loader = DataLoader(dataset=ArrayDataset(X, targets), batch_size=self.batch_size, shuffle=True)
+        if self.optimizer == 'SGD':
+            optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
+        elif self.optimizer == 'Adam':
+            optimizer = Adam(params=params, lr=self.adam_learning_rate, betas=(self.beta1, 0.999))
+
+        scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
+        loss_func = nn.CrossEntropyLoss()
+        for epoch in range(self.epoch_num):
+            for i, data in enumerate(loader):
+                batch_x, batch_y = data['x'], data['y']
+                logits = self.model(batch_x.float().to(self.device))
+                optimizer.zero_grad()
+                loss = loss_func(logits, batch_y.to(self.device))
+                loss.backward()
+                optimizer.step()
+            scheduler.step()
+        return self
+
+    def predict(self, X):
+        if not self.model:
+            raise ValueError("Model not fitted!")
+        X = torch.Tensor(X)
+        return self.model(X)
+
+    @staticmethod
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
+        raise NotImplementedError()

@@ -9,7 +9,7 @@ from solnml.components.models.base_nn import BaseTextClassificationNeuralNetwork
 from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
 
 
-class NaiveBertClassifier(BaseTextClassificationNeuralNetwork):
+class RCNNBertClassifier(BaseTextClassificationNeuralNetwork):
     def __init__(self, learning_rate, beta1, batch_size, epoch_num,
                  lr_decay, step_decay, random_state=None, device='cpu',
                  config='./solnml/components/models/text_classification/nn_utils/bert-base-uncased'):
@@ -26,9 +26,9 @@ class NaiveBertClassifier(BaseTextClassificationNeuralNetwork):
         self.config = config
 
     def fit(self, X, y, sample_weight=None):
-        from .nn_utils.naivebert import Base_Model
+        from .nn_utils.rcnnbert import RCNN_Model
 
-        self.model = Base_Model(num_class=len(set(y)), config=self.config)
+        self.model = RCNN_Model(num_class=len(set(y)), config=self.config)
 
         self.model.to(self.device)
         super().fit(X, y)
@@ -36,8 +36,8 @@ class NaiveBertClassifier(BaseTextClassificationNeuralNetwork):
 
     @staticmethod
     def get_properties(dataset_properties=None):
-        return {'shortname': 'NaiveBert',
-                'name': 'NaiveBert Text Classifier',
+        return {'shortname': 'RCNNBert',
+                'name': 'RCNNBert Text Classifier',
                 'handles_regression': False,
                 'handles_classification': True,
                 'handles_multiclass': True,
@@ -74,15 +74,15 @@ class NaiveBertClassifier(BaseTextClassificationNeuralNetwork):
             return cs
         elif optimizer == 'tpe':
             from hyperopt import hp
-            space = {'batch_size': hp.choice('naive_bert_batch_size', [8, 16, 32]),
-                     'optimizer': hp.choice('naive_bert_optimizer',
-                                            [("SGD", {'sgd_learning_rate': hp.loguniform('naive_bert_sgd_learning_rate',
+            space = {'batch_size': hp.choice('rcnn_bert_batch_size', [8, 16, 32]),
+                     'optimizer': hp.choice('rcnn_bert_optimizer',
+                                            [("SGD", {'sgd_learning_rate': hp.loguniform('rcnn_bert_sgd_learning_rate',
                                                                                          np.log(1e-4), np.log(1e-2)),
-                                                      'sgd_momentum': hp.uniform('naive_bert_sgd_momentum', 0, 0.9)}),
+                                                      'sgd_momentum': hp.uniform('rcnn_bert_sgd_momentum', 0, 0.9)}),
                                              ("Adam",
-                                              {'adam_learning_rate': hp.loguniform('naive_bert_adam_learning_rate',
+                                              {'adam_learning_rate': hp.loguniform('rcnn_bert_adam_learning_rate',
                                                                                    np.log(1e-5), np.log(1e-3)),
-                                               'beta1': hp.uniform('naive_bert_beta1', 0.5, 0.999)})]),
+                                               'beta1': hp.uniform('rcnn_bert_beta1', 0.5, 0.999)})]),
                      'epoch_num': 100,
                      'lr_decay': 10,
                      'step_decay': 10

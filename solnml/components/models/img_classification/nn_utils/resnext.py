@@ -1,5 +1,5 @@
 """
-ResNet code borrowed from
+ResNext code borrowed from
 https://raw.githubusercontent.com/Cadene/pretrained-models.pytorch/master/pretrainedmodels/models/resnext.py
 """
 from __future__ import print_function, division, absolute_import
