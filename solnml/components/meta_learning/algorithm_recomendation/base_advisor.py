@@ -2,6 +2,7 @@ import os
 import hashlib
 import numpy as np
 import pickle as pk
+from collections import OrderedDict
 from .meta_generator import get_feature_vector, prepare_meta_dataset
 from solnml.components.utils.constants import CLS_TASKS, REG_TASKS
 from solnml.utils.logging_utils import get_logger
@@ -117,6 +118,16 @@ class BaseAdvisor(object):
         preds = self.predict(input_vector)
         idxs = np.argsort(-preds)
         return [_buildin_algorithms[idx] for idx in idxs]
+
+    def fetch_run_results(self, dataset):
+        X, Y, include_datasets = prepare_meta_dataset(self.meta_dir, self.metric,
+                                                      self.total_resource, self.rep,
+                                                      [dataset], _buildin_algorithms,
+                                                      task_type=self.task_type)
+        idxs = np.argsort(-np.array(Y[0]))
+        sorted_algos = [_buildin_algorithms[idx] for idx in idxs]
+        sorted_scores = [Y[0][idx] for idx in idxs]
+        return OrderedDict(zip(sorted_algos, sorted_scores))
 
     def fit(self):
         raise NotImplementedError()
