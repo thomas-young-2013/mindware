@@ -103,3 +103,5 @@ if __name__ == "__main__":
         print(preds)
         algos = ranker.fetch_algorithm_set(test_dataset, dataset_id=test_dataset)
         print(algos)
+        print(ranker.fetch_run_results(test_dataset))
+        print('=' * 10)
