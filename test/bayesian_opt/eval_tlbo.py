@@ -267,6 +267,8 @@ for dataset in datasets:
             y_max = max(y_max, y[-1])
         plt.title(dataset)
         ax.legend()
+        if y_max - y_min > 0.1:
+            y_min = y_max - 0.1
         epsilon = (y_max - y_min) * 0.05
         plt.ylim(y_min - epsilon, y_max + epsilon)
         plt.show()
