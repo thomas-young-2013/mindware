@@ -10,7 +10,56 @@ from solnml.components.models.base_model import BaseClassificationModel
 from solnml.components.models.img_classification.nn_utils.dataset import ArrayDataset
 
 
-class BaseImgClassificationNeuralNetwork(BaseClassificationModel):
+class BaseNeuralNetwork:
+    @staticmethod
+    def get_properties():
+        """
+        Get the properties of the underlying algorithm.
+        :return: algorithm_properties : dict, optional (default=None)
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def get_hyperparameter_search_space():
+        """
+        Get the configuration space of this classification algorithm.
+        :return: Configspace.configuration_space.ConfigurationSpace
+            The configuration space of this classification algorithm.
+        """
+        raise NotImplementedError()
+
+    def fit(self, dataset):
+        """
+        The fit function calls the fit function of the underlying model and returns `self`.
+        :param dataset: torch.utils.data.Dataset
+        :return: self, an instance of self.
+        """
+        raise NotImplementedError()
+
+    def set_hyperparameters(self, params, init_params=None):
+        """
+        The function set the class members according to params
+        :param params: dictionary, parameters
+        :param init_params: dictionary
+        :return:
+        """
+        for param, value in params.items():
+            if not hasattr(self, param):
+                raise ValueError('Cannot set hyperparameter %s for %s because '
+                                 'the hyperparameter does not exist.' % (param, str(self)))
+            setattr(self, param, value)
+
+        if init_params is not None:
+            for param, value in init_params.items():
+                if not hasattr(self, param):
+                    raise ValueError('Cannot set init param %s for %s because '
+                                     'the init param does not exist.' %
+                                     (param, str(self)))
+                setattr(self, param, value)
+        return self
+
+
+class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
     def __init__(self):
         super(BaseImgClassificationNeuralNetwork, self).__init__()
         self.model = None
@@ -25,10 +74,10 @@ class BaseImgClassificationNeuralNetwork(BaseClassificationModel):
         self.step_decay = None
         self.device = None
 
-    def fit(self, X, y):
+    def fit(self, dataset):
         assert self.model is not None
         params = self.model.parameters()
-        loader = DataLoader(dataset=ArrayDataset(X, y), batch_size=self.batch_size, shuffle=True)
+        loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
         if self.optimizer == 'SGD':
             optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
         elif self.optimizer == 'Adam':
@@ -39,7 +88,7 @@ class BaseImgClassificationNeuralNetwork(BaseClassificationModel):
         self.model.train()
         for epoch in range(self.epoch_num):
             for i, data in enumerate(loader):
-                batch_x, batch_y = data['x'], data['y']
+                batch_x, batch_y = data[0], data[1]
                 logits = self.model(batch_x.float().to(self.device))
                 optimizer.zero_grad()
                 loss = loss_func(logits, batch_y.to(self.device))
@@ -48,19 +97,30 @@ class BaseImgClassificationNeuralNetwork(BaseClassificationModel):
             scheduler.step()
         return self
 
-    def predict_proba(self, X):
+    def predict_proba(self, dataset, batch_size=None):
         if not self.model:
             raise ValueError("Model not fitted!")
+        batch_size = self.batch_size if batch_size is None else batch_size
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=4)
         self.model.eval()
-        X = torch.Tensor(X)
-        prediction = self.model(X)
+        prediction = torch.Tensor()
+        for i, data in enumerate(loader):
+            batch_x, batch_y = data[0], data[1]
+            logits = self.model(batch_x.float().to(self.device))
+            prediction = torch.cat((prediction, logits), 0)
         return prediction.detach().numpy()
 
-    def predict(self, X):
+    def predict(self, dataset, batch_size=None):
         if not self.model:
             raise ValueError("Model not fitted!")
-        X = torch.Tensor(X)
-        prediction = self.model(X)
+        batch_size = self.batch_size if batch_size is None else batch_size
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        self.model.eval()
+        prediction = torch.Tensor()
+        for i, data in enumerate(loader):
+            batch_x, batch_y = data[0], data[1]
+            logits = self.model(batch_x.float().to(self.device))
+            prediction = torch.cat((prediction, logits), 0)
         return np.argmax(prediction.detach().numpy(), axis=-1)
 
     @staticmethod
@@ -69,7 +129,7 @@ class BaseImgClassificationNeuralNetwork(BaseClassificationModel):
 
 
 # TODO: Characterize
-class BaseTextClassificationNeuralNetwork(BaseClassificationModel):
+class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
     def __init__(self):
         super(BaseTextClassificationNeuralNetwork, self).__init__()
         self.model = None
@@ -84,10 +144,10 @@ class BaseTextClassificationNeuralNetwork(BaseClassificationModel):
         self.step_decay = None
         self.device = None
 
-    def fit(self, X, y):
+    def fit(self, dataset):
         assert self.model is not None
         params = self.model.parameters()
-        loader = DataLoader(dataset=ArrayDataset(X, y), batch_size=self.batch_size, shuffle=True)
+        loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
         if self.optimizer == 'SGD':
             optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
         elif self.optimizer == 'Adam':
@@ -98,7 +158,7 @@ class BaseTextClassificationNeuralNetwork(BaseClassificationModel):
         self.model.train()
         for epoch in range(self.epoch_num):
             for i, data in enumerate(loader):
-                batch_x, batch_y = data['x'], data['y']
+                batch_x, batch_y = data[0], data[1]
                 logits = self.model(batch_x.float().to(self.device))
                 optimizer.zero_grad()
                 loss = loss_func(logits, batch_y.to(self.device))
@@ -107,19 +167,30 @@ class BaseTextClassificationNeuralNetwork(BaseClassificationModel):
             scheduler.step()
         return self
 
-    def predict_proba(self, X):
+    def predict_proba(self, dataset, batch_size=None):
         if not self.model:
             raise ValueError("Model not fitted!")
+        batch_size = self.batch_size if batch_size is None else batch_size
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=4)
         self.model.eval()
-        X = torch.Tensor(X)
-        prediction = self.model(X)
+        prediction = torch.Tensor()
+        for i, data in enumerate(loader):
+            batch_x, batch_y = data[0], data[1]
+            logits = self.model(batch_x.float().to(self.device))
+            prediction = torch.cat((prediction, logits), 0)
         return prediction.detach().numpy()
 
-    def predict(self, X):
+    def predict(self, dataset, batch_size=None):
         if not self.model:
             raise ValueError("Model not fitted!")
-        X = torch.Tensor(X)
-        prediction = self.model(X)
+        batch_size = self.batch_size if batch_size is None else batch_size
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        self.model.eval()
+        prediction = torch.Tensor()
+        for i, data in enumerate(loader):
+            batch_x, batch_y = data[0], data[1]
+            logits = self.model(batch_x.float().to(self.device))
+            prediction = torch.cat((prediction, logits), 0)
         return np.argmax(prediction.detach().numpy(), axis=-1)
 
     @staticmethod
@@ -127,7 +198,7 @@ class BaseTextClassificationNeuralNetwork(BaseClassificationModel):
         raise NotImplementedError()
 
 
-class BaseODClassificationNeuralNetwork(BaseClassificationModel):
+class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
     def __init__(self):
         super(BaseODClassificationNeuralNetwork, self).__init__()
         self.model = None
@@ -142,7 +213,7 @@ class BaseODClassificationNeuralNetwork(BaseClassificationModel):
         self.step_decay = None
         self.device = None
 
-    def fit(self, X, targets):
+    def fit(self, dataset):
         # TODO: Define OD process
         assert self.model is not None
         params = self.model.parameters()

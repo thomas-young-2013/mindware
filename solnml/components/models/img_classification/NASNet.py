@@ -12,7 +12,7 @@ from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PRED
 class NASNetClassifier(BaseImgClassificationNeuralNetwork):
     def __init__(self, optimizer, batch_size, epoch_num, lr_decay, step_decay,
                  sgd_learning_rate=None, sgd_momentum=None, adam_learning_rate=None, beta1=None,
-                 random_state=None, device='cpu'):
+                 random_state=None, grayscale=False, device='cpu'):
         self.optimizer = optimizer
         self.batch_size = batch_size
         self.epoch_num = epoch_num
@@ -23,17 +23,18 @@ class NASNetClassifier(BaseImgClassificationNeuralNetwork):
         self.adam_learning_rate = adam_learning_rate
         self.beta1 = beta1
         self.random_state = random_state
+        self.grayscale = grayscale
         self.model = None
         self.device = torch.device(device)
         self.time_limit = None
 
-    def fit(self, X, y, sample_weight=None):
+    def fit(self, dataset):
         from solnml.components.models.img_classification.nn_utils.nasnet import NASNetALarge
 
-        self.model = NASNetALarge(num_classes=len(set(y)), grayscale=True if X.shape[1] == 1 else False)
+        self.model = NASNetALarge(num_classes=len(dataset.classes), grayscale=self.grayscale)
 
         self.model.to(self.device)
-        super().fit(X, y)
+        super().fit(dataset)
         return self
 
     @staticmethod

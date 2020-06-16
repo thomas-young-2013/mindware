@@ -43,7 +43,7 @@ class ResNeXt101_32x4d(nn.Module):
         super(ResNeXt101_32x4d, self).__init__()
         self.num_classes = num_classes
         self.features = get_resnext101_32x4d_features(grayscale=grayscale)
-        self.avg_pool = nn.AvgPool2d((7, 7), (1, 1))
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.last_linear = nn.Linear(2048, num_classes)
 
     def logits(self, input):
@@ -64,7 +64,7 @@ class ResNeXt101_64x4d(nn.Module):
         super(ResNeXt101_64x4d, self).__init__()
         self.num_classes = num_classes
         self.features = get_resnext101_64x4d_features(grayscale=grayscale)
-        self.avg_pool = nn.AvgPool2d((7, 7), (1, 1))
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.last_linear = nn.Linear(2048, num_classes)
 
     def logits(self, input):

@@ -12,7 +12,7 @@ from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PRED
 class SENetClassifier(BaseImgClassificationNeuralNetwork):
     def __init__(self, optimizer, batch_size, epoch_num, lr_decay, step_decay,
                  sgd_learning_rate=None, sgd_momentum=None, adam_learning_rate=None, beta1=None,
-                 random_state=None, device='cpu'):
+                 random_state=None, grayscale=False, device='cpu'):
         self.optimizer = optimizer
         self.batch_size = batch_size
         self.epoch_num = epoch_num
@@ -25,18 +25,19 @@ class SENetClassifier(BaseImgClassificationNeuralNetwork):
         self.random_state = random_state
         self.model = None
         self.device = torch.device(device)
+        self.grayscale = grayscale
         self.time_limit = None
 
-    def fit(self, X, y, sample_weight=None):
+    def fit(self, dataset):
         from .nn_utils.senet import SENet, SEResNeXtBottleneck
 
         self.model = SENet(SEResNeXtBottleneck, [3, 4, 23, 3], groups=32, reduction=16,
                            dropout_p=None, inplanes=64, input_3x3=False,
                            downsample_kernel_size=1, downsample_padding=0,
-                           num_classes=len(set(y)), grayscale=True if X.shape[1] == 1 else False)
+                           num_classes=len(dataset.classes), grayscale=self.grayscale)
 
         self.model.to(self.device)
-        super().fit(X, y)
+        super().fit(dataset)
         return self
 
     @staticmethod
