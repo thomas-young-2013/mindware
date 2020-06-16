@@ -57,10 +57,12 @@ class SecondLayerBandit(object):
         self.inc = dict()
         self.local_inc = dict()
         self.local_hist = {'fe': [], 'hpo': []}
+        self.exp_output = dict()
         for arm in self.arms:
             self.rewards[arm] = list()
             self.update_flag[arm] = False
             self.evaluation_cost[arm] = list()
+            self.exp_output[arm] = dict()
         self.pull_cnt = 0
         self.action_sequence = list()
         self.final_rewards = list()
@@ -158,6 +160,9 @@ class SecondLayerBandit(object):
         self.rewards[_arm].append(score)
         self.evaluation_cost[_arm].append(iter_cost)
         self.local_inc[_arm] = config
+
+        if self.evaluation_type == 'partial':
+            self.exp_output[_arm].update(self.optimizer[_arm].exp_output)
 
         # Update global incumbent from FE and HPO.
         if np.isfinite(score) and score > self.incumbent_perf:

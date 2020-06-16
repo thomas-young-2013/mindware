@@ -36,6 +36,7 @@ class BaseImgClassificationNeuralNetwork(BaseClassificationModel):
 
         scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
+        self.model.train()
         for epoch in range(self.epoch_num):
             for i, data in enumerate(loader):
                 batch_x, batch_y = data['x'], data['y']
@@ -50,6 +51,7 @@ class BaseImgClassificationNeuralNetwork(BaseClassificationModel):
     def predict_proba(self, X):
         if not self.model:
             raise ValueError("Model not fitted!")
+        self.model.eval()
         X = torch.Tensor(X)
         prediction = self.model(X)
         return prediction.detach().numpy()
@@ -93,6 +95,7 @@ class BaseTextClassificationNeuralNetwork(BaseClassificationModel):
 
         scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
+        self.model.train()
         for epoch in range(self.epoch_num):
             for i, data in enumerate(loader):
                 batch_x, batch_y = data['x'], data['y']
@@ -107,6 +110,7 @@ class BaseTextClassificationNeuralNetwork(BaseClassificationModel):
     def predict_proba(self, X):
         if not self.model:
             raise ValueError("Model not fitted!")
+        self.model.eval()
         X = torch.Tensor(X)
         prediction = self.model(X)
         return prediction.detach().numpy()
@@ -139,7 +143,7 @@ class BaseODClassificationNeuralNetwork(BaseClassificationModel):
         self.device = None
 
     def fit(self, X, targets):
-        # TODO: OD process
+        # TODO: Define OD process
         assert self.model is not None
         params = self.model.parameters()
         loader = DataLoader(dataset=ArrayDataset(X, targets), batch_size=self.batch_size, shuffle=True)
@@ -150,6 +154,7 @@ class BaseODClassificationNeuralNetwork(BaseClassificationModel):
 
         scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
+        self.model.train()
         for epoch in range(self.epoch_num):
             for i, data in enumerate(loader):
                 batch_x, batch_y = data['x'], data['y']
@@ -164,6 +169,7 @@ class BaseODClassificationNeuralNetwork(BaseClassificationModel):
     def predict(self, X):
         if not self.model:
             raise ValueError("Model not fitted!")
+        self.model.eval()
         X = torch.Tensor(X)
         return self.model(X)
 

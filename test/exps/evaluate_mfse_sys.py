@@ -64,8 +64,8 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
     #     bandit.sub_bandits['random_forest'].optimizer['fe'].iterate()
     #     # print(bandit.sub_bandits['random_forest'].optimizer['hpo'].exp_output)
     bandit.optimize()
-    fe_exp_output = bandit.sub_bandits['random_forest'].optimizer['fe'].exp_output
-    hpo_exp_output = bandit.sub_bandits['random_forest'].optimizer['hpo'].exp_output
+    fe_exp_output = bandit.sub_bandits['random_forest'].exp_output['fe']
+    hpo_exp_output = bandit.sub_bandits['random_forest'].exp_output['hpo']
 
     validation_accuracy = np.max(bandit.final_rewards)
     best_pred = bandit._best_predict(test_data)
