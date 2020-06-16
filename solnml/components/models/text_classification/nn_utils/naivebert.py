@@ -2,9 +2,9 @@ from transformers import BertModel, BertPreTrainedModel
 from torch import nn
 
 
-class Base_Model(BertPreTrainedModel):
-    def __init__(self, num_class, config):
-        super(Base_Model, self).__init__(config)
+class BaseModel(BertPreTrainedModel):
+    def __init__(self, config, num_class):
+        super(BaseModel, self).__init__(config)
         self.bert = BertModel(config)
         for param in self.bert.parameters():
             param.requires_grad = True

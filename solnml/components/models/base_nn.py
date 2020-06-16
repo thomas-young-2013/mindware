@@ -6,9 +6,6 @@ from torch.utils.data import DataLoader
 from torch.optim import Adam, SGD
 from torch.optim.lr_scheduler import StepLR
 
-from solnml.components.models.base_model import BaseClassificationModel
-from solnml.components.models.img_classification.nn_utils.dataset import ArrayDataset
-
 
 class BaseNeuralNetwork:
     @staticmethod
@@ -128,7 +125,6 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         raise NotImplementedError()
 
 
-# TODO: Characterize
 class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
     def __init__(self):
         super(BaseTextClassificationNeuralNetwork, self).__init__()
@@ -159,7 +155,8 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         for epoch in range(self.epoch_num):
             for i, data in enumerate(loader):
                 batch_x, batch_y = data[0], data[1]
-                logits = self.model(batch_x.float().to(self.device))
+                masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
+                logits = self.model(batch_x.long().to(self.device), masks)
                 optimizer.zero_grad()
                 loss = loss_func(logits, batch_y.to(self.device))
                 loss.backward()
@@ -176,7 +173,8 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         prediction = torch.Tensor()
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
-            logits = self.model(batch_x.float().to(self.device))
+            masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
+            logits = self.model(batch_x.long().to(self.device), masks)
             prediction = torch.cat((prediction, logits), 0)
         return prediction.detach().numpy()
 
@@ -189,7 +187,8 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         prediction = torch.Tensor()
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
-            logits = self.model(batch_x.float().to(self.device))
+            masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
+            logits = self.model(batch_x.long().to(self.device), masks)
             prediction = torch.cat((prediction, logits), 0)
         return np.argmax(prediction.detach().numpy(), axis=-1)
 

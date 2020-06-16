@@ -10,28 +10,32 @@ from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PRED
 
 
 class RCNNBertClassifier(BaseTextClassificationNeuralNetwork):
-    def __init__(self, learning_rate, beta1, batch_size, epoch_num,
-                 lr_decay, step_decay, random_state=None, device='cpu',
+    def __init__(self, optimizer, batch_size, epoch_num, lr_decay, step_decay,
+                 sgd_learning_rate=None, sgd_momentum=None, adam_learning_rate=None, beta1=None,
+                 random_state=None, grayscale=False, device='cpu',
                  config='./solnml/components/models/text_classification/nn_utils/bert-base-uncased'):
-        self.learning_rate = learning_rate
-        self.beta1 = beta1
+        self.optimizer = optimizer
         self.batch_size = batch_size
         self.epoch_num = epoch_num
         self.lr_decay = lr_decay
         self.step_decay = step_decay
+        self.sgd_learning_rate = sgd_learning_rate
+        self.sgd_momentum = sgd_momentum
+        self.adam_learning_rate = adam_learning_rate
+        self.beta1 = beta1
         self.random_state = random_state
+        self.grayscale = grayscale
         self.model = None
         self.device = torch.device(device)
         self.time_limit = None
         self.config = config
 
-    def fit(self, X, y, sample_weight=None):
-        from .nn_utils.rcnnbert import RCNN_Model
+    def fit(self, dataset):
+        from .nn_utils.rcnnbert import RCNNModel
 
-        self.model = RCNN_Model(num_class=len(set(y)), config=self.config)
-
+        self.model = RCNNModel.from_pretrained(self.config, num_class=len(dataset.classes))
         self.model.to(self.device)
-        super().fit(X, y)
+        super().fit(dataset)
         return self
 
     @staticmethod

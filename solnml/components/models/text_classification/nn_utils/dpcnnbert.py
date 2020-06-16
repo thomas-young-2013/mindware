@@ -3,10 +3,10 @@ import torch.nn.functional as F
 from torch import nn
 
 
-class DPCNN_Model(BertPreTrainedModel):
+class DPCNNModel(BertPreTrainedModel):
 
-    def __init__(self, num_class, config):
-        super(DPCNN_Model, self).__init__(config)
+    def __init__(self, config, num_class):
+        super(DPCNNModel, self).__init__(config)
         self.bert = BertModel(config)
         for param in self.bert.parameters():
             param.requires_grad = True
