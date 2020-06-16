@@ -5,9 +5,16 @@ from solnml.datasets.utils import calculate_metafeatures
 
 
 def get_feature_vector(dataset, dataset_id, data_dir='./', task_type=None):
-    feature_dict = calculate_metafeatures(dataset, dataset_id, data_dir, task_type=task_type)
-    sorted_keys = sorted(feature_dict.keys())
-    return [feature_dict[key] for key in sorted_keys]
+    meta_dir = os.path.dirname(__file__) + '/../meta_resource/'
+    dataset_meta_feat_filename = meta_dir + 'meta_feature_dataset_%s.pkl' % dataset
+    if os.path.exists(dataset_meta_feat_filename):
+        with open(dataset_meta_feat_filename, 'rb') as f:
+            feature_vec = pickle.load(f)
+        return feature_vec
+    else:
+        feature_dict = calculate_metafeatures(dataset, dataset_id, data_dir, task_type=task_type)
+        sorted_keys = sorted(feature_dict.keys())
+        return [feature_dict[key] for key in sorted_keys]
 
 
 def fetch_algorithm_runs(meta_dir, dataset, metric, total_resource, rep, buildin_algorithms):

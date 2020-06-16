@@ -67,7 +67,8 @@ class RankNetAdvisor(BaseAdvisor):
         # build model
         model = Model(inputs=[input1, input2], outputs=out)
 
-        model.compile(optimizer=solver, loss="binary_crossentropy", metrics=['acc'])
+        # categorical_hinge, binary_crossentropy
+        model.compile(optimizer=solver, loss="categorical_hinge", metrics=['acc'])
         return model
 
     def fit(self):
@@ -84,22 +85,3 @@ class RankNetAdvisor(BaseAdvisor):
         X = self.load_test_data(dataset_meta_feat)
         ranker_output = K.function([self.model.layers[0].input], [self.model.layers[-3].get_output_at(0)])
         return ranker_output([X])[0].ravel()
-
-
-if __name__ == "__main__":
-    from solnml.components.meta_learning.algorithm_recomendation.meta_generator import get_feature_vector
-    from solnml.components.utils.constants import MULTICLASS_CLS
-
-    test_datasets = ['gina_prior2', 'pc2', 'abalone', 'wind',
-                     'waveform-5000(2)', 'page-blocks(1)', 'winequality_white', 'pollen']
-    ranker = RankNetAdvisor(task_type=MULTICLASS_CLS, exclude_datasets=test_datasets)
-    ranker.fit()
-    for test_dataset in test_datasets:
-        meta_feature = get_feature_vector(test_dataset, dataset_id=test_dataset, task_type=MULTICLASS_CLS)
-        preds = ranker.predict(meta_feature)
-        print(preds)
-        algos = ranker.fetch_algorithm_set(test_dataset, dataset_id=test_dataset)
-        print(algos)
-        print(ranker.fetch_run_results(test_dataset))
-        print('=' * 10)
-

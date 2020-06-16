@@ -1,4 +1,6 @@
+import os
 import numpy as np
+import pickle as pk
 import lightgbm as lgb
 from solnml.utils.logging_utils import get_logger
 from solnml.components.meta_learning.algorithm_recomendation.base_advisor import BaseAdvisor
@@ -56,7 +58,12 @@ class GBMAdvisor(BaseAdvisor):
         X, y = self.create_pairwise_data(_X, _y, n_algo_candidates=self.n_algo_candidates)
 
         meta_learner_config = dict()
-
+        # meta_learner_config_filename = self.meta_dir + 'meta_learner_%s_%s_%s_config.pkl' % (
+        #     self.meta_algo, self.metric, 'none')
+        # if os.path.exists(meta_learner_config_filename):
+        #     with open(meta_learner_config_filename, 'rb') as f:
+        #         meta_learner_config = pk.load(f)
+        # print(meta_learner_config)
         self.model = lgb.LGBMClassifier(**meta_learner_config)
         self.model.fit(X, y)
 
@@ -87,21 +94,3 @@ class GBMAdvisor(BaseAdvisor):
                 instance_idx += 1
         scores = np.array(scores) / np.sum(scores)
         return scores
-
-
-if __name__ == "__main__":
-    from solnml.components.meta_learning.algorithm_recomendation.meta_generator import get_feature_vector
-    from solnml.components.utils.constants import MULTICLASS_CLS
-
-    test_datasets = ['gina_prior2', 'pc2', 'abalone', 'wind',
-                     'waveform-5000(2)', 'page-blocks(1)', 'winequality_white', 'pollen']
-    ranker = GBMAdvisor(task_type=MULTICLASS_CLS, exclude_datasets=test_datasets)
-    ranker.fit()
-    for test_dataset in test_datasets:
-        meta_feature = get_feature_vector(test_dataset, dataset_id=test_dataset, task_type=MULTICLASS_CLS)
-        preds = ranker.predict(meta_feature)
-        print(preds)
-        algos = ranker.fetch_algorithm_set(test_dataset, dataset_id=test_dataset)
-        print(algos)
-        print(ranker.fetch_run_results(test_dataset))
-        print('=' * 10)
