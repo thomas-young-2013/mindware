@@ -5,7 +5,6 @@ import time
 import pickle
 import argparse
 import numpy as np
-from matplotlib import pyplot as plt
 from tabulate import tabulate
 from sklearn.metrics import make_scorer
 
@@ -202,6 +201,7 @@ if __name__ == "__main__":
                     else:
                         raise ValueError('Invalid parameter: %s' % mode)
         else:
+            from matplotlib import pyplot as plt
             headers = ['dataset']
             # method_ids = ['mfse', 'eval_ausk_ens']
             method_ids = ['mfse_fixed']
