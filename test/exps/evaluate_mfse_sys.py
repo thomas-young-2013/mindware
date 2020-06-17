@@ -5,6 +5,7 @@ import time
 import pickle
 import argparse
 import numpy as np
+from matplotlib import pyplot as plt
 from tabulate import tabulate
 from sklearn.metrics import make_scorer
 
@@ -60,24 +61,26 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
                               seed=seed,
                               time_limit=time_limit,
                               eval_type='partial')
-    # while time.time()-_start_time<time_limit:
-    #     bandit.sub_bandits['random_forest'].optimizer['fe'].iterate()
-    #     # print(bandit.sub_bandits['random_forest'].optimizer['hpo'].exp_output)
-    bandit.optimize()
-    fe_exp_output = bandit.sub_bandits['random_forest'].exp_output['fe']
-    hpo_exp_output = bandit.sub_bandits['random_forest'].exp_output['hpo']
-
-    validation_accuracy = np.max(bandit.final_rewards)
-    best_pred = bandit._best_predict(test_data)
+    while time.time() - _start_time < time_limit:
+        bandit.sub_bandits['random_forest'].optimizer['hpo'].iterate()
+    # bandit.optimize()
+    # fe_exp_output = bandit.sub_bandits['random_forest'].exp_output['fe']
+    # hpo_exp_output = bandit.sub_bandits['random_forest'].exp_output['hpo']
+    fe_exp_output = dict()
+    hpo_exp_output = bandit.sub_bandits['random_forest'].optimizer['hpo'].exp_output
+    inc_config = bandit.sub_bandits['random_forest'].optimizer['hpo'].incumbent_config.get_dictionary()
+    inc_config.pop('estimator')
+    from solnml.components.models.classification.random_forest import RandomForest
+    rf = RandomForest(**inc_config)
+    rf.fit(train_data.data[0], train_data.data[1])
+    validation_accuracy = bandit.sub_bandits['random_forest'].optimizer['hpo'].incumbent_perf
+    best_pred = rf.predict(test_data.data[0])
     test_accuracy = balanced_accuracy(test_data.data[1], best_pred)
 
-    bandit.refit()
-    es_pred = bandit._es_predict(test_data)
-    test_accuracy_with_ens = balanced_accuracy(test_data.data[1], es_pred)
-
-    data = [dataset, validation_accuracy, test_accuracy, test_accuracy_with_ens, fe_exp_output, hpo_exp_output,
+    # es_pred = bandit._es_predict(test_data)
+    # test_accuracy_with_ens = balanced_accuracy(test_data.data[1], es_pred)
+    data = [dataset, validation_accuracy, test_accuracy, fe_exp_output, hpo_exp_output,
             _start_time]
-
     save_path = project_dir + '%s_%s_%s_%d_%d_%d_%d_%d.pkl' % (
         hmab_flag, opt_algo, dataset, trial_num, len(algorithms), seed, run_id, time_limit)
     with open(save_path, 'wb') as f:
@@ -224,18 +227,24 @@ if __name__ == "__main__":
                             val_acc, test_acc = data[1], data[2]
                         else:
                             val_acc, test_acc = data[1], data[2]
-                        fe_output = data[4]
-                        hpo_output = data[5]
-                        # start_time = data[6]
-                        output = dict(fe_output, **hpo_output)
+                        fe_output = data[3]
+                        hpo_output = data[4]
+                        start_time = data[5]
+                        output = fe_output.copy()
+                        output.update(hpo_output)
+                        output = output.items()
+                        output = sorted(output, key=lambda x: x[0])
                         plot_x, plot_y = list(), list()
                         best_val = float('inf')
-                        for timestamp in output.keys():
-                            # plot_x.append(timestamp - start_time)
-                            cur_val = min(output[timestamp][2])
+                        for timestamp, data in output:
+                            plot_x.append(timestamp - start_time)
+                            cur_val = min(data[2])
                             if cur_val < best_val:
                                 best_val = cur_val
                             plot_y.append(best_val)
+                        plt.plot(plot_x, plot_y)
+                        plt.show()
+                        print(plot_x)
                         print(plot_y)
                         results.append([val_acc, test_acc])
                         # if mth.startswith('ausk'):
