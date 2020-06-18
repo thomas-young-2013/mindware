@@ -9,7 +9,7 @@ from solnml.components.models.base_nn import BaseImgClassificationNeuralNetwork
 from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
 
 
-class NASNetClassifier(BaseImgClassificationNeuralNetwork):
+class SENetClassifier(BaseImgClassificationNeuralNetwork):
     def __init__(self, optimizer, batch_size, epoch_num, lr_decay, step_decay,
                  sgd_learning_rate=None, sgd_momentum=None, adam_learning_rate=None, beta1=None,
                  random_state=None, grayscale=False, device='cpu'):
@@ -23,15 +23,18 @@ class NASNetClassifier(BaseImgClassificationNeuralNetwork):
         self.adam_learning_rate = adam_learning_rate
         self.beta1 = beta1
         self.random_state = random_state
-        self.grayscale = grayscale
         self.model = None
         self.device = torch.device(device)
+        self.grayscale = grayscale
         self.time_limit = None
 
     def fit(self, dataset):
-        from solnml.components.models.img_classification.nn_utils.nasnet import NASNetALarge
+        from .nn_utils.senet import SENet, SEResNeXtBottleneck
 
-        self.model = NASNetALarge(num_classes=len(dataset.classes), grayscale=self.grayscale)
+        self.model = SENet(SEResNeXtBottleneck, [3, 4, 23, 3], groups=32, reduction=16,
+                           dropout_p=None, inplanes=64, input_3x3=False,
+                           downsample_kernel_size=1, downsample_padding=0,
+                           num_classes=len(dataset.train_dataset.classes), grayscale=self.grayscale)
 
         self.model.to(self.device)
         super().fit(dataset)
@@ -39,8 +42,8 @@ class NASNetClassifier(BaseImgClassificationNeuralNetwork):
 
     @staticmethod
     def get_properties(dataset_properties=None):
-        return {'shortname': 'NASNet',
-                'name': 'NASNet Classifier',
+        return {'shortname': 'SENet',
+                'name': 'SENet Classifier',
                 'handles_regression': False,
                 'handles_classification': True,
                 'handles_multiclass': True,
@@ -77,14 +80,14 @@ class NASNetClassifier(BaseImgClassificationNeuralNetwork):
             return cs
         elif optimizer == 'tpe':
             from hyperopt import hp
-            space = {'batch_size': hp.choice('nasnet_batch_size', [8, 16, 32]),
-                     'optimizer': hp.choice('nasnet_optimizer',
-                                            [("SGD", {'sgd_learning_rate': hp.loguniform('nasnet_sgd_learning_rate',
+            space = {'batch_size': hp.choice('senet_batch_size', [8, 16, 32]),
+                     'optimizer': hp.choice('senet_optimizer',
+                                            [("SGD", {'sgd_learning_rate': hp.loguniform('senet_sgd_learning_rate',
                                                                                          np.log(1e-4), np.log(1e-2)),
-                                                      'sgd_momentum': hp.uniform('nasnet_sgd_momentum', 0, 0.9)}),
-                                             ("Adam", {'adam_learning_rate': hp.loguniform('nasnet_adam_learning_rate',
+                                                      'sgd_momentum': hp.uniform('senet_sgd_momentum', 0, 0.9)}),
+                                             ("Adam", {'adam_learning_rate': hp.loguniform('senet_adam_learning_rate',
                                                                                            np.log(1e-5), np.log(1e-3)),
-                                                       'beta1': hp.uniform('nasnet_beta1', 0.5, 0.999)})]),
+                                                       'beta1': hp.uniform('senet_beta1', 0.5, 0.999)})]),
                      'epoch_num': 100,
                      'lr_decay': 10,
                      'step_decay': 10

@@ -74,7 +74,11 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
     def fit(self, dataset):
         assert self.model is not None
         params = self.model.parameters()
-        loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
+        if hasattr(dataset, 'val_dataset'):
+            loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
+        else:
+            loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
+                                sampler=dataset.train_sampler, shuffle=True, num_workers=4)
         if self.optimizer == 'SGD':
             optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
         elif self.optimizer == 'Adam':
@@ -98,7 +102,11 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        if hasattr(dataset, 'val_dataset'):
+            loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        else:
+            loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
+                                sampler=dataset.val_sampler, shuffle=True, num_workers=4)
         self.model.eval()
         prediction = torch.Tensor()
         for i, data in enumerate(loader):
@@ -111,7 +119,11 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        if hasattr(dataset, 'val_dataset'):
+            loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        else:
+            loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
+                                sampler=dataset.val_sampler, shuffle=True, num_workers=4)
         self.model.eval()
         prediction = torch.Tensor()
         for i, data in enumerate(loader):
@@ -119,6 +131,27 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             logits = self.model(batch_x.float().to(self.device))
             prediction = torch.cat((prediction, logits), 0)
         return np.argmax(prediction.detach().numpy(), axis=-1)
+
+    def score(self, dataset, metric, batch_size=None):
+        if not self.model:
+            raise ValueError("Model not fitted!")
+        batch_size = self.batch_size if batch_size is None else batch_size
+        if hasattr(dataset, 'val_dataset'):
+            loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        else:
+            loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
+                                sampler=dataset.val_sampler, shuffle=True, num_workers=4)
+        self.model.eval()
+        total_len = 0
+        score = 0
+        for i, data in enumerate(loader):
+            batch_x, batch_y = data[0], data[1]
+            logits = self.model(batch_x.float().to(self.device))
+            prediction = np.argmax(logits.detach().numpy(), axis=-1)
+            score += metric(prediction, batch_y.detach().numpy()) * len(prediction)
+            total_len += len(prediction)
+        score /= total_len
+        return score
 
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
@@ -143,7 +176,11 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
     def fit(self, dataset):
         assert self.model is not None
         params = self.model.parameters()
-        loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
+        if hasattr(dataset, 'val_dataset'):
+            loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
+        else:
+            loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
+                                sampler=dataset.train_sampler, shuffle=True, num_workers=4)
         if self.optimizer == 'SGD':
             optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
         elif self.optimizer == 'Adam':

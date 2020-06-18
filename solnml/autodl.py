@@ -3,11 +3,11 @@ from solnml.utils.logging_utils import setup_logger, get_logger
 from solnml.components.metrics.metric import get_metric
 from solnml.components.utils.constants import IMG_CLS
 from solnml.components.ensemble import ensemble_list
-from solnml.components.models.imbalanced_classification import _imb_classifiers
 from solnml.components.models.img_classification import _classifiers as _img_classifiers
-from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
+from solnml.components.evaluators.img_cls_evaluator import ImgClassificationEvaluator
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from solnml.datasets.image_dataset import BaseDataset
+
 img_classification_algorithms = _img_classifiers.keys()
 
 """
@@ -70,7 +70,7 @@ class AutoDL(object):
 
         # Fetch hyperparameter space.
         from solnml.components.models.img_classification import _classifiers, _addons
-        estimator_id = 'ResNeXt'
+        estimator_id = 'resnext'
         if estimator_id in _classifiers:
             clf_class = _classifiers[estimator_id]
         elif estimator_id in _addons.components:
@@ -86,10 +86,9 @@ class AutoDL(object):
         self.config_space.seed(self.seed)
 
         # Build the Feature Engineering component.
-        # hpo_evaluator = ClassificationEvaluator(self.default_config, scorer=self.metric,
-        #                                         data_node=self.original_data, name='hpo',
-        #                                         resampling_strategy=self.evaluation_type,
-        #                                         seed=self.seed)
+        hpo_evaluator = ImgClassificationEvaluator(self.default_config, scorer=self.metric,
+                                                   dataset=train_data,
+                                                   seed=self.seed)
 
     def refit(self):
         self.solver.refit()

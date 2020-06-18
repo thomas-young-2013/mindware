@@ -31,7 +31,7 @@ class ResNeXtClassifier(BaseImgClassificationNeuralNetwork):
     def fit(self, dataset):
         from .nn_utils.resnext import ResNeXt101_32x4d
 
-        self.model = ResNeXt101_32x4d(num_classes=len(dataset.classes), grayscale=self.grayscale)
+        self.model = ResNeXt101_32x4d(num_classes=len(dataset.train_dataset.classes), grayscale=self.grayscale)
         self.model.to(self.device)
         super().fit(dataset)
         return self

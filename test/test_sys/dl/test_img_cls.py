@@ -8,9 +8,9 @@ import pickle as pkl
 
 sys.path.append(os.getcwd())
 
-from solnml.components.models.img_classification.ResNeXt import ResNeXtClassifier
-from solnml.components.models.img_classification.SENet import SENetClassifier
-from solnml.components.models.img_classification.NASNet import NASNetClassifier
+from solnml.components.models.img_classification.resnext import ResNeXtClassifier
+from solnml.components.models.img_classification.senet import SENetClassifier
+from solnml.components.models.img_classification.nasnet import NASNetClassifier
 from solnml.components.models.img_classification.nn_utils.dataset import get_array_dataset, get_folder_dataset
 from solnml.components.utils.constants import MULTICLASS_CLS
 
