@@ -79,7 +79,7 @@ class RankNetAdvisor(BaseAdvisor):
                                        activation=('relu', 'relu',),
                                        solver='adam')
 
-        self.model.fit([X1, X2], y, epochs=100, batch_size=64)
+        self.model.fit([X1, X2], y, epochs=200, batch_size=64)
 
     def predict(self, dataset_meta_feat):
         X = self.load_test_data(dataset_meta_feat)
