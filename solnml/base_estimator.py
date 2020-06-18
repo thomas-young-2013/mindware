@@ -1,9 +1,10 @@
 import os
-from solnml.automl import AutoML
-from solnml.components.metrics.metric import get_metric
-from solnml.components.feature_engineering.transformation_graph import DataNode
 import numpy as np
 import pandas as pd
+from solnml.automl import AutoML
+from solnml.autodl import AutoDL
+from solnml.components.feature_engineering.transformation_graph import DataNode
+from solnml.datasets.image_dataset import ImageDataset
 
 
 class BaseEstimator(object):
@@ -170,3 +171,71 @@ class BaseEstimator(object):
 
     def get_ens_model_info(self):
         return self._ml_engine.get_ens_model_info()
+
+
+class BaseDLEstimator(object):
+    def __init__(
+            self,
+            dataset_name='default_dataset_name',
+            time_limit=1200,
+            metric='acc',
+            include_algorithms=None,
+            ensemble_method='bagging',
+            ensemble_size=50,
+            random_state=1,
+            n_jobs=1,
+            evaluation='holdout',
+            output_dir="/tmp/"):
+        self.dataset_name = dataset_name
+        self.metric = metric
+        self.task_type = None
+        self.time_limit = time_limit
+        self.include_algorithms = include_algorithms
+        self.ensemble_method = ensemble_method
+        self.ensemble_size = ensemble_size
+        self.random_state = random_state
+        self.n_jobs = n_jobs
+        self.evaluation = evaluation
+        self.output_dir = output_dir
+        self._ml_engine = None
+        # Create output directory.
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+    def build_engine(self):
+        """Build AutoML controller"""
+        engine = self.get_automl()(
+            dataset_name=self.dataset_name,
+            task_type=self.task_type,
+            metric=self.metric,
+            time_limit=self.time_limit,
+            include_algorithms=self.include_algorithms,
+            ensemble_method=self.ensemble_method,
+            ensemble_size=self.ensemble_size,
+            random_state=self.random_state,
+            n_jobs=self.n_jobs,
+            evaluation=self.evaluation,
+            output_dir=self.output_dir
+        )
+        return engine
+
+    def fit(self, data: ImageDataset):
+        assert data is not None and isinstance(data, ImageDataset)
+        self._ml_engine = self.build_engine()
+        self._ml_engine.fit(data)
+        return self
+
+    def predict(self, X: ImageDataset):
+        return self._ml_engine.predict(X)
+
+    def score(self, data: ImageDataset):
+        return self._ml_engine.score(data)
+
+    def refit(self):
+        return self._ml_engine.refit()
+
+    def predict_proba(self, X: ImageDataset, batch_size=None, n_jobs=1):
+        return self._ml_engine.predict_proba(X)
+
+    def get_automl(self):
+        return AutoDL

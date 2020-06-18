@@ -3,11 +3,11 @@ from solnml.utils.logging_utils import setup_logger, get_logger
 from solnml.components.metrics.metric import get_metric
 from solnml.components.utils.constants import IMG_CLS
 from solnml.components.ensemble import ensemble_list
-from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.models.imbalanced_classification import _imb_classifiers
 from solnml.components.models.img_classification import _classifiers as _img_classifiers
-from solnml.bandits.first_layer_bandit import FirstLayerBandit
-
+from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
+from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
+from solnml.datasets.image_dataset import BaseDataset
 img_classification_algorithms = _img_classifiers.keys()
 
 """
@@ -66,41 +66,41 @@ class AutoDL(object):
                      )
         return get_logger(logger_name)
 
-    def fit(self, train_data: DataNode, dataset_id=None):
-        """
-        this function includes this following two procedures.
-            1. tune each algorithm's hyperparameters.
-            2. engineer each algorithm's features automatically.
-        :param train_data:
-        :return:
-        """
+    def fit(self, train_data: BaseDataset):
 
-        self.solver = FirstLayerBandit(self.task_type, trial_num,
-                                       self.include_algorithms, train_data,
-                                       per_run_time_limit=self.per_run_time_limit,
-                                       dataset_name=self.dataset_name,
-                                       ensemble_method=self.ensemble_method,
-                                       ensemble_size=self.ensemble_size,
-                                       inner_opt_algorithm='fixed',
-                                       metric=self.metric,
-                                       enable_fe=self.enable_fe,
-                                       fe_algo='bo',
-                                       seed=self.seed,
-                                       time_limit=self.time_limit,
-                                       eval_type=self.evaluation_type,
-                                       output_dir=self.output_dir)
-        self.solver.optimize()
+        # Fetch hyperparameter space.
+        from solnml.components.models.img_classification import _classifiers, _addons
+        estimator_id = 'ResNeXt'
+        if estimator_id in _classifiers:
+            clf_class = _classifiers[estimator_id]
+        elif estimator_id in _addons.components:
+            clf_class = _addons.components[estimator_id]
+        else:
+            raise ValueError("Algorithm %s not supported!" % estimator_id)
+        cs = clf_class.get_hyperparameter_search_space()
+        model = UnParametrizedHyperparameter("estimator", estimator_id)
+        cs.add_hyperparameter(model)
+
+        self.config_space = cs
+        self.default_config = cs.get_default_configuration()
+        self.config_space.seed(self.seed)
+
+        # Build the Feature Engineering component.
+        # hpo_evaluator = ClassificationEvaluator(self.default_config, scorer=self.metric,
+        #                                         data_node=self.original_data, name='hpo',
+        #                                         resampling_strategy=self.evaluation_type,
+        #                                         seed=self.seed)
 
     def refit(self):
         self.solver.refit()
 
-    def predict_proba(self, test_data: DataNode):
+    def predict_proba(self, test_data: BaseDataset):
         return self.solver.predict_proba(test_data)
 
-    def predict(self, test_data: DataNode):
+    def predict(self, test_data: BaseDataset):
         return self.solver.predict(test_data)
 
-    def score(self, test_data: DataNode, metric_func=None):
+    def score(self, test_data: BaseDataset, metric_func=None):
         if metric_func is None:
             metric_func = self.metric
         return metric_func(self, test_data, test_data.data[1])

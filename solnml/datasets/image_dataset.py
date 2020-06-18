@@ -6,7 +6,11 @@ from solnml.components.models.img_classification.nn_utils.dataset import get_fol
 
 
 class BaseDataset(object):
-    def __init__(self, dataset: Dataset, train_val_split=0.2, shuffle=False):
+    def __init__(self):
+        self.train_sampler, self.val_sampler = None, None
+        self.subset_sampler_used = False
+
+    def create_train_val_split(self, dataset: Dataset, train_val_split=0.2, shuffle=False):
         dataset_size = len(dataset)
         indices = list(range(dataset_size))
         test_split = int(np.floor(train_val_split * dataset_size))
@@ -18,6 +22,7 @@ class BaseDataset(object):
 
         self.train_sampler = SubsetRandomSampler(train_indices)
         self.val_sampler = SubsetRandomSampler(val_indices)
+        self.subset_sampler_used = True
 
 
 class ImageDataset(BaseDataset):
@@ -26,12 +31,15 @@ class ImageDataset(BaseDataset):
                  grayscale: bool = False,
                  train_val_split: bool = False,
                  val_split_size: float = 0.2):
+        super().__init__()
+
         self.data_path = data_path
         self.udf_transforms = data_transforms
         self.train_val_split = train_val_split
         self.val_split_size = val_split_size
         self.grayscale = grayscale
         self.test_dataset, self.val_dataset = None, None
+
         self.train_dataset = get_folder_dataset(os.path.join(data_path, 'train'),
                                                 udf_transforms=data_transforms['train'],
                                                 grayscale=grayscale)
@@ -40,7 +48,7 @@ class ImageDataset(BaseDataset):
                                                   udf_transforms=data_transforms['val'],
                                                   grayscale=grayscale)
         else:
-            super().__init__(self.train_dataset, train_val_split=val_split_size, shuffle=True)
+            self.create_train_val_split(self.train_dataset, train_val_split=val_split_size, shuffle=True)
 
     def load_test_data(self, test_data_path: str = None):
         if test_data_path is None:
