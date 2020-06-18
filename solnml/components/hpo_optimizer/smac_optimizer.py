@@ -27,6 +27,7 @@ class SMACOptimizer(BaseHPOptimizer):
         self.trial_cnt = 0
         self.configs = list()
         self.perfs = list()
+        self.exp_output = dict()
         self.incumbent_perf = float("-INF")
         self.incumbent_config = self.config_space.get_default_configuration()
         # Estimate the size of the hyperparameter space.
@@ -61,6 +62,7 @@ class SMACOptimizer(BaseHPOptimizer):
                 break
             _config, _status, _perf, _ = self.optimizer.iterate()
             if _status == SUCCESS:
+                self.exp_output[time.time()] = (_config, _perf)
                 self.configs.append(_config)
                 self.perfs.append(-_perf)
 
