@@ -31,8 +31,7 @@ project_dir = './data/meta_exp/'
 per_run_time_limit = 120
 opt_algo = 'fixed'
 hmab_flag = 'mfse'
-ausk_flag = 'eval_ausk_ens'
-assert ausk_flag in ['eval_ausk_meta', 'eval_ausk_full', 'eval_ausk_vanilla', 'eval_ausk_ens']
+ausk_flag = 'ausk'
 if not os.path.exists(project_dir):
     os.makedirs(project_dir)
 
@@ -93,80 +92,71 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
 
 
 def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
-    import autosklearn.classification
-    print('AUSK-%s-%d: %d' % (dataset, run_id, time_limit))
-    if ausk_flag == 'eval_ausk_meta':
-        alad = AlgorithmAdvisor(task_type=MULTICLASS_CLS, n_algorithm=9, metric='acc')
-        meta_infos = alad.fit_meta_learner()
-        assert dataset not in meta_infos
-        model_candidates = alad.fetch_algorithm_set(dataset)
-        include_models = list()
-        print(model_candidates)
-        for algo in model_candidates:
-            if algo in algorithms and len(include_models) < 3:
-                include_models.append(algo)
-        print('After algorithm recommendation', include_models)
-        n_config_meta_learning = 0
-        ensemble_size = 1
-    elif ausk_flag == 'eval_ausk_full':
-        include_models = algorithms
-        n_config_meta_learning = 25
-        ensemble_size = 1
-    elif ausk_flag == 'eval_ausk_ens':
-        include_models = algorithms
-        n_config_meta_learning = 0
-        ensemble_size = 50
-    else:
-        include_models = algorithms
-        n_config_meta_learning = 0
-        ensemble_size = 1
+    print('%s-%s-%d: %d' % (hmab_flag, dataset, run_id, time_limit))
 
-    automl = autosklearn.classification.AutoSklearnClassifier(
-        time_left_for_this_task=time_limit,
-        per_run_time_limit=per_run_time_limit,
-        include_preprocessors=None,
-        exclude_preprocessors=None,
-        n_jobs=1,
-        include_estimators=include_models,
-        ensemble_memory_limit=8192,
-        ml_memory_limit=8192,
-        ensemble_size=ensemble_size,
-        initial_configurations_via_metalearning=n_config_meta_learning,
-        seed=int(seed),
-        # resampling_strategy='cv',
-        # resampling_strategy_arguments={'folds': 5}
-        resampling_strategy='holdout',
-        resampling_strategy_arguments={'train_size': 0.67}
-    )
-
+    _start_time = time.time()
     train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
-    X, y = train_data.data
-    feat_type = ['Categorical' if _type == CATEGORICAL else 'Numerical'
-                 for _type in train_data.feature_types]
-    from autosklearn.metrics import balanced_accuracy
-    automl.fit(X.copy(), y.copy(), metric=balanced_accuracy, feat_type=feat_type)
-    model_desc = automl.show_models()
-    print(model_desc)
-    val_result = np.max(automl.cv_results_['mean_test_score'])
-    print('trial number', len(automl.cv_results_['mean_test_score']))
-    print('Best validation accuracy', val_result)
+    cls_task_type = BINARY_CLS if len(set(train_data.data[1])) == 2 else MULTICLASS_CLS
+    balanced_acc_metric = make_scorer(balanced_accuracy)
 
-    X_test, y_test = test_data.data
-    automl.refit(X.copy(), y.copy())
-    y_pred = automl.predict(X_test)
-    metric = balanced_accuracy
-    test_result = metric(y_test, y_pred)
-    print('Test accuracy', test_result)
-    save_path = project_dir + '%s_%s_%d_%d_%d_%d_%d.pkl' % (
-        ausk_flag, dataset, trial_num, len(algorithms), seed, run_id, time_limit)
+    if is_unbalanced_dataset(train_data):
+        from solnml.components.feature_engineering.transformations.preprocessor.smote_balancer import DataBalancer
+        train_data = DataBalancer().operate(train_data)
+
+    bandit = FirstLayerBandit(cls_task_type, trial_num, algorithms, train_data,
+                              output_dir='logs',
+                              per_run_time_limit=per_run_time_limit,
+                              dataset_name=dataset,
+                              ensemble_size=50,
+                              inner_opt_algorithm=opt_algo,
+                              metric=balanced_acc_metric,
+                              fe_algo='bo',
+                              seed=seed,
+                              time_limit=time_limit,
+                              eval_type='holdout')
+    while time.time() - _start_time < time_limit:
+        bandit.sub_bandits['random_forest'].optimizer['hpo'].iterate()
+    # bandit.optimize()
+    # fe_exp_output = bandit.sub_bandits['random_forest'].exp_output['fe']
+    # hpo_exp_output = bandit.sub_bandits['random_forest'].exp_output['hpo']
+    fe_exp_output = dict()
+    hpo_exp_output = bandit.sub_bandits['random_forest'].optimizer['hpo'].exp_output
+    inc_config = bandit.sub_bandits['random_forest'].optimizer['hpo'].incumbent_config.get_dictionary()
+    inc_config.pop('estimator')
+    from solnml.components.models.classification.random_forest import RandomForest
+    rf = RandomForest(**inc_config)
+    rf.fit(train_data.data[0], train_data.data[1])
+    validation_accuracy = bandit.sub_bandits['random_forest'].optimizer['hpo'].incumbent_perf
+    best_pred = rf.predict(test_data.data[0])
+    test_accuracy = balanced_accuracy(test_data.data[1], best_pred)
+
+    # es_pred = bandit._es_predict(test_data)
+    # test_accuracy_with_ens = balanced_accuracy(test_data.data[1], es_pred)
+    data = [dataset, validation_accuracy, test_accuracy, fe_exp_output, hpo_exp_output,
+            _start_time]
+    save_path = project_dir + '%s_%s_%s_%d_%d_%d_%d_%d.pkl' % (
+        ausk_flag, opt_algo, dataset, trial_num, len(algorithms), seed, run_id, time_limit)
     with open(save_path, 'wb') as f:
-        pickle.dump([dataset, val_result, test_result, model_desc], f)
+        pickle.dump(data, f)
 
-    del_path = '/tmp/'
+    del_path = './logs/'
     for i in os.listdir(del_path):
         file_data = del_path + "/" + i
-        if 'auto' in i:
-            shutil.rmtree(file_data)
+        if os.path.isfile(file_data):
+            os.remove(file_data)
+
+
+def create_points(time_range, gap_num, x, y):
+    gap_width = time_range / gap_num
+    cur_idx = 1
+    results = list()
+    for i, plot_time in enumerate(x):
+        while cur_idx <= gap_num:
+            if cur_idx * gap_width > plot_time:
+                break
+            results.append(1 + y[i])
+            cur_idx += 1
+    return results
 
 
 if __name__ == "__main__":
@@ -202,17 +192,20 @@ if __name__ == "__main__":
                         raise ValueError('Invalid parameter: %s' % mode)
         else:
             from matplotlib import pyplot as plt
+
             headers = ['dataset']
-            # method_ids = ['mfse', 'eval_ausk_ens']
-            method_ids = ['mfse_fixed']
+            method_ids = ['mfse_fixed', 'ausk_fixed']
             for mth in method_ids:
                 headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
             tbl_data = list()
             for dataset in dataset_list:
                 row_data = [dataset]
+                x = np.arange(100) * time_limit / 100
+                y = dict()
                 for mth in method_ids:
                     results = list()
+                    y[mth] = list()
                     for run_id in range(rep):
                         seed = seeds[run_id]
                         time_t = time_limit
@@ -230,22 +223,27 @@ if __name__ == "__main__":
                         fe_output = data[3]
                         hpo_output = data[4]
                         start_time = data[5]
-                        output = fe_output.copy()
-                        output.update(hpo_output)
-                        output = output.items()
-                        output = sorted(output, key=lambda x: x[0])
+                        if 'mfse' in mth:
+                            output = fe_output.copy()
+                            output.update(hpo_output)
+                            output = sorted(output.items(), key=lambda x: x[0])
+                        else:
+                            output = fe_output.copy()
+                            output.update(hpo_output)
+                            output = sorted(output.items(), key=lambda x: x[0])
                         plot_x, plot_y = list(), list()
                         best_val = float('inf')
                         for timestamp, data in output:
                             plot_x.append(timestamp - start_time)
-                            cur_val = min(data[2])
+                            try:
+                                cur_val = min(data[2])
+                            except:
+                                cur_val = data[1]
                             if cur_val < best_val:
                                 best_val = cur_val
                             plot_y.append(best_val)
-                        plt.plot(plot_x, plot_y)
-                        plt.show()
-                        print(plot_x)
-                        print(plot_y)
+                        plot_y = create_points(time_limit, 100, plot_x, plot_y)
+                        y[mth].append(plot_y)
                         results.append([val_acc, test_acc])
                         # if mth.startswith('ausk'):
                         #     print('='*10)
@@ -272,6 +270,19 @@ if __name__ == "__main__":
                                 row_data.append(u'%.4f' % median)
                     else:
                         row_data.extend(['-'] * 2)
+                plt.plot(x, np.mean(y['mfse_fixed'], axis=0))
+                plt.plot(x, np.mean(y['ausk_fixed'], axis=0))
+                if dataset == 'covertype':
+                    plt.ylim(0.285, 0.32)
+                elif dataset == 'higgs':
+                    plt.ylim(0.2775, 0.29)
+                elif dataset == 'codrna':
+                    plt.ylim(0.022, 0.03)
+                elif dataset == 'vehicle_sensIT':
+                    plt.ylim(0.1275, 0.14)
+                elif dataset == 'mnist_784':
+                    plt.ylim(0.031, 0.04)
+                plt.show()
 
                 tbl_data.append(row_data)
             print(tabulate(tbl_data, headers, tablefmt='github'))
