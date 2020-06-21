@@ -108,11 +108,13 @@ class ImgClassificationEvaluator(_BaseEvaluator):
                            time.time() - start_time))
         self.eval_id += 1
 
-        # Save the largest top K models.
-        save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config_dict, score)
-        if save_flag is True:
-            torch.save(clf.state_dict(), model_path)
-        if delete_flag is True:
-            os.remove(model_path_deleted)
+        # Save top K models with the largest validation scores.
+        if np.isfinite(score):
+            save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config_dict, score)
+            if save_flag is True:
+                torch.save(clf.state_dict(), model_path)
+            if delete_flag is True:
+                os.remove(model_path_deleted)
+
         # Turn it into a minimization problem.
         return -score
