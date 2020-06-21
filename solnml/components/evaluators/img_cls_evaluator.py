@@ -58,7 +58,7 @@ class ImgClassificationEvaluator(_BaseEvaluator):
             #                                                                     _ThresholdScorer) else None)
         except Exception as e:
             self.logger.error(e)
-            score = np.inf
+            score = -np.inf
 
         self.logger.debug('%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds' %
                           (self.eval_id, classifier_id,

@@ -123,7 +123,7 @@ class ClassificationEvaluator(_BaseEvaluator):
             if self.name == 'fe':
                 raise e
             self.logger.info('%s-evaluator: %s' % (self.name, str(e)))
-            score = np.inf
+            score = -np.inf
 
         self.logger.debug('%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
                           (self.eval_id, classifier_id,
