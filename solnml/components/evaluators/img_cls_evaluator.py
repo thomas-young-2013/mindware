@@ -1,7 +1,8 @@
+import os
 import time
+import torch
 import numpy as np
-from sklearn.metrics.scorer import accuracy_scorer, _ThresholdScorer
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.metrics.scorer import accuracy_scorer
 
 from solnml.utils.logging_utils import get_logger
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
@@ -21,41 +22,77 @@ def get_estimator(config):
     return classifier_type, estimator
 
 
+def get_estimator_with_parameters(config, model_dir='data/dl_models/'):
+    config_dict = config.get_dictionary().copy()
+    _, model = get_estimator(config_dict)
+    model_path = model_dir + TopKModelSaver.get_configuration_id(config_dict) + '.pt'
+    model.load_state_dict(torch.load(model_path))
+    model.eval()
+    return model
+
+
+class TopKModelSaver(object):
+    def __init__(self, k, model_dir):
+        self.k = k
+        self.sorted_list = list()
+        self.model_dir = model_dir
+
+    @staticmethod
+    def get_configuration_id(data_dict):
+        data_list = []
+        for key, value in sorted(data_dict.items(), key=lambda t: t[0]):
+            if isinstance(value, float):
+                value = round(value, 5)
+            data_list.append('%s-%s' % (key, str(value)))
+        return '_'.join(data_list)
+
+    def add(self, config: dict, perf: float):
+        """
+            perf is larger, the better.
+        :param config:
+        :param perf:
+        :return:
+        """
+        model_path_id = self.model_dir + self.get_configuration_id(config) + '.pt'
+        model_path_removed = None
+        save_flag, delete_flag = False, False
+
+        if len(self.sorted_list) == 0:
+            self.sorted_list.append((config, perf, model_path_id))
+        else:
+            idx = 0
+            while perf <= self.sorted_list[idx][1]:
+                idx += 1
+            self.sorted_list.insert(idx, (config, perf, model_path_id))
+        if len(self.sorted_list) > self.k:
+            model_path_removed = self.sorted_list[-1][2]
+            delete_flag = True
+            self.sorted_list = self.sorted_list[:-1]
+        if model_path_id in [item[2] for item in self.sorted_list]:
+            save_flag = True
+        return save_flag, model_path_id, delete_flag, model_path_removed
+
+
 class ImgClassificationEvaluator(_BaseEvaluator):
-    def __init__(self, clf_config, scorer=None, dataset=None, seed=1):
+    def __init__(self, clf_config, model_dir='data/dl_models/', scorer=None, dataset=None, seed=1):
         self.hpo_config = clf_config
         self.scorer = scorer if scorer is not None else accuracy_scorer
         self.dataset = dataset
         self.seed = seed
         self.eval_id = 0
         self.onehot_encoder = None
+        self.topk_model_saver = TopKModelSaver(k=20, model_dir=model_dir)
+        self.model_dir = model_dir
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
 
     def __call__(self, config, **kwargs):
         start_time = time.time()
 
-        # Prepare configuration.
-        np.random.seed(self.seed)
-        config = config if config is not None else self.hpo_config
-
-        # downsample_ratio = kwargs.get('data_subsample_ratio', 1.0)
-
         config_dict = config.get_dictionary().copy()
-
         classifier_id, clf = get_estimator(config_dict)
-
-        # if self.onehot_encoder is None:
-        #     self.onehot_encoder = OneHotEncoder(categories='auto')
-        #     y = np.reshape(y_train, (len(y_train), 1))
-        #     self.onehot_encoder.fit(y)
 
         try:
             score = img_holdout_validation(clf, self.scorer, self.dataset, random_state=self.seed)
-            # score = partial_validation(clf, self.scorer, self.dataset, downsample_ratio,
-            #                            random_state=self.seed,
-            #                            if_stratify=True,
-            #                            onehot=self.onehot_encoder if isinstance(self.scorer,
-            #                                                                     _ThresholdScorer) else None)
         except Exception as e:
             self.logger.error(e)
             score = -np.inf
@@ -66,5 +103,11 @@ class ImgClassificationEvaluator(_BaseEvaluator):
                            time.time() - start_time))
         self.eval_id += 1
 
+        # Save the largest top K models.
+        save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config_dict, score)
+        if save_flag is True:
+            torch.save(clf.state_dict(), model_path)
+        if delete_flag is True:
+            os.remove(model_path_deleted)
         # Turn it into a minimization problem.
         return -score
