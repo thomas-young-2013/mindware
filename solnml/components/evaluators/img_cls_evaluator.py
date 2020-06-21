@@ -1,6 +1,7 @@
 import os
 import time
 import torch
+import hashlib
 import numpy as np
 from sklearn.metrics.scorer import accuracy_scorer
 
@@ -44,7 +45,9 @@ class TopKModelSaver(object):
             if isinstance(value, float):
                 value = round(value, 5)
             data_list.append('%s-%s' % (key, str(value)))
-        return '_'.join(data_list)
+        data_id = '_'.join(data_list)
+        sha = hashlib.sha1(data_id.encode('utf8'))
+        return sha.hexdigest()
 
     def add(self, config: dict, perf: float):
         """
@@ -60,10 +63,12 @@ class TopKModelSaver(object):
         if len(self.sorted_list) == 0:
             self.sorted_list.append((config, perf, model_path_id))
         else:
-            idx = 0
-            while perf <= self.sorted_list[idx][1]:
-                idx += 1
-            self.sorted_list.insert(idx, (config, perf, model_path_id))
+            # Sorted list is in a descending order.
+            for idx, item in enumerate(self.sorted_list):
+                if perf > item[1]:
+                    self.sorted_list.insert(idx, (config, perf, model_path_id))
+                    break
+
         if len(self.sorted_list) > self.k:
             model_path_removed = self.sorted_list[-1][2]
             delete_flag = True
