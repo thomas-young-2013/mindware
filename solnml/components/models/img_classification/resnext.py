@@ -12,7 +12,7 @@ from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PRED
 class ResNeXtClassifier(BaseImgClassificationNeuralNetwork):
     def __init__(self, optimizer, batch_size, epoch_num, lr_decay, step_decay,
                  sgd_learning_rate=None, sgd_momentum=None, adam_learning_rate=None, beta1=None,
-                 random_state=None, grayscale=False, device='cpu'):
+                 random_state=None, grayscale=False, device='cpu', **kwargs):
         self.optimizer = optimizer
         self.batch_size = batch_size
         self.epoch_num = epoch_num

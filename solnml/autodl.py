@@ -9,8 +9,10 @@ from solnml.utils.logging_utils import setup_logger, get_logger
 from solnml.components.ensemble import ensemble_list
 from solnml.components.hpo_optimizer import build_hpo_optimizer
 from solnml.components.models.img_classification import _classifiers as _img_classifiers
-from solnml.components.evaluators.img_cls_evaluator import get_estimator_with_parameters
 from solnml.components.evaluators.img_cls_evaluator import ImgClassificationEvaluator
+from solnml.components.evaluators.img_cls_evaluator import get_estimator_with_parameters
+from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space
+
 
 img_classification_algorithms = _img_classifiers.keys()
 
@@ -97,6 +99,10 @@ class AutoDL(object):
             config_space = cs
             default_config = cs.get_default_configuration()
             config_space.seed(self.seed)
+
+            aug_space=get_aug_hyperparameter_space()
+            cs.add_hyperparameters(aug_space.get_hyperparameters())
+            cs.add_conditions(aug_space.get_conditions())
 
             hpo_evaluator = ImgClassificationEvaluator(default_config, scorer=self.metric,
                                                        dataset=train_data,

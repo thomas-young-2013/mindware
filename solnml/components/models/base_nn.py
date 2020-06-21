@@ -98,15 +98,18 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             scheduler.step()
         return self
 
-    def predict_proba(self, dataset, batch_size=None):
+    def predict_proba(self, dataset, set='test', batch_size=None):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        if hasattr(dataset, 'val_dataset'):
-            loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
-        else:
-            loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
-                                sampler=dataset.val_sampler, shuffle=True, num_workers=4)
+        if set == 'val':
+            if hasattr(dataset, 'val_dataset'):
+                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+            else:
+                loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
+                                    sampler=dataset.val_sampler, shuffle=True, num_workers=4)
+        elif set == 'test':
+            loader = DataLoader(dataset=dataset.test_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
         self.model.eval()
         prediction = torch.Tensor()
         for i, data in enumerate(loader):
@@ -115,15 +118,18 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             prediction = torch.cat((prediction, logits), 0)
         return prediction.detach().numpy()
 
-    def predict(self, dataset, batch_size=None):
+    def predict(self, dataset, set='test', batch_size=None):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        if hasattr(dataset, 'val_dataset'):
-            loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
-        else:
-            loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
-                                sampler=dataset.val_sampler, shuffle=True, num_workers=4)
+        if set == 'val':
+            if hasattr(dataset, 'val_dataset'):
+                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+            else:
+                loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
+                                    sampler=dataset.val_sampler, shuffle=True, num_workers=4)
+        elif set == 'test':
+            loader = DataLoader(dataset=dataset.test_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
         self.model.eval()
         prediction = torch.Tensor()
         for i, data in enumerate(loader):

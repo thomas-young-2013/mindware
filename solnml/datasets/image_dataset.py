@@ -1,6 +1,7 @@
 import os
 from .base_dataset import BaseDataset
 from solnml.components.models.img_classification.nn_utils.dataset import get_folder_dataset
+from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_test_transforms
 
 
 class ImageDataset(BaseDataset):
@@ -17,7 +18,8 @@ class ImageDataset(BaseDataset):
         self.val_split_size = val_split_size
         self.grayscale = grayscale
         self.train_dataset = None
-        self.test_dataset, self.val_dataset = None, None
+        self.val_dataset = None
+        self.test_dataset = None
 
     def set_udf_transform(self, udf_transform):
         self.udf_transforms = udf_transform
@@ -36,6 +38,8 @@ class ImageDataset(BaseDataset):
     def load_test_data(self, test_data_path: str = None):
         if test_data_path is None:
             test_data_path = self.data_path
+
+        transforms = get_test_transforms()
         self.test_dataset = get_folder_dataset(os.path.join(test_data_path, 'test'),
-                                               udf_transforms=self.udf_transforms['val'],
+                                               udf_transforms=transforms,
                                                grayscale=self.grayscale)
