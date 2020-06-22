@@ -5,6 +5,7 @@ https://raw.githubusercontent.com/Cadene/pretrained-models.pytorch/master/pretra
 
 from __future__ import print_function, division, absolute_import
 import torchvision.models as models
+from torch import nn
 import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
 import types
@@ -311,9 +312,9 @@ def inceptionv3(num_classes=1000, pretrained='imagenet'):
 ###############################################################
 # ResNets
 
-def modify_resnets(model):
+def modify_resnets(model, num_class):
     # Modify attributs
-    model.last_linear = model.fc
+    model.last_linear = nn.Linear(model.fc.in_features, num_class)
     model.fc = None
 
     def features(self, input):
@@ -364,7 +365,7 @@ def resnet34(num_classes=1000, pretrained='imagenet'):
     if pretrained is not None:
         settings = pretrained_settings['resnet34'][pretrained]
         model = load_pretrained(model, num_classes, settings)
-    model = modify_resnets(model)
+    model = modify_resnets(model, num_classes)
     return model
 
 
@@ -375,7 +376,7 @@ def resnet50(num_classes=1000, pretrained='imagenet'):
     if pretrained is not None:
         settings = pretrained_settings['resnet50'][pretrained]
         model = load_pretrained(model, num_classes, settings)
-    model = modify_resnets(model)
+    model = modify_resnets(model, num_classes)
     return model
 
 
@@ -386,7 +387,7 @@ def resnet101(num_classes=1000, pretrained='imagenet'):
     if pretrained is not None:
         settings = pretrained_settings['resnet101'][pretrained]
         model = load_pretrained(model, num_classes, settings)
-    model = modify_resnets(model)
+    model = modify_resnets(model, num_classes)
     return model
 
 
@@ -397,7 +398,7 @@ def resnet152(num_classes=1000, pretrained='imagenet'):
     if pretrained is not None:
         settings = pretrained_settings['resnet152'][pretrained]
         model = load_pretrained(model, num_classes, settings)
-    model = modify_resnets(model)
+    model = modify_resnets(model, num_classes)
     return model
 
 

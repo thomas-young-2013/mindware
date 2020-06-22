@@ -104,18 +104,19 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         batch_size = self.batch_size if batch_size is None else batch_size
         if set == 'val':
             if hasattr(dataset, 'val_dataset'):
-                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
             else:
                 loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
-                                    sampler=dataset.val_sampler, shuffle=True, num_workers=4)
+                                    sampler=dataset.val_sampler, shuffle=False, num_workers=4)
         elif set == 'test':
-            loader = DataLoader(dataset=dataset.test_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+            loader = DataLoader(dataset=dataset.test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
         self.model.eval()
         prediction = torch.Tensor()
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
             logits = self.model(batch_x.float().to(self.device))
-            prediction = torch.cat((prediction, logits), 0)
+            pred = nn.functional.softmax(logits, dim=-1)
+            prediction = torch.cat((prediction, pred), 0)
         return prediction.detach().numpy()
 
     def predict(self, dataset, set='test', batch_size=None):
@@ -124,12 +125,12 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         batch_size = self.batch_size if batch_size is None else batch_size
         if set == 'val':
             if hasattr(dataset, 'val_dataset'):
-                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
             else:
                 loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
-                                    sampler=dataset.val_sampler, shuffle=True, num_workers=4)
+                                    sampler=dataset.val_sampler, shuffle=False, num_workers=4)
         elif set == 'test':
-            loader = DataLoader(dataset=dataset.test_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+            loader = DataLoader(dataset=dataset.test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
         self.model.eval()
         prediction = torch.Tensor()
         for i, data in enumerate(loader):
@@ -143,10 +144,10 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
         if hasattr(dataset, 'val_dataset'):
-            loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+            loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
         else:
             loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
-                                sampler=dataset.val_sampler, shuffle=True, num_workers=4)
+                                sampler=dataset.val_sampler, shuffle=False, num_workers=4)
         self.model.eval()
         total_len = 0
         score = 0
