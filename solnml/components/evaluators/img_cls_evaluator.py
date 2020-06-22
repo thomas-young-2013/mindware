@@ -98,7 +98,6 @@ class ImgClassificationEvaluator(_BaseEvaluator):
         self.dataset.load_data()
         start_time = time.time()
 
-
         config_dict = config.get_dictionary().copy()
         classifier_id, clf = get_estimator(config_dict)
 
