@@ -2,15 +2,15 @@ import numpy as np
 import warnings
 import os
 import pickle as pkl
-from sklearn.model_selection import train_test_split
 from sklearn.metrics.scorer import _BaseScorer
+from torch.utils.data import DataLoader
 
-from solnml.components.ensemble.base_ensemble import BaseEnsembleModel
+from solnml.components.ensemble.base_ensemble import BaseImgEnsembleModel
 from solnml.components.utils.constants import CLS_TASKS
-from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
+from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
 
 
-class Blending(BaseEnsembleModel):
+class Blending(BaseImgEnsembleModel):
     def __init__(self, stats,
                  ensemble_size: int,
                  task_type: int,
@@ -49,103 +49,97 @@ class Blending(BaseEnsembleModel):
                 from lightgbm import LGBMRegressor
                 self.meta_learner = LGBMRegressor(max_depth=4, learning_rate=0.05, n_estimators=70)
 
-    def fit(self, data):
-        # Split training data for phase 1 and phase 2
-        test_size = 0.2
-
+    def fit(self, train_data):
         # Train basic models using a part of training data
         model_cnt = 0
-        suc_cnt = 0
         feature_p2 = None
-        for algo_id in self.stats["include_algorithms"]:
-            model_to_eval = self.stats[algo_id]['model_to_eval']
-            for idx, (node, config) in enumerate(model_to_eval):
-                X, y = node.data
-                if self.task_type in CLS_TASKS:
-                    x_p1, x_p2, y_p1, y_p2 = train_test_split(X, y, test_size=test_size,
-                                                              stratify=data.data[1], random_state=self.seed)
-                else:
-                    x_p1, x_p2, y_p1, y_p2 = train_test_split(X, y, test_size=test_size,
-                                                              random_state=self.seed)
 
-                if self.base_model_mask[model_cnt] == 1:
-                    estimator = fetch_predict_estimator(self.task_type, config, x_p1, y_p1,
-                                                        weight_balance=node.enable_balance,
-                                                        data_balance=node.data_balance
-                                                        )
-                    with open(os.path.join(self.output_dir, '%s-blending-model%d' % (self.timestamp, model_cnt)),
-                              'wb') as f:
-                        pkl.dump(estimator, f)
-                    if self.task_type in CLS_TASKS:
-                        pred = estimator.predict_proba(x_p2)
-                        n_dim = np.array(pred).shape[1]
-                        if n_dim == 2:
-                            # Binary classificaion
-                            n_dim = 1
-                        # Initialize training matrix for phase 2
-                        if feature_p2 is None:
-                            num_samples = len(x_p2)
-                            feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
-                        if n_dim == 1:
-                            feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred[:, 1:2]
-                        else:
-                            feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred
+        if hasattr(train_data, 'val_dataset'):
+            loader = DataLoader(train_data.val_dataset)
+        else:
+            loader = DataLoader(train_data.train_dataset, sampler=train_data.val_sampler)
+        num_samples = 0
+        y_p2 = list()
+        for sample in loader:
+            num_samples += 1
+            y_p2.extend(sample[1].detach().numpy())
+        y_p2 = np.array(y_p2)
+
+        for algo_id in self.stats["include_algorithms"]:
+            model_configs = self.stats[algo_id]['model_configs']
+            for idx, (node, config) in enumerate(model_configs):
+                estimator = get_estimator_with_parameters(config, self.output_dir)
+                if self.task_type in CLS_TASKS:
+                    if hasattr(train_data, 'val_dataset'):
+                        pred = estimator.predict_proba(train_data.val_dataset)
                     else:
-                        pred = estimator.predict(x_p2).reshape(-1, 1)
+                        pred = estimator.predict_proba(train_data.train_dataset, sampler=train_data.val_sampler)
+                    n_dim = np.array(pred).shape[1]
+                    if n_dim == 2:
+                        # Binary classificaion
                         n_dim = 1
-                        # Initialize training matrix for phase 2
-                        if feature_p2 is None:
-                            num_samples = len(x_p2)
-                            feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
-                        feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred
-                    suc_cnt += 1
+                    # Initialize training matrix for phase 2
+                    if feature_p2 is None:
+                        feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
+                    if n_dim == 1:
+                        feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred[:, 1:2]
+                    else:
+                        feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred
+                else:
+                    if hasattr(train_data, 'val_dataset'):
+                        pred = estimator.predict(train_data.val_dataset)
+                    else:
+                        pred = estimator.predict(train_data.train_dataset, sampler=train_data.val_sampler)
+                    pred = pred.reshape(-1, 1)
+                    n_dim = 1
+                    # Initialize training matrix for phase 2
+                    if feature_p2 is None:
+                        feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
+                    feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred
                 model_cnt += 1
         self.meta_learner.fit(feature_p2, y_p2)
 
         return self
 
-    def get_feature(self, data, solvers):
+    def get_feature(self, data, sampler=None):
         # Predict the labels via blending
         feature_p2 = None
         model_cnt = 0
-        suc_cnt = 0
+
+        loader = DataLoader(data, sampler=sampler)
+        num_samples = len(list(loader))
+
         for algo_id in self.stats["include_algorithms"]:
-            model_to_eval = self.stats[algo_id]['model_to_eval']
-            for idx, (node, config) in enumerate(model_to_eval):
-                test_node = solvers[algo_id].optimizer['fe'].apply(data, node)
-                if self.base_model_mask[model_cnt] == 1:
-                    with open(os.path.join(self.output_dir, '%s-blending-model%d' % (self.timestamp, model_cnt)),
-                              'rb') as f:
-                        estimator = pkl.load(f)
-                    if self.task_type in CLS_TASKS:
-                        pred = estimator.predict_proba(test_node.data[0])
-                        n_dim = np.array(pred).shape[1]
-                        if n_dim == 2:
-                            # Binary classificaion
-                            n_dim = 1
-                        # Initialize training matrix for phase 2
-                        if feature_p2 is None:
-                            num_samples = len(data.data[0])
-                            feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
-                        if n_dim == 1:
-                            feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred[:, 1:2]
-                        else:
-                            feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred
-                    else:
-                        pred = estimator.predict(test_node.data[0]).reshape(-1, 1)
+            model_configs = self.stats[algo_id]['model_configs']
+            for idx, (node, config) in enumerate(model_configs):
+                estimator = get_estimator_with_parameters(config, self.output_dir)
+                if self.task_type in CLS_TASKS:
+                    pred = estimator.predict_proba(data, sampler=sampler)
+                    n_dim = np.array(pred).shape[1]
+                    if n_dim == 2:
+                        # Binary classificaion
                         n_dim = 1
-                        # Initialize training matrix for phase 2
-                        if feature_p2 is None:
-                            num_samples = len(data.data[0])
-                            feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
-                        feature_p2[:, suc_cnt * n_dim:(suc_cnt + 1) * n_dim] = pred
-                    suc_cnt += 1
+                    # Initialize training matrix for phase 2
+                    if feature_p2 is None:
+                        feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
+                    if n_dim == 1:
+                        feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred[:, 1:2]
+                    else:
+                        feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred
+                else:
+                    pred = estimator.predict_proba(data, sampler=sampler)
+                    pred = pred.reshape(-1, 1)
+                    n_dim = 1
+                    # Initialize training matrix for phase 2
+                    if feature_p2 is None:
+                        feature_p2 = np.zeros((num_samples, self.ensemble_size * n_dim))
+                    feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred
                 model_cnt += 1
 
         return feature_p2
 
-    def predict(self, data, solvers):
-        feature_p2 = self.get_feature(data, solvers)
+    def predict(self, data, sampler=None):
+        feature_p2 = self.get_feature(data, sampler=sampler)
         # Get predictions from meta-learner
         if self.task_type in CLS_TASKS:
             final_pred = self.meta_learner.predict_proba(feature_p2)
@@ -154,17 +148,4 @@ class Blending(BaseEnsembleModel):
         return final_pred
 
     def get_ens_model_info(self):
-        model_cnt = 0
-        ens_info = {}
-        ens_config = []
-        for algo_id in self.stats["include_algorithms"]:
-            model_to_eval = self.stats[algo_id]['model_to_eval']
-            for idx, (node, config) in enumerate(model_to_eval):
-                if not hasattr(self, 'base_model_mask') or self.base_model_mask[model_cnt] == 1:
-                    model_path = os.path.join(self.output_dir, '%s-blending-model%d' % (self.timestamp, model_cnt))
-                    ens_config.append((algo_id, node.config, config, model_path))
-                model_cnt += 1
-        ens_info['ensemble_method'] = 'blending'
-        ens_info['config'] = ens_config
-        ens_info['meta_learner'] = self.meta_method
-        return ens_info
+        raise NotImplementedError

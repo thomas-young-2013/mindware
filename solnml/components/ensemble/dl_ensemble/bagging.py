@@ -5,11 +5,12 @@ import pickle as pkl
 
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
-from solnml.components.ensemble.base_ensemble import BaseEnsembleModel
+from solnml.components.ensemble.base_ensemble import BaseImgEnsembleModel
+
 from functools import reduce
 
 
-class Bagging(BaseEnsembleModel):
+class Bagging(BaseImgEnsembleModel):
     def __init__(self, stats,
                  ensemble_size: int,
                  task_type: int,
@@ -26,7 +27,7 @@ class Bagging(BaseEnsembleModel):
         # Do nothing, models has been trained and saved.
         return self
 
-    def predict(self, data):
+    def predict(self, data, sampler=None):
         model_pred_list = list()
         final_pred = list()
 
@@ -36,9 +37,9 @@ class Bagging(BaseEnsembleModel):
             for idx, config in enumerate(model_configs):
                 estimator = get_estimator_with_parameters(config, self.output_dir)
                 if self.task_type in CLS_TASKS:
-                    model_pred_list.append(estimator.predict_proba(data))
+                    model_pred_list.append(estimator.predict_proba(data, sampler=sampler))
                 else:
-                    model_pred_list.append(estimator.predict(data))
+                    model_pred_list.append(estimator.predict(data, sampler=sampler))
                 model_cnt += 1
 
         # Calculate the average of predictions
@@ -50,16 +51,4 @@ class Bagging(BaseEnsembleModel):
         return np.array(final_pred)
 
     def get_ens_model_info(self):
-        model_cnt = 0
-        ens_info = {}
-        ens_config = []
-        for algo_id in self.stats["include_algorithms"]:
-            model_to_eval = self.stats[algo_id]['model_to_eval']
-            for idx, (node, config) in enumerate(model_to_eval):
-                if not hasattr(self, 'base_model_mask') or self.base_model_mask[model_cnt] == 1:
-                    model_path = os.path.join(self.output_dir, '%s-bagging-model%d' % (self.timestamp, model_cnt))
-                    ens_config.append((algo_id, node.config, config, model_path))
-                model_cnt += 1
-        ens_info['ensemble_method'] = 'bagging'
-        ens_info['config'] = ens_config
-        return ens_info
+        raise NotImplementedError
