@@ -7,19 +7,18 @@ from solnml.datasets.image_dataset import BaseDataset
 from solnml.components.metrics.metric import get_metric
 from solnml.utils.logging_utils import setup_logger, get_logger
 from solnml.components.ensemble import ensemble_list
+from solnml.components.ensemble import EnsembleBuilder
 from solnml.components.hpo_optimizer import build_hpo_optimizer
 from solnml.components.models.img_classification import _classifiers as _img_classifiers
-from solnml.components.evaluators.img_cls_evaluator import ImgClassificationEvaluator
-from solnml.components.evaluators.img_cls_evaluator import get_estimator_with_parameters
+from solnml.components.evaluators.img_cls_evaluator import ImgClassificationEvaluator, TopKModelSaver
+from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space
-
 
 img_classification_algorithms = _img_classifiers.keys()
 
 """
     imbalanced datasets.
     time_limit
-    default ensemble method
 """
 
 
@@ -137,6 +136,19 @@ class AutoDL(object):
         inc_idx = np.argmax(solver_.perfs)
         self.best_algo_config = solver_.configs[inc_idx]
 
+        if self.ensemble_method is not None:
+            # stats = self.fetch_ensemble_members()
+            stats = self.fetch_ensemble_members()
+
+            # Ensembling all intermediate/ultimate models found in above optimization process.
+            self.es = EnsembleBuilder(stats=stats,
+                                      ensemble_method=self.ensemble_method,
+                                      ensemble_size=self.ensemble_size,
+                                      task_type=self.task_type,
+                                      metric=self.metric,
+                                      output_dir=self.output_dir)
+            self.es.fit(data=train_data)
+
     def fetch_ensemble_members(self):
         stats = dict()
         stats['candidate_algorithms'] = self.include_algorithms
@@ -164,10 +176,9 @@ class AutoDL(object):
             else:
                 model_items.extend(hpo_eval_list[:min_model_num])
 
-            hpo_configs = [item[0][1] for item in model_items]
-
-            data['model_configs'] = hpo_configs
-            self.logger.info('%s, %d' % (algo_id, len(hpo_configs)))
+            model_configs = [item[0][1] for item in model_items]
+            data['model_configs'] = model_configs
+            self.logger.info('%s, %d' % (algo_id, len(model_configs)))
             stats[algo_id] = data
         self.logger.info('Preparing basic models finished.')
         return stats
