@@ -1,11 +1,11 @@
-from sklearn.metrics.scorer import _BaseScorer
-import numpy as np
 import os
-import pickle as pkl
+import numpy as np
+from sklearn.metrics.scorer import _BaseScorer
 
+from solnml.datasets.base_dataset import BaseDataset
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
-from solnml.components.ensemble.base_ensemble import BaseEnsembleModel
+from solnml.components.ensemble.dl_ensemble.base_ensemble import BaseEnsembleModel
 from functools import reduce
 
 
@@ -26,7 +26,7 @@ class Bagging(BaseEnsembleModel):
         # Do nothing, models has been trained and saved.
         return self
 
-    def predict(self, data):
+    def predict(self, data: BaseDataset):
         model_pred_list = list()
         final_pred = list()
 
@@ -49,17 +49,3 @@ class Bagging(BaseEnsembleModel):
 
         return np.array(final_pred)
 
-    def get_ens_model_info(self):
-        model_cnt = 0
-        ens_info = {}
-        ens_config = []
-        for algo_id in self.stats["include_algorithms"]:
-            model_to_eval = self.stats[algo_id]['model_to_eval']
-            for idx, (node, config) in enumerate(model_to_eval):
-                if not hasattr(self, 'base_model_mask') or self.base_model_mask[model_cnt] == 1:
-                    model_path = os.path.join(self.output_dir, '%s-bagging-model%d' % (self.timestamp, model_cnt))
-                    ens_config.append((algo_id, node.config, config, model_path))
-                model_cnt += 1
-        ens_info['ensemble_method'] = 'bagging'
-        ens_info['config'] = ens_config
-        return ens_info
