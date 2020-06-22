@@ -206,44 +206,9 @@ class EnsembleSelection(BaseEnsembleModel):
         indices = np.argsort(perf)[perf.shape[0] - n_best:]
         return indices
 
-    def predict(self, data, solvers):
-        predictions = []
-        cur_idx = 0
-        for algo_id in self.stats["include_algorithms"]:
-            model_to_eval = self.stats[algo_id]['model_to_eval']
-            for idx, (node, config) in enumerate(model_to_eval):
-                test_node = solvers[algo_id].optimizer['fe'].apply(data, node)
-                X_test, _ = test_node.data
-                if cur_idx in self.model_idx:
-                    with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, cur_idx)), 'rb') as f:
-                        estimator = pkl.load(f)
-                        if self.task_type in CLS_TASKS:
-                            predictions.append(estimator.predict_proba(X_test))
-                        else:
-                            predictions.append(estimator.predict(X_test))
-                else:
-                    if len(self.shape) == 1:
-                        predictions.append(np.zeros(len(test_node.data[0])))
-                    else:
-                        predictions.append(np.zeros((len(test_node.data[0]), self.shape[1])))
-                cur_idx += 1
-        predictions = np.asarray(predictions)
 
-        # if predictions.shape[0] == len(self.weights_),
-        # predictions include those of zero-weight models.
-        if predictions.shape[0] == len(self.weights_):
-            return np.average(predictions, axis=0, weights=self.weights_)
-
-        # if prediction model.shape[0] == len(non_null_weights),
-        # predictions do not include those of zero-weight models.
-        elif predictions.shape[0] == np.count_nonzero(self.weights_):
-            non_null_weights = [w for w in self.weights_ if w > 0]
-            return np.average(predictions, axis=0, weights=non_null_weights)
-
-        # If none of the above applies, then something must have gone wrong.
-        else:
-            raise ValueError("The dimensions of ensemble predictions"
-                             " and ensemble weights do not match!")
+    def predict(self, data, sampler=None):
+        pass
 
     def __str__(self):
         return 'Ensemble Selection:\n\tTrajectory: %s\n\tMembers: %s' \

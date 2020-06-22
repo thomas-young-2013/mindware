@@ -144,14 +144,8 @@ class Blending(BaseEnsembleModel):
 
         return feature_p2
 
-    def predict(self, data, solvers):
-        feature_p2 = self.get_feature(data, solvers)
-        # Get predictions from meta-learner
-        if self.task_type in CLS_TASKS:
-            final_pred = self.meta_learner.predict_proba(feature_p2)
-        else:
-            final_pred = self.meta_learner.predict(feature_p2)
-        return final_pred
+    def predict(self, dataset, sampler=None):
+        pass
 
     def get_ens_model_info(self):
         model_cnt = 0
