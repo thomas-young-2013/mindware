@@ -6,8 +6,8 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.metrics.scorer import _BaseScorer, _PredictScorer, _ThresholdScorer
 
 from solnml.components.utils.constants import *
-from solnml.components.ensemble.base_ensemble import BaseEnsembleModel
 from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
+from solnml.components.ensemble.dl_ensemble.base_ensemble import BaseEnsembleModel
 
 
 class EnsembleSelection(BaseEnsembleModel):
@@ -26,7 +26,6 @@ class EnsembleSelection(BaseEnsembleModel):
                          ensemble_size=ensemble_size,
                          task_type=task_type,
                          metric=metric,
-                         base_save=True,
                          output_dir=output_dir)
         self.model_idx = list()
         self.sorted_initialization = sorted_initialization

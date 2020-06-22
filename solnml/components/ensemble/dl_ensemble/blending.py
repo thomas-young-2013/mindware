@@ -5,7 +5,7 @@ import pickle as pkl
 from sklearn.model_selection import train_test_split
 from sklearn.metrics.scorer import _BaseScorer
 
-from solnml.components.ensemble.base_ensemble import BaseEnsembleModel
+from solnml.components.ensemble.dl_ensemble.base_ensemble import BaseEnsembleModel
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
 

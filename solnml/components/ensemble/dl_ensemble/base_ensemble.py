@@ -1,6 +1,8 @@
 import time
 from sklearn.metrics.scorer import _BaseScorer
+from torch.utils.data import Dataset
 from solnml.utils.logging_utils import get_logger
+from solnml.datasets.base_dataset import BaseDataset
 
 
 class BaseEnsembleModel(object):
@@ -25,14 +27,8 @@ class BaseEnsembleModel(object):
         logger_name = 'EnsembleBuilder'
         self.logger = get_logger(logger_name)
 
-    def fit(self, data):
+    def fit(self, data: BaseDataset):
         raise NotImplementedError
 
-    def predict(self, data):
+    def predict(self, dataset: Dataset, sampler=None):
         raise NotImplementedError
-
-    def get_ens_model_info(self):
-        raise NotImplementedError
-
-    def refit(self):
-        pass
