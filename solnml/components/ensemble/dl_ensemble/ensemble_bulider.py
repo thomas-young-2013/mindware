@@ -47,13 +47,13 @@ class EnsembleBuilder:
     def refit(self, dataset: BaseDataset):
         for algo_id in self.model.stats['include_algorithms']:
             for model_config in self.model.stats[algo_id]:
-                model_path = self.model.output_dir + TopKModelSaver.get_configuration_id(model_config) + '.pt'
+                config_dict = model_config.get_dictionary().copy()
+                model_path = self.model.output_dir + TopKModelSaver.get_configuration_id(config_dict) + '.pt'
                 # Remove the old models.
                 if os.path.exists(model_path):
                     os.remove(model_path)
 
                 # Refit the models.
-                config_dict = model_path.get_dictionary().copy()
                 _, clf = get_estimator(config_dict)
                 # TODO: if train ans val are two parts, we need to merge it into one dataset.
                 clf.fit(dataset.train_dataset)

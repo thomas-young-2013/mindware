@@ -185,7 +185,21 @@ class AutoDL(object):
         return stats
 
     def refit(self, dataset: BaseDataset):
-        self.es.refit(dataset)
+        if self.es is None:
+            config_dict = self.best_algo_config.get_dictionary().copy()
+            model_path = self.output_dir + TopKModelSaver.get_configuration_id(config_dict) + '.pt'
+            # Remove the old models.
+            if os.path.exists(model_path):
+                os.remove(model_path)
+
+            # Refit the models.
+            _, clf = get_estimator(config_dict)
+            # TODO: if train ans val are two parts, we need to merge it into one dataset.
+            clf.fit(dataset.train_dataset)
+            # Save to the disk.
+            torch.save(clf.model.state_dict(), model_path)
+        else:
+            self.es.refit(dataset)
 
     def predict_proba(self, test_data: BaseDataset):
         pass
