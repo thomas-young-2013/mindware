@@ -2,7 +2,7 @@ from __future__ import print_function, division, absolute_import
 import numpy as np
 import torch
 from torch import nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torch.optim import Adam, SGD
 from torch.optim.lr_scheduler import StepLR
 
@@ -98,18 +98,11 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             scheduler.step()
         return self
 
-    def predict_proba(self, dataset, set='test', batch_size=None):
+    def predict_proba(self, dataset: Dataset, sampler=None, batch_size=None):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        if set == 'val':
-            if hasattr(dataset, 'val_dataset'):
-                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
-            else:
-                loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
-                                    sampler=dataset.val_sampler, shuffle=False, num_workers=4)
-        elif set == 'test':
-            loader = DataLoader(dataset=dataset.test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=4)
         self.model.eval()
         prediction = torch.Tensor()
         for i, data in enumerate(loader):
@@ -119,19 +112,11 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             prediction = torch.cat((prediction, pred), 0)
         return prediction.detach().numpy()
 
-    def predict(self, dataset, set='test', batch_size=None):
+    def predict(self, dataset: Dataset, sampler=None, batch_size=None):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        if set == 'val':
-            if hasattr(dataset, 'val_dataset'):
-                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
-            else:
-                loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
-                                    sampler=dataset.val_sampler, shuffle=False, num_workers=4)
-        elif set == 'test':
-            loader = DataLoader(dataset=dataset.test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
-        self.model.eval()
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=4)
         prediction = torch.Tensor()
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
@@ -208,33 +193,52 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
             scheduler.step()
         return self
 
-    def predict_proba(self, dataset, batch_size=None):
+    def predict_proba(self, dataset: Dataset, sampler=None, batch_size=None):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=4)
         self.model.eval()
         prediction = torch.Tensor()
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
-            masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
-            logits = self.model(batch_x.long().to(self.device), masks)
-            prediction = torch.cat((prediction, logits), 0)
+            logits = self.model(batch_x.float().to(self.device))
+            pred = nn.functional.softmax(logits, dim=-1)
+            prediction = torch.cat((prediction, pred), 0)
         return prediction.detach().numpy()
 
-    def predict(self, dataset, batch_size=None):
+    def predict(self, dataset: Dataset, sampler=None, batch_size=None):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=4)
-        self.model.eval()
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=4)
         prediction = torch.Tensor()
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
-            masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
-            logits = self.model(batch_x.long().to(self.device), masks)
+            logits = self.model(batch_x.float().to(self.device))
             prediction = torch.cat((prediction, logits), 0)
         return np.argmax(prediction.detach().numpy(), axis=-1)
+
+    def score(self, dataset, metric, batch_size=None):
+        if not self.model:
+            raise ValueError("Model not fitted!")
+        batch_size = self.batch_size if batch_size is None else batch_size
+        if hasattr(dataset, 'val_dataset'):
+            loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+        else:
+            loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
+                                sampler=dataset.val_sampler, shuffle=False, num_workers=4)
+        self.model.eval()
+        total_len = 0
+        score = 0
+        for i, data in enumerate(loader):
+            batch_x, batch_y = data[0], data[1]
+            logits = self.model(batch_x.float().to(self.device))
+            prediction = np.argmax(logits.detach().numpy(), axis=-1)
+            score += metric(prediction, batch_y.detach().numpy()) * len(prediction)
+            total_len += len(prediction)
+        score /= total_len
+        return score
 
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
