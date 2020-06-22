@@ -7,6 +7,9 @@ class BaseDataset(object):
     def __init__(self):
         self.train_sampler, self.val_sampler = None, None
         self.subset_sampler_used = False
+        self.train_dataset = None
+        self.val_dataset = None
+        self.test_dataset = None
 
     def create_train_val_split(self, dataset: Dataset, train_val_split=0.2, shuffle=False):
         dataset_size = len(dataset)

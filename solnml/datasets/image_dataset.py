@@ -17,9 +17,6 @@ class ImageDataset(BaseDataset):
         self.train_val_split = train_val_split
         self.val_split_size = val_split_size
         self.grayscale = grayscale
-        self.train_dataset = None
-        self.val_dataset = None
-        self.test_dataset = None
 
     def set_udf_transform(self, udf_transform):
         self.udf_transforms = udf_transform

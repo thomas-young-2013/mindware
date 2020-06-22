@@ -1,7 +1,5 @@
-from sklearn.metrics.scorer import _BaseScorer
 import numpy as np
-import os
-import pickle as pkl
+from sklearn.metrics.scorer import _BaseScorer
 
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
@@ -43,7 +41,7 @@ class Bagging(BaseImgEnsembleModel):
                 model_cnt += 1
 
         # Calculate the average of predictions
-        for i in range(len(data.data[0])):
+        for i in range(len(model_pred_list[0])):
             sample_pred_list = [model_pred[i] for model_pred in model_pred_list]
             pred_average = reduce(lambda x, y: x + y, sample_pred_list) / len(sample_pred_list)
             final_pred.append(pred_average)
