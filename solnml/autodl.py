@@ -1,5 +1,6 @@
 import os
 import time
+import torch
 import numpy as np
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from solnml.components.utils.constants import IMG_CLS
@@ -10,8 +11,8 @@ from solnml.components.ensemble import ensemble_list
 from solnml.components.ensemble import EnsembleBuilder
 from solnml.components.hpo_optimizer import build_hpo_optimizer
 from solnml.components.models.img_classification import _classifiers as _img_classifiers
-from solnml.components.evaluators.img_cls_evaluator import ImgClassificationEvaluator, TopKModelSaver
-from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
+from solnml.components.evaluators.img_cls_evaluator import ImgClassificationEvaluator
+from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters, TopKModelSaver, get_estimator
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space
 
 img_classification_algorithms = _img_classifiers.keys()
@@ -33,7 +34,7 @@ class AutoDL(object):
                  ensemble_size=50,
                  evaluation='holdout',
                  logging_config=None,
-                 output_dir="logs",
+                 output_dir="logs/",
                  random_state=1,
                  n_jobs=1):
         self.metric_id = metric
@@ -65,7 +66,7 @@ class AutoDL(object):
 
         if ensemble_method is not None and ensemble_method not in ensemble_list:
             raise ValueError("%s is not supported for ensemble!" % ensemble_method)
-
+        self.es = None
         self.solvers = dict()
         self.evaluators = dict()
         # Single model.
@@ -99,7 +100,7 @@ class AutoDL(object):
             default_config = cs.get_default_configuration()
             config_space.seed(self.seed)
 
-            aug_space=get_aug_hyperparameter_space()
+            aug_space = get_aug_hyperparameter_space()
             cs.add_hyperparameters(aug_space.get_hyperparameters())
             cs.add_conditions(aug_space.get_conditions())
 
@@ -183,15 +184,29 @@ class AutoDL(object):
         self.logger.info('Preparing basic models finished.')
         return stats
 
-    def refit(self):
-        pass
+    def refit(self, dataset: BaseDataset):
+        stats = self.fetch_ensemble_members()
+        for algo_id in stats['include_algorithms']:
+            for model_config in stats[algo_id]:
+                model_path = self.output_dir + TopKModelSaver.get_configuration_id(model_config) + '.pt'
+                # Remove the old models.
+                if os.path.exists(model_path):
+                    os.remove(model_path)
+
+                # Refit the models.
+                config_dict = model_path.get_dictionary().copy()
+                _, clf = get_estimator(config_dict)
+                clf.fit(dataset.train_dataset)
+                # Save to the disk.
+                torch.save(clf.model.state_dict(), model_path)
 
     def predict_proba(self, test_data: BaseDataset):
         pass
 
     def predict(self, test_data: BaseDataset):
-        model_ = get_estimator_with_parameters(self.best_algo_config)
-        return model_.predict(test_data)
+        if self.es is None:
+            model_ = get_estimator_with_parameters(self.best_algo_config)
+            return model_.predict(test_data.test_dataset)
 
     def score(self, test_data: BaseDataset, metric_func=None):
         if metric_func is None:

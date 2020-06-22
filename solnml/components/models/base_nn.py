@@ -5,6 +5,7 @@ from torch import nn
 from torch.utils.data import DataLoader, Dataset
 from torch.optim import Adam, SGD
 from torch.optim.lr_scheduler import StepLR
+from solnml.datasets.base_dataset import BaseDataset
 
 
 class BaseNeuralNetwork:
@@ -71,14 +72,18 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         self.step_decay = None
         self.device = None
 
-    def fit(self, dataset):
+    def fit(self, dataset: BaseDataset or Dataset):
         assert self.model is not None
         params = self.model.parameters()
-        if hasattr(dataset, 'val_dataset'):
-            loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
+        if isinstance(dataset, Dataset):
+            loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
         else:
-            loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
-                                sampler=dataset.train_sampler, shuffle=True, num_workers=4)
+            if hasattr(dataset, 'val_dataset'):
+                loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
+            else:
+                loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
+                                    sampler=dataset.train_sampler, shuffle=True, num_workers=4)
+
         if self.optimizer == 'SGD':
             optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
         elif self.optimizer == 'Adam':
