@@ -1,8 +1,6 @@
-import os
 import numpy as np
 from sklearn.metrics.scorer import _BaseScorer
 
-from solnml.datasets.base_dataset import BaseDataset
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
 from solnml.components.ensemble.dl_ensemble.base_ensemble import BaseEnsembleModel
@@ -26,7 +24,7 @@ class Bagging(BaseEnsembleModel):
         # Do nothing, models has been trained and saved.
         return self
 
-    def predict(self, data: BaseDataset):
+    def predict(self, dataset, sampler=None):
         model_pred_list = list()
         final_pred = list()
 
@@ -36,16 +34,15 @@ class Bagging(BaseEnsembleModel):
             for idx, config in enumerate(model_configs):
                 estimator = get_estimator_with_parameters(config, self.output_dir)
                 if self.task_type in CLS_TASKS:
-                    model_pred_list.append(estimator.predict_proba(data))
+                    model_pred_list.append(estimator.predict_proba(dataset, sampler=sampler))
                 else:
-                    model_pred_list.append(estimator.predict(data))
+                    model_pred_list.append(estimator.predict(dataset, sampler=sampler))
                 model_cnt += 1
 
         # Calculate the average of predictions
-        for i in range(len(data.data[0])):
+        for i in range(len(model_pred_list[0])):
             sample_pred_list = [model_pred[i] for model_pred in model_pred_list]
             pred_average = reduce(lambda x, y: x + y, sample_pred_list) / len(sample_pred_list)
             final_pred.append(pred_average)
 
         return np.array(final_pred)
-
