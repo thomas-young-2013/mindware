@@ -15,17 +15,17 @@ class BaseEnsembleModel(object):
                  ensemble_size: int,
                  task_type: int,
                  metric: _BaseScorer,
-                 output_dir=None):
+                 output_dir=None,
+                 device='cpu'):
         self.stats = stats
         self.ensemble_method = ensemble_method
         self.ensemble_size = ensemble_size
         self.task_type = task_type
         self.metric = metric
         self.output_dir = output_dir
+        self.device = device
 
-        self.train_predictions = list()
-        self.train_labels = None
-        self.seed = self.stats['split_seed']
+        self.seed = 1
         self.timestamp = str(time.time())
         logger_name = 'EnsembleBuilder'
         self.logger = get_logger(logger_name)

@@ -7,8 +7,7 @@ from solnml.components.utils.constants import IMG_CLS
 from solnml.datasets.image_dataset import BaseDataset
 from solnml.components.metrics.metric import get_metric
 from solnml.utils.logging_utils import setup_logger, get_logger
-from solnml.components.ensemble import ensemble_list
-from solnml.components.ensemble.dl_ensemble.ensemble_bulider import EnsembleBuilder
+from solnml.components.ensemble.dl_ensemble.ensemble_bulider import EnsembleBuilder,ensemble_list
 from solnml.components.hpo_optimizer import build_hpo_optimizer
 from solnml.components.models.img_classification import _classifiers as _img_classifiers
 from solnml.components.evaluators.img_cls_evaluator import ImgClassificationEvaluator

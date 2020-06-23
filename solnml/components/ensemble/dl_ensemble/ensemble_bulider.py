@@ -8,7 +8,7 @@ from solnml.datasets.base_dataset import BaseDataset
 from solnml.components.ensemble.dl_ensemble.ensemble_selection import EnsembleSelection
 from solnml.components.evaluators.base_dl_evaluator import TopKModelSaver, get_estimator
 
-ensemble_list = ['bagging', 'blending', 'stacking', 'ensemble_selection']
+ensemble_list = ['bagging', 'blending', 'ensemble_selection']
 
 
 class EnsembleBuilder:
