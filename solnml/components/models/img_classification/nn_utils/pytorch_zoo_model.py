@@ -315,6 +315,7 @@ def inceptionv3(num_classes=1000, pretrained='imagenet'):
 def modify_resnets(model, num_class):
     # Modify attributs
     model.last_linear = nn.Linear(model.fc.in_features, num_class)
+    model.avgpool = nn.AdaptiveAvgPool2d(1)
     model.fc = None
 
     def features(self, input):
