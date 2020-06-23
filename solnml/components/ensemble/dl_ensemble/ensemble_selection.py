@@ -1,17 +1,15 @@
-from collections import Counter
-import os
 import numpy as np
-import pickle as pkl
+from collections import Counter
 from sklearn.preprocessing import OneHotEncoder
 from torch.utils.data import DataLoader
 from sklearn.metrics.scorer import _BaseScorer, _PredictScorer, _ThresholdScorer
 
-from solnml.components.utils.constants import *
-from solnml.components.ensemble.base_ensemble import BaseImgEnsembleModel
+from solnml.components.utils.constants import CLS_TASKS, TASK_TYPES
+from solnml.components.ensemble.dl_ensemble.base_ensemble import BaseEnsembleModel
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
 
 
-class EnsembleSelection(BaseImgEnsembleModel):
+class EnsembleSelection(BaseEnsembleModel):
     def __init__(
             self, stats,
             ensemble_size: int,

@@ -3,12 +3,12 @@ from sklearn.metrics.scorer import _BaseScorer
 
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
-from solnml.components.ensemble.base_ensemble import BaseImgEnsembleModel
+from solnml.components.ensemble.dl_ensemble.base_ensemble import BaseEnsembleModel
 
 from functools import reduce
 
 
-class Bagging(BaseImgEnsembleModel):
+class Bagging(BaseEnsembleModel):
     def __init__(self, stats,
                  ensemble_size: int,
                  task_type: int,

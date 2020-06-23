@@ -1,16 +1,14 @@
-import numpy as np
 import warnings
-import os
-import pickle as pkl
+import numpy as np
 from sklearn.metrics.scorer import _BaseScorer
 from torch.utils.data import DataLoader
 
-from solnml.components.ensemble.base_ensemble import BaseImgEnsembleModel
 from solnml.components.utils.constants import CLS_TASKS
+from solnml.components.ensemble.dl_ensemble.base_ensemble import BaseEnsembleModel
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
 
 
-class Blending(BaseImgEnsembleModel):
+class Blending(BaseEnsembleModel):
     def __init__(self, stats,
                  ensemble_size: int,
                  task_type: int,

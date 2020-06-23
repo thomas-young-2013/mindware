@@ -105,31 +105,3 @@ class BaseEnsembleModel(object):
 
     def refit(self):
         pass
-
-
-class BaseImgEnsembleModel(object):
-    """Base class for model ensemble"""
-
-    def __init__(self, stats, ensemble_method: str,
-                 ensemble_size: int,
-                 task_type: int,
-                 metric: _BaseScorer,
-                 output_dir=None):
-        self.stats = stats
-        self.ensemble_method = ensemble_method
-        self.ensemble_size = ensemble_size
-        self.task_type = task_type
-        self.metric = metric
-        self.output_dir = output_dir
-
-    def fit(self, data):
-        raise NotImplementedError
-
-    def predict(self, data, sampler=None):
-        raise NotImplementedError
-
-    def get_ens_model_info(self):
-        raise NotImplementedError
-
-    def refit(self):
-        pass
