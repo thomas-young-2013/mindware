@@ -148,8 +148,6 @@ class AutoDL(object):
         self.best_algo_config = solver_.configs[inc_idx]
 
         if self.ensemble_method is not None:
-            # stats = self.fetch_ensemble_members()
-            print(self.ensemble_method)
             stats = self.fetch_ensemble_members()
 
             # Ensembling all intermediate/ultimate models found in above optimization process.

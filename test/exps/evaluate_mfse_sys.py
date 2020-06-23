@@ -156,6 +156,8 @@ def create_points(time_range, gap_num, x, y):
                 break
             results.append(1 + y[i])
             cur_idx += 1
+    while len(results) < gap_num:
+        results.append(results[-1])
     return results
 
 
@@ -270,8 +272,12 @@ if __name__ == "__main__":
                                 row_data.append(u'%.4f' % median)
                     else:
                         row_data.extend(['-'] * 2)
-                plt.plot(x, np.mean(y['mfse_fixed'], axis=0))
-                plt.plot(x, np.mean(y['ausk_fixed'], axis=0))
+                for l in y['ausk_fixed']:
+                    pass
+                    # print(len(l))
+                plt.plot(x, np.mean(y['mfse_fixed'], axis=0), label='mfse')
+                plt.plot(x, np.mean(y['ausk_fixed'], axis=0), label='ausk')
+                plt.legend()
                 if dataset == 'covertype':
                     plt.ylim(0.285, 0.32)
                 elif dataset == 'higgs':
