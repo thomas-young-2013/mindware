@@ -39,5 +39,5 @@ else:
     default_config = ResNetClassifier.get_hyperparameter_search_space().get_default_configuration()
     clf = ResNetClassifier(**default_config)
     clf.fit(image_data)
-    print(clf.predict(image_data))
-    print(clf.predict_proba(image_data))
+    print(clf.predict(image_data.test_dataset))
+    print(clf.predict_proba(image_data.test_dataset))
