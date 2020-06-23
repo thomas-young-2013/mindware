@@ -62,10 +62,10 @@ class ResNeXtClassifier(BaseImgClassificationNeuralNetwork):
             beta1 = UniformFloatHyperparameter(
                 "beta1", lower=0.5, upper=0.999, default_value=0.9, log=False)
             batch_size = CategoricalHyperparameter(
-                "batch_size", [8, 16, 32], default_value=16)
+                "batch_size", [8, 16], default_value=16)
             lr_decay = UnParametrizedHyperparameter("lr_decay", 0.8)
             step_decay = UnParametrizedHyperparameter("step_decay", 10)
-            epoch_num = UnParametrizedHyperparameter("epoch_num", 100)
+            epoch_num = UnParametrizedHyperparameter("epoch_num", 150)
             cs.add_hyperparameters(
                 [optimizer, sgd_learning_rate, adam_learning_rate, sgd_momentum, beta1, batch_size, epoch_num, lr_decay,
                  step_decay])

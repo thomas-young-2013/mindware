@@ -2,12 +2,13 @@ import torch
 import hashlib
 
 
-def get_estimator(config):
+def get_estimator(config, device='cpu'):
     from solnml.components.models.img_classification import _classifiers, _addons
     classifier_type = config['estimator']
     config_ = config.copy()
     config_.pop('estimator', None)
     config_['random_state'] = 1
+    config_['device'] = device
     try:
         estimator = _classifiers[classifier_type](**config_)
     except:
@@ -15,12 +16,12 @@ def get_estimator(config):
     return classifier_type, estimator
 
 
-def get_estimator_with_parameters(config, model_dir='data/dl_models/'):
+def get_estimator_with_parameters(config, device='cpu', model_dir='data/dl_models/'):
     config_dict = config.get_dictionary().copy()
-    _, model = get_estimator(config_dict)
+    _, model = get_estimator(config_dict, device=device)
     model_path = model_dir + TopKModelSaver.get_configuration_id(config_dict) + '.pt'
-    model.load_state_dict(torch.load(model_path))
-    model.eval()
+    model.model.load_state_dict(torch.load(model_path))
+    model.model.eval()
     return model
 
 

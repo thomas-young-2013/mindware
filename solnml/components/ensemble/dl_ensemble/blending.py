@@ -16,13 +16,15 @@ class Blending(BaseImgEnsembleModel):
                  task_type: int,
                  metric: _BaseScorer,
                  output_dir=None,
+                 device='cpu',
                  meta_learner='lightgbm'):
         super().__init__(stats=stats,
                          ensemble_method='blending',
                          ensemble_size=ensemble_size,
                          task_type=task_type,
                          metric=metric,
-                         output_dir=output_dir)
+                         output_dir=output_dir,
+                         device=device)
         try:
             from lightgbm import LGBMClassifier
         except:
@@ -112,7 +114,7 @@ class Blending(BaseImgEnsembleModel):
         for algo_id in self.stats["include_algorithms"]:
             model_configs = self.stats[algo_id]['model_configs']
             for idx, (node, config) in enumerate(model_configs):
-                estimator = get_estimator_with_parameters(config, self.output_dir)
+                estimator = get_estimator_with_parameters(config, device=self.device, model_dir=self.output_dir)
                 if self.task_type in CLS_TASKS:
                     pred = estimator.predict_proba(data, sampler=sampler)
                     n_dim = np.array(pred).shape[1]

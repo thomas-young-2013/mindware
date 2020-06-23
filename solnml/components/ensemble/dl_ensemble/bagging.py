@@ -13,13 +13,15 @@ class Bagging(BaseImgEnsembleModel):
                  ensemble_size: int,
                  task_type: int,
                  metric: _BaseScorer,
-                 output_dir=None):
+                 output_dir=None,
+                 device='cpu'):
         super().__init__(stats=stats,
                          ensemble_method='bagging',
                          ensemble_size=ensemble_size,
                          task_type=task_type,
                          metric=metric,
-                         output_dir=output_dir)
+                         output_dir=output_dir,
+                         device=device)
 
     def fit(self, train_data):
         # Do nothing, models has been trained and saved.
@@ -33,7 +35,7 @@ class Bagging(BaseImgEnsembleModel):
         for algo_id in self.stats["include_algorithms"]:
             model_configs = self.stats[algo_id]['model_configs']
             for idx, config in enumerate(model_configs):
-                estimator = get_estimator_with_parameters(config, self.output_dir)
+                estimator = get_estimator_with_parameters(config, device=self.device, model_dir=self.output_dir)
                 if self.task_type in CLS_TASKS:
                     model_pred_list.append(estimator.predict_proba(data, sampler=sampler))
                 else:

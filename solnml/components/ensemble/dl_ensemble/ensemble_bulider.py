@@ -7,6 +7,7 @@ from solnml.components.ensemble.dl_ensemble.blending import Blending
 from solnml.datasets.base_dataset import BaseDataset
 from solnml.components.ensemble.dl_ensemble.ensemble_selection import EnsembleSelection
 from solnml.components.evaluators.base_dl_evaluator import TopKModelSaver, get_estimator
+
 ensemble_list = ['bagging', 'blending', 'stacking', 'ensemble_selection']
 
 
@@ -15,26 +16,31 @@ class EnsembleBuilder:
                  ensemble_size: int,
                  task_type: int,
                  metric: _BaseScorer,
-                 output_dir=None):
+                 output_dir=None,
+                 device='cpu'):
         self.model = None
+        self.device = device
         if ensemble_method == 'bagging':
             self.model = Bagging(stats=stats,
                                  ensemble_size=ensemble_size,
                                  task_type=task_type,
                                  metric=metric,
-                                 output_dir=output_dir)
+                                 output_dir=output_dir,
+                                 device=device)
         elif ensemble_method == 'blending':
             self.model = Blending(stats=stats,
                                   ensemble_size=ensemble_size,
                                   task_type=task_type,
                                   metric=metric,
-                                  output_dir=output_dir)
+                                  output_dir=output_dir,
+                                  device=device)
         elif ensemble_method == 'ensemble_selection':
             self.model = EnsembleSelection(stats=stats,
                                            ensemble_size=ensemble_size,
                                            task_type=task_type,
                                            metric=metric,
-                                           output_dir=output_dir)
+                                           output_dir=output_dir,
+                                           device=device)
         else:
             raise ValueError("%s is not supported for ensemble!" % ensemble_method)
 
@@ -54,7 +60,7 @@ class EnsembleBuilder:
                     os.remove(model_path)
 
                 # Refit the models.
-                _, clf = get_estimator(config_dict)
+                _, clf = get_estimator(config_dict, device=self.device)
                 # TODO: if train ans val are two parts, we need to merge it into one dataset.
                 clf.fit(dataset.train_dataset)
                 # Save to the disk.

@@ -79,7 +79,8 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
         else:
             if hasattr(dataset, 'val_dataset'):
-                loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
+                loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
+                                    num_workers=4)
             else:
                 loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
                                     sampler=dataset.train_sampler, shuffle=True, num_workers=4)
@@ -109,25 +110,31 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         batch_size = self.batch_size if batch_size is None else batch_size
         loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=4)
         self.model.eval()
-        prediction = torch.Tensor()
+        prediction = None
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
             logits = self.model(batch_x.float().to(self.device))
             pred = nn.functional.softmax(logits, dim=-1)
-            prediction = torch.cat((prediction, pred), 0)
-        return prediction.detach().numpy()
+            if prediction is None:
+                prediction = pred.to('cpu').detach().numpy()
+            else:
+                prediction = np.concatenate((prediction, pred.to('cpu').detach().numpy()), 0)
+        return prediction
 
     def predict(self, dataset: Dataset, sampler=None, batch_size=None):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
         loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=4)
-        prediction = torch.Tensor()
+        prediction = None
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
             logits = self.model(batch_x.float().to(self.device))
-            prediction = torch.cat((prediction, logits), 0)
-        return np.argmax(prediction.detach().numpy(), axis=-1)
+            if prediction is None:
+                prediction = logits.to('cpu').detach().numpy()
+            else:
+                prediction = np.concatenate((prediction, logits.to('cpu').detach().numpy()), 0)
+        return np.argmax(prediction, axis=-1)
 
     def score(self, dataset, metric, batch_size=None):
         if not self.model:
@@ -143,7 +150,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         score = 0
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
-            logits = self.model(batch_x.float().to(self.device))
+            logits = self.model(batch_x.float().to(self.device)).to('cpu')
             prediction = np.argmax(logits.detach().numpy(), axis=-1)
             score += metric(prediction, batch_y.detach().numpy()) * len(prediction)
             total_len += len(prediction)
@@ -204,25 +211,31 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         batch_size = self.batch_size if batch_size is None else batch_size
         loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=4)
         self.model.eval()
-        prediction = torch.Tensor()
+        prediction = None
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
             logits = self.model(batch_x.float().to(self.device))
             pred = nn.functional.softmax(logits, dim=-1)
-            prediction = torch.cat((prediction, pred), 0)
-        return prediction.detach().numpy()
+            if prediction is None:
+                prediction = pred.to('cpu').detach().numpy()
+            else:
+                prediction = np.concatenate((prediction, pred.to('cpu').detach().numpy()), 0)
+        return prediction
 
     def predict(self, dataset: Dataset, sampler=None, batch_size=None):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
         loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=4)
-        prediction = torch.Tensor()
+        prediction = None
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
             logits = self.model(batch_x.float().to(self.device))
-            prediction = torch.cat((prediction, logits), 0)
-        return np.argmax(prediction.detach().numpy(), axis=-1)
+            if prediction is None:
+                prediction = logits.to('cpu').detach().numpy()
+            else:
+                prediction = np.concatenate((prediction, logits.to('cpu').detach().numpy()), 0)
+        return np.argmax(prediction, axis=-1)
 
     def score(self, dataset, metric, batch_size=None):
         if not self.model:
@@ -238,7 +251,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         score = 0
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
-            logits = self.model(batch_x.float().to(self.device))
+            logits = self.model(batch_x.float().to(self.device)).to('cpu')
             prediction = np.argmax(logits.detach().numpy(), axis=-1)
             score += metric(prediction, batch_y.detach().numpy()) * len(prediction)
             total_len += len(prediction)

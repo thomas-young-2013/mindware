@@ -12,7 +12,7 @@ from .base_dl_evaluator import TopKModelSaver, get_estimator
 
 
 class ImgClassificationEvaluator(_BaseEvaluator):
-    def __init__(self, clf_config, model_dir='data/dl_models/', scorer=None, dataset=None, seed=1):
+    def __init__(self, clf_config, model_dir='data/dl_models/', scorer=None, dataset=None, device='cpu', seed=1):
         self.hpo_config = clf_config
         self.scorer = scorer if scorer is not None else accuracy_scorer
         self.dataset = dataset
@@ -21,6 +21,7 @@ class ImgClassificationEvaluator(_BaseEvaluator):
         self.onehot_encoder = None
         self.topk_model_saver = TopKModelSaver(k=20, model_dir=model_dir)
         self.model_dir = model_dir
+        self.device = device
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
 
     def __call__(self, config, **kwargs):
@@ -31,7 +32,7 @@ class ImgClassificationEvaluator(_BaseEvaluator):
         start_time = time.time()
 
         config_dict = config.get_dictionary().copy()
-        classifier_id, clf = get_estimator(config_dict)
+        classifier_id, clf = get_estimator(config_dict, device=self.device)
 
         try:
             score = img_holdout_validation(clf, self.scorer, self.dataset, random_state=self.seed)

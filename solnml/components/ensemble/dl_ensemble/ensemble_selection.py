@@ -18,6 +18,7 @@ class EnsembleSelection(BaseImgEnsembleModel):
             task_type: int,
             metric: _BaseScorer,
             output_dir=None,
+            device='cpu',
             sorted_initialization: bool = False,
             mode: str = 'fast'
     ):
@@ -26,7 +27,8 @@ class EnsembleSelection(BaseImgEnsembleModel):
                          ensemble_size=ensemble_size,
                          task_type=task_type,
                          metric=metric,
-                         output_dir=output_dir)
+                         output_dir=output_dir,
+                         device=device)
         self.model_idx = list()
         self.sorted_initialization = sorted_initialization
         self.mode = mode
@@ -74,7 +76,7 @@ class EnsembleSelection(BaseImgEnsembleModel):
         for algo_id in self.stats["include_algorithms"]:
             model_configs = self.stats[algo_id]['model_configs']
             for idx, config in enumerate(model_configs):
-                estimator = get_estimator_with_parameters(config, self.output_dir)
+                estimator = get_estimator_with_parameters(config, device=self.device, model_dir=self.output_dir)
                 if self.task_type in CLS_TASKS:
                     if hasattr(train_data, 'val_dataset'):
                         pred = estimator.predict_proba(train_data.val_dataset)
@@ -244,7 +246,7 @@ class EnsembleSelection(BaseImgEnsembleModel):
         for algo_id in self.stats["include_algorithms"]:
             model_configs = self.stats[algo_id]['model_configs']
             for idx, config in enumerate(model_configs):
-                estimator = get_estimator_with_parameters(config, self.output_dir)
+                estimator = get_estimator_with_parameters(config, device=self.device, model_dir=self.output_dir)
                 if cur_idx in self.model_idx:
                     if self.task_type in CLS_TASKS:
                         predictions.append(estimator.predict_proba(data, sampler=sampler))

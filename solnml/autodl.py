@@ -8,7 +8,7 @@ from solnml.datasets.image_dataset import BaseDataset
 from solnml.components.metrics.metric import get_metric
 from solnml.utils.logging_utils import setup_logger, get_logger
 from solnml.components.ensemble import ensemble_list
-from solnml.components.ensemble import EnsembleBuilder
+from solnml.components.ensemble.dl_ensemble.ensemble_bulider import EnsembleBuilder
 from solnml.components.hpo_optimizer import build_hpo_optimizer
 from solnml.components.models.img_classification import _classifiers as _img_classifiers
 from solnml.components.evaluators.img_cls_evaluator import ImgClassificationEvaluator
@@ -75,6 +75,11 @@ class AutoDL(object):
         # Ensemble models.
         self.candidate_algo_ids = None
 
+        if torch.cuda.is_available():
+            self.device = 'cuda:0'
+        else:
+            self.device = 'cpu'
+
     def _get_logger(self, name):
         logger_name = 'SolnML-%s(%d)' % (name, self.seed)
         setup_logger(os.path.join(self.output_dir, '%s.log' % str(logger_name)),
@@ -85,6 +90,11 @@ class AutoDL(object):
     def fit(self, train_data: BaseDataset):
         _start_time = time.time()
         from solnml.components.models.img_classification import _classifiers, _addons
+
+        # Pop NASNet
+        if 'nasnet' in self.include_algorithms:
+            self.include_algorithms.remove('nasnet')
+
         for estimator_id in self.include_algorithms:
             if estimator_id in _classifiers:
                 clf_class = _classifiers[estimator_id]
@@ -106,6 +116,7 @@ class AutoDL(object):
 
             hpo_evaluator = ImgClassificationEvaluator(default_config, scorer=self.metric,
                                                        dataset=train_data,
+                                                       device=self.device,
                                                        seed=self.seed)
             optimizer = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs,
                                             output_dir=self.output_dir,
@@ -139,6 +150,7 @@ class AutoDL(object):
 
         if self.ensemble_method is not None:
             # stats = self.fetch_ensemble_members()
+            print(self.ensemble_method)
             stats = self.fetch_ensemble_members()
 
             # Ensembling all intermediate/ultimate models found in above optimization process.
@@ -193,7 +205,7 @@ class AutoDL(object):
                 os.remove(model_path)
 
             # Refit the models.
-            _, clf = get_estimator(config_dict)
+            _, clf = get_estimator(config_dict, device=self.device)
             # TODO: if train ans val are two parts, we need to merge it into one dataset.
             clf.fit(dataset.train_dataset)
             # Save to the disk.
@@ -202,12 +214,18 @@ class AutoDL(object):
             self.es.refit(dataset)
 
     def predict_proba(self, test_data: BaseDataset):
-        pass
+        if self.es is None:
+            model_ = get_estimator_with_parameters(self.best_algo_config)
+            return model_.predict_proba(test_data.test_dataset)
+        else:
+            return self.es.predict(test_data.test_dataset)
 
     def predict(self, test_data: BaseDataset):
         if self.es is None:
             model_ = get_estimator_with_parameters(self.best_algo_config)
             return model_.predict(test_data.test_dataset)
+        else:
+            return np.argmax(self.es.predict(test_data.test_dataset), axis=-1)
 
     def score(self, test_data: BaseDataset, metric_func=None):
         if metric_func is None:
