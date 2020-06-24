@@ -93,15 +93,23 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
         self.model.train()
+
         for epoch in range(self.epoch_num):
+            epoch_avg_loss = 0
+            num_samples = 0
             for i, data in enumerate(loader):
                 batch_x, batch_y = data[0], data[1]
                 logits = self.model(batch_x.float().to(self.device))
                 optimizer.zero_grad()
                 loss = loss_func(logits, batch_y.to(self.device))
+                epoch_avg_loss += loss.to(self.device).detach() * len(batch_x)
+                num_samples += len(batch_x)
                 loss.backward()
                 optimizer.step()
+            epoch_avg_loss /= num_samples
+            # print(epoch_avg_loss)
             scheduler.step()
+
         return self
 
     def predict_proba(self, dataset: Dataset, sampler=None, batch_size=None):
@@ -193,16 +201,23 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
         self.model.train()
+
         for epoch in range(self.epoch_num):
+            epoch_avg_loss = 0
+            num_samples = 0
             for i, data in enumerate(loader):
                 batch_x, batch_y = data[0], data[1]
-                masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
-                logits = self.model(batch_x.long().to(self.device), masks)
+                logits = self.model(batch_x.float().to(self.device))
                 optimizer.zero_grad()
                 loss = loss_func(logits, batch_y.to(self.device))
+                epoch_avg_loss += loss.to(self.device).detach() * len(batch_x)
+                num_samples += len(batch_x)
                 loss.backward()
                 optimizer.step()
+            epoch_avg_loss /= num_samples
+            # print(epoch_avg_loss)
             scheduler.step()
+
         return self
 
     def predict_proba(self, dataset: Dataset, sampler=None, batch_size=None):
@@ -291,15 +306,23 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
         scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
         self.model.train()
+
         for epoch in range(self.epoch_num):
+            epoch_avg_loss = 0
+            num_samples = 0
             for i, data in enumerate(loader):
-                batch_x, batch_y = data['x'], data['y']
+                batch_x, batch_y = data[0], data[1]
                 logits = self.model(batch_x.float().to(self.device))
                 optimizer.zero_grad()
                 loss = loss_func(logits, batch_y.to(self.device))
+                epoch_avg_loss += loss.to(self.device).detach() * len(batch_x)
+                num_samples += len(batch_x)
                 loss.backward()
                 optimizer.step()
+            epoch_avg_loss /= num_samples
+            # print(epoch_avg_loss)
             scheduler.step()
+
         return self
 
     def predict(self, X):
