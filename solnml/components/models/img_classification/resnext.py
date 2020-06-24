@@ -33,8 +33,14 @@ class ResNeXtClassifier(BaseImgClassificationNeuralNetwork):
 
         self.model = ResNeXt101_32x4d(num_classes=len(dataset.train_dataset.classes), grayscale=self.grayscale)
         self.model.to(self.device)
+
         super().fit(dataset)
         return self
+
+    def set_empty_model(self, dataset):
+        from .nn_utils.resnext import ResNeXt101_32x4d
+
+        self.model = ResNeXt101_32x4d(num_classes=len(dataset.classes), grayscale=self.grayscale)
 
     @staticmethod
     def get_properties(dataset_properties=None):

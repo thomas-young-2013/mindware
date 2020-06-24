@@ -56,6 +56,9 @@ class BaseNeuralNetwork:
                 setattr(self, param, value)
         return self
 
+    def set_empty_model(self, dataset):
+        raise NotImplementedError
+
 
 class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
     def __init__(self):
@@ -107,7 +110,6 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
                 loss.backward()
                 optimizer.step()
             epoch_avg_loss /= num_samples
-            # print(epoch_avg_loss)
             scheduler.step()
 
         return self
@@ -117,7 +119,9 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
         loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=4)
+        self.model.to(self.device)
         self.model.eval()
+
         prediction = None
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
@@ -127,6 +131,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
                 prediction = pred.to('cpu').detach().numpy()
             else:
                 prediction = np.concatenate((prediction, pred.to('cpu').detach().numpy()), 0)
+
         return prediction
 
     def predict(self, dataset: Dataset, sampler=None, batch_size=None):
@@ -134,6 +139,9 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
         loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=4)
+        self.model.to(self.device)
+        self.model.eval()
+
         prediction = None
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
@@ -225,7 +233,9 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
         loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=4)
+        self.model.to(self.device)
         self.model.eval()
+
         prediction = None
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
@@ -242,6 +252,9 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
         loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=4)
+        self.model.to(self.device)
+        self.model.eval()
+
         prediction = None
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]

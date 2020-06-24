@@ -37,6 +37,12 @@ class ResNetClassifier(BaseImgClassificationNeuralNetwork):
         super().fit(dataset)
         return self
 
+    def set_empty_model(self, dataset):
+        from .nn_utils.pytorch_zoo_model import resnet50
+        if self.grayscale:
+            raise ValueError("Models from pytorch-model zoo only support RGB inputs!")
+        self.model = resnet50(num_classes=len(dataset.classes), pretrained=None)
+
     @staticmethod
     def get_properties(dataset_properties=None):
         return {'shortname': 'ResNet',
