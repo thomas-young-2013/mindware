@@ -1,10 +1,10 @@
 import os
-from .base_dataset import BaseDataset
+from .base_dl_dataset import DLDataset
 from solnml.components.models.img_classification.nn_utils.dataset import get_folder_dataset
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_test_transforms
 
 
-class ImageDataset(BaseDataset):
+class ImageDataset(DLDataset):
     def __init__(self, data_path: str,
                  data_transforms: dict = None,
                  grayscale: bool = False,
@@ -32,7 +32,7 @@ class ImageDataset(BaseDataset):
         else:
             self.create_train_val_split(self.train_dataset, train_val_split=self.val_split_size, shuffle=True)
 
-    def load_test_data(self, test_data_path: str = None):
+    def load_test_data(self, test_data_path):
         if test_data_path is None:
             test_data_path = self.data_path
 

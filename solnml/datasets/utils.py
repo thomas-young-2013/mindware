@@ -7,7 +7,6 @@ from solnml.utils.data_manager import DataManager
 from solnml.components.feature_engineering.fe_pipeline import FEPipeline
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.meta_learning.meta_features import calculate_all_metafeatures
-from solnml.utils.functions import is_unbalanced_dataset
 from solnml.components.utils.constants import CLS_TASKS, REG_TASKS
 
 
@@ -21,9 +20,6 @@ def load_data(dataset, data_dir='./', datanode_returned=False, preprocess=True, 
         data_path = data_dir + 'data/rgs_datasets/%s.csv' % dataset
     else:
         raise ValueError("Unknown task type %s" % str(task_type))
-
-    # if dataset in ['credit_default']:
-    #     data_path = data_dir + 'data/datasets/%s.xls' % dataset
 
     # Load train data.
     if dataset in ['higgs', 'amazon_employee', 'spectf', 'usps', 'vehicle_sensIT', 'codrna']:

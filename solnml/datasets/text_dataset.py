@@ -1,8 +1,8 @@
-from .base_dataset import BaseDataset
+from .base_dl_dataset import DLDataset
 from solnml.components.models.text_classification.nn_utils.dataset import TextBertDataset
 
 
-class TextDataset(BaseDataset):
+class TextDataset(DLDataset):
     def __init__(self, data_path,
                  padding_size=512,
                  config_path=None,

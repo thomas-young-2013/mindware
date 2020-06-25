@@ -4,7 +4,7 @@ import torch
 from sklearn.metrics.scorer import _BaseScorer
 from torch.utils.data import Dataset
 from solnml.utils.logging_utils import get_logger
-from solnml.datasets.base_dataset import BaseDataset
+from solnml.datasets.base_dl_dataset import DLDataset
 from solnml.components.evaluators.base_dl_evaluator import TopKModelSaver, get_estimator
 
 
@@ -30,13 +30,13 @@ class BaseEnsembleModel(object):
         logger_name = 'EnsembleBuilder'
         self.logger = get_logger(logger_name)
 
-    def fit(self, data: BaseDataset):
+    def fit(self, data: DLDataset):
         raise NotImplementedError
 
     def predict(self, dataset: Dataset, sampler=None):
         raise NotImplementedError
 
-    def refit(self, dataset: BaseDataset):
+    def refit(self, dataset: DLDataset):
         for algo_id in self.stats['include_algorithms']:
             for config in self.stats[algo_id]:
                 config_dict = config.get_dictionary().copy()

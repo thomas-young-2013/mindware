@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 from sklearn.metrics.scorer import _BaseScorer
 from solnml.components.ensemble.dl_ensemble.bagging import Bagging
 from solnml.components.ensemble.dl_ensemble.blending import Blending
-from solnml.datasets.base_dataset import BaseDataset
+from solnml.datasets.base_dl_dataset import DLDataset
 from solnml.components.ensemble.dl_ensemble.ensemble_selection import EnsembleSelection
 from solnml.components.evaluators.base_dl_evaluator import TopKModelSaver, get_estimator
 
@@ -50,7 +50,7 @@ class EnsembleBuilder:
     def predict(self, dataset: Dataset, sampler=None):
         return self.model.predict(dataset, sampler=sampler)
 
-    def refit(self, dataset: BaseDataset):
+    def refit(self, dataset: DLDataset):
         for algo_id in self.model.stats['include_algorithms']:
             for model_config in self.model.stats[algo_id]:
                 config_dict = model_config.get_dictionary().copy()

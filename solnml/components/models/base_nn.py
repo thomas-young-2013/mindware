@@ -5,7 +5,7 @@ from torch import nn
 from torch.utils.data import DataLoader, Dataset
 from torch.optim import Adam, SGD
 from torch.optim.lr_scheduler import StepLR
-from solnml.datasets.base_dataset import BaseDataset
+from solnml.datasets.base_dl_dataset import DLDataset
 
 
 class BaseNeuralNetwork:
@@ -75,7 +75,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         self.step_decay = None
         self.device = None
 
-    def fit(self, dataset: BaseDataset or Dataset):
+    def fit(self, dataset: DLDataset or Dataset):
         assert self.model is not None
         params = self.model.parameters()
         if isinstance(dataset, Dataset):
