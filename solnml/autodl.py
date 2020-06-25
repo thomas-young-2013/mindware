@@ -73,11 +73,21 @@ class AutoDL(object):
         self.best_algo_config = None
         # Ensemble models.
         self.candidate_algo_ids = None
+        self.device = self.get_device()
 
+    @staticmethod
+    def get_device():
         if torch.cuda.is_available():
-            self.device = 'cuda:0'
+            if 'CUDA_VISIBLE_DEVICES' in os.environ:
+                device_id = int(os.environ['CUDA_VISIBLE_DEVICES'])
+                torch.cuda.set_device(device_id)
+            else:
+                device_id = 0
+            torch.cuda.set_device(device_id)
+            device = 'cuda:%d' % device_id
         else:
-            self.device = 'cpu'
+            device = 'cpu'
+        return device
 
     def _get_logger(self, name):
         logger_name = 'SolnML-%s(%d)' % (name, self.seed)

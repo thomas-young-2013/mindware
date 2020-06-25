@@ -11,11 +11,11 @@ class ImageDataset(BaseDataset):
                  train_val_split: bool = False,
                  val_split_size: float = 0.2):
         super().__init__()
-
-        self.data_path = data_path
-        self.udf_transforms = data_transforms
         self.train_val_split = train_val_split
         self.val_split_size = val_split_size
+        self.data_path = data_path
+
+        self.udf_transforms = data_transforms
         self.grayscale = grayscale
 
     def set_udf_transform(self, udf_transform):

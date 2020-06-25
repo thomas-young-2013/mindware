@@ -1,5 +1,27 @@
+import os
 import torch
 import hashlib
+
+
+def get_device(device=None):
+    if device is not None:
+        return device
+    else:
+        # setting device on GPU if available, else CPU
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        print('Using device:', device)
+        # Additional Info when using cuda
+        if device.type == 'cuda':
+            print(torch.cuda.get_device_name(0))
+            print('Memory Usage:')
+            print('Allocated:', round(torch.cuda.memory_allocated(0) / 1024 ** 3, 1), 'GB')
+            print('Cached:   ', round(torch.cuda.memory_cached(0) / 1024 ** 3, 1), 'GB')
+
+            if 'CUDA_VISIBLE_DEVICES' in os.environ:
+                torch.cuda.set_device(os.environ['CUDA_VISIBLE_DEVICES'])
+            else:
+                torch.cuda.set_device(0)
+        return device
 
 
 def get_estimator(config, device='cpu'):

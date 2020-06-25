@@ -1,3 +1,4 @@
+import os
 import csv
 import torch
 from torch.utils.data import Dataset
@@ -5,12 +6,15 @@ from transformers import BertTokenizer
 
 
 class TextBertDataset(Dataset):
-    def __init__(self, csv_path, padding_size=512,
-                 config_path='./solnml/components/models/text_classification/nn_utils/bert-base-uncased'):
+    def __init__(self, csv_path,
+                 padding_size=512,
+                 config_path=None):
         """
         :param data: csv path, each line is (class_id, text)
         :param label: label name list
         """
+        if config_path is None:
+            config_path = os.path.join(os.path.dirname(__file__), 'bert-base-uncased')
         self.path = csv_path
         self.padding_size = padding_size
         self._data = list()
@@ -21,7 +25,6 @@ class TextBertDataset(Dataset):
         self._tokenizer = BertTokenizer.from_pretrained(config_path)
 
     def __len__(self):
-        return 2
         return len(self._data)
 
     def __getitem__(self, item):
