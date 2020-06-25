@@ -71,10 +71,10 @@ class Classifier(BaseEstimator):
 
         return pred_proba
 
-    def get_tree_importance(self,data: DataNode):
+    def get_tree_importance(self, data: DataNode):
         from lightgbm import LGBMClassifier
         import pandas as pd
-        X,y = self.data_transformer(data).data
+        X, y = self.data_transformer(data).data
         lgb = LGBMClassifier(random_state=1)
         lgb.fit(X, y)
         _importance = lgb.feature_importances_
@@ -83,29 +83,29 @@ class Classifier(BaseEstimator):
         h['feature_importance'] = _importance
         return pd.DataFrame(h)
 
-    def get_linear_importance(self,data: DataNode):
+    def get_linear_importance(self, data: DataNode):
         from sklearn.linear_model import LogisticRegression
         import pandas as pd
-        X,y = self.data_transformer(data).data
+        X, y = self.data_transformer(data).data
         clf = LogisticRegression(random_state=1)
         clf.fit(X, y)
         _ef = clf.coef_
-        std_array = np.std(_ef,ddof=1,axis=0)
+        std_array = np.std(_ef, ddof=1, axis=0)
         abs_array = abs(_ef)
-        mean_array = np.mean(abs_array,axis=0)
-        _importance = std_array/mean_array
+        mean_array = np.mean(abs_array, axis=0)
+        _importance = std_array / mean_array
         h = {}
         h['feature_id'] = np.array(range(len(_importance)))
         h['feature_importance'] = _importance
         return pd.DataFrame(h)
 
-    def get_linear_impact(self,data: DataNode):
+    def get_linear_impact(self, data: DataNode):
         from sklearn.linear_model import LogisticRegression
         import pandas as pd
-        if(len(set(data.data[1])))>2:
+        if (len(set(data.data[1]))) > 2:
             print('ERROR! Only binary classification is supported!')
             return 0
-        X,y = self.data_transformer(data).data
+        X, y = self.data_transformer(data).data
         clf = LogisticRegression(random_state=1)
         clf.fit(X, y)
         _ef = clf.coef_
@@ -151,10 +151,10 @@ class Regressor(BaseEstimator):
             raise ValueError("X is supposed to be a Data Node, but get %s" % type(X))
         return super().predict(X, batch_size=batch_size, n_jobs=n_jobs)
 
-    def get_tree_importance(self,data: DataNode):
+    def get_tree_importance(self, data: DataNode):
         from lightgbm import LGBMRegressor
         import pandas as pd
-        X,y = self.data_transformer(data).data
+        X, y = self.data_transformer(data).data
         lgb = LGBMRegressor(random_state=1)
         lgb.fit(X, y)
         _importance = lgb.feature_importances_
@@ -163,12 +163,12 @@ class Regressor(BaseEstimator):
         h['feature_importance'] = _importance
         return pd.DataFrame(h)
 
-    def get_linear_impact(self,data: DataNode):
+    def get_linear_impact(self, data: DataNode):
         from sklearn.linear_model import LinearRegression
         import pandas as pd
-        X,y = self.data_transformer(data).data
+        X, y = self.data_transformer(data).data
         reg = LinearRegression()
-        reg.fit(X,y)
+        reg.fit(X, y)
         _impact = reg.coef_
         h = {}
         h['feature_id'] = np.array(range(len(_impact)))
@@ -192,23 +192,13 @@ class ImageClassifier(BaseDLEstimator):
 
         return self
 
-    def predict(self, X, batch_size=None, n_jobs=1):
-        """
-        Predict classes for X.
-        :param X: Datanode
-        :param batch_size: int
-        :param n_jobs: int
-        :return: y : array of shape = [n_samples]
-            The predicted classes.
-        """
-        if not isinstance(X, DataNode):
-            raise ValueError("X is supposed to be a Data Node, but get %s" % type(X))
+    def predict(self, X, batch_size=1, n_jobs=1):
         return super().predict(X, batch_size=batch_size, n_jobs=n_jobs)
 
     def refit(self):
         return super().refit()
 
-    def predict_proba(self, X, batch_size=None, n_jobs=1):
+    def predict_proba(self, X, batch_size=1, n_jobs=1):
         """
         Predict probabilities of classes for all samples X.
         :param X: Datanode

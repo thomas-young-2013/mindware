@@ -30,7 +30,7 @@ def get_estimator(config, device='cpu'):
     config_ = config.copy()
     config_.pop('estimator', None)
     config_['random_state'] = 1
-    config_['device'] = device
+    config_['device'] = torch.device(device)
     try:
         estimator = _classifiers[classifier_type](**config_)
     except:
@@ -38,10 +38,11 @@ def get_estimator(config, device='cpu'):
     return classifier_type, estimator
 
 
-def get_estimator_with_parameters(config, device='cpu', model_dir='data/dl_models/'):
+def get_estimator_with_parameters(config, dataset, device='cpu', model_dir='data/dl_models/'):
     config_dict = config.get_dictionary().copy()
     _, model = get_estimator(config_dict, device=device)
     model_path = model_dir + TopKModelSaver.get_configuration_id(config_dict) + '.pt'
+    model.set_empty_model(dataset)
     model.model.load_state_dict(torch.load(model_path))
     model.model.eval()
     return model

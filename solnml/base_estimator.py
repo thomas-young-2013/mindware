@@ -225,8 +225,8 @@ class BaseDLEstimator(object):
         self._ml_engine.fit(data)
         return self
 
-    def predict(self, X: ImageDataset):
-        return self._ml_engine.predict(X)
+    def predict(self, X: ImageDataset, batch_size=1, n_jobs=1):
+        return self._ml_engine.predict(X, batch_size=batch_size, n_jobs=n_jobs)
 
     def score(self, data: ImageDataset):
         return self._ml_engine.score(data)
@@ -234,8 +234,8 @@ class BaseDLEstimator(object):
     def refit(self):
         return self._ml_engine.refit()
 
-    def predict_proba(self, X: ImageDataset, batch_size=None, n_jobs=1):
-        return self._ml_engine.predict_proba(X)
+    def predict_proba(self, X: ImageDataset, batch_size=1, n_jobs=1):
+        return self._ml_engine.predict_proba(X, batch_size=batch_size, n_jobs=n_jobs)
 
     def get_automl(self):
         return AutoDL

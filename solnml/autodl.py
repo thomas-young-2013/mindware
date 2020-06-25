@@ -7,7 +7,7 @@ from solnml.components.utils.constants import IMG_CLS
 from solnml.datasets.image_dataset import BaseDataset
 from solnml.components.metrics.metric import get_metric
 from solnml.utils.logging_utils import setup_logger, get_logger
-from solnml.components.ensemble.dl_ensemble.ensemble_bulider import EnsembleBuilder,ensemble_list
+from solnml.components.ensemble.dl_ensemble.ensemble_bulider import EnsembleBuilder, ensemble_list
 from solnml.components.hpo_optimizer import build_hpo_optimizer
 from solnml.components.models.img_classification import _classifiers as _img_classifiers
 from solnml.components.evaluators.img_cls_evaluator import ImgClassificationEvaluator
@@ -166,6 +166,7 @@ class AutoDL(object):
                                       ensemble_size=self.ensemble_size,
                                       task_type=self.task_type,
                                       metric=self.metric,
+                                      device=self.device,
                                       output_dir=self.output_dir)
             self.es.fit(data=train_data)
 
@@ -220,17 +221,17 @@ class AutoDL(object):
         else:
             self.es.refit(dataset)
 
-    def predict_proba(self, test_data: BaseDataset):
+    def predict_proba(self, test_data: BaseDataset, batch_size=1, n_jobs=1):
         if self.es is None:
-            model_ = get_estimator_with_parameters(self.best_algo_config)
-            return model_.predict_proba(test_data.test_dataset)
+            model_ = get_estimator_with_parameters(self.best_algo_config, test_data.test_dataset, device=self.device)
+            return model_.predict_proba(test_data.test_dataset, batch_size=batch_size)
         else:
             return self.es.predict(test_data.test_dataset)
 
-    def predict(self, test_data: BaseDataset):
+    def predict(self, test_data: BaseDataset, batch_size=1, n_jobs=1):
         if self.es is None:
-            model_ = get_estimator_with_parameters(self.best_algo_config)
-            return model_.predict(test_data.test_dataset)
+            model_ = get_estimator_with_parameters(self.best_algo_config, test_data.test_dataset, device=self.device)
+            return model_.predict(test_data.test_dataset, batch_size=batch_size)
         else:
             return np.argmax(self.es.predict(test_data.test_dataset), axis=-1)
 
