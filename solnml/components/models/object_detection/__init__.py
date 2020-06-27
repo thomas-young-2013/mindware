@@ -7,6 +7,7 @@ Load the buildin classifiers.
 """
 classifiers_directory = os.path.split(__file__)[0]
 _classifiers = find_components(__package__, classifiers_directory, BaseODClassificationNeuralNetwork)
+_classifiers.pop('retinanet')
 
 """
 Load third-party classifiers. 

@@ -68,7 +68,8 @@ class Blending(BaseEnsembleModel):
         for algo_id in self.stats["include_algorithms"]:
             model_configs = self.stats[algo_id]['model_configs']
             for idx, config in enumerate(model_configs):
-                estimator = get_estimator_with_parameters(config, train_data.train_dataset, device=self.device)
+                estimator = get_estimator_with_parameters(self.task_type, config, train_data.train_dataset,
+                                                          device=self.device)
                 if self.task_type in CLS_TASKS:
                     if hasattr(train_data, 'val_dataset'):
                         pred = estimator.predict_proba(train_data.val_dataset)
@@ -112,7 +113,7 @@ class Blending(BaseEnsembleModel):
         for algo_id in self.stats["include_algorithms"]:
             model_configs = self.stats[algo_id]['model_configs']
             for idx, config in enumerate(model_configs):
-                estimator = get_estimator_with_parameters(config, data, device=self.device)
+                estimator = get_estimator_with_parameters(self.task_type, config, data, device=self.device)
                 if self.task_type in CLS_TASKS:
                     pred = estimator.predict_proba(data, sampler=sampler)
                     n_dim = np.array(pred).shape[1]

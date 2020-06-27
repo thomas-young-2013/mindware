@@ -47,10 +47,11 @@ else:
     image_data.set_udf_transform(data_transforms)
     image_data.load_data()
     image_data.load_test_data(data_dir)
-    default_config = NASNetClassifier.get_hyperparameter_search_space().get_default_configuration().get_dictionary()
+    default_config = ResNeXtClassifier.get_hyperparameter_search_space().get_default_configuration().get_dictionary()
     default_config['device'] = 'cuda:0'
+    default_config['epoch_num'] = 1
     print(default_config)
-    clf = NASNetClassifier(**default_config)
+    clf = ResNeXtClassifier(**default_config)
     clf.fit(image_data)
     print(clf.score(image_data, accuracy_score, batch_size=16))
     image_data.val_dataset = image_data.train_dataset

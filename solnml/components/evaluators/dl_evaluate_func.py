@@ -9,8 +9,7 @@ def get_onehot_y(encoder, y):
     return encoder.transform(y_).toarray()
 
 
-@ignore_warnings(category=ConvergenceWarning)
-def img_holdout_validation(estimator, scorer, dataset, random_state=1):
+def dl_holdout_validation(estimator, scorer, dataset, random_state=1):
     with warnings.catch_warnings():
         # ignore all caught warnings
         warnings.filterwarnings("ignore")

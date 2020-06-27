@@ -1,10 +1,11 @@
 import os
 import numpy as np
 import pandas as pd
+
 from solnml.automl import AutoML
 from solnml.autodl import AutoDL
 from solnml.components.feature_engineering.transformation_graph import DataNode
-from solnml.datasets.image_dataset import ImageDataset
+from solnml.datasets.base_dl_dataset import DLDataset
 
 
 class BaseEstimator(object):
@@ -219,22 +220,22 @@ class BaseDLEstimator(object):
         )
         return engine
 
-    def fit(self, data: ImageDataset):
-        assert data is not None and isinstance(data, ImageDataset)
+    def fit(self, data: DLDataset):
+        assert data is not None and isinstance(data, DLDataset)
         self._ml_engine = self.build_engine()
         self._ml_engine.fit(data)
         return self
 
-    def predict(self, X: ImageDataset, batch_size=1, n_jobs=1):
+    def predict(self, X: DLDataset, batch_size=1, n_jobs=1):
         return self._ml_engine.predict(X, batch_size=batch_size, n_jobs=n_jobs)
 
-    def score(self, data: ImageDataset):
+    def score(self, data: DLDataset):
         return self._ml_engine.score(data)
 
     def refit(self):
         return self._ml_engine.refit()
 
-    def predict_proba(self, X: ImageDataset, batch_size=1, n_jobs=1):
+    def predict_proba(self, X: DLDataset, batch_size=1, n_jobs=1):
         return self._ml_engine.predict_proba(X, batch_size=batch_size, n_jobs=n_jobs)
 
     def get_automl(self):

@@ -35,7 +35,7 @@ class Bagging(BaseEnsembleModel):
         for algo_id in self.stats["include_algorithms"]:
             model_configs = self.stats[algo_id]['model_configs']
             for idx, config in enumerate(model_configs):
-                estimator = get_estimator_with_parameters(config, data, device=self.device)
+                estimator = get_estimator_with_parameters(self.task_type, config, data, device=self.device)
                 if self.task_type in CLS_TASKS:
                     model_pred_list.append(estimator.predict_proba(data, sampler=sampler))
                 else:

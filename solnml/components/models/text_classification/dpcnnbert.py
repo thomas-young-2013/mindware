@@ -9,7 +9,7 @@ from solnml.components.models.base_nn import BaseTextClassificationNeuralNetwork
 from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
 
 
-class NaiveBertClassifier(BaseTextClassificationNeuralNetwork):
+class DPCNNBertClassifier(BaseTextClassificationNeuralNetwork):
     def __init__(self, optimizer, batch_size, epoch_num, lr_decay, step_decay,
                  sgd_learning_rate=None, sgd_momentum=None, adam_learning_rate=None, beta1=None,
                  random_state=None, grayscale=False, device='cpu',
@@ -31,17 +31,30 @@ class NaiveBertClassifier(BaseTextClassificationNeuralNetwork):
         self.config = config
 
     def fit(self, dataset):
-        from .nn_utils.naivebert import BaseModel
+        from .nn_utils.dpcnnbert import DPCNNModel
+        if dataset.config_path is None:
+            config_path = self.config
+        else:
+            config_path = dataset.config_path
 
-        self.model = BaseModel.from_pretrained(self.config, num_class=len(dataset.classes))
+        self.model = DPCNNModel.from_pretrained(config_path, num_class=len(dataset.classes))
         self.model.to(self.device)
         super().fit(dataset)
         return self
 
+    def set_empty_model(self, dataset):
+        from .nn_utils.dpcnnbert import DPCNNModel
+        if dataset.config_path is None:
+            config_path = self.config
+        else:
+            config_path = dataset.config_path
+
+        self.model = DPCNNModel.from_pretrained(config_path, num_class=len(dataset.classes))
+
     @staticmethod
     def get_properties(dataset_properties=None):
-        return {'shortname': 'NaiveBert',
-                'name': 'NaiveBert Text Classifier',
+        return {'shortname': 'DPCNNBert',
+                'name': 'DPCNNBert Text Classifier',
                 'handles_regression': False,
                 'handles_classification': True,
                 'handles_multiclass': True,
@@ -78,15 +91,15 @@ class NaiveBertClassifier(BaseTextClassificationNeuralNetwork):
             return cs
         elif optimizer == 'tpe':
             from hyperopt import hp
-            space = {'batch_size': hp.choice('naive_bert_batch_size', [8, 16, 32]),
-                     'optimizer': hp.choice('naive_bert_optimizer',
-                                            [("SGD", {'sgd_learning_rate': hp.loguniform('naive_bert_sgd_learning_rate',
+            space = {'batch_size': hp.choice('dpcnn_bert_batch_size', [8, 16, 32]),
+                     'optimizer': hp.choice('dpcnn_bert_optimizer',
+                                            [("SGD", {'sgd_learning_rate': hp.loguniform('dpcnn_bert_sgd_learning_rate',
                                                                                          np.log(1e-4), np.log(1e-2)),
-                                                      'sgd_momentum': hp.uniform('naive_bert_sgd_momentum', 0, 0.9)}),
+                                                      'sgd_momentum': hp.uniform('dpcnn_bert_sgd_momentum', 0, 0.9)}),
                                              ("Adam",
-                                              {'adam_learning_rate': hp.loguniform('naive_bert_adam_learning_rate',
+                                              {'adam_learning_rate': hp.loguniform('dpcnn_bert_adam_learning_rate',
                                                                                    np.log(1e-5), np.log(1e-3)),
-                                               'beta1': hp.uniform('naive_bert_beta1', 0.5, 0.999)})]),
+                                               'beta1': hp.uniform('dpcnn_bert_beta1', 0.5, 0.999)})]),
                      'epoch_num': 100,
                      'lr_decay': 10,
                      'step_decay': 10

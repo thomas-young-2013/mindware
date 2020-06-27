@@ -3,18 +3,17 @@ import time
 import torch
 import numpy as np
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
-from solnml.components.utils.constants import IMG_CLS
-from solnml.datasets.image_dataset import BaseDataset
+from solnml.components.utils.constants import IMG_CLS, TEXT_CLS
+from solnml.datasets.base_dataset import BaseDataset
 from solnml.components.metrics.metric import get_metric
 from solnml.utils.logging_utils import setup_logger, get_logger
 from solnml.components.ensemble.dl_ensemble.ensemble_bulider import EnsembleBuilder, ensemble_list
 from solnml.components.hpo_optimizer import build_hpo_optimizer
-from solnml.components.models.img_classification import _classifiers as _img_classifiers
-from solnml.components.evaluators.img_cls_evaluator import ImgClassificationEvaluator
+from solnml.components.models.img_classification import _classifiers as _img_classifiers, _addons as _img_addons
+from solnml.components.models.text_classification import _classifiers as _text_classifiers, _addons as _text_addons
+from solnml.components.evaluators.dl_cls_evaluator import DLClassificationEvaluator
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters, TopKModelSaver, get_estimator
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space
-
-img_classification_algorithms = _img_classifiers.keys()
 
 """
     imbalanced datasets.
@@ -59,9 +58,20 @@ class AutoDL(object):
             self.include_algorithms = include_algorithms
         else:
             if task_type == IMG_CLS:
-                self.include_algorithms = list(img_classification_algorithms)
+                self.include_algorithms = list(_img_classifiers.keys())
+            elif task_type == TEXT_CLS:
+                self.include_algorithms = list(_text_classifiers.keys())
             else:
                 raise ValueError("Unknown task type %s" % task_type)
+
+        if task_type == IMG_CLS:
+            self._classifiers = _img_classifiers
+            self._addons = _img_addons
+        elif task_type == TEXT_CLS:
+            self._classifiers = _text_classifiers
+            self._addons = _text_addons
+        else:
+            raise ValueError("Unknown task type %s" % task_type)
 
         if ensemble_method is not None and ensemble_method not in ensemble_list:
             raise ValueError("%s is not supported for ensemble!" % ensemble_method)
@@ -98,17 +108,12 @@ class AutoDL(object):
 
     def fit(self, train_data: BaseDataset):
         _start_time = time.time()
-        from solnml.components.models.img_classification import _classifiers, _addons
-
-        # Pop NASNet
-        if 'nasnet' in self.include_algorithms:
-            self.include_algorithms.remove('nasnet')
 
         for estimator_id in self.include_algorithms:
-            if estimator_id in _classifiers:
-                clf_class = _classifiers[estimator_id]
-            elif estimator_id in _addons.components:
-                clf_class = _addons.components[estimator_id]
+            if estimator_id in self._classifiers:
+                clf_class = self._classifiers[estimator_id]
+            elif estimator_id in self._addons.components:
+                clf_class = self._addons.components[estimator_id]
             else:
                 raise ValueError("Algorithm %s not supported!" % estimator_id)
 
@@ -119,14 +124,22 @@ class AutoDL(object):
             default_config = cs.get_default_configuration()
             config_space.seed(self.seed)
 
-            aug_space = get_aug_hyperparameter_space()
-            cs.add_hyperparameters(aug_space.get_hyperparameters())
-            cs.add_conditions(aug_space.get_conditions())
+            if self.task_type == IMG_CLS:
+                aug_space = get_aug_hyperparameter_space()
+                cs.add_hyperparameters(aug_space.get_hyperparameters())
+                cs.add_conditions(aug_space.get_conditions())
 
-            hpo_evaluator = ImgClassificationEvaluator(default_config, scorer=self.metric,
-                                                       dataset=train_data,
-                                                       device=self.device,
-                                                       seed=self.seed)
+            if self.task_type in [IMG_CLS, TEXT_CLS]:
+                evaluator_class = DLClassificationEvaluator
+            else:
+                raise ValueError('Invalid task type %s!' % self.task_type)
+
+            hpo_evaluator = evaluator_class(default_config,
+                                            self.task_type,
+                                            scorer=self.metric,
+                                            dataset=train_data,
+                                            device=self.device,
+                                            seed=self.seed)
             optimizer = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs,
                                             output_dir=self.output_dir,
                                             per_run_time_limit=100000,
@@ -223,14 +236,16 @@ class AutoDL(object):
 
     def predict_proba(self, test_data: BaseDataset, batch_size=1, n_jobs=1):
         if self.es is None:
-            model_ = get_estimator_with_parameters(self.best_algo_config, test_data.test_dataset, device=self.device)
+            model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, test_data.test_dataset,
+                                                   device=self.device)
             return model_.predict_proba(test_data.test_dataset, batch_size=batch_size)
         else:
             return self.es.predict(test_data.test_dataset)
 
     def predict(self, test_data: BaseDataset, batch_size=1, n_jobs=1):
         if self.es is None:
-            model_ = get_estimator_with_parameters(self.best_algo_config, test_data.test_dataset, device=self.device)
+            model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, test_data.test_dataset,
+                                                   device=self.device)
             return model_.predict(test_data.test_dataset, batch_size=batch_size)
         else:
             return np.argmax(self.es.predict(test_data.test_dataset), axis=-1)

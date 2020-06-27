@@ -33,10 +33,23 @@ class RCNNBertClassifier(BaseTextClassificationNeuralNetwork):
     def fit(self, dataset):
         from .nn_utils.rcnnbert import RCNNModel
 
-        self.model = RCNNModel.from_pretrained(self.config, num_class=len(dataset.classes))
+        if dataset.config_path is None:
+            config_path = self.config
+        else:
+            config_path = dataset.config_path
+        self.model = RCNNModel.from_pretrained(config_path, num_class=len(dataset.classes))
         self.model.to(self.device)
         super().fit(dataset)
         return self
+
+    def set_empty_model(self, dataset):
+        from .nn_utils.rcnnbert import RCNNModel
+        if dataset.config_path is None:
+            config_path = self.config
+        else:
+            config_path = dataset.config_path
+
+        self.model = RCNNModel.from_pretrained(config_path, num_class=len(dataset.classes))
 
     @staticmethod
     def get_properties(dataset_properties=None):

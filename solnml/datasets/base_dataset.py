@@ -1,8 +1,6 @@
 class BaseDataset(object):
     def __init__(self):
         self.train_dataset = None
-        self.val_dataset = None
-        self.test_dataset = None
 
     def load_data(self):
         raise NotImplementedError()

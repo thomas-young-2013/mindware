@@ -15,7 +15,7 @@ from .yolov3_utils import *
 backbone_path = 'https://pjreddie.com/media/files/darknet53.conv.74'
 
 
-def create_modules(module_defs):
+def create_modules(module_defs, num_class, img_size):
     """
     Constructs module list of layer blocks from module configuration in module_defs
     """
@@ -27,7 +27,10 @@ def create_modules(module_defs):
 
         if module_def["type"] == "convolutional":
             bn = int(module_def["batch_normalize"])
-            filters = int(module_def["filters"])
+            if 'last_layer' in module_def:
+                filters = (num_class + 5) * 3
+            else:
+                filters = int(module_def["filters"])
             kernel_size = int(module_def["size"])
             pad = (kernel_size - 1) // 2
             modules.add_module(
@@ -73,10 +76,8 @@ def create_modules(module_defs):
             anchors = [int(x) for x in module_def["anchors"].split(",")]
             anchors = [(anchors[i], anchors[i + 1]) for i in range(0, len(anchors), 2)]
             anchors = [anchors[i] for i in anchor_idxs]
-            num_classes = int(module_def["classes"])
-            img_size = int(hyperparams["height"])
             # Define detection layer
-            yolo_layer = YOLOLayer(anchors, num_classes, img_size)
+            yolo_layer = YOLOLayer(anchors, num_class, img_size)
             modules.add_module(f"yolo_{module_i}", yolo_layer)
         # Register module list and number of output filters
         module_list.append(modules)
@@ -138,13 +139,10 @@ class YOLOLayer(nn.Module):
 
         # Tensors for cuda support
         FloatTensor = torch.cuda.FloatTensor if x.is_cuda else torch.FloatTensor
-        LongTensor = torch.cuda.LongTensor if x.is_cuda else torch.LongTensor
-        ByteTensor = torch.cuda.ByteTensor if x.is_cuda else torch.ByteTensor
 
         self.img_dim = img_dim
         num_samples = x.size(0)
         grid_size = x.size(2)
-
         prediction = (
             x.view(num_samples, self.num_anchors, self.num_classes + 5, grid_size, grid_size)
                 .permute(0, 1, 3, 4, 2)
@@ -236,10 +234,11 @@ class YOLOLayer(nn.Module):
 class Darknet(nn.Module):
     """YOLOv3 object detection model"""
 
-    def __init__(self, config_path='./solnml/components/models/object_detection/nn_utils/yolov3.cfg', img_size=416):
+    def __init__(self, config_path='./solnml/components/models/object_detection/nn_utils/yolov3.cfg', num_class=None,
+                 img_size=416):
         super(Darknet, self).__init__()
         self.module_defs = parse_model_config(config_path)
-        self.hyperparams, self.module_list = create_modules(self.module_defs)
+        self.hyperparams, self.module_list = create_modules(self.module_defs, num_class, img_size)
         self.yolo_layers = [layer[0] for layer in self.module_list if hasattr(layer[0], "metrics")]
         self.img_size = img_size
         self.seen = 0

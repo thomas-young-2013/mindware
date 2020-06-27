@@ -2,6 +2,8 @@ import os
 import torch
 import hashlib
 
+from solnml.components.utils.constants import IMG_CLS, TEXT_CLS, OBJECT_DET
+
 
 def get_device(device=None):
     if device is not None:
@@ -24,8 +26,15 @@ def get_device(device=None):
         return device
 
 
-def get_estimator(config, device='cpu'):
-    from solnml.components.models.img_classification import _classifiers, _addons
+def get_estimator(task_type, config, device='cpu'):
+    if task_type == IMG_CLS:
+        from solnml.components.models.img_classification import _classifiers, _addons
+    elif task_type == TEXT_CLS:
+        from solnml.components.models.text_classification import _classifiers, _addons
+    elif task_type == OBJECT_DET:
+        from solnml.components.models.object_detection import _classifiers, _addons
+    else:
+        raise ValueError('Invalid task type %s!' % task_type)
     classifier_type = config['estimator']
     config_ = config.copy()
     config_.pop('estimator', None)
@@ -38,9 +47,9 @@ def get_estimator(config, device='cpu'):
     return classifier_type, estimator
 
 
-def get_estimator_with_parameters(config, dataset, device='cpu', model_dir='data/dl_models/'):
+def get_estimator_with_parameters(task_type, config, dataset, device='cpu', model_dir='data/dl_models/'):
     config_dict = config.get_dictionary().copy()
-    _, model = get_estimator(config_dict, device=device)
+    _, model = get_estimator(task_type, config_dict, device=device)
     model_path = model_dir + TopKModelSaver.get_configuration_id(config_dict) + '.pt'
     model.set_empty_model(dataset)
     model.model.load_state_dict(torch.load(model_path))
