@@ -105,9 +105,9 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
                 logits = self.model(batch_x.float().to(self.device))
                 optimizer.zero_grad()
                 loss = loss_func(logits, batch_y.to(self.device))
-                epoch_avg_loss += loss.to(self.device).detach() * len(batch_x)
                 num_samples += len(batch_x)
                 loss.backward()
+                epoch_avg_loss += loss.to('cpu').detach() * len(batch_x)
                 optimizer.step()
             epoch_avg_loss /= num_samples
             scheduler.step()
@@ -225,12 +225,12 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
             for i, data in enumerate(loader):
                 batch_x, batch_y = data[0], data[1]
                 masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
-                logits = self.model(batch_x.long().to(self.device), masks)
+                logits = self.model(batch_x.long().to(self.device), masks.to(self.device))
                 optimizer.zero_grad()
                 loss = loss_func(logits, batch_y.to(self.device))
-                epoch_avg_loss += loss.to(self.device).detach() * len(batch_x)
                 num_samples += len(batch_x)
                 loss.backward()
+                epoch_avg_loss += loss.to('cpu').detach() * len(batch_x)
                 optimizer.step()
             epoch_avg_loss /= num_samples
             # print(epoch_avg_loss)
@@ -250,7 +250,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
             masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
-            logits = self.model(batch_x.long().to(self.device), masks)
+            logits = self.model(batch_x.long().to(self.device), masks.to(self.device))
             pred = nn.functional.softmax(logits, dim=-1)
             if prediction is None:
                 prediction = pred.to('cpu').detach().numpy()
@@ -270,7 +270,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         for i, data in enumerate(loader):
             batch_x, batch_y = data[0], data[1]
             masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
-            logits = self.model(batch_x.long().to(self.device), masks)
+            logits = self.model(batch_x.long().to(self.device), masks.to(self.device))
             if prediction is None:
                 prediction = logits.to('cpu').detach().numpy()
             else:
@@ -351,7 +351,7 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
             for i, (_, batch_x, batch_y) in enumerate(loader):
                 loss, outputs = self.model(batch_x.float().to(self.device), batch_y.float().to(self.device))
                 optimizer.zero_grad()
-                epoch_avg_loss += loss.to(self.device).detach() * len(batch_x)
+                epoch_avg_loss += loss.to('cpu').detach() * len(batch_x)
                 num_samples += len(batch_x)
                 loss.backward()
                 optimizer.step()

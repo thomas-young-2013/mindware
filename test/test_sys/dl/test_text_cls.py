@@ -13,7 +13,7 @@ mode = 'fit'
 
 if mode == 'fit':
     dataset = TextDataset('data/text_datasets/ag_news_csv/train.csv',
-                          config_path='/Users/shenyu/PycharmProjects/automl-toolkit/solnml/components/models/text_classification/nn_utils/bert-base-uncased')
+                          config_path='./solnml/components/models/text_classification/nn_utils/bert-base-uncased')
     clf = TextClassifier(time_limit=30,
                          include_algorithms=['rcnnbert'],
                          ensemble_method='ensemble_selection')
@@ -26,7 +26,7 @@ else:
     config['epoch_num'] = 1
     clf = RCNNBertClassifier(**config)
     dataset = TextDataset('data/text_datasets/ag_news_csv/train.csv',
-                          config_path='/Users/shenyu/PycharmProjects/automl-toolkit/solnml/components/models/text_classification/nn_utils/bert-base-uncased')
+                          config_path='./solnml/components/models/text_classification/nn_utils/bert-base-uncased')
     dataset.load_data()
     dataset.load_test_data('data/text_datasets/ag_news_csv/test.csv')
     # train_dataset = TextBertDataset('data/text_datasets/ag_news_csv/train.csv',
