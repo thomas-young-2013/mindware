@@ -2,7 +2,6 @@ import os
 import csv
 import torch
 from torch.utils.data import Dataset
-from transformers import BertTokenizer
 
 from .base_dl_dataset import DLDataset
 
@@ -15,6 +14,8 @@ class TextBertDataset(Dataset):
         :param data: csv path, each line is (class_id, text)
         :param label: label name list
         """
+        from transformers import BertTokenizer
+
         if config_path is None:
             config_path = os.path.join(os.path.dirname(__file__), 'bert-base-uncased')
         self.config_path = config_path

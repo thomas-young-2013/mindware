@@ -3,15 +3,16 @@ import time
 import torch
 import numpy as np
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
-from solnml.components.utils.constants import IMG_CLS, TEXT_CLS
+from solnml.components.utils.constants import IMG_CLS, TEXT_CLS, OBJECT_DET
 from solnml.datasets.base_dataset import BaseDataset
 from solnml.components.metrics.metric import get_metric
 from solnml.utils.logging_utils import setup_logger, get_logger
 from solnml.components.ensemble.dl_ensemble.ensemble_bulider import EnsembleBuilder, ensemble_list
 from solnml.components.hpo_optimizer import build_hpo_optimizer
-from solnml.components.models.img_classification import _classifiers as _img_classifiers, _addons as _img_addons
-from solnml.components.models.text_classification import _classifiers as _text_classifiers, _addons as _text_addons
-from solnml.components.evaluators.dl_cls_evaluator import DLClassificationEvaluator
+from solnml.components.models.img_classification import _classifiers as _img_estimators, _addons as _img_addons
+from solnml.components.models.text_classification import _classifiers as _text_estimators, _addons as _text_addons
+from solnml.components.models.object_detection import _classifiers as _od_estimators, _addons as _od_addons
+from solnml.components.evaluators.dl_evaluator import DLEvaluator
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters, TopKModelSaver, get_estimator
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space
 
@@ -58,18 +59,21 @@ class AutoDL(object):
             self.include_algorithms = include_algorithms
         else:
             if task_type == IMG_CLS:
-                self.include_algorithms = list(_img_classifiers.keys())
+                self.include_algorithms = list(_img_estimators.keys())
             elif task_type == TEXT_CLS:
-                self.include_algorithms = list(_text_classifiers.keys())
+                self.include_algorithms = list(_text_estimators.keys())
             else:
                 raise ValueError("Unknown task type %s" % task_type)
 
         if task_type == IMG_CLS:
-            self._classifiers = _img_classifiers
+            self._estimators = _img_estimators
             self._addons = _img_addons
         elif task_type == TEXT_CLS:
-            self._classifiers = _text_classifiers
+            self._estimators = _text_estimators
             self._addons = _text_addons
+        elif task_type == OBJECT_DET:
+            self._estimators = _od_estimators
+            self._addons = _od_addons
         else:
             raise ValueError("Unknown task type %s" % task_type)
 
@@ -110,8 +114,8 @@ class AutoDL(object):
         _start_time = time.time()
 
         for estimator_id in self.include_algorithms:
-            if estimator_id in self._classifiers:
-                clf_class = self._classifiers[estimator_id]
+            if estimator_id in self._estimators:
+                clf_class = self._estimators[estimator_id]
             elif estimator_id in self._addons.components:
                 clf_class = self._addons.components[estimator_id]
             else:
@@ -129,17 +133,12 @@ class AutoDL(object):
                 cs.add_hyperparameters(aug_space.get_hyperparameters())
                 cs.add_conditions(aug_space.get_conditions())
 
-            if self.task_type in [IMG_CLS, TEXT_CLS]:
-                evaluator_class = DLClassificationEvaluator
-            else:
-                raise ValueError('Invalid task type %s!' % self.task_type)
-
-            hpo_evaluator = evaluator_class(default_config,
-                                            self.task_type,
-                                            scorer=self.metric,
-                                            dataset=train_data,
-                                            device=self.device,
-                                            seed=self.seed)
+            hpo_evaluator = DLEvaluator(default_config,
+                                        self.task_type,
+                                        scorer=self.metric,
+                                        dataset=train_data,
+                                        device=self.device,
+                                        seed=self.seed)
             optimizer = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs,
                                             output_dir=self.output_dir,
                                             per_run_time_limit=100000,
@@ -169,6 +168,10 @@ class AutoDL(object):
         solver_ = self.solvers[self.best_algo_id]
         inc_idx = np.argmax(solver_.perfs)
         self.best_algo_config = solver_.configs[inc_idx]
+
+        # Skip Ensemble
+        if self.task_type == OBJECT_DET:
+            return
 
         if self.ensemble_method is not None:
             stats = self.fetch_ensemble_members()

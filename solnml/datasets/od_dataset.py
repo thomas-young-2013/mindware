@@ -73,7 +73,8 @@ def load_classes(path):
 
 
 class ListDataset(Dataset):
-    def __init__(self, list_path, img_size=416, augment=True, multiscale=True, normalized_labels=True, mode='fit'):
+    def __init__(self, list_path, classes, img_size=416, augment=True, multiscale=True, normalized_labels=True,
+                 mode='fit'):
         with open(list_path, "r") as file:
             self.img_files = file.readlines()
 
@@ -82,13 +83,14 @@ class ListDataset(Dataset):
                 path.replace("images", "labels").replace(".png", ".txt").replace(".jpg", ".txt")
                 for path in self.img_files
             ]
-        self.img_size = img_size
+        self.classes = classes
+        self.image_size = img_size
         self.max_objects = 100
         self.augment = augment
         self.multiscale = multiscale
         self.normalized_labels = normalized_labels
-        self.min_size = self.img_size - 3 * 32
-        self.max_size = self.img_size + 3 * 32
+        self.min_size = self.image_size - 3 * 32
+        self.max_size = self.image_size + 3 * 32
         self.batch_count = 0
         self.mode = mode
 
@@ -152,7 +154,7 @@ class ListDataset(Dataset):
             return img_path, img
 
     def collate_fn(self, batch):
-        if self.mode !='test':
+        if self.mode != 'test':
             paths, imgs, targets = list(zip(*batch))
             # Remove empty placeholder targets
             targets = [boxes for boxes in targets if boxes is not None]
@@ -162,15 +164,15 @@ class ListDataset(Dataset):
             targets = torch.cat(targets, 0)
             # Selects new image size every tenth batch
             if self.multiscale and self.batch_count % 10 == 0:
-                self.img_size = random.choice(range(self.min_size, self.max_size + 1, 32))
+                self.image_size = random.choice(range(self.min_size, self.max_size + 1, 32))
             # Resize images to input shape
-            imgs = torch.stack([resize(img, self.img_size) for img in imgs])
+            imgs = torch.stack([resize(img, self.image_size) for img in imgs])
             self.batch_count += 1
             return paths, imgs, targets
         else:
             paths, imgs = list(zip(*batch))
             # Resize images to input shape
-            imgs = torch.stack([resize(img, self.img_size) for img in imgs])
+            imgs = torch.stack([resize(img, self.image_size) for img in imgs])
             self.batch_count += 1
             return paths, imgs
 
@@ -192,9 +194,12 @@ class ODDataset(DLDataset):
         self.normlized_labels = normalized_labels
 
     def load_data(self):
-        self.train_dataset = ListDataset(self.train_path, self.image_size, self.augment, self.multiscale,
+        self.train_dataset = ListDataset(self.train_path, self.classes, self.image_size, self.augment,
+                                         self.multiscale,
                                          self.normlized_labels)
-        self.val_dataset = ListDataset(self.valid_path, self.image_size, augment=False, multiscale=False)
+        self.val_dataset = ListDataset(self.valid_path, self.classes, self.image_size, augment=False,
+                                       multiscale=False)
 
     def load_test_data(self, data_path):
-        self.test_dataset = ListDataset(data_path, self.image_size, augment=False, multiscale=False, mode='test')
+        self.test_dataset = ListDataset(data_path, self.classes, self.image_size, augment=False,
+                                        multiscale=False, mode='test')

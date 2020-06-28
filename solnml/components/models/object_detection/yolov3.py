@@ -32,28 +32,28 @@ class Yolov3(BaseODClassificationNeuralNetwork):
     def fit(self, dataset):
         from .nn_utils.yolov3 import Darknet
 
-        self.model = Darknet(num_class=len(dataset.classes),img_size=dataset.image_size)
+        self.model = Darknet(num_class=len(dataset.classes), img_size=dataset.image_size)
         self.model.to(self.device)
         super().fit(dataset)
         return self
 
-    def score(self, dataset, batch_size=None):
+    def score(self, dataset, metric, batch_size=None):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
         if isinstance(dataset, Dataset):
             loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=False, num_workers=4)
-            img_size = dataset.img_size
+            img_size = dataset.image_size
         else:
             if hasattr(dataset, 'val_dataset'):
                 loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=False,
                                     num_workers=4, collate_fn=dataset.val_dataset.collate_fn)
-                img_size = dataset.val_dataset.img_size
+                img_size = dataset.val_dataset.image_size
             else:
                 loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
                                     sampler=dataset.val_sampler, num_workers=4,
                                     collate_fn=dataset.train_dataset.collate_fn)
-                img_size = dataset.train_dataset.img_size
+                img_size = dataset.train_dataset.image_size
 
         self.model.eval()
         labels = []
@@ -68,7 +68,7 @@ class Yolov3(BaseODClassificationNeuralNetwork):
             batch_x = Variable(batch_x, requires_grad=False)
 
             with torch.no_grad():
-                outputs = self.model(batch_x)
+                outputs = self.model(batch_x.to(self.device))
                 outputs = non_max_suppression(outputs, conf_thres=0.001, nms_thres=0.5)
 
             sample_metrics += get_batch_statistics(outputs, batch_y, iou_threshold=0.5)
@@ -93,6 +93,11 @@ class Yolov3(BaseODClassificationNeuralNetwork):
             outputs = self.model(batch_x.float().to(self.device))
             predictions.append(outputs.to('cpu').detach().numpy())
         return predictions
+
+    def set_empty_model(self, dataset):
+        from .nn_utils.yolov3 import Darknet
+
+        self.model = Darknet(num_class=len(dataset.classes), img_size=dataset.image_size)
 
     @staticmethod
     def get_properties(dataset_properties=None):

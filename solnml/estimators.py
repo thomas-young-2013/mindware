@@ -1,10 +1,11 @@
 import numpy as np
 from sklearn.utils.multiclass import type_of_target
 from solnml.base_estimator import BaseEstimator, BaseDLEstimator
-from solnml.components.utils.constants import type_dict, MULTILABEL_CLS, IMG_CLS, TEXT_CLS
+from solnml.components.utils.constants import type_dict, MULTILABEL_CLS, IMG_CLS, TEXT_CLS, OBJECT_DET
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.datasets.image_dataset import ImageDataset
 from solnml.datasets.text_dataset import TextDataset
+from solnml.datasets.od_dataset import ODDataset
 
 
 class Classifier(BaseEstimator):
@@ -193,24 +194,24 @@ class ImageClassifier(BaseDLEstimator):
 
         return self
 
-    def predict(self, X, batch_size=1, n_jobs=1):
-        return super().predict(X, batch_size=batch_size, n_jobs=n_jobs)
+    def predict(self, dataset, batch_size=1, n_jobs=1):
+        return super().predict(dataset, batch_size=batch_size, n_jobs=n_jobs)
 
     def refit(self):
         return super().refit()
 
-    def predict_proba(self, X, batch_size=1, n_jobs=1):
+    def predict_proba(self, dataset, batch_size=1, n_jobs=1):
         """
         Predict probabilities of classes for all samples X.
-        :param X: ImageDataset
+        :param dataset: ImageDataset
         :param batch_size: int
         :param n_jobs: int
         :return: y : array of shape = [n_samples, n_classes]
             The predicted class probabilities.
         """
-        if not isinstance(X, ImageDataset):
-            raise ValueError("X is supposed to be a Data Node, but get %s" % type(X))
-        pred_proba = super().predict_proba(X, batch_size=batch_size, n_jobs=n_jobs)
+        if not isinstance(dataset, ImageDataset):
+            raise ValueError("X is supposed to be an ImageDataset, but get %s" % type(dataset))
+        pred_proba = super().predict_proba(dataset, batch_size=batch_size, n_jobs=n_jobs)
 
         if self.task_type != MULTILABEL_CLS:
             assert (
@@ -243,24 +244,24 @@ class TextClassifier(BaseDLEstimator):
 
         return self
 
-    def predict(self, X, batch_size=1, n_jobs=1):
+    def predict(self, dataset, batch_size=1, n_jobs=1):
         return super().predict(X, batch_size=batch_size, n_jobs=n_jobs)
 
     def refit(self):
         return super().refit()
 
-    def predict_proba(self, X, batch_size=1, n_jobs=1):
+    def predict_proba(self, dataset, batch_size=1, n_jobs=1):
         """
         Predict probabilities of classes for all samples X.
-        :param X: TextDataset
+        :param dataset: TextDataset
         :param batch_size: int
         :param n_jobs: int
         :return: y : array of shape = [n_samples, n_classes]
             The predicted class probabilities.
         """
-        if not isinstance(X, TextDataset):
-            raise ValueError("X is supposed to be a Data Node, but get %s" % type(X))
-        pred_proba = super().predict_proba(X, batch_size=batch_size, n_jobs=n_jobs)
+        if not isinstance(dataset, TextDataset):
+            raise ValueError("X is supposed to be a TextDataset, but get %s" % type(dataset))
+        pred_proba = super().predict_proba(dataset, batch_size=batch_size, n_jobs=n_jobs)
 
         if self.task_type != MULTILABEL_CLS:
             assert (
@@ -275,3 +276,25 @@ class TextClassifier(BaseDLEstimator):
         ), "Found prediction probability value outside of [0, 1]!"
 
         return pred_proba
+
+
+class ObjectionDetecter(BaseDLEstimator):
+    """This class implements the text classification task. """
+
+    def fit(self, data: ODDataset):
+        """
+        Fit the classifier to given training data.
+        :param data: instance of Image Dataset
+        :return: self
+        """
+        # Set task type to image classification.
+        self.task_type = OBJECT_DET
+        super().fit(data)
+
+        return self
+
+    def predict(self, dataset, batch_size=1, n_jobs=1):
+        return super().predict(dataset, batch_size=batch_size, n_jobs=n_jobs)
+
+    def refit(self):
+        return super().refit()

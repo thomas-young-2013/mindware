@@ -12,7 +12,7 @@ from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space im
 from .base_dl_evaluator import TopKModelSaver, get_estimator
 
 
-class DLClassificationEvaluator(_BaseEvaluator):
+class DLEvaluator(_BaseEvaluator):
     def __init__(self, clf_config, task_type, model_dir='data/dl_models/', scorer=None, dataset=None, device='cpu',
                  seed=1):
         self.hpo_config = clf_config

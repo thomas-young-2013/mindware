@@ -379,7 +379,8 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
                 prediction = np.concatenate((prediction, logits.to('cpu').detach().numpy()), 0)
         return np.argmax(prediction, axis=-1)
 
-    def score(self, dataset, batch_size=None):
+    # TODO: UDF metric
+    def score(self, dataset, metric, batch_size=None):
         raise NotImplementedError
 
     @staticmethod
