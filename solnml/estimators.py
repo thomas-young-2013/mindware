@@ -16,7 +16,8 @@ class Classifier(BaseEstimator):
         :param data: instance of DataNode
         :return: self
         """
-        self.metric = 'acc' if self.metric is None else self.metric
+        if self.metric is None:
+            self.metric = 'acc'
 
         # Check the task type: {binary, multiclass}
         task_type = type_of_target(data.data[1])

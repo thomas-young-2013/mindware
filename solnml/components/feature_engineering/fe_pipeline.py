@@ -1,6 +1,6 @@
 import os
 import abc
-from solnml.components.utils.constants import *
+from solnml.components.utils.constants import CLS_TASKS, CLASSIFICATION, CATEGORICAL, ORDINAL
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.feature_engineering.transformations.preprocessor.imputer import ImputationTransformation
 from solnml.components.feature_engineering.transformations.preprocessor.onehot_encoder import \
@@ -54,6 +54,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         self.uninformative_columns, self.uninformative_idx = list(), list()
         self.variance_selector = None
         self.onehot_encoder = None
+        self.label_encoder = None
 
     def remove_uninf_cols(self, input_node: DataNode, train_phase=True):
         raw_dataframe = input_node.data[0]
@@ -110,14 +111,17 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
         input_node = self.variance_selector.operate(input_node)
         return input_node
 
-    def encode_label(self, input_node):
+    def encode_label(self, input_node: DataNode):
         import pandas as pd
         from sklearn.preprocessing import LabelEncoder
         X, y = input_node.data
         if isinstance(X, pd.DataFrame):
             X = X.values
         if y is not None:
-            y = LabelEncoder().fit_transform(y)
+            if self.label_encoder is None:
+                self.label_encoder = LabelEncoder()
+                self.label_encoder.fit(y)
+            y = self.label_encoder.transform(y)
         input_node.data = (X, y)
         return input_node
 
@@ -167,7 +171,7 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
 
     def transform(self, test_data: DataNode):
         preprocessed_node = self.preprocess(test_data, train_phase=False)
-        print('After pre-processing, the shape is', preprocessed_node.shape)
+        # print('After pre-processing, the shape is', preprocessed_node.shape)
         if not self.fe_enabled:
             return preprocessed_node
         return self.optimizer.apply(preprocessed_node, self.optimizer.incumbent)
