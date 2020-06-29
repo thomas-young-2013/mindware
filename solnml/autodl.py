@@ -9,9 +9,6 @@ from solnml.components.metrics.metric import get_metric
 from solnml.utils.logging_utils import setup_logger, get_logger
 from solnml.components.ensemble.dl_ensemble.ensemble_bulider import EnsembleBuilder, ensemble_list
 from solnml.components.hpo_optimizer import build_hpo_optimizer
-from solnml.components.models.img_classification import _classifiers as _img_estimators, _addons as _img_addons
-from solnml.components.models.text_classification import _classifiers as _text_estimators, _addons as _text_addons
-from solnml.components.models.object_detection import _classifiers as _od_estimators, _addons as _od_addons
 from solnml.components.evaluators.dl_evaluator import DLEvaluator
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters, TopKModelSaver, get_estimator
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space
@@ -36,6 +33,11 @@ class AutoDL(object):
                  output_dir="logs/",
                  random_state=1,
                  n_jobs=1):
+        from solnml.components.models.img_classification import _classifiers as _img_estimators, _addons as _img_addons
+        from solnml.components.models.text_classification import _classifiers as _text_estimators, \
+            _addons as _text_addons
+        from solnml.components.models.object_detection import _classifiers as _od_estimators, _addons as _od_addons
+
         self.metric_id = metric
         self.metric = get_metric(self.metric_id)
 
