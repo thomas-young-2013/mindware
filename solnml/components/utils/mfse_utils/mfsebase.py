@@ -95,7 +95,7 @@ class MfseBase:
             self.logger.info("MFSE: %d configurations x size %d / %d each" %
                              (int(n_configs), n_resource, self.R))
 
-            val_losses = self.executor.parallel_execute(T, subsample_ratio=float(n_resource / self.R))
+            val_losses = self.executor.parallel_execute(T, resource_ratio=float(n_resource / self.R))
             for _id, _val_loss in enumerate(val_losses):
                 if np.isfinite(_val_loss):
                     self.target_x[int(n_resource)].append(T[_id])

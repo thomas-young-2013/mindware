@@ -33,6 +33,9 @@ class MfseOptimizer(BaseHPOptimizer, MfseBase):
 
         for idx in range(len(self.incumbent_perfs)):
             self.eval_dict[(None, self.incumbent_configs[idx])] = -self.incumbent_perfs[idx]
+
+        self.perfs = self.incumbent_perfs
+        self.configs = self.incumbent_configs
         self.incumbent_perf = -self.incumbent_perfs[inc_idx]
         self.incumbent_config = self.incumbent_configs[inc_idx]
         # incumbent_perf: the large the better

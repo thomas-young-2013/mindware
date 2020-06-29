@@ -45,7 +45,7 @@ class RegressionEvaluator(_BaseEvaluator):
         np.random.seed(self.seed)
         config = config if config is not None else self.hpo_config
 
-        downsample_ratio = kwargs.get('data_subsample_ratio', 1.0)
+        downsample_ratio = kwargs.get('resource_ratio', 1.0)
 
         # Prepare data node.
         if 'data_node' in kwargs:

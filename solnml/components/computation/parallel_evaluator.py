@@ -9,9 +9,9 @@ def execute_func(params):
     evaluator, config, subsample_ratio = params
     try:
         if isinstance(config, Configuration):
-            score = evaluator(config, name='hpo', data_subsample_ratio=subsample_ratio)
+            score = evaluator(config, name='hpo', resource_ratio=subsample_ratio)
         else:
-            score = evaluator(None, data_node=config, name='fe', data_subsample_ratio=subsample_ratio)
+            score = evaluator(None, data_node=config, name='fe', resource_ratio=subsample_ratio)
     except Exception as e:
         score = np.inf
 
@@ -38,7 +38,7 @@ class ParallelEvaluator(object):
                     time.sleep(0.1)
                     break
 
-    def parallel_execute(self, param_list, subsample_ratio=1.):
+    def parallel_execute(self, param_list, resource_ratio=1.):
         n_configuration = len(param_list)
         batch_size = self.n_worker
         n_batch = n_configuration // batch_size + (1 if n_configuration % batch_size != 0 else 0)
@@ -48,7 +48,7 @@ class ParallelEvaluator(object):
             execution_stats = list()
             for _param in param_list[i * batch_size: (i + 1) * batch_size]:
                 execution_stats.append(self.thread_pool.submit(execute_func,
-                                       (self.evaluator, _param, subsample_ratio)))
+                                                               (self.evaluator, _param, resource_ratio)))
             # wait a batch of trials finish
             self.wait_tasks_finish(execution_stats)
 

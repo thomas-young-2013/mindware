@@ -2,6 +2,7 @@ import os
 import time
 import torch
 import numpy as np
+from math import ceil
 from sklearn.metrics.scorer import accuracy_scorer
 
 from solnml.utils.logging_utils import get_logger
@@ -36,9 +37,13 @@ class DLEvaluator(_BaseEvaluator):
         start_time = time.time()
 
         config_dict = config.get_dictionary().copy()
-        classifier_id, clf = get_estimator(self.task_type, config_dict, device=self.device)
+        classifier_id, estimator = get_estimator(self.task_type, config_dict, device=self.device)
+
+        epoch_ratio = kwargs.get('resource_ratio', 1.0)
+        estimator.epoch_num = ceil(estimator.epoch_num * epoch_ratio)
+
         try:
-            score = dl_holdout_validation(clf, self.scorer, self.dataset, random_state=self.seed)
+            score = dl_holdout_validation(estimator, self.scorer, self.dataset, random_state=self.seed)
         except Exception as e:
             self.logger.error(e)
             score = -np.inf
@@ -52,7 +57,7 @@ class DLEvaluator(_BaseEvaluator):
         if np.isfinite(score):
             save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config_dict, score)
             if save_flag is True:
-                torch.save(clf.model.state_dict(), model_path)
+                torch.save(estimator.model.state_dict(), model_path)
 
             if delete_flag is True:
                 os.remove(model_path_deleted)
