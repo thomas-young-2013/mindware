@@ -40,3 +40,4 @@ class ImageDataset(DLDataset):
         self.test_dataset = get_folder_dataset(os.path.join(test_data_path, 'test'),
                                                udf_transforms=transforms,
                                                grayscale=self.grayscale)
+        self.test_dataset.classes = self.train_dataset.classes

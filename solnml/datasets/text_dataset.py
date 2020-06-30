@@ -62,3 +62,4 @@ class TextDataset(DLDataset):
 
     def load_test_data(self, test_data_path):
         self.test_dataset = TextBertDataset(test_data_path, self.padding_size, self.config_path)
+        self.test_dataset.classes = self.train_dataset.classes
