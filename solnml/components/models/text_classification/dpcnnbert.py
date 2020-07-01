@@ -12,7 +12,7 @@ from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PRED
 class DPCNNBertClassifier(BaseTextClassificationNeuralNetwork):
     def __init__(self, optimizer, batch_size, epoch_num, lr_decay, step_decay,
                  sgd_learning_rate=None, sgd_momentum=None, adam_learning_rate=None, beta1=None,
-                 random_state=None, grayscale=False, device='cpu',
+                 random_state=None, device='cpu',
                  config='./solnml/components/models/text_classification/nn_utils/bert-base-uncased'):
         self.optimizer = optimizer
         self.batch_size = batch_size
@@ -24,7 +24,6 @@ class DPCNNBertClassifier(BaseTextClassificationNeuralNetwork):
         self.adam_learning_rate = adam_learning_rate
         self.beta1 = beta1
         self.random_state = random_state
-        self.grayscale = grayscale
         self.model = None
         self.device = torch.device(device)
         self.time_limit = None

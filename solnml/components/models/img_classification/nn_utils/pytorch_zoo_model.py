@@ -1,6 +1,6 @@
 """
 Model_zoo wrapper code borrowed from
-https://raw.githubusercontent.com/Cadene/pretrained-models.pytorch/master/pretrainedmodels/models/nasnet.py
+https://github.com/Cadene/pretrained-models.pytorch/blob/master/pretrainedmodels/models/torchvision_models.py
 """
 
 from __future__ import print_function, division, absolute_import
@@ -102,12 +102,19 @@ def update_state_dict(state_dict):
     return state_dict
 
 
-def load_pretrained(model, num_classes, settings):
-    assert num_classes == settings['num_classes'], \
-        "num_classes should be {}, but is {}".format(settings['num_classes'], num_classes)
-    state_dict = model_zoo.load_url(settings['url'])
-    state_dict = update_state_dict(state_dict)
-    model.load_state_dict(state_dict)
+def load_pretrained(model, settings, model_name):
+    original_state_dict = model_zoo.load_url(settings['url'])
+    original_state_dict = update_state_dict(original_state_dict)
+
+    state_dict = dict()
+    if 'resnet' in model_name:
+        for parameter_name in original_state_dict.keys():
+            if 'fc' not in parameter_name:
+                state_dict[parameter_name] = original_state_dict[parameter_name]
+
+    model_dict = model.state_dict()
+    model_dict.update(state_dict)
+    model.load_state_dict(model_dict)
     model.input_space = settings['input_space']
     model.input_size = settings['input_size']
     model.input_range = settings['input_range']
@@ -167,7 +174,7 @@ def alexnet(num_classes=1000, pretrained='imagenet'):
     model = models.alexnet(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['alexnet'][pretrained]
-        model = load_pretrained(model, num_classes, settings)
+        model = load_pretrained(model, settings)
     model = modify_alexnet(model)
     return model
 
@@ -205,7 +212,7 @@ def densenet121(num_classes=1000, pretrained='imagenet'):
     model = models.densenet121(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['densenet121'][pretrained]
-        model = load_pretrained(model, num_classes, settings)
+        model = load_pretrained(model, settings)
     model = modify_densenets(model)
     return model
 
@@ -217,7 +224,7 @@ def densenet169(num_classes=1000, pretrained='imagenet'):
     model = models.densenet169(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['densenet169'][pretrained]
-        model = load_pretrained(model, num_classes, settings)
+        model = load_pretrained(model, settings)
     model = modify_densenets(model)
     return model
 
@@ -229,7 +236,7 @@ def densenet201(num_classes=1000, pretrained='imagenet'):
     model = models.densenet201(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['densenet201'][pretrained]
-        model = load_pretrained(model, num_classes, settings)
+        model = load_pretrained(model, settings)
     model = modify_densenets(model)
     return model
 
@@ -241,7 +248,7 @@ def densenet161(num_classes=1000, pretrained='imagenet'):
     model = models.densenet161(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['densenet161'][pretrained]
-        model = load_pretrained(model, num_classes, settings)
+        model = load_pretrained(model, settings)
     model = modify_densenets(model)
     return model
 
@@ -256,7 +263,7 @@ def inceptionv3(num_classes=1000, pretrained='imagenet'):
     model = models.inception_v3(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['inceptionv3'][pretrained]
-        model = load_pretrained(model, num_classes, settings)
+        model = load_pretrained(model, settings)
 
     # Modify attributs
     model.last_linear = model.fc
@@ -313,7 +320,7 @@ def inceptionv3(num_classes=1000, pretrained='imagenet'):
 # ResNets
 
 def modify_resnets(model, num_class):
-    # Modify attributs
+    # Modify attributes
     model.last_linear = nn.Linear(model.fc.in_features, num_class)
     model.avgpool = nn.AdaptiveAvgPool2d(1)
     model.fc = None
@@ -354,8 +361,8 @@ def resnet18(num_classes=1000, pretrained='imagenet'):
     model = models.resnet18(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['resnet18'][pretrained]
-        model = load_pretrained(model, num_classes, settings)
-    model = modify_resnets(model)
+        model = load_pretrained(model, settings, 'resnet18')
+    model = modify_resnets(model, num_classes)
     return model
 
 
@@ -365,7 +372,7 @@ def resnet34(num_classes=1000, pretrained='imagenet'):
     model = models.resnet34(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['resnet34'][pretrained]
-        model = load_pretrained(model, num_classes, settings)
+        model = load_pretrained(model, settings, 'resnet34')
     model = modify_resnets(model, num_classes)
     return model
 
@@ -376,7 +383,7 @@ def resnet50(num_classes=1000, pretrained='imagenet'):
     model = models.resnet50(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['resnet50'][pretrained]
-        model = load_pretrained(model, num_classes, settings)
+        model = load_pretrained(model, settings, 'resnet50')
     model = modify_resnets(model, num_classes)
     return model
 
@@ -387,7 +394,7 @@ def resnet101(num_classes=1000, pretrained='imagenet'):
     model = models.resnet101(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['resnet101'][pretrained]
-        model = load_pretrained(model, num_classes, settings)
+        model = load_pretrained(model, settings, 'resnet101')
     model = modify_resnets(model, num_classes)
     return model
 
@@ -398,7 +405,7 @@ def resnet152(num_classes=1000, pretrained='imagenet'):
     model = models.resnet152(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['resnet152'][pretrained]
-        model = load_pretrained(model, num_classes, settings)
+        model = load_pretrained(model, settings, 'resnet152')
     model = modify_resnets(model, num_classes)
     return model
 
@@ -442,7 +449,7 @@ def squeezenet1_0(num_classes=1000, pretrained='imagenet'):
     model = models.squeezenet1_0(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['squeezenet1_0'][pretrained]
-        model = load_pretrained(model, num_classes, settings)
+        model = load_pretrained(model, settings)
     model = modify_squeezenets(model)
     return model
 
@@ -456,7 +463,7 @@ def squeezenet1_1(num_classes=1000, pretrained='imagenet'):
     model = models.squeezenet1_1(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['squeezenet1_1'][pretrained]
-        model = load_pretrained(model, num_classes, settings)
+        model = load_pretrained(model, settings)
     model = modify_squeezenets(model)
     return model
 

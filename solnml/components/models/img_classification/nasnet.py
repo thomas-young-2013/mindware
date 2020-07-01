@@ -29,16 +29,20 @@ class NASNetClassifier(BaseImgClassificationNeuralNetwork):
         self.time_limit = None
 
     def fit(self, dataset):
-        from solnml.components.models.img_classification.nn_utils.nasnet import NASNetALarge
-        self.model = NASNetALarge(num_classes=len(dataset.train_dataset.classes), grayscale=self.grayscale)
+        from solnml.components.models.img_classification.nn_utils.nasnet import nasnetalarge
+        self.model = nasnetalarge(num_classes=len(dataset.train_dataset.classes),
+                                  grayscale=self.grayscale,
+                                  pretrained=None)
         self.model.to(self.device)
 
         super().fit(dataset)
         return self
 
     def set_empty_model(self, dataset):
-        from solnml.components.models.img_classification.nn_utils.nasnet import NASNetALarge
-        self.model = NASNetALarge(num_classes=len(dataset.classes), grayscale=self.grayscale)
+        from solnml.components.models.img_classification.nn_utils.nasnet import nasnetalarge
+        self.model = nasnetalarge(num_classes=len(dataset.train_dataset.classes),
+                                  grayscale=self.grayscale,
+                                  pretrained=None)
 
     @staticmethod
     def get_properties(dataset_properties=None):

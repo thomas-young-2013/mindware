@@ -37,8 +37,26 @@ pretrained_settings = {
 }
 
 
-class ResNeXt101_32x4d(nn.Module):
+def load_pretrained(model, settings):
+    original_state_dict = model_zoo.load_url(settings['url'])
 
+    state_dict = dict()
+    for parameter_name in original_state_dict.keys():
+        if 'last_linear' not in parameter_name:
+            state_dict[parameter_name] = original_state_dict[parameter_name]
+
+    model_dict = model.state_dict()
+    model_dict.update(state_dict)
+    model.load_state_dict(model_dict)
+    model.input_space = settings['input_space']
+    model.input_size = settings['input_size']
+    model.input_range = settings['input_range']
+    model.mean = settings['mean']
+    model.std = settings['std']
+    return model
+
+
+class ResNeXt101_32x4d(nn.Module):
     def __init__(self, num_classes=1000, grayscale=False):
         super(ResNeXt101_32x4d, self).__init__()
         self.num_classes = num_classes
@@ -59,7 +77,6 @@ class ResNeXt101_32x4d(nn.Module):
 
 
 class ResNeXt101_64x4d(nn.Module):
-
     def __init__(self, num_classes=1000, grayscale=False):
         super(ResNeXt101_64x4d, self).__init__()
         self.num_classes = num_classes
@@ -79,31 +96,17 @@ class ResNeXt101_64x4d(nn.Module):
         return x
 
 
-def resnext101_32x4d(num_classes=1000, pretrained='imagenet'):
-    model = ResNeXt101_32x4d(num_classes=num_classes)
+def resnext101_32x4d(num_classes=1000, grayscale=False, pretrained='imagenet'):
+    model = ResNeXt101_32x4d(num_classes=num_classes, grayscale=grayscale)
     if pretrained is not None:
         settings = pretrained_settings['resnext101_32x4d'][pretrained]
-        assert num_classes == settings['num_classes'], \
-            "num_classes should be {}, but is {}".format(settings['num_classes'], num_classes)
-        model.load_state_dict(model_zoo.load_url(settings['url']))
-        model.input_space = settings['input_space']
-        model.input_size = settings['input_size']
-        model.input_range = settings['input_range']
-        model.mean = settings['mean']
-        model.std = settings['std']
+        model = load_pretrained(model, settings)
     return model
 
 
-def resnext101_64x4d(num_classes=1000, pretrained='imagenet'):
-    model = ResNeXt101_64x4d(num_classes=num_classes)
+def resnext101_64x4d(num_classes=1000, grayscale=False, pretrained='imagenet'):
+    model = ResNeXt101_64x4d(num_classes=num_classes, grayscale=grayscale)
     if pretrained is not None:
         settings = pretrained_settings['resnext101_64x4d'][pretrained]
-        assert num_classes == settings['num_classes'], \
-            "num_classes should be {}, but is {}".format(settings['num_classes'], num_classes)
-        model.load_state_dict(model_zoo.load_url(settings['url']))
-        model.input_space = settings['input_space']
-        model.input_size = settings['input_size']
-        model.input_range = settings['input_range']
-        model.mean = settings['mean']
-        model.std = settings['std']
+        model = load_pretrained(model, settings)
     return model

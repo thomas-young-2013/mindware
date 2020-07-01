@@ -29,24 +29,20 @@ class SENetClassifier(BaseImgClassificationNeuralNetwork):
         self.time_limit = None
 
     def fit(self, dataset):
-        from .nn_utils.senet import SENet, SEResNeXtBottleneck
-
-        self.model = SENet(SEResNeXtBottleneck, [3, 4, 23, 3], groups=32, reduction=16,
-                           dropout_p=None, inplanes=64, input_3x3=False,
-                           downsample_kernel_size=1, downsample_padding=0,
-                           num_classes=len(dataset.train_dataset.classes), grayscale=self.grayscale)
+        from .nn_utils.senet import se_resnext101_32x4d
+        self.model = se_resnext101_32x4d(num_classes=len(dataset.train_dataset.classes),
+                                         grayscale=self.grayscale,
+                                         pretrained=None)
 
         self.model.to(self.device)
         super().fit(dataset)
         return self
 
     def set_empty_model(self, dataset):
-        from .nn_utils.senet import SENet, SEResNeXtBottleneck
-
-        self.model = SENet(SEResNeXtBottleneck, [3, 4, 23, 3], groups=32, reduction=16,
-                           dropout_p=None, inplanes=64, input_3x3=False,
-                           downsample_kernel_size=1, downsample_padding=0,
-                           num_classes=len(dataset.classes), grayscale=self.grayscale)
+        from .nn_utils.senet import se_resnext101_32x4d
+        self.model = se_resnext101_32x4d(num_classes=len(dataset.train_dataset.classes),
+                                         grayscale=self.grayscale,
+                                         pretrained=None)
 
     @staticmethod
     def get_properties(dataset_properties=None):

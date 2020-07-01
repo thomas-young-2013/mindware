@@ -29,18 +29,20 @@ class ResNeXtClassifier(BaseImgClassificationNeuralNetwork):
         self.time_limit = None
 
     def fit(self, dataset):
-        from .nn_utils.resnext import ResNeXt101_32x4d
-
-        self.model = ResNeXt101_32x4d(num_classes=len(dataset.train_dataset.classes), grayscale=self.grayscale)
+        from .nn_utils.resnext import resnext101_32x4d
+        self.model = resnext101_32x4d(num_classes=len(dataset.train_dataset.classes),
+                                      grayscale=self.grayscale,
+                                      pretrained=None)
         self.model.to(self.device)
 
         super().fit(dataset)
         return self
 
     def set_empty_model(self, dataset):
-        from .nn_utils.resnext import ResNeXt101_32x4d
-
-        self.model = ResNeXt101_32x4d(num_classes=len(dataset.classes), grayscale=self.grayscale)
+        from .nn_utils.resnext import resnext101_32x4d
+        self.model = resnext101_32x4d(num_classes=len(dataset.train_dataset.classes),
+                                      grayscale=self.grayscale,
+                                      pretrained=None)
 
     @staticmethod
     def get_properties(dataset_properties=None):
