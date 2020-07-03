@@ -11,6 +11,8 @@ from solnml.components.models.img_classification.resnet50 import ResNetClassifie
 from solnml.components.models.img_classification.resnext import ResNeXtClassifier
 from solnml.components.models.img_classification.senet import SENetClassifier
 from solnml.components.models.img_classification.nasnet import NASNetClassifier
+from solnml.components.models.img_classification.mobilenet import MobileNettClassifier
+from solnml.components.models.img_classification.efficientnet import EfficientNetClassifier
 
 phase = 'fit'
 
@@ -19,7 +21,7 @@ if phase == 'fit':
     # data_dir = 'data/img_datasets/dogs-vs-cats/'
     image_data = ImageDataset(data_path=data_dir, train_val_split=True)
     clf = ImageClassifier(time_limit=80,
-                          # include_algorithms=['resnet50'],
+                          include_algorithms=['efficientnet'],
                           ensemble_method='ensemble_selection')
     clf.fit(image_data)
     image_data.set_test_path(data_dir)
@@ -46,12 +48,11 @@ else:
     image_data = ImageDataset(data_path=data_dir)
     image_data.load_data(data_transforms['train'], data_transforms['val'])
     image_data.set_test_path(data_dir)
-    image_data.load_test_data(image_size=256)
-    default_config = NASNetClassifier.get_hyperparameter_search_space().get_default_configuration().get_dictionary()
+    default_config = EfficientNetClassifier.get_hyperparameter_search_space().get_default_configuration().get_dictionary()
     default_config['device'] = 'cuda'
     default_config['epoch_num'] = 1
     print(default_config)
-    clf = NASNetClassifier(**default_config)
+    clf = EfficientNetClassifier(**default_config)
     clf.fit(image_data)
     print(clf.score(image_data, accuracy_score, batch_size=16))
     image_data.val_dataset = image_data.train_dataset

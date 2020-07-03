@@ -18,7 +18,8 @@ __all__ = [
     'inceptionv3',
     'squeezenet1_0', 'squeezenet1_1',
     'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn',
-    'vgg19_bn', 'vgg19'
+    'vgg19_bn', 'vgg19',
+    'mobilenet_v2'
 ]
 
 model_urls = {
@@ -42,7 +43,8 @@ model_urls = {
     'vgg11_bn': 'https://download.pytorch.org/models/vgg11_bn-6002323d.pth',
     'vgg13_bn': 'https://download.pytorch.org/models/vgg13_bn-abd245e5.pth',
     'vgg16_bn': 'https://download.pytorch.org/models/vgg16_bn-6c64b313.pth',
-    'vgg19_bn': 'https://download.pytorch.org/models/vgg19_bn-c79401a0.pth'
+    'vgg19_bn': 'https://download.pytorch.org/models/vgg19_bn-c79401a0.pth',
+    'mobilenet_v2': 'https://download.pytorch.org/models/mobilenet_v2-b0353104.pth'
 }
 
 input_sizes = {}
@@ -102,19 +104,11 @@ def update_state_dict(state_dict):
     return state_dict
 
 
-def load_pretrained(model, settings, model_name):
-    original_state_dict = model_zoo.load_url(settings['url'])
-    original_state_dict = update_state_dict(original_state_dict)
+def load_pretrained(model, settings):
+    state_dict = model_zoo.load_url(settings['url'])
+    state_dict = update_state_dict(state_dict)
 
-    state_dict = dict()
-    if 'resnet' in model_name:
-        for parameter_name in original_state_dict.keys():
-            if 'fc' not in parameter_name:
-                state_dict[parameter_name] = original_state_dict[parameter_name]
-
-    model_dict = model.state_dict()
-    model_dict.update(state_dict)
-    model.load_state_dict(model_dict)
+    model.load_state_dict(state_dict)
     model.input_space = settings['input_space']
     model.input_size = settings['input_size']
     model.input_range = settings['input_range']
@@ -182,14 +176,15 @@ def alexnet(num_classes=1000, pretrained='imagenet'):
 ###############################################################
 # DenseNets
 
-def modify_densenets(model):
-    # Modify attributs
-    model.last_linear = model.classifier
+def modify_densenets(model, num_class=1000):
+    # Modify attributes
+    model.last_linear = nn.Linear(model.classifier.in_features, num_class)
+    model.avgpool = nn.AdaptiveAvgPool2d(1)
     del model.classifier
 
     def logits(self, features):
         x = F.relu(features, inplace=True)
-        x = F.avg_pool2d(x, kernel_size=7, stride=1)
+        x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.last_linear(x)
         return x
@@ -213,7 +208,7 @@ def densenet121(num_classes=1000, pretrained='imagenet'):
     if pretrained is not None:
         settings = pretrained_settings['densenet121'][pretrained]
         model = load_pretrained(model, settings)
-    model = modify_densenets(model)
+    model = modify_densenets(model, num_classes)
     return model
 
 
@@ -225,7 +220,7 @@ def densenet169(num_classes=1000, pretrained='imagenet'):
     if pretrained is not None:
         settings = pretrained_settings['densenet169'][pretrained]
         model = load_pretrained(model, settings)
-    model = modify_densenets(model)
+    model = modify_densenets(model, num_classes)
     return model
 
 
@@ -237,7 +232,7 @@ def densenet201(num_classes=1000, pretrained='imagenet'):
     if pretrained is not None:
         settings = pretrained_settings['densenet201'][pretrained]
         model = load_pretrained(model, settings)
-    model = modify_densenets(model)
+    model = modify_densenets(model, num_classes)
     return model
 
 
@@ -249,7 +244,7 @@ def densenet161(num_classes=1000, pretrained='imagenet'):
     if pretrained is not None:
         settings = pretrained_settings['densenet161'][pretrained]
         model = load_pretrained(model, settings)
-    model = modify_densenets(model)
+    model = modify_densenets(model, num_classes)
     return model
 
 
@@ -361,7 +356,7 @@ def resnet18(num_classes=1000, pretrained='imagenet'):
     model = models.resnet18(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['resnet18'][pretrained]
-        model = load_pretrained(model, settings, 'resnet18')
+        model = load_pretrained(model, settings)
     model = modify_resnets(model, num_classes)
     return model
 
@@ -372,7 +367,7 @@ def resnet34(num_classes=1000, pretrained='imagenet'):
     model = models.resnet34(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['resnet34'][pretrained]
-        model = load_pretrained(model, settings, 'resnet34')
+        model = load_pretrained(model, settings)
     model = modify_resnets(model, num_classes)
     return model
 
@@ -383,7 +378,7 @@ def resnet50(num_classes=1000, pretrained='imagenet'):
     model = models.resnet50(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['resnet50'][pretrained]
-        model = load_pretrained(model, settings, 'resnet50')
+        model = load_pretrained(model, settings)
     model = modify_resnets(model, num_classes)
     return model
 
@@ -394,7 +389,7 @@ def resnet101(num_classes=1000, pretrained='imagenet'):
     model = models.resnet101(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['resnet101'][pretrained]
-        model = load_pretrained(model, settings, 'resnet101')
+        model = load_pretrained(model, settings)
     model = modify_resnets(model, num_classes)
     return model
 
@@ -405,7 +400,7 @@ def resnet152(num_classes=1000, pretrained='imagenet'):
     model = models.resnet152(pretrained=False)
     if pretrained is not None:
         settings = pretrained_settings['resnet152'][pretrained]
-        model = load_pretrained(model, settings, 'resnet152')
+        model = load_pretrained(model, settings)
     model = modify_resnets(model, num_classes)
     return model
 
@@ -596,6 +591,43 @@ def vgg19_bn(num_classes=1000, pretrained='imagenet'):
         settings = pretrained_settings['vgg19_bn'][pretrained]
         model = load_pretrained(model, num_classes, settings)
     model = modify_vggs(model)
+    return model
+
+
+###############################################################
+# MobileNet
+
+def modify_mobile(model, num_class):
+    # Modify attributes
+    model.dropout = model.classifier[0]
+    model.last_linear = nn.Linear(model.classifier[1].in_features, num_class)
+    model.avgpool = nn.AdaptiveAvgPool2d(1)
+    del model.classifier
+
+    def logits(self, features):
+        x = self.avgpool(features)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.last_linear(x)
+        return x
+
+    def forward(self, input):
+        x = self.features(input)
+        x = self.logits(x)
+        return x
+
+    # Modify methods
+    model.logits = types.MethodType(logits, model)
+    model.forward = types.MethodType(forward, model)
+    return model
+
+
+def mobilenet_v2(num_classes=1000, pretrained='imagenet'):
+    model = models.mobilenet_v2(pretrained=False)
+    if pretrained is not None:
+        settings = pretrained_settings['mobilenet_v2'][pretrained]
+        model = load_pretrained(model, settings)
+    model = modify_mobile(model, num_classes)
     return model
 
 # -*- coding: utf-8 -*-
