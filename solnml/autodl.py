@@ -2,7 +2,9 @@ import os
 import time
 import torch
 import numpy as np
-from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
+from ConfigSpace.configuration_space import ConfigurationSpace
+from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
+    UniformIntegerHyperparameter, CategoricalHyperparameter, UnParametrizedHyperparameter
 from solnml.utils.constant import MAX_INT
 from solnml.components.utils.constants import IMG_CLS, TEXT_CLS, OBJECT_DET
 from solnml.datasets.base_dataset import BaseDataset
@@ -113,7 +115,7 @@ class AutoDL(object):
                      )
         return get_logger(logger_name)
 
-    def get_model_config_space(self, estimator_id):
+    def get_model_config_space(self, estimator_id, include_estimator=True):
         if estimator_id in self._estimators:
             clf_class = self._estimators[estimator_id]
         elif estimator_id in self._addons.components:
@@ -123,7 +125,8 @@ class AutoDL(object):
 
         cs = clf_class.get_hyperparameter_search_space()
         model = UnParametrizedHyperparameter("estimator", estimator_id)
-        cs.add_hyperparameter(model)
+        if include_estimator:
+            cs.add_hyperparameter(model)
         if self.task_type == IMG_CLS:
             aug_space = get_aug_hyperparameter_space()
             cs.add_hyperparameters(aug_space.get_hyperparameters())
@@ -292,3 +295,68 @@ class AutoDL(object):
         if metric_func is None:
             metric_func = self.metric
         return metric_func(self, test_data)
+
+    def get_pipeline_config_space(self, algorithm_candidates):
+        cs = ConfigurationSpace()
+        estimator_choice = CategoricalHyperparameter("estimator", algorithm_candidates,
+                                                     default_value=algorithm_candidates[0])
+        cs.add_hyperparameter(estimator_choice)
+        for estimator_id in algorithm_candidates:
+            sub_cs = self.get_model_config_space(estimator_id, include_estimator=False)
+            parent_hyperparameter = {'parent': estimator_choice,
+                                     'value': estimator_id}
+            cs.add_configuration_space(estimator_id, sub_cs,
+                                       parent_hyperparameter=parent_hyperparameter)
+        return cs
+
+    def auto_hpo_fit(self, train_data):
+        algorithm_candidates = self.profile_models()
+
+        cs = self.get_model_config_space(algorithm_candidates)
+        default_config = cs.get_default_configuration()
+        hpo_evaluator = DLEvaluator(default_config,
+                                    self.task_type,
+                                    scorer=self.metric,
+                                    dataset=train_data,
+                                    device=self.device,
+                                    seed=self.seed)
+        optimizer = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs,
+                                        output_dir=self.output_dir,
+                                        per_run_time_limit=100000,
+                                        trials_per_iter=1,
+                                        seed=self.seed, n_jobs=self.n_jobs)
+        self.solvers['hpo_estimator'] = optimizer
+        self.evaluators['hpo_estimator'] = hpo_evaluator
+
+        # Control flow via round robin.
+        _start_time = time.time()
+        if self.trial_num is None:
+            while time.time() <= _start_time + self.time_limit:
+                self.solvers['hpo_estimator'].iterate()
+        else:
+            for _ in self.trial_num:
+                self.solvers['hpo_estimator'].iterate()
+
+        # Best model id.
+        self.best_algo_id = 'hpo_estimator'
+        # Best model configuration.
+        solver_ = self.solvers[self.best_algo_id]
+        inc_idx = np.argmax(solver_.perfs)
+        self.best_algo_config = solver_.configs[inc_idx]
+
+        # Skip Ensemble
+        if self.task_type == OBJECT_DET:
+            return
+
+        if self.ensemble_method is not None:
+            stats = self.fetch_ensemble_members([self.best_algo_id])
+
+            # Ensembling all intermediate/ultimate models found in above optimization process.
+            self.es = EnsembleBuilder(stats=stats,
+                                      ensemble_method=self.ensemble_method,
+                                      ensemble_size=self.ensemble_size,
+                                      task_type=self.task_type,
+                                      metric=self.metric,
+                                      device=self.device,
+                                      output_dir=self.output_dir)
+            self.es.fit(data=train_data)
