@@ -62,7 +62,7 @@ class SENetClassifier(BaseImgClassificationNeuralNetwork):
             cs = ConfigurationSpace()
             optimizer = CategoricalHyperparameter('optimizer', ['SGD', 'Adam'], default_value='SGD')
             sgd_learning_rate = UniformFloatHyperparameter(
-                "sgd_learning_rate", lower=1e-4, upper=1e-2, default_value=2e-3, log=True)
+                "sgd_learning_rate", lower=1e-5, upper=1e-2, default_value=2e-3, log=True)
             sgd_momentum = UniformFloatHyperparameter(
                 "sgd_momentum", lower=0, upper=0.9, default_value=0, log=False)
             adam_learning_rate = UniformFloatHyperparameter(

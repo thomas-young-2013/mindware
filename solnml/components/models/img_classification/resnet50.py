@@ -32,7 +32,7 @@ class ResNetClassifier(BaseImgClassificationNeuralNetwork):
         from .nn_utils.pytorch_zoo_model import resnet50
         if self.grayscale:
             raise ValueError("Models from pytorch-model zoo only support RGB inputs!")
-        self.model = resnet50(num_classes=len(dataset.train_dataset.classes), pretrained=None)
+        self.model = resnet50(num_classes=len(dataset.train_dataset.classes), pretrained='imagenet')
         self.model.to(self.device)
         super().fit(dataset)
         return self
@@ -61,7 +61,7 @@ class ResNetClassifier(BaseImgClassificationNeuralNetwork):
             cs = ConfigurationSpace()
             optimizer = CategoricalHyperparameter('optimizer', ['SGD', 'Adam'], default_value='SGD')
             sgd_learning_rate = UniformFloatHyperparameter(
-                "sgd_learning_rate", lower=1e-4, upper=1e-2, default_value=2e-3, log=True)
+                "sgd_learning_rate", lower=1e-5, upper=1e-2, default_value=2e-3, log=True)
             sgd_momentum = UniformFloatHyperparameter(
                 "sgd_momentum", lower=0, upper=0.9, default_value=0, log=False)
             adam_learning_rate = UniformFloatHyperparameter(
