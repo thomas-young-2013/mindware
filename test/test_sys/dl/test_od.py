@@ -18,7 +18,7 @@ if mode == 'fit':
                             ensemble_method='ensemble_selection')
     clf.fit(dataset)
 
-    dataset.load_test_data('data/od_datasets/custom/valid.txt')
+    dataset.set_test_path('data/od_datasets/custom/valid.txt')
     print(clf.predict(dataset))
 else:
     config = Yolov3.get_hyperparameter_search_space().sample_configuration().get_dictionary()
@@ -30,6 +30,7 @@ else:
     dataset.load_data()
     clf.fit(dataset)
 
-    dataset.load_test_data('data/od_datasets/custom/valid.txt')
+    dataset.set_test_path('data/od_datasets/custom/valid.txt')
+    dataset.load_test_data()
     print(clf.predict(dataset.test_dataset))
     print(clf.score(dataset))

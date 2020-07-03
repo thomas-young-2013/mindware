@@ -99,6 +99,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
 
         for epoch in range(self.epoch_num):
             epoch_avg_loss = 0
+            epoch_avg_acc = 0
             num_samples = 0
             for i, data in enumerate(loader):
                 batch_x, batch_y = data[0], data[1]
@@ -109,9 +110,16 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
                 loss.backward()
                 epoch_avg_loss += loss.to('cpu').detach() * len(batch_x)
                 optimizer.step()
-            epoch_avg_loss /= num_samples
-            scheduler.step()
 
+
+            #     prediction = np.argmax(logits.to('cpu').detach().numpy(), axis=-1)
+            #     from sklearn.metrics import accuracy_score
+            #     epoch_avg_acc += accuracy_score(prediction, batch_y.to('cpu').detach().numpy()) * len(batch_x)
+            # epoch_avg_loss /= num_samples
+            # epoch_avg_acc /= num_samples
+            # print(epoch_avg_loss)
+            # print(epoch_avg_acc)
+            scheduler.step()
         return self
 
     def predict_proba(self, dataset: Dataset, sampler=None, batch_size=None):
@@ -123,14 +131,15 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         self.model.eval()
 
         prediction = None
-        for i, data in enumerate(loader):
-            batch_x, batch_y = data[0], data[1]
-            logits = self.model(batch_x.float().to(self.device))
-            pred = nn.functional.softmax(logits, dim=-1)
-            if prediction is None:
-                prediction = pred.to('cpu').detach().numpy()
-            else:
-                prediction = np.concatenate((prediction, pred.to('cpu').detach().numpy()), 0)
+        with torch.no_grad():
+            for i, data in enumerate(loader):
+                batch_x, batch_y = data[0], data[1]
+                logits = self.model(batch_x.float().to(self.device))
+                pred = nn.functional.softmax(logits, dim=-1)
+                if prediction is None:
+                    prediction = pred.to('cpu').detach().numpy()
+                else:
+                    prediction = np.concatenate((prediction, pred.to('cpu').detach().numpy()), 0)
 
         return prediction
 
@@ -143,13 +152,14 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         self.model.eval()
 
         prediction = None
-        for i, data in enumerate(loader):
-            batch_x, batch_y = data[0], data[1]
-            logits = self.model(batch_x.float().to(self.device))
-            if prediction is None:
-                prediction = logits.to('cpu').detach().numpy()
-            else:
-                prediction = np.concatenate((prediction, logits.to('cpu').detach().numpy()), 0)
+        with torch.no_grad():
+            for i, data in enumerate(loader):
+                batch_x, batch_y = data[0], data[1]
+                logits = self.model(batch_x.float().to(self.device))
+                if prediction is None:
+                    prediction = logits.to('cpu').detach().numpy()
+                else:
+                    prediction = np.concatenate((prediction, logits.to('cpu').detach().numpy()), 0)
         return np.argmax(prediction, axis=-1)
 
     def score(self, dataset, metric, batch_size=None):
@@ -166,16 +176,18 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
                 loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
                                     sampler=dataset.val_sampler, num_workers=4)
 
+        self.model.to(self.device)
         self.model.eval()
         total_len = 0
         score = 0
-        for i, data in enumerate(loader):
-            batch_x, batch_y = data[0], data[1]
-            logits = self.model(batch_x.float().to(self.device)).to('cpu')
-            prediction = np.argmax(logits.detach().numpy(), axis=-1)
-            score += metric(prediction, batch_y.detach().numpy()) * len(prediction)
-            total_len += len(prediction)
-        score /= total_len
+        with torch.no_grad():
+            for i, data in enumerate(loader):
+                batch_x, batch_y = data[0], data[1]
+                logits = self.model(batch_x.float().to(self.device)).to('cpu')
+                prediction = np.argmax(logits.detach().numpy(), axis=-1)
+                score += metric(prediction, batch_y.detach().numpy()) * len(prediction)
+                total_len += len(prediction)
+            score /= total_len
         return score
 
     @staticmethod
@@ -247,15 +259,16 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         self.model.eval()
 
         prediction = None
-        for i, data in enumerate(loader):
-            batch_x, batch_y = data[0], data[1]
-            masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
-            logits = self.model(batch_x.long().to(self.device), masks.to(self.device))
-            pred = nn.functional.softmax(logits, dim=-1)
-            if prediction is None:
-                prediction = pred.to('cpu').detach().numpy()
-            else:
-                prediction = np.concatenate((prediction, pred.to('cpu').detach().numpy()), 0)
+        with torch.no_grad():
+            for i, data in enumerate(loader):
+                batch_x, batch_y = data[0], data[1]
+                masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
+                logits = self.model(batch_x.long().to(self.device), masks.to(self.device))
+                pred = nn.functional.softmax(logits, dim=-1)
+                if prediction is None:
+                    prediction = pred.to('cpu').detach().numpy()
+                else:
+                    prediction = np.concatenate((prediction, pred.to('cpu').detach().numpy()), 0)
         return prediction
 
     def predict(self, dataset: Dataset, sampler=None, batch_size=None):
@@ -267,14 +280,15 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         self.model.eval()
 
         prediction = None
-        for i, data in enumerate(loader):
-            batch_x, batch_y = data[0], data[1]
-            masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
-            logits = self.model(batch_x.long().to(self.device), masks.to(self.device))
-            if prediction is None:
-                prediction = logits.to('cpu').detach().numpy()
-            else:
-                prediction = np.concatenate((prediction, logits.to('cpu').detach().numpy()), 0)
+        with torch.no_grad():
+            for i, data in enumerate(loader):
+                batch_x, batch_y = data[0], data[1]
+                masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
+                logits = self.model(batch_x.long().to(self.device), masks.to(self.device))
+                if prediction is None:
+                    prediction = logits.to('cpu').detach().numpy()
+                else:
+                    prediction = np.concatenate((prediction, logits.to('cpu').detach().numpy()), 0)
         return np.argmax(prediction, axis=-1)
 
     def score(self, dataset, metric, batch_size=None):
@@ -293,13 +307,14 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         self.model.eval()
         total_len = 0
         score = 0
-        for i, data in enumerate(loader):
-            batch_x, batch_y = data[0], data[1]
-            masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
-            logits = self.model(batch_x.long().to(self.device), masks)
-            prediction = np.argmax(logits.detach().numpy(), axis=-1)
-            score += metric(prediction, batch_y.detach().numpy()) * len(prediction)
-            total_len += len(prediction)
+        with torch.no_grad():
+            for i, data in enumerate(loader):
+                batch_x, batch_y = data[0], data[1]
+                masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
+                logits = self.model(batch_x.long().to(self.device), masks)
+                prediction = np.argmax(logits.detach().numpy(), axis=-1)
+                score += metric(prediction, batch_y.detach().numpy()) * len(prediction)
+                total_len += len(prediction)
         score /= total_len
         return score
 
@@ -370,13 +385,14 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
         self.model.eval()
 
         prediction = None
-        for i, data in enumerate(loader):
-            batch_x, batch_y = data[0], data[1]
-            logits = self.model(batch_x.float().to(self.device))
-            if prediction is None:
-                prediction = logits.to('cpu').detach().numpy()
-            else:
-                prediction = np.concatenate((prediction, logits.to('cpu').detach().numpy()), 0)
+        with torch.no_grad():
+            for i, data in enumerate(loader):
+                batch_x, batch_y = data[0], data[1]
+                logits = self.model(batch_x.float().to(self.device))
+                if prediction is None:
+                    prediction = logits.to('cpu').detach().numpy()
+                else:
+                    prediction = np.concatenate((prediction, logits.to('cpu').detach().numpy()), 0)
         return np.argmax(prediction, axis=-1)
 
     # TODO: UDF metric

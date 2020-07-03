@@ -18,26 +18,22 @@ class ImageDataset(DLDataset):
         self.udf_transforms = data_transforms
         self.grayscale = grayscale
 
-    def set_udf_transform(self, udf_transform):
-        self.udf_transforms = udf_transform
+        default_dataset = get_folder_dataset(os.path.join(self.data_path, 'train'))
+        self.classes = default_dataset.classes
 
-    def load_data(self):
+    def load_data(self, train_transforms, val_transforms):
         self.train_dataset = get_folder_dataset(os.path.join(self.data_path, 'train'),
-                                                udf_transforms=self.udf_transforms['train'],
+                                                udf_transforms=train_transforms,
                                                 grayscale=self.grayscale)
         if not self.train_val_split:
             self.val_dataset = get_folder_dataset(os.path.join(self.data_path, 'val'),
-                                                  udf_transforms=self.udf_transforms['val'],
+                                                  udf_transforms=val_transforms,
                                                   grayscale=self.grayscale)
         else:
             self.create_train_val_split(self.train_dataset, train_val_split=self.val_split_size, shuffle=True)
 
-    def load_test_data(self, test_data_path):
-        if test_data_path is None:
-            test_data_path = self.data_path
-
-        transforms = get_test_transforms()
-        self.test_dataset = get_folder_dataset(os.path.join(test_data_path, 'test'),
+    def load_test_data(self, transforms):
+        self.test_dataset = get_folder_dataset(os.path.join(self.test_data_path, 'test'),
                                                udf_transforms=transforms,
                                                grayscale=self.grayscale)
-        self.test_dataset.classes = self.train_dataset.classes
+        self.test_dataset.classes = self.classes

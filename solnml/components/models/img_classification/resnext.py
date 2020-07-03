@@ -40,7 +40,7 @@ class ResNeXtClassifier(BaseImgClassificationNeuralNetwork):
 
     def set_empty_model(self, dataset):
         from .nn_utils.resnext import resnext101_32x4d
-        self.model = resnext101_32x4d(num_classes=len(dataset.train_dataset.classes),
+        self.model = resnext101_32x4d(num_classes=len(dataset.classes),
                                       grayscale=self.grayscale,
                                       pretrained=None)
 

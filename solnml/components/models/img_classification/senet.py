@@ -40,7 +40,7 @@ class SENetClassifier(BaseImgClassificationNeuralNetwork):
 
     def set_empty_model(self, dataset):
         from .nn_utils.senet import se_resnext101_32x4d
-        self.model = se_resnext101_32x4d(num_classes=len(dataset.train_dataset.classes),
+        self.model = se_resnext101_32x4d(num_classes=len(dataset.classes),
                                          grayscale=self.grayscale,
                                          pretrained=None)
 

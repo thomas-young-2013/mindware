@@ -1,12 +1,14 @@
+import warnings
 import numpy as np
 from collections import Counter
 from sklearn.preprocessing import OneHotEncoder
 from torch.utils.data import DataLoader
 from sklearn.metrics.scorer import _BaseScorer, _PredictScorer, _ThresholdScorer
 
-from solnml.components.utils.constants import CLS_TASKS, TASK_TYPES
+from solnml.components.utils.constants import CLS_TASKS, TASK_TYPES, IMG_CLS
 from solnml.components.ensemble.dl_ensemble.base_ensemble import BaseEnsembleModel
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
+from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_test_transforms
 
 
 class EnsembleSelection(BaseEnsembleModel):
@@ -45,20 +47,6 @@ class EnsembleSelection(BaseEnsembleModel):
         return score
 
     def fit(self, train_data):
-        if hasattr(train_data, 'val_dataset'):
-            loader = DataLoader(train_data.val_dataset)
-        else:
-            loader = DataLoader(train_data.train_dataset, sampler=train_data.val_sampler)
-        num_samples = 0
-        val_y = list()
-        for sample in loader:
-            num_samples += 1
-            val_y.extend(sample[1].detach().numpy())
-        val_y = np.array(val_y)
-
-        if len(val_y.shape) == 1 and self.task_type in CLS_TASKS:
-            reshape_y = np.reshape(val_y, (len(val_y), 1))
-            self.encoder.fit(reshape_y)
 
         self.ensemble_size = int(self.ensemble_size)
         if self.ensemble_size < 1:
@@ -71,9 +59,18 @@ class EnsembleSelection(BaseEnsembleModel):
             raise ValueError('Unknown mode %s' % self.mode)
 
         model_pred_list = list()
+        num_samples = 0
+        val_y = None
+
         for algo_id in self.stats["include_algorithms"]:
             model_configs = self.stats[algo_id]['model_configs']
             for idx, config in enumerate(model_configs):
+                if self.task_type == IMG_CLS:
+                    test_transforms = get_test_transforms(config)
+                    train_data.load_data(test_transforms, test_transforms)
+                else:
+                    train_data.load_data()
+
                 estimator = get_estimator_with_parameters(self.task_type, config, train_data.train_dataset,
                                                           device=self.device)
                 if self.task_type in CLS_TASKS:
@@ -86,6 +83,24 @@ class EnsembleSelection(BaseEnsembleModel):
                         pred = estimator.predict(train_data.val_dataset)
                     else:
                         pred = estimator.predict(train_data.train_dataset, sampler=train_data.val_sampler)
+
+                if hasattr(train_data, 'val_dataset'):
+                    loader = DataLoader(train_data.val_dataset)
+                else:
+                    loader = DataLoader(train_data.train_dataset, sampler=train_data.val_sampler)
+
+                if val_y is None:
+                    val_y = list()
+                    for sample in loader:
+                        num_samples += 1
+                        val_y.extend(sample[1].detach().numpy())
+                    val_y = np.array(val_y)
+
+                if len(val_y.shape) == 1 and self.task_type in CLS_TASKS:
+                    reshape_y = np.reshape(val_y, (len(val_y), 1))
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings("ignore", category=FutureWarning)
+                        self.encoder.fit(reshape_y)
 
                 if self.shape is None:
                     self.shape = pred.shape
@@ -236,21 +251,31 @@ class EnsembleSelection(BaseEnsembleModel):
         indices = np.argsort(perf)[perf.shape[0] - n_best:]
         return indices
 
-    def predict(self, data, sampler=None):
+    def predict(self, test_data, sampler=None):
         predictions = []
         cur_idx = 0
-        loader = DataLoader(data, sampler=sampler)
-        num_samples = len(list(loader))
+        num_samples = 0
 
         for algo_id in self.stats["include_algorithms"]:
             model_configs = self.stats[algo_id]['model_configs']
             for idx, config in enumerate(model_configs):
-                estimator = get_estimator_with_parameters(self.task_type, config, data, device=self.device)
+                if self.task_type == IMG_CLS:
+                    test_transforms = get_test_transforms(config)
+                    test_data.load_test_data(test_transforms)
+                else:
+                    test_data.load_test_data()
+
+                if num_samples == 0:
+                    loader = DataLoader(test_data.test_dataset, sampler=sampler)
+                    num_samples = len(list(loader))
+
+                estimator = get_estimator_with_parameters(self.task_type, config, test_data.test_dataset,
+                                                          device=self.device)
                 if cur_idx in self.model_idx:
                     if self.task_type in CLS_TASKS:
-                        predictions.append(estimator.predict_proba(data, sampler=sampler))
+                        predictions.append(estimator.predict_proba(test_data.test_dataset, sampler=sampler))
                     else:
-                        predictions.append(estimator.predict(data, sampler=sampler))
+                        predictions.append(estimator.predict(test_data.test_dataset, sampler=sampler))
                 else:
                     if len(self.shape) == 1:
                         predictions.append(np.zeros(num_samples))

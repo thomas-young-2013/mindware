@@ -14,11 +14,11 @@ mode = 'fit'
 if mode == 'fit':
     dataset = TextDataset('data/text_datasets/ag_news_csv/train.csv',
                           config_path='./solnml/components/models/text_classification/nn_utils/bert-base-uncased')
-    clf = TextClassifier(time_limit=30,
-                         include_algorithms=['rcnnbert'],
+    clf = TextClassifier(time_limit=10,
+                         include_algorithms=['naivebert'],
                          ensemble_method='ensemble_selection')
     clf.fit(dataset)
-    dataset.load_test_data('data/text_datasets/ag_news_csv/test.csv')
+    dataset.set_test_path('data/text_datasets/ag_news_csv/test.csv')
     print(clf.predict_proba(dataset))
     print(clf.predict(dataset))
 else:
@@ -28,7 +28,8 @@ else:
     dataset = TextDataset('data/text_datasets/ag_news_csv/train.csv',
                           config_path='./solnml/components/models/text_classification/nn_utils/bert-base-uncased')
     dataset.load_data()
-    dataset.load_test_data('data/text_datasets/ag_news_csv/test.csv')
+    dataset.set_test_path('data/text_datasets/ag_news_csv/test.csv')
+    dataset.load_test_data()
     # train_dataset = TextBertDataset('data/text_datasets/ag_news_csv/train.csv',
     #                                 config_path='./solnml/components/models/text_classification/nn_utils/bert-base-uncased')
     # test_dataset = TextBertDataset('data/text_datasets/ag_news_csv/test.csv',
