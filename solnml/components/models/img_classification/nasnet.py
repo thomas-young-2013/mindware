@@ -40,7 +40,7 @@ class NASNetClassifier(BaseImgClassificationNeuralNetwork):
 
     def set_empty_model(self, dataset):
         from solnml.components.models.img_classification.nn_utils.nasnet import nasnetalarge
-        self.model = nasnetalarge(num_classes=len(dataset.train_dataset.classes),
+        self.model = nasnetalarge(num_classes=len(dataset.classes),
                                   grayscale=self.grayscale,
                                   pretrained=None)
 
@@ -62,7 +62,7 @@ class NASNetClassifier(BaseImgClassificationNeuralNetwork):
             cs = ConfigurationSpace()
             optimizer = CategoricalHyperparameter('optimizer', ['SGD', 'Adam'], default_value='SGD')
             sgd_learning_rate = UniformFloatHyperparameter(
-                "sgd_learning_rate", lower=1e-4, upper=1e-2, default_value=2e-3, log=True)
+                "sgd_learning_rate", lower=1e-5, upper=1e-2, default_value=2e-3, log=True)
             sgd_momentum = UniformFloatHyperparameter(
                 "sgd_momentum", lower=0, upper=0.9, default_value=0, log=False)
             adam_learning_rate = UniformFloatHyperparameter(
@@ -70,7 +70,7 @@ class NASNetClassifier(BaseImgClassificationNeuralNetwork):
             beta1 = UniformFloatHyperparameter(
                 "beta1", lower=0.5, upper=0.999, default_value=0.9, log=False)
             batch_size = CategoricalHyperparameter(
-                "batch_size", [8, 16], default_value=16)
+                "batch_size", [8], default_value=8)
             lr_decay = UnParametrizedHyperparameter("lr_decay", 0.8)
             step_decay = UnParametrizedHyperparameter("step_decay", 10)
             epoch_num = UnParametrizedHyperparameter("epoch_num", 150)

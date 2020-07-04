@@ -58,20 +58,21 @@ class Yolov3(BaseODClassificationNeuralNetwork):
         self.model.eval()
         labels = []
         sample_metrics = []
-        for batch_i, (_, batch_x, batch_y) in enumerate(loader):
-            # Extract labels
-            labels += batch_y[:, 1].tolist()
-            # Rescale target
-            batch_y[:, 2:] = xywh2xyxy(batch_y[:, 2:])
-            batch_y[:, 2:] *= img_size
+        with torch.no_grad():
+            for batch_i, (_, batch_x, batch_y) in enumerate(loader):
+                # Extract labels
+                labels += batch_y[:, 1].tolist()
+                # Rescale target
+                batch_y[:, 2:] = xywh2xyxy(batch_y[:, 2:])
+                batch_y[:, 2:] *= img_size
 
-            batch_x = Variable(batch_x, requires_grad=False)
+                batch_x = Variable(batch_x, requires_grad=False)
 
-            with torch.no_grad():
-                outputs = self.model(batch_x.to(self.device))
-                outputs = non_max_suppression(outputs, conf_thres=0.001, nms_thres=0.5)
+                with torch.no_grad():
+                    outputs = self.model(batch_x.to(self.device))
+                    outputs = non_max_suppression(outputs, conf_thres=0.001, nms_thres=0.5)
 
-            sample_metrics += get_batch_statistics(outputs, batch_y, iou_threshold=0.5)
+                sample_metrics += get_batch_statistics(outputs, batch_y, iou_threshold=0.5)
 
         true_positives, pred_scores, pred_labels = [np.concatenate(x, 0) for x in list(zip(*sample_metrics))]
         precision, recall, AP, f1, ap_class = ap_per_class(true_positives, pred_scores, pred_labels, labels)
@@ -89,9 +90,10 @@ class Yolov3(BaseODClassificationNeuralNetwork):
         self.model.eval()
 
         predictions = list()
-        for i, (_, batch_x) in enumerate(loader):
-            outputs = self.model(batch_x.float().to(self.device))
-            predictions.append(outputs.to('cpu').detach().numpy())
+        with torch.no_grad():
+            for i, (_, batch_x) in enumerate(loader):
+                outputs = self.model(batch_x.float().to(self.device))
+                predictions.append(outputs.to('cpu').detach().numpy())
         return predictions
 
     def set_empty_model(self, dataset):

@@ -9,7 +9,7 @@ from solnml.components.models.base_nn import BaseImgClassificationNeuralNetwork
 from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
 
 
-class ResNetClassifier(BaseImgClassificationNeuralNetwork):
+class DenseNetClassifier(BaseImgClassificationNeuralNetwork):
     def __init__(self, optimizer, batch_size, epoch_num, lr_decay, step_decay,
                  sgd_learning_rate=None, sgd_momentum=None, adam_learning_rate=None, beta1=None,
                  random_state=None, grayscale=False, device='cpu', **kwargs):
@@ -29,24 +29,24 @@ class ResNetClassifier(BaseImgClassificationNeuralNetwork):
         self.time_limit = None
 
     def fit(self, dataset):
-        from .nn_utils.pytorch_zoo_model import resnet50
+        from .nn_utils.pytorch_zoo_model import densenet161
         if self.grayscale:
             raise ValueError("Models from pytorch-model zoo only support RGB inputs!")
-        self.model = resnet50(num_classes=len(dataset.train_dataset.classes), pretrained='imagenet')
+        self.model = densenet161(num_classes=len(dataset.train_dataset.classes), pretrained='imagenet')
         self.model.to(self.device)
         super().fit(dataset)
         return self
 
     def set_empty_model(self, dataset):
-        from .nn_utils.pytorch_zoo_model import resnet50
+        from .nn_utils.pytorch_zoo_model import densenet161
         if self.grayscale:
             raise ValueError("Models from pytorch-model zoo only support RGB inputs!")
-        self.model = resnet50(num_classes=len(dataset.classes), pretrained=None)
+        self.model = densenet161(num_classes=len(dataset.classes), pretrained=None)
 
     @staticmethod
     def get_properties(dataset_properties=None):
-        return {'shortname': 'ResNet',
-                'name': 'ResNet Classifier',
+        return {'shortname': 'DenseNet',
+                'name': 'DenseNet Classifier',
                 'handles_regression': False,
                 'handles_classification': True,
                 'handles_multiclass': True,
@@ -69,7 +69,7 @@ class ResNetClassifier(BaseImgClassificationNeuralNetwork):
             beta1 = UniformFloatHyperparameter(
                 "beta1", lower=0.5, upper=0.999, default_value=0.9, log=False)
             batch_size = CategoricalHyperparameter(
-                "batch_size", [16, 32, 64], default_value=32)
+                "batch_size", [16, 32], default_value=32)
             lr_decay = UnParametrizedHyperparameter("lr_decay", 0.8)
             step_decay = UnParametrizedHyperparameter("step_decay", 10)
             epoch_num = UnParametrizedHyperparameter("epoch_num", 150)
@@ -83,14 +83,15 @@ class ResNetClassifier(BaseImgClassificationNeuralNetwork):
             return cs
         elif optimizer == 'tpe':
             from hyperopt import hp
-            space = {'batch_size': hp.choice('resnext_batch_size', [8, 16, 32]),
-                     'optimizer': hp.choice('resnext_optimizer',
-                                            [("SGD", {'sgd_learning_rate': hp.loguniform('resnext_sgd_learning_rate',
+            space = {'batch_size': hp.choice('densenet_batch_size', [16, 32]),
+                     'optimizer': hp.choice('densenet_optimizer',
+                                            [("SGD", {'sgd_learning_rate': hp.loguniform('densenet_sgd_learning_rate',
                                                                                          np.log(1e-4), np.log(1e-2)),
-                                                      'sgd_momentum': hp.uniform('resnext_sgd_momentum', 0, 0.9)}),
-                                             ("Adam", {'adam_learning_rate': hp.loguniform('resnext_adam_learning_rate',
-                                                                                           np.log(1e-5), np.log(1e-3)),
-                                                       'beta1': hp.uniform('resnext_beta1', 0.5, 0.999)})]),
+                                                      'sgd_momentum': hp.uniform('densenet_sgd_momentum', 0, 0.9)}),
+                                             (
+                                             "Adam", {'adam_learning_rate': hp.loguniform('densenet_adam_learning_rate',
+                                                                                          np.log(1e-5), np.log(1e-3)),
+                                                      'beta1': hp.uniform('densenet_beta1', 0.5, 0.999)})]),
                      'epoch_num': 100,
                      'lr_decay': 10,
                      'step_decay': 10

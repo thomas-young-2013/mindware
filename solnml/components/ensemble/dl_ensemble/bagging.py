@@ -1,9 +1,10 @@
 import numpy as np
 from sklearn.metrics.scorer import _BaseScorer
 
-from solnml.components.utils.constants import CLS_TASKS
+from solnml.components.utils.constants import CLS_TASKS, IMG_CLS
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
 from solnml.components.ensemble.dl_ensemble.base_ensemble import BaseEnsembleModel
+from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_test_transforms
 
 from functools import reduce
 
@@ -27,7 +28,7 @@ class Bagging(BaseEnsembleModel):
         # Do nothing, models has been trained and saved.
         return self
 
-    def predict(self, data, sampler=None):
+    def predict(self, test_data, sampler=None):
         model_pred_list = list()
         final_pred = list()
 
@@ -35,11 +36,17 @@ class Bagging(BaseEnsembleModel):
         for algo_id in self.stats["include_algorithms"]:
             model_configs = self.stats[algo_id]['model_configs']
             for idx, config in enumerate(model_configs):
-                estimator = get_estimator_with_parameters(self.task_type, config, data, device=self.device)
-                if self.task_type in CLS_TASKS:
-                    model_pred_list.append(estimator.predict_proba(data, sampler=sampler))
+                if self.task_type == IMG_CLS:
+                    test_transforms = get_test_transforms(config)
+                    test_data.load_test_data(test_transforms)
                 else:
-                    model_pred_list.append(estimator.predict(data, sampler=sampler))
+                    test_data.load_test_data()
+                estimator = get_estimator_with_parameters(self.task_type, config, test_data.test_dataset,
+                                                          device=self.device)
+                if self.task_type in CLS_TASKS:
+                    model_pred_list.append(estimator.predict_proba(test_data.test_dataset, sampler=sampler))
+                else:
+                    model_pred_list.append(estimator.predict(test_data.test_dataset, sampler=sampler))
                 model_cnt += 1
 
         # Calculate the average of predictions

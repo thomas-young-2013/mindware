@@ -19,6 +19,6 @@ clf = ImageClassifier(time_limit=30,
                       ensemble_method='ensemble_selection',
                       evaluation='partial')
 clf.fit(image_data)
-image_data.load_test_data(data_dir)
+image_data.set_test_path(data_dir)
 print(clf.predict_proba(image_data))
 print(clf.predict(image_data))

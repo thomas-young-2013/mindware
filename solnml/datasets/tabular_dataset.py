@@ -39,8 +39,8 @@ class TabularDataset(BaseDataset):
     def load_data(self):
         self.train_dataset = self.load_tabular_data(self.data_path)
 
-    def load_test_data(self, test_data_path):
-        test_data_node = self.data_manager.load_test_csv(test_data_path,
+    def load_test_data(self):
+        test_data_node = self.data_manager.load_test_csv(self.test_data_path,
                                                          has_label=False,
                                                          keep_default_na=True,
                                                          header=self.header,

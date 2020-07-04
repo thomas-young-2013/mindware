@@ -1,5 +1,6 @@
 import os
 import time
+import copy
 import torch
 import numpy as np
 from math import ceil
@@ -19,7 +20,7 @@ class DLEvaluator(_BaseEvaluator):
         self.hpo_config = clf_config
         self.task_type = task_type
         self.scorer = scorer if scorer is not None else accuracy_scorer
-        self.dataset = dataset
+        self.dataset = copy.deepcopy(dataset)
         self.seed = seed
         self.eval_id = 0
         self.onehot_encoder = None
@@ -31,12 +32,16 @@ class DLEvaluator(_BaseEvaluator):
     def __call__(self, config, **kwargs):
         if self.task_type == IMG_CLS:
             data_transforms = get_transforms(config)
-            self.dataset.set_udf_transform(data_transforms)
-
-        self.dataset.load_data()
+            self.dataset.load_data(data_transforms['train'], data_transforms['val'])
+        else:
+            self.dataset.load_data()
         start_time = time.time()
 
         config_dict = config.get_dictionary().copy()
+
+        if 'profile_epoch' in kwargs:
+            config_dict['epoch_num'] = kwargs['profile_epoch']
+
         classifier_id, estimator = get_estimator(self.task_type, config_dict, device=self.device)
 
         epoch_ratio = kwargs.get('resource_ratio', 1.0)

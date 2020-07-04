@@ -14,7 +14,8 @@ from solnml.components.ensemble.dl_ensemble.ensemble_bulider import EnsembleBuil
 from solnml.components.hpo_optimizer import build_hpo_optimizer
 from solnml.components.evaluators.dl_evaluator import DLEvaluator
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters, TopKModelSaver, get_estimator
-from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space
+from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space, \
+    get_test_transforms
 
 """
     imbalanced datasets.
@@ -97,13 +98,7 @@ class AutoDL(object):
     @staticmethod
     def get_device():
         if torch.cuda.is_available():
-            if 'CUDA_VISIBLE_DEVICES' in os.environ:
-                device_id = int(os.environ['CUDA_VISIBLE_DEVICES'])
-                torch.cuda.set_device(device_id)
-            else:
-                device_id = 0
-            torch.cuda.set_device(device_id)
-            device = 'cuda:%d' % device_id
+            device = 'cuda'
         else:
             device = 'cpu'
         return device
@@ -141,15 +136,15 @@ class AutoDL(object):
             default_config = cs.get_default_configuration()
             assert 'epoch_num' in default_config
             default_training_epoch.append(default_config['epoch_num'])
-            default_config['epoch_num'] = profile_epoch_n
             cs.seed(self.seed)
 
             hpo_evaluator = self.evaluators[estimator_id]
             _start_time = time.time()
             try:
-                hpo_evaluator(default_config)
+                hpo_evaluator(default_config, profile_epoch=profile_epoch_n)
                 training_cost_per_unit.append(time.time() - _start_time)
-            except Exception:
+            except Exception as e:
+                print(e)
                 training_cost_per_unit.append(MAX_INT)
 
         K = 5
@@ -200,7 +195,10 @@ class AutoDL(object):
         for estimator_id in self.include_algorithms:
             if estimator_id in self.solvers:
                 solver_ = self.solvers[estimator_id]
-                best_scores_.append(np.max(solver_.perfs))
+                if len(solver_.perfs) > 0:
+                    best_scores_.append(np.max(solver_.perfs))
+                else:
+                    best_scores_.append(-np.inf)
             else:
                 best_scores_.append(-np.inf)
         self.best_algo_id = self.include_algorithms[np.argmax(best_scores_)]
@@ -240,8 +238,15 @@ class AutoDL(object):
             model_num, min_model_num = 20, 5
 
             hpo_eval_dict = self.solvers[algo_id].eval_dict
+            topk_configs = [element[0] for element in self.evaluators[algo_id].topk_model_saver.sorted_list]
 
-            hpo_eval_list = sorted(hpo_eval_dict.items(), key=lambda item: item[1], reverse=True)
+            intersection_dict = dict()
+            for key in hpo_eval_dict:
+                if key[1].get_dictionary() in topk_configs:
+                    intersection_dict[key] = hpo_eval_dict[key]
+
+            hpo_eval_list = filter(lambda item: item[1] != -np.inf, intersection_dict.items())
+            hpo_eval_list = sorted(hpo_eval_list, key=lambda item: item[1], reverse=True)
             model_items = list()
 
             if len(hpo_eval_list) > 20:
@@ -259,6 +264,7 @@ class AutoDL(object):
         return stats
 
     def refit(self, dataset: BaseDataset):
+        # TODO: Bottom API changes
         if self.es is None:
             config_dict = self.best_algo_config.get_dictionary().copy()
             model_path = self.output_dir + TopKModelSaver.get_configuration_id(config_dict) + '.pt'
@@ -267,7 +273,7 @@ class AutoDL(object):
                 os.remove(model_path)
 
             # Refit the models.
-            _, clf = get_estimator(config_dict, device=self.device)
+            _, clf = get_estimator(self.task_type, config_dict, device=self.device)
             # TODO: if train ans val are two parts, we need to merge it into one dataset.
             clf.fit(dataset.train_dataset)
             # Save to the disk.
@@ -277,19 +283,29 @@ class AutoDL(object):
 
     def predict_proba(self, test_data: BaseDataset, batch_size=1, n_jobs=1):
         if self.es is None:
+            if self.task_type == IMG_CLS:
+                test_transforms = get_test_transforms(self.best_algo_config)
+                test_data.load_test_data(test_transforms)
+            else:
+                test_data.load_test_data()
             model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, test_data.test_dataset,
                                                    device=self.device)
             return model_.predict_proba(test_data.test_dataset, batch_size=batch_size)
         else:
-            return self.es.predict(test_data.test_dataset)
+            return self.es.predict(test_data)
 
     def predict(self, test_data: BaseDataset, batch_size=1, n_jobs=1):
         if self.es is None:
+            if self.task_type == IMG_CLS:
+                test_transforms = get_test_transforms(self.best_algo_config)
+                test_data.load_test_data(test_transforms)
+            else:
+                test_data.load_test_data()
             model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, test_data.test_dataset,
                                                    device=self.device)
             return model_.predict(test_data.test_dataset, batch_size=batch_size)
         else:
-            return np.argmax(self.es.predict(test_data.test_dataset), axis=-1)
+            return np.argmax(self.es.predict(test_data), axis=-1)
 
     def score(self, test_data: BaseDataset, metric_func=None):
         if metric_func is None:

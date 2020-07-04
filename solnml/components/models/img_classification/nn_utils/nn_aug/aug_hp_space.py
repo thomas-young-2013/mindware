@@ -6,6 +6,14 @@ from ConfigSpace.conditions import EqualsCondition
 
 from torchvision.transforms import transforms
 
+resize_size_dict = {'mobilenet': 32,
+                    'resnet50': 224,
+                    'densenet161': 224,
+                    'resnext': 224,
+                    'senet': 224,
+                    'nasnet': 331,
+                    'efficientnet': 224}
+
 
 def parse_bool(input):
     if input == 'True':
@@ -46,8 +54,12 @@ def get_aug_hyperparameter_space():
     return cs
 
 
-def get_transforms(config, image_size=256):
+def get_transforms(config):
     config = config.get_dictionary()
+    if config['estimator'] not in resize_size_dict:
+        image_size = 224
+    else:
+        image_size = resize_size_dict[config['estimator']]
     val_transforms = transforms.Compose([
         transforms.Resize(image_size),
         transforms.CenterCrop(image_size),
@@ -97,7 +109,12 @@ def get_transforms(config, image_size=256):
     return data_transforms
 
 
-def get_test_transforms(image_size=256):
+def get_test_transforms(config):
+    config = config.get_dictionary()
+    if config['estimator'] not in resize_size_dict:
+        image_size = 224
+    else:
+        image_size = resize_size_dict[config['estimator']]
     test_transforms = transforms.Compose([
         transforms.Resize(image_size),
         transforms.CenterCrop(image_size),

@@ -200,6 +200,6 @@ class ODDataset(DLDataset):
         self.val_dataset = ListDataset(self.valid_path, self.classes, self.image_size, augment=False,
                                        multiscale=False)
 
-    def load_test_data(self, data_path):
-        self.test_dataset = ListDataset(data_path, self.classes, self.image_size, augment=False,
+    def load_test_data(self):
+        self.test_dataset = ListDataset(self.test_data_path, self.classes, self.image_size, augment=False,
                                         multiscale=False, mode='test')
