@@ -22,9 +22,11 @@ if mode == 'fit':
     print(clf.predict_proba(dataset))
     print(clf.predict(dataset))
 else:
-    config = RCNNBertClassifier.get_hyperparameter_search_space().sample_configuration().get_dictionary()
-    config['epoch_num'] = 1
-    clf = RCNNBertClassifier(**config)
+    config = NaiveBertClassifier.get_hyperparameter_search_space().sample_configuration().get_dictionary()
+    config['epoch_num'] = 150
+    config['device'] = 'cuda'
+    clf = NaiveBertClassifier(**config)
+
     dataset = TextDataset('data/text_datasets/ag_news_csv/train.csv',
                           config_path='./solnml/components/models/text_classification/nn_utils/bert-base-uncased')
     dataset.load_data()

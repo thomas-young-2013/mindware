@@ -22,7 +22,8 @@ if mode == 'fit':
     print(clf.predict(dataset))
 else:
     config = Yolov3.get_hyperparameter_search_space().sample_configuration().get_dictionary()
-    config['epoch_num'] = 1
+    config['epoch_num'] = 150
+    config['device'] = 'cuda'
     clf = Yolov3(**config)
 
     dataset = ODDataset('data/od_datasets/custom/custom.data')
@@ -33,4 +34,4 @@ else:
     dataset.set_test_path('data/od_datasets/custom/valid.txt')
     dataset.load_test_data()
     print(clf.predict(dataset.test_dataset))
-    print(clf.score(dataset))
+    print(clf.score(dataset, None))

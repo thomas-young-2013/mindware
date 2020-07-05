@@ -52,10 +52,10 @@ class DLEvaluator(_BaseEvaluator):
         except Exception as e:
             self.logger.error(e)
             score = -np.inf
-        self.logger.debug('%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds' %
-                          (self.eval_id, classifier_id,
-                           self.scorer._sign * score,
-                           time.time() - start_time))
+        self.logger.info('%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds' %
+                         (self.eval_id, classifier_id,
+                          self.scorer._sign * score,
+                          time.time() - start_time))
         self.eval_id += 1
 
         # Save top K models with the largest validation scores.
@@ -63,6 +63,7 @@ class DLEvaluator(_BaseEvaluator):
             save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config_dict, score)
             if save_flag is True:
                 torch.save(estimator.model.state_dict(), model_path)
+                self.logger.info("Model %s saved to %s" % (classifier_id, model_path))
 
             if delete_flag is True:
                 os.remove(model_path_deleted)

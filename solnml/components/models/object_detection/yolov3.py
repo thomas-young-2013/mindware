@@ -42,11 +42,11 @@ class Yolov3(BaseODClassificationNeuralNetwork):
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
         if isinstance(dataset, Dataset):
-            loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+            loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=4)
             img_size = dataset.image_size
         else:
             if hasattr(dataset, 'val_dataset'):
-                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=False,
+                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size,
                                     num_workers=4, collate_fn=dataset.val_dataset.collate_fn)
                 img_size = dataset.val_dataset.image_size
             else:
