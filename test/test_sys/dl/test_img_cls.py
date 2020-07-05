@@ -24,6 +24,7 @@ if phase == 'fit':
     image_data = ImageDataset(data_path=data_dir, train_val_split=True)
     clf = ImageClassifier(time_limit=86400 * 1.5,
                           # include_algorithms=['mobilenet'],
+                          image_size=32,
                           ensemble_method='ensemble_selection')
     clf.fit(image_data)
     image_data.set_test_path(data_dir)

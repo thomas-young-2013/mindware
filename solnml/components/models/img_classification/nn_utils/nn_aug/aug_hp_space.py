@@ -6,7 +6,7 @@ from ConfigSpace.conditions import EqualsCondition
 
 from torchvision.transforms import transforms
 
-resize_size_dict = {'mobilenet': 32,
+resize_size_dict = {'mobilenet': 224,
                     'resnet50': 224,
                     'densenet161': 224,
                     'resnext': 224,
