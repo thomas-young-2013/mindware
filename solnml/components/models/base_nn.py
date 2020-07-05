@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader, Dataset
 from torch.optim import Adam, SGD
 from torch.optim.lr_scheduler import StepLR
 from solnml.datasets.base_dl_dataset import DLDataset
+from solnml.components.utils.dl_util import EarlyStop
 
 
 class BaseNeuralNetwork:
@@ -76,17 +77,24 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         self.device = None
 
     def fit(self, dataset: DLDataset or Dataset):
+        from sklearn.metrics import accuracy_score
+
         assert self.model is not None
         params = self.model.parameters()
+        val_loader = None
         if isinstance(dataset, Dataset):
-            loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
+            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
         else:
             if hasattr(dataset, 'val_dataset'):
-                loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
-                                    num_workers=4)
+                train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
+                                          num_workers=4)
+                val_loader = DataLoader(dataset=dataset.val_dataset, batch_size=self.batch_size, shuffle=False,
+                                        num_workers=4)
             else:
-                loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
-                                    sampler=dataset.train_sampler, num_workers=4)
+                train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
+                                          sampler=dataset.train_sampler, num_workers=4)
+                val_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
+                                        sampler=dataset.val_sampler, num_workers=4)
 
         if self.optimizer == 'SGD':
             optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
@@ -97,28 +105,55 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         loss_func = nn.CrossEntropyLoss()
         self.model.train()
 
+        early_stop = EarlyStop(patience=15, mode='min')
+
         for epoch in range(self.epoch_num):
             epoch_avg_loss = 0
             epoch_avg_acc = 0
-            num_samples = 0
-            for i, data in enumerate(loader):
+            val_avg_loss = 0
+            val_avg_acc = 0
+            num_train_samples = 0
+            num_val_samples = 0
+            for i, data in enumerate(train_loader):
                 batch_x, batch_y = data[0], data[1]
                 logits = self.model(batch_x.float().to(self.device))
                 optimizer.zero_grad()
                 loss = loss_func(logits, batch_y.to(self.device))
-                num_samples += len(batch_x)
+                num_train_samples += len(batch_x)
                 loss.backward()
                 epoch_avg_loss += loss.to('cpu').detach() * len(batch_x)
                 optimizer.step()
 
+                prediction = np.argmax(logits.to('cpu').detach().numpy(), axis=-1)
+                epoch_avg_acc += accuracy_score(prediction, batch_y.to('cpu').detach().numpy()) * len(batch_x)
 
-            #     prediction = np.argmax(logits.to('cpu').detach().numpy(), axis=-1)
-            #     from sklearn.metrics import accuracy_score
-            #     epoch_avg_acc += accuracy_score(prediction, batch_y.to('cpu').detach().numpy()) * len(batch_x)
-            # epoch_avg_loss /= num_samples
-            # epoch_avg_acc /= num_samples
-            # print(epoch_avg_loss)
-            # print(epoch_avg_acc)
+            epoch_avg_loss /= num_train_samples
+            epoch_avg_acc /= num_train_samples
+            # TODO: logger
+            print('Epoch %d: Train loss %.4f, train acc %.4f' % (epoch, epoch_avg_loss, epoch_avg_acc))
+
+            if val_loader is not None:
+                with torch.no_grad():
+                    for i, data in enumerate(val_loader):
+                        batch_x, batch_y = data[0], data[1]
+                        logits = self.model(batch_x.float().to(self.device))
+                        val_loss = loss_func(logits, batch_y.to(self.device))
+                        num_val_samples += len(batch_x)
+                        val_avg_loss += val_loss.to('cpu').detach() * len(batch_x)
+
+                        prediction = np.argmax(logits.to('cpu').detach().numpy(), axis=-1)
+                        val_avg_acc += accuracy_score(prediction, batch_y.to('cpu').detach().numpy()) * len(batch_x)
+
+                    val_avg_loss /= num_val_samples
+                    val_avg_acc /= num_val_samples
+                    print('Epoch %d: Val loss %.4f, val acc %.4f' % (epoch, val_avg_loss, val_avg_acc))
+
+                    # Early stop
+                    early_stop.update(val_avg_loss)
+                    if early_stop.if_early_stop:
+                        print("Early stop!")
+                        break
+
             scheduler.step()
         return self
 
@@ -126,7 +161,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=4)
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, num_workers=4)
         self.model.to(self.device)
         self.model.eval()
 
@@ -147,7 +182,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=4)
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, num_workers=4)
         self.model.to(self.device)
         self.model.eval()
 
@@ -167,11 +202,10 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
         if isinstance(dataset, Dataset):
-            loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+            loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=4)
         else:
             if hasattr(dataset, 'val_dataset'):
-                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=False,
-                                    num_workers=4)
+                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, num_workers=4)
             else:
                 loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
                                     sampler=dataset.val_sampler, num_workers=4)
@@ -211,17 +245,25 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         self.device = None
 
     def fit(self, dataset):
+        from sklearn.metrics import accuracy_score
+
         assert self.model is not None
         params = self.model.parameters()
+        val_loader = None
         if isinstance(dataset, Dataset):
-            loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
+            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
         else:
             if hasattr(dataset, 'val_dataset'):
-                loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
-                                    num_workers=4)
+                train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
+                                          num_workers=4)
+                val_loader = DataLoader(dataset=dataset.val_dataset, batch_size=self.batch_size, shuffle=False,
+                                        num_workers=4)
             else:
-                loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
-                                    sampler=dataset.train_sampler, num_workers=4)
+                train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
+                                          sampler=dataset.train_sampler, num_workers=4)
+                val_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
+                                        sampler=dataset.val_sampler, num_workers=4)
+
         if self.optimizer == 'SGD':
             optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
         elif self.optimizer == 'Adam':
@@ -231,30 +273,65 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         loss_func = nn.CrossEntropyLoss()
         self.model.train()
 
+        early_stop = EarlyStop(patience=15, mode='min')
+
         for epoch in range(self.epoch_num):
             epoch_avg_loss = 0
-            num_samples = 0
-            for i, data in enumerate(loader):
+            epoch_avg_acc = 0
+            val_avg_loss = 0
+            val_avg_acc = 0
+            num_train_samples = 0
+            num_val_samples = 0
+            for i, data in enumerate(train_loader):
                 batch_x, batch_y = data[0], data[1]
                 masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
                 logits = self.model(batch_x.long().to(self.device), masks.to(self.device))
                 optimizer.zero_grad()
                 loss = loss_func(logits, batch_y.to(self.device))
-                num_samples += len(batch_x)
+                num_train_samples += len(batch_x)
                 loss.backward()
                 epoch_avg_loss += loss.to('cpu').detach() * len(batch_x)
                 optimizer.step()
-            epoch_avg_loss /= num_samples
-            # print(epoch_avg_loss)
-            scheduler.step()
 
+                prediction = np.argmax(logits.to('cpu').detach().numpy(), axis=-1)
+                epoch_avg_acc += accuracy_score(prediction, batch_y.to('cpu').detach().numpy()) * len(batch_x)
+
+            epoch_avg_loss /= num_train_samples
+            epoch_avg_acc /= num_train_samples
+            # TODO: logger
+            print('Epoch %d: Train loss %.4f, train acc %.4f' % (epoch, epoch_avg_loss, epoch_avg_acc))
+
+            if val_loader is not None:
+                with torch.no_grad():
+                    for i, data in enumerate(val_loader):
+                        batch_x, batch_y = data[0], data[1]
+                        masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
+                        logits = self.model(batch_x.long().to(self.device), masks.to(self.device))
+                        val_loss = loss_func(logits, batch_y.to(self.device))
+                        num_val_samples += len(batch_x)
+                        val_avg_loss += val_loss.to('cpu').detach() * len(batch_x)
+
+                        prediction = np.argmax(logits.to('cpu').detach().numpy(), axis=-1)
+                        val_avg_acc += accuracy_score(prediction, batch_y.to('cpu').detach().numpy()) * len(batch_x)
+
+                    val_avg_loss /= num_val_samples
+                    val_avg_acc /= num_val_samples
+                    print('Epoch %d: Val loss %.4f, val acc %.4f' % (epoch, val_avg_loss, val_avg_acc))
+
+                    # Early stop
+                    early_stop.update(val_avg_loss)
+                    if early_stop.if_early_stop:
+                        print("Early stop!")
+                        break
+
+            scheduler.step()
         return self
 
     def predict_proba(self, dataset: Dataset, sampler=None, batch_size=None):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=4)
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, num_workers=4)
         self.model.to(self.device)
         self.model.eval()
 
@@ -275,7 +352,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=4)
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, num_workers=4)
         self.model.to(self.device)
         self.model.eval()
 
@@ -296,11 +373,10 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
         if isinstance(dataset, Dataset):
-            loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+            loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=4)
         else:
             if hasattr(dataset, 'val_dataset'):
-                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, shuffle=False,
-                                    num_workers=4)
+                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, num_workers=4)
             else:
                 loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
                                     sampler=dataset.val_sampler, num_workers=4)
@@ -311,7 +387,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
             for i, data in enumerate(loader):
                 batch_x, batch_y = data[0], data[1]
                 masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
-                logits = self.model(batch_x.long().to(self.device), masks)
+                logits = self.model(batch_x.long().to(self.device), masks.to(self.device)).to('cpu')
                 prediction = np.argmax(logits.detach().numpy(), axis=-1)
                 score += metric(prediction, batch_y.detach().numpy()) * len(prediction)
                 total_len += len(prediction)
@@ -341,16 +417,23 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
     def fit(self, dataset: DLDataset or Dataset):
         assert self.model is not None
         params = self.model.parameters()
+
+        val_loader = None
         if isinstance(dataset, Dataset):
-            loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
+            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
         else:
             if hasattr(dataset, 'val_dataset'):
-                loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
-                                    num_workers=4, collate_fn=dataset.train_dataset.collate_fn)
+                train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
+                                          num_workers=4, collate_fn=dataset.train_dataset.collate_fn)
+                val_loader = DataLoader(dataset=dataset.val_dataset, batch_size=self.batch_size, shuffle=False,
+                                        num_workers=4, collate_fn=dataset.val_dataset.collate_fn)
             else:
-                loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
-                                    sampler=dataset.train_sampler, num_workers=4,
-                                    collate_fn=dataset.train_dataset.collate_fn)
+                train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
+                                          sampler=dataset.train_sampler, num_workers=4,
+                                          collate_fn=dataset.train_dataset.collate_fn)
+                val_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
+                                        sampler=dataset.val_sampler, num_workers=4,
+                                        collate_fn=dataset.train_dataset.collate_fn)
 
         if self.optimizer == 'SGD':
             optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
@@ -360,18 +443,39 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
         scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
         self.model.train()
 
+        early_stop = EarlyStop(patience=15, mode='min')
+
         for epoch in range(self.epoch_num):
             epoch_avg_loss = 0
-            num_samples = 0
-            for i, (_, batch_x, batch_y) in enumerate(loader):
+            val_avg_loss = 0
+            num_train_samples = 0
+            num_val_samples = 0
+            for i, (_, batch_x, batch_y) in enumerate(train_loader):
                 loss, outputs = self.model(batch_x.float().to(self.device), batch_y.float().to(self.device))
                 optimizer.zero_grad()
                 epoch_avg_loss += loss.to('cpu').detach() * len(batch_x)
-                num_samples += len(batch_x)
+                num_train_samples += len(batch_x)
                 loss.backward()
                 optimizer.step()
-            epoch_avg_loss /= num_samples
+            epoch_avg_loss /= num_train_samples
+            print('Epoch %d: Train loss %.4f' % (epoch, epoch_avg_loss))
             scheduler.step()
+
+            if val_loader is not None:
+                with torch.no_grad():
+                    for i, (_, batch_x, batch_y) in enumerate(val_loader):
+                        loss, outputs = self.model(batch_x.float().to(self.device), batch_y.float().to(self.device))
+                        val_avg_loss += loss.to('cpu').detach() * len(batch_x)
+                        num_val_samples += len(batch_x)
+
+                    val_avg_loss /= num_val_samples
+                    print('Epoch %d: Val loss %.4f' % (epoch, val_avg_loss))
+
+                # Early stop
+                early_stop.update(val_avg_loss)
+                if early_stop.if_early_stop:
+                    print("Early stop!")
+                    break
 
         return self
 
@@ -379,7 +483,7 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, shuffle=False,
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler,
                             num_workers=4, collate_fn=dataset.collate_fn)
         self.model.to(self.device)
         self.model.eval()
