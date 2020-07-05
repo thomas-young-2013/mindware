@@ -63,10 +63,11 @@ class DLEvaluator(_BaseEvaluator):
             save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config_dict, score)
             if save_flag is True:
                 torch.save(estimator.model.state_dict(), model_path)
-                self.logger.info("Model %s saved to %s" % (classifier_id, model_path))
+                self.logger.info("Model saved to %s" % model_path)
 
             if delete_flag is True:
                 os.remove(model_path_deleted)
+                self.logger.info("Model deleted from %s" % model_path)
 
         # Turn it into a minimization problem.
         return -score
