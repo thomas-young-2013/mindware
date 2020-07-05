@@ -133,6 +133,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             print('Epoch %d: Train loss %.4f, train acc %.4f' % (epoch, epoch_avg_loss, epoch_avg_acc))
 
             if val_loader is not None:
+                self.model.eval()
                 with torch.no_grad():
                     for i, data in enumerate(val_loader):
                         batch_x, batch_y = data[0], data[1]
@@ -302,6 +303,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
             print('Epoch %d: Train loss %.4f, train acc %.4f' % (epoch, epoch_avg_loss, epoch_avg_acc))
 
             if val_loader is not None:
+                self.model.eval()
                 with torch.no_grad():
                     for i, data in enumerate(val_loader):
                         batch_x, batch_y = data[0], data[1]
@@ -462,6 +464,7 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
             scheduler.step()
 
             if val_loader is not None:
+                self.model.eval()
                 with torch.no_grad():
                     for i, (_, batch_x, batch_y) in enumerate(val_loader):
                         loss, outputs = self.model(batch_x.float().to(self.device), batch_y.float().to(self.device))

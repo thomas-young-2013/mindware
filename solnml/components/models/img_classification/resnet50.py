@@ -83,7 +83,7 @@ class ResNetClassifier(BaseImgClassificationNeuralNetwork):
             return cs
         elif optimizer == 'tpe':
             from hyperopt import hp
-            space = {'batch_size': hp.choice('resnext_batch_size', [8, 16, 32]),
+            space = {'batch_size': hp.choice('resnext_batch_size', [32, 64]),
                      'optimizer': hp.choice('resnext_optimizer',
                                             [("SGD", {'sgd_learning_rate': hp.loguniform('resnext_sgd_learning_rate',
                                                                                          np.log(1e-4), np.log(1e-2)),

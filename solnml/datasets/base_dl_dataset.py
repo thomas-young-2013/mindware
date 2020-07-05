@@ -1,6 +1,6 @@
 import numpy as np
 from torch.utils.data import Dataset
-from torch.utils.data.sampler import SubsetRandomSampler
+from torch.utils.data.sampler import SubsetRandomSampler, SequentialSampler
 from .base_dataset import BaseDataset
 
 
@@ -16,12 +16,11 @@ class DLDataset(BaseDataset):
         test_split = int(np.floor(train_val_split * dataset_size))
 
         if shuffle:
+            np.random.seed(1)
             np.random.shuffle(indices)
 
         val_indices, train_indices = indices[:test_split], indices[test_split:]
 
         self.train_sampler = SubsetRandomSampler(train_indices)
-        self.val_sampler = SubsetRandomSampler(val_indices)
+        self.val_sampler = SequentialSampler(val_indices)
         self.subset_sampler_used = True
-
-
