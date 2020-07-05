@@ -59,7 +59,7 @@ class DLEvaluator(_BaseEvaluator):
         self.eval_id += 1
 
         # Save top K models with the largest validation scores.
-        if np.isfinite(score):
+        if np.isfinite(score) and 'profile_epoch' not in kwargs:
             save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config_dict, score)
             if save_flag is True:
                 torch.save(estimator.model.state_dict(), model_path)
