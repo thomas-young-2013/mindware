@@ -69,7 +69,7 @@ class ResNetClassifier(BaseImgClassificationNeuralNetwork):
             beta1 = UniformFloatHyperparameter(
                 "beta1", lower=0.5, upper=0.999, default_value=0.9, log=False)
             batch_size = CategoricalHyperparameter(
-                "batch_size", [16, 32, 64], default_value=32)
+                "batch_size", [32, 64], default_value=32)
             lr_decay = UnParametrizedHyperparameter("lr_decay", 0.8)
             step_decay = UnParametrizedHyperparameter("step_decay", 10)
             epoch_num = UnParametrizedHyperparameter("epoch_num", 150)

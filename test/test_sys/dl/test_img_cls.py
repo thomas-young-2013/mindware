@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import pickle as pkl
 from torchvision import transforms
 from sklearn.metrics import accuracy_score
@@ -28,7 +29,8 @@ if phase == 'fit':
     image_data.set_test_path(data_dir)
     print(clf.predict_proba(image_data))
     pred = clf.predict(image_data)
-    with open('es_output.pkl', 'wb') as f:
+    timestamp = time.time()
+    with open('es_output_%s.pkl' % timestamp, 'wb') as f:
         pkl.dump(pred, f)
 
 else:
