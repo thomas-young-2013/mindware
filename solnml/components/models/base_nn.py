@@ -93,7 +93,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             else:
                 train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
                                           sampler=dataset.train_sampler, num_workers=4)
-                val_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
+                val_loader = DataLoader(dataset=dataset.train_for_val_dataset, batch_size=self.batch_size,
                                         sampler=dataset.val_sampler, num_workers=4)
 
         if self.optimizer == 'SGD':
@@ -208,7 +208,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             if hasattr(dataset, 'val_dataset'):
                 loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, num_workers=4)
             else:
-                loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
+                loader = DataLoader(dataset=dataset.train_for_val_dataset, batch_size=batch_size,
                                     sampler=dataset.val_sampler, num_workers=4)
 
         self.model.to(self.device)

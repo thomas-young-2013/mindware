@@ -30,6 +30,9 @@ class ImageDataset(DLDataset):
                                                   udf_transforms=val_transforms,
                                                   grayscale=self.grayscale)
         else:
+            self.train_for_val_dataset = get_folder_dataset(os.path.join(self.data_path, 'train'),
+                                                            udf_transforms=val_transforms,
+                                                            grayscale=self.grayscale)
             self.create_train_val_split(self.train_dataset, train_val_split=self.val_split_size, shuffle=True)
 
     def load_test_data(self, transforms):

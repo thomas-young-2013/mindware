@@ -69,7 +69,7 @@ class MobileNettClassifier(BaseImgClassificationNeuralNetwork):
             beta1 = UniformFloatHyperparameter(
                 "beta1", lower=0.5, upper=0.999, default_value=0.9, log=False)
             batch_size = CategoricalHyperparameter(
-                "batch_size", [16, 32], default_value=32)
+                "batch_size", [32, 64], default_value=32)
             lr_decay = UnParametrizedHyperparameter("lr_decay", 0.8)
             step_decay = UnParametrizedHyperparameter("step_decay", 10)
             epoch_num = UnParametrizedHyperparameter("epoch_num", 150)
@@ -83,7 +83,7 @@ class MobileNettClassifier(BaseImgClassificationNeuralNetwork):
             return cs
         elif optimizer == 'tpe':
             from hyperopt import hp
-            space = {'batch_size': hp.choice('mobilenet_batch_size', [16, 32]),
+            space = {'batch_size': hp.choice('mobilenet_batch_size', [32, 64]),
                      'optimizer': hp.choice('mobilenet_optimizer',
                                             [("SGD", {'sgd_learning_rate': hp.loguniform('mobilenet_sgd_learning_rate',
                                                                                          np.log(1e-4), np.log(1e-2)),

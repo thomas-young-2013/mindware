@@ -152,8 +152,11 @@ class AutoDL(object):
                 estimator_list.append(estimator_id)
         return estimator_list
 
-    def fit(self, train_data: BaseDataset):
+    def fit(self, train_data: BaseDataset, **kwargs):
         _start_time = time.time()
+
+        if self.task_type == IMG_CLS:
+            self.image_size = kwargs['image_size']
 
         for estimator_id in self.include_algorithms:
             cs = self.get_model_config_space(estimator_id)
@@ -165,7 +168,7 @@ class AutoDL(object):
                                         scorer=self.metric,
                                         dataset=train_data,
                                         device=self.device,
-                                        seed=self.seed)
+                                        seed=self.seed, **kwargs)
             optimizer = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs,
                                             output_dir=self.output_dir,
                                             per_run_time_limit=100000,
@@ -218,7 +221,7 @@ class AutoDL(object):
                                       task_type=self.task_type,
                                       metric=self.metric,
                                       device=self.device,
-                                      output_dir=self.output_dir)
+                                      output_dir=self.output_dir, **kwargs)
             self.es.fit(data=train_data)
 
     def fetch_ensemble_members(self, candidate_algorithms):
@@ -281,7 +284,7 @@ class AutoDL(object):
     def predict_proba(self, test_data: BaseDataset, batch_size=1, n_jobs=1):
         if self.es is None:
             if self.task_type == IMG_CLS:
-                test_transforms = get_test_transforms(self.best_algo_config)
+                test_transforms = get_test_transforms(self.best_algo_config, image_size=self.image_size)
                 test_data.load_test_data(test_transforms)
             else:
                 test_data.load_test_data()
@@ -294,7 +297,7 @@ class AutoDL(object):
     def predict(self, test_data: BaseDataset, batch_size=1, n_jobs=1):
         if self.es is None:
             if self.task_type == IMG_CLS:
-                test_transforms = get_test_transforms(self.best_algo_config)
+                test_transforms = get_test_transforms(self.best_algo_config, image_size=self.image_size)
                 test_data.load_test_data(test_transforms)
             else:
                 test_data.load_test_data()

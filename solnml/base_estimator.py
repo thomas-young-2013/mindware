@@ -220,10 +220,10 @@ class BaseDLEstimator(object):
         )
         return engine
 
-    def fit(self, data: DLDataset):
+    def fit(self, data: DLDataset, **kwargs):
         assert data is not None and isinstance(data, DLDataset)
         self._ml_engine = self.build_engine()
-        self._ml_engine.fit(data)
+        self._ml_engine.fit(data, **kwargs)
         return self
 
     def predict(self, X: DLDataset, batch_size=1, n_jobs=1):

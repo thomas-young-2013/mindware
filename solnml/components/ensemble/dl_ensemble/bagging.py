@@ -15,7 +15,7 @@ class Bagging(BaseEnsembleModel):
                  task_type: int,
                  metric: _BaseScorer,
                  output_dir=None,
-                 device='cpu'):
+                 device='cpu', **kwargs):
         super().__init__(stats=stats,
                          ensemble_method='bagging',
                          ensemble_size=ensemble_size,
@@ -23,6 +23,9 @@ class Bagging(BaseEnsembleModel):
                          metric=metric,
                          output_dir=output_dir,
                          device=device)
+
+        if self.task_type == IMG_CLS:
+            self.image_size = kwargs['image_size']
 
     def fit(self, train_data):
         # Do nothing, models has been trained and saved.
@@ -37,7 +40,7 @@ class Bagging(BaseEnsembleModel):
             model_configs = self.stats[algo_id]['model_configs']
             for idx, config in enumerate(model_configs):
                 if self.task_type == IMG_CLS:
-                    test_transforms = get_test_transforms(config)
+                    test_transforms = get_test_transforms(config, image_size=self.image_size)
                     test_data.load_test_data(test_transforms)
                 else:
                     test_data.load_test_data()

@@ -54,12 +54,15 @@ def get_aug_hyperparameter_space():
     return cs
 
 
-def get_transforms(config):
+def get_transforms(config, image_size=None):
     config = config.get_dictionary()
-    if config['estimator'] not in resize_size_dict:
+    if image_size is not None:
+        image_size = image_size
+    elif config['estimator'] not in resize_size_dict:
         image_size = 224
     else:
         image_size = resize_size_dict[config['estimator']]
+
     val_transforms = transforms.Compose([
         transforms.Resize(image_size),
         transforms.CenterCrop(image_size),
@@ -109,9 +112,11 @@ def get_transforms(config):
     return data_transforms
 
 
-def get_test_transforms(config):
+def get_test_transforms(config, image_size=None):
     config = config.get_dictionary()
-    if config['estimator'] not in resize_size_dict:
+    if image_size is not None:
+        image_size = image_size
+    elif config['estimator'] not in resize_size_dict:
         image_size = 224
     else:
         image_size = resize_size_dict[config['estimator']]
