@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import pickle as pkl
 from torchvision import transforms
 from sklearn.metrics import accuracy_score
@@ -22,13 +23,15 @@ if phase == 'fit':
     data_dir = 'data/img_datasets/cifar10/'
     image_data = ImageDataset(data_path=data_dir, train_val_split=True)
     clf = ImageClassifier(time_limit=86400 * 1.5,
-                          # include_algorithms=['efficientnet'],
+                          # include_algorithms=['mobilenet'],
+                          image_size=32,
                           ensemble_method='ensemble_selection')
     clf.fit(image_data)
     image_data.set_test_path(data_dir)
     print(clf.predict_proba(image_data))
     pred = clf.predict(image_data)
-    with open('es_output.pkl', 'wb') as f:
+    timestamp = time.time()
+    with open('es_output_%s.pkl' % timestamp, 'wb') as f:
         pkl.dump(pred, f)
 
 else:

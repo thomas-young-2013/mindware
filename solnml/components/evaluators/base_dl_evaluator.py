@@ -93,6 +93,9 @@ class TopKModelSaver(object):
                 if perf > item[1]:
                     self.sorted_list.insert(idx, (config, perf, model_path_id))
                     break
+                if idx == len(self.sorted_list) - 1:
+                    self.sorted_list.append(config, perf, model_path_id)
+                    break
 
                 if idx == len(self.sorted_list) - 1:
                     self.sorted_list.append(config, perf, model_path_id)

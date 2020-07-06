@@ -182,7 +182,31 @@ class Regressor(BaseEstimator):
 class ImageClassifier(BaseDLEstimator):
     """This class implements the image classification task. """
 
-    def fit(self, data: ImageDataset):
+    def __init__(self,
+                 dataset_name='default_dataset_name',
+                 time_limit=1200,
+                 metric='acc',
+                 include_algorithms=None,
+                 ensemble_method='bagging',
+                 ensemble_size=50,
+                 image_size=None,
+                 random_state=1,
+                 n_jobs=1,
+                 evaluation='holdout',
+                 output_dir="/tmp/"):
+        super().__init__(dataset_name=dataset_name,
+                         time_limit=time_limit,
+                         metric=metric,
+                         include_algorithms=include_algorithms,
+                         ensemble_method=ensemble_method,
+                         ensemble_size=ensemble_size,
+                         random_state=random_state,
+                         n_jobs=n_jobs,
+                         evaluation=evaluation,
+                         output_dir=output_dir)
+        self.image_size = image_size
+
+    def fit(self, data: ImageDataset, **kwargs):
         """
         Fit the classifier to given training data.
         :param data: instance of Image Dataset
@@ -191,7 +215,7 @@ class ImageClassifier(BaseDLEstimator):
         self.metric = 'acc' if self.metric is None else self.metric
         # Set task type to image classification.
         self.task_type = IMG_CLS
-        super().fit(data)
+        super().fit(data, image_size=self.image_size)
 
         return self
 

@@ -16,7 +16,7 @@ class Blending(BaseEnsembleModel):
                  metric: _BaseScorer,
                  output_dir=None,
                  device='cpu',
-                 meta_learner='lightgbm'):
+                 meta_learner='lightgbm', **kwargs):
         super().__init__(stats=stats,
                          ensemble_method='blending',
                          ensemble_size=ensemble_size,
@@ -50,6 +50,9 @@ class Blending(BaseEnsembleModel):
                 from lightgbm import LGBMRegressor
                 self.meta_learner = LGBMRegressor(max_depth=4, learning_rate=0.05, n_estimators=70)
 
+        if self.task_type == IMG_CLS:
+            self.image_size = kwargs['image_size']
+
     def fit(self, train_data):
         # Train basic models using a part of training data
         model_cnt = 0
@@ -60,7 +63,7 @@ class Blending(BaseEnsembleModel):
             model_configs = self.stats[algo_id]['model_configs']
             for idx, config in enumerate(model_configs):
                 if self.task_type == IMG_CLS:
-                    test_transforms = get_test_transforms(config)
+                    test_transforms = get_test_transforms(config, image_size=self.image_size)
                     train_data.load_data(test_transforms, test_transforms)
                 else:
                     train_data.load_data()
@@ -120,7 +123,7 @@ class Blending(BaseEnsembleModel):
             model_configs = self.stats[algo_id]['model_configs']
             for idx, config in enumerate(model_configs):
                 if self.task_type == IMG_CLS:
-                    test_transforms = get_test_transforms(config)
+                    test_transforms = get_test_transforms(config, image_size=self.image_size)
                     test_data.load_test_data(test_transforms)
                 else:
                     test_data.load_test_data()

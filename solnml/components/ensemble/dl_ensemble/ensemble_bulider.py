@@ -17,7 +17,7 @@ class EnsembleBuilder:
                  task_type: int,
                  metric: _BaseScorer,
                  output_dir=None,
-                 device='cpu'):
+                 device='cpu', **kwargs):
         self.model = None
         self.device = device
         if ensemble_method == 'bagging':
@@ -26,21 +26,21 @@ class EnsembleBuilder:
                                  task_type=task_type,
                                  metric=metric,
                                  output_dir=output_dir,
-                                 device=device)
+                                 device=device, **kwargs)
         elif ensemble_method == 'blending':
             self.model = Blending(stats=stats,
                                   ensemble_size=ensemble_size,
                                   task_type=task_type,
                                   metric=metric,
                                   output_dir=output_dir,
-                                  device=device)
+                                  device=device, **kwargs)
         elif ensemble_method == 'ensemble_selection':
             self.model = EnsembleSelection(stats=stats,
                                            ensemble_size=ensemble_size,
                                            task_type=task_type,
                                            metric=metric,
                                            output_dir=output_dir,
-                                           device=device)
+                                           device=device, **kwargs)
         else:
             raise ValueError("%s is not supported for ensemble!" % ensemble_method)
 

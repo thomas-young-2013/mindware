@@ -16,7 +16,7 @@ from .base_dl_evaluator import TopKModelSaver, get_estimator
 
 class DLEvaluator(_BaseEvaluator):
     def __init__(self, clf_config, task_type, model_dir='data/dl_models/', scorer=None, dataset=None, device='cpu',
-                 seed=1):
+                 seed=1, **kwargs):
         self.hpo_config = clf_config
         self.task_type = task_type
         self.scorer = scorer if scorer is not None else accuracy_scorer
@@ -28,10 +28,12 @@ class DLEvaluator(_BaseEvaluator):
         self.model_dir = model_dir
         self.device = device
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
+        if task_type == IMG_CLS:
+            self.image_size = kwargs['image_size']
 
     def __call__(self, config, **kwargs):
         if self.task_type == IMG_CLS:
-            data_transforms = get_transforms(config)
+            data_transforms = get_transforms(config, image_size=self.image_size)
             self.dataset.load_data(data_transforms['train'], data_transforms['val'])
         else:
             self.dataset.load_data()
@@ -63,10 +65,11 @@ class DLEvaluator(_BaseEvaluator):
             save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config_dict, score)
             if save_flag is True:
                 torch.save(estimator.model.state_dict(), model_path)
-                self.logger.info("Model %s saved to %s" % (classifier_id, model_path))
+                self.logger.info("Model saved to %s" % model_path)
 
             if delete_flag is True:
                 os.remove(model_path_deleted)
+                self.logger.info("Model deleted from %s" % model_path)
 
         # Turn it into a minimization problem.
         return -score
