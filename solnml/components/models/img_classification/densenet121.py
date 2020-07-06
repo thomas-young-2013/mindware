@@ -9,27 +9,27 @@ from solnml.components.models.base_nn import BaseImgClassificationNeuralNetwork
 from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
 
 
-class MobileNettClassifier(BaseImgClassificationNeuralNetwork):
+class DenseNet121Classifier(BaseImgClassificationNeuralNetwork):
 
     def fit(self, dataset):
-        from .nn_utils.pytorch_zoo_model import mobilenet_v2
+        from .nn_utils.pytorch_zoo_model import densenet121
         if self.grayscale:
             raise ValueError("Models from pytorch-model zoo only support RGB inputs!")
-        self.model = mobilenet_v2(num_classes=len(dataset.train_dataset.classes), pretrained='imagenet')
+        self.model = densenet121(num_classes=len(dataset.train_dataset.classes), pretrained='imagenet')
         self.model.to(self.device)
         super().fit(dataset)
         return self
 
     def set_empty_model(self, dataset):
-        from .nn_utils.pytorch_zoo_model import mobilenet_v2
+        from .nn_utils.pytorch_zoo_model import densenet121
         if self.grayscale:
             raise ValueError("Models from pytorch-model zoo only support RGB inputs!")
-        self.model = mobilenet_v2(num_classes=len(dataset.classes), pretrained=None)
+        self.model = densenet121(num_classes=len(dataset.classes), pretrained=None)
 
     @staticmethod
     def get_properties(dataset_properties=None):
-        return {'shortname': 'MobileNet',
-                'name': 'MobileNet Classifier',
+        return {'shortname': 'DenseNet121',
+                'name': 'DenseNet121 Classifier',
                 'handles_regression': False,
                 'handles_classification': True,
                 'handles_multiclass': True,
@@ -52,7 +52,7 @@ class MobileNettClassifier(BaseImgClassificationNeuralNetwork):
             beta1 = UniformFloatHyperparameter(
                 "beta1", lower=0.5, upper=0.999, default_value=0.9, log=False)
             batch_size = CategoricalHyperparameter(
-                "batch_size", [32, 64], default_value=32)
+                "batch_size", [16, 32], default_value=32)
             lr_decay = UnParametrizedHyperparameter("lr_decay", 0.8)
             step_decay = UnParametrizedHyperparameter("step_decay", 10)
             epoch_num = UnParametrizedHyperparameter("epoch_num", 150)
@@ -66,15 +66,17 @@ class MobileNettClassifier(BaseImgClassificationNeuralNetwork):
             return cs
         elif optimizer == 'tpe':
             from hyperopt import hp
-            space = {'batch_size': hp.choice('mobilenet_batch_size', [32, 64]),
-                     'optimizer': hp.choice('mobilenet_optimizer',
-                                            [("SGD", {'sgd_learning_rate': hp.loguniform('mobilenet_sgd_learning_rate',
-                                                                                         np.log(1e-5), np.log(1e-2)),
-                                                      'sgd_momentum': hp.uniform('mobilenet_sgd_momentum', 0, 0.9)}),
-                                             ("Adam",
-                                              {'adam_learning_rate': hp.loguniform('mobilenet_adam_learning_rate',
-                                                                                   np.log(1e-5), np.log(1e-3)),
-                                               'beta1': hp.uniform('mobilenet_beta1', 0.5, 0.999)})]),
+            space = {'batch_size': hp.choice('densenet121_batch_size', [16, 32]),
+                     'optimizer': hp.choice('densenet121_optimizer',
+                                            [(
+                                             "SGD", {'sgd_learning_rate': hp.loguniform('densenet121_sgd_learning_rate',
+                                                                                        np.log(1e-5), np.log(1e-2)),
+                                                     'sgd_momentum': hp.uniform('densenet121_sgd_momentum', 0, 0.9)}),
+                                             (
+                                                 "Adam",
+                                                 {'adam_learning_rate': hp.loguniform('densenet121_adam_learning_rate',
+                                                                                      np.log(1e-5), np.log(1e-3)),
+                                                  'beta1': hp.uniform('densenet121_beta1', 0.5, 0.999)})]),
                      'epoch_num': 100,
                      'lr_decay': 10,
                      'step_decay': 10

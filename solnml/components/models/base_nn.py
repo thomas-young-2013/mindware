@@ -62,19 +62,24 @@ class BaseNeuralNetwork:
 
 
 class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
-    def __init__(self):
+    def __init__(self, optimizer, batch_size, epoch_num, lr_decay, step_decay,
+                 sgd_learning_rate=None, sgd_momentum=None, adam_learning_rate=None, beta1=None,
+                 random_state=None, grayscale=False, device='cpu', **kwargs):
         super(BaseImgClassificationNeuralNetwork, self).__init__()
+        self.optimizer = optimizer
+        self.batch_size = batch_size
+        self.epoch_num = epoch_num
+        self.lr_decay = lr_decay
+        self.step_decay = step_decay
+        self.sgd_learning_rate = sgd_learning_rate
+        self.sgd_momentum = sgd_momentum
+        self.adam_learning_rate = adam_learning_rate
+        self.beta1 = beta1
+        self.random_state = random_state
+        self.grayscale = grayscale
         self.model = None
-        self.optimizer = None
-        self.sgd_learning_rate = None
-        self.sgd_momentum = None
-        self.adam_learning_rate = None
-        self.beta1 = None
-        self.batch_size = None
-        self.epoch_num = None
-        self.lr_decay = None
-        self.step_decay = None
-        self.device = None
+        self.device = torch.device(device)
+        self.time_limit = None
 
     def fit(self, dataset: DLDataset or Dataset):
         from sklearn.metrics import accuracy_score
