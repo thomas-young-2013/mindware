@@ -112,7 +112,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
 
         early_stop = EarlyStop(patience=15, mode='min')
 
-        for epoch in range(self.epoch_num):
+        for epoch in range(int(self.epoch_num)):
             epoch_avg_loss = 0
             epoch_avg_acc = 0
             val_avg_loss = 0
@@ -281,7 +281,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
 
         early_stop = EarlyStop(patience=15, mode='min')
 
-        for epoch in range(self.epoch_num):
+        for epoch in range(int(self.epoch_num)):
             epoch_avg_loss = 0
             epoch_avg_acc = 0
             val_avg_loss = 0
@@ -452,7 +452,7 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
 
         early_stop = EarlyStop(patience=15, mode='min')
 
-        for epoch in range(self.epoch_num):
+        for epoch in range(int(self.epoch_num)):
             epoch_avg_loss = 0
             val_avg_loss = 0
             num_train_samples = 0

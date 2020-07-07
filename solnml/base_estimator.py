@@ -183,6 +183,7 @@ class BaseDLEstimator(object):
             include_algorithms=None,
             ensemble_method='bagging',
             ensemble_size=50,
+            config_file_path=None,
             random_state=1,
             n_jobs=1,
             evaluation='holdout',
@@ -194,6 +195,7 @@ class BaseDLEstimator(object):
         self.include_algorithms = include_algorithms
         self.ensemble_method = ensemble_method
         self.ensemble_size = ensemble_size
+        self.config_file_path = config_file_path
         self.random_state = random_state
         self.n_jobs = n_jobs
         self.evaluation = evaluation
@@ -213,6 +215,7 @@ class BaseDLEstimator(object):
             include_algorithms=self.include_algorithms,
             ensemble_method=self.ensemble_method,
             ensemble_size=self.ensemble_size,
+            config_file_path=self.config_file_path,
             random_state=self.random_state,
             n_jobs=self.n_jobs,
             evaluation=self.evaluation,
