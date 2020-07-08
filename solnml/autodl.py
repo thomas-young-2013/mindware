@@ -40,13 +40,6 @@ class AutoDL(AutoDLBase):
     def fit(self, train_data: DLDataset, **kwargs):
         _start_time = time.time()
 
-        # Execute profiling procedure.
-        algorithm_candidates = self.profile_models()
-
-        # Execute neural architecture selection.
-        algorithm_candidates = self.select_network_architectures(algorithm_candidates, train_data, num_arch=2)
-        self.logger.info('After NA selection, arch candidates={%s}' % ','.join(algorithm_candidates))
-
         if self.task_type == IMG_CLS:
             self.image_size = kwargs['image_size']
 
@@ -54,24 +47,8 @@ class AutoDL(AutoDLBase):
             config_parser = ConfigParser(logger=self.logger)
             self.update_cs = config_parser.read(self.config_file_path)
 
-        for estimator_id in algorithm_candidates:
-            default_cs = self.get_model_config_space(estimator_id)
-
-            # Update configuration space according to config file
-            all_cs = self.update_cs.get('all', ConfigurationSpace())
-            all_hp_names = all_cs.get_hyperparameter_names()
-            estimator_cs = self.update_cs.get(estimator_id, ConfigurationSpace())
-            estimator_hp_names = estimator_cs.get_hyperparameter_names()
-
-            cs = ConfigurationSpace()
-            for hp_name in default_cs.get_hyperparameter_names():
-                if hp_name in estimator_hp_names:
-                    cs.add_hyperparameter(estimator_cs.get_hyperparameter(hp_name))
-                elif hp_name in all_hp_names:
-                    cs.add_hyperparameter(all_cs.get_hyperparameter(hp_name))
-                else:
-                    cs.add_hyperparameter(default_cs.get_hyperparameter(hp_name))
-
+        for estimator_id in self.include_algorithms:
+            cs = self.get_model_config_space(estimator_id)
             default_config = cs.get_default_configuration()
             cs.seed(self.seed)
 
@@ -88,6 +65,13 @@ class AutoDL(AutoDLBase):
                                             seed=self.seed, n_jobs=self.n_jobs)
             self.solvers[estimator_id] = optimizer
             self.evaluators[estimator_id] = hpo_evaluator
+
+        # Execute profiling procedure.
+        algorithm_candidates = self.profile_models()
+
+        # Execute neural architecture selection.
+        algorithm_candidates = self.select_network_architectures(algorithm_candidates, train_data, num_arch=2, **kwargs)
+        self.logger.info('After NA selection, arch candidates={%s}' % ','.join(algorithm_candidates))
 
         # Control flow via round robin.
         n_algorithm = len(algorithm_candidates)

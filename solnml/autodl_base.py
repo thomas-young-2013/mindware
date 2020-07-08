@@ -2,6 +2,7 @@ import os
 import time
 import torch
 import numpy as np
+from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 
 from solnml.utils.constant import MAX_INT
@@ -119,14 +120,29 @@ class AutoDLBase(object):
         else:
             raise ValueError("Algorithm %s not supported!" % estimator_id)
 
-        cs = clf_class.get_hyperparameter_search_space()
+        default_cs = clf_class.get_hyperparameter_search_space()
         model = UnParametrizedHyperparameter("estimator", estimator_id)
         if include_estimator:
-            cs.add_hyperparameter(model)
+            default_cs.add_hyperparameter(model)
         if self.task_type == IMG_CLS:
             aug_space = get_aug_hyperparameter_space()
-            cs.add_hyperparameters(aug_space.get_hyperparameters())
-            cs.add_conditions(aug_space.get_conditions())
+            default_cs.add_hyperparameters(aug_space.get_hyperparameters())
+            default_cs.add_conditions(aug_space.get_conditions())
+
+        # Update configuration space according to config file
+        all_cs = self.update_cs.get('all', ConfigurationSpace())
+        all_hp_names = all_cs.get_hyperparameter_names()
+        estimator_cs = self.update_cs.get(estimator_id, ConfigurationSpace())
+        estimator_hp_names = estimator_cs.get_hyperparameter_names()
+
+        cs = ConfigurationSpace()
+        for hp_name in default_cs.get_hyperparameter_names():
+            if hp_name in estimator_hp_names:
+                cs.add_hyperparameter(estimator_cs.get_hyperparameter(hp_name))
+            elif hp_name in all_hp_names:
+                cs.add_hyperparameter(all_cs.get_hyperparameter(hp_name))
+            else:
+                cs.add_hyperparameter(default_cs.get_hyperparameter(hp_name))
         return cs
 
     def profile_models(self, profile_epoch_n=1):
@@ -198,13 +214,13 @@ class AutoDLBase(object):
             r *= eta
         return [config['estimator'] for config in C]
 
-    def select_network_architectures(self, algorithm_candidates, train_data, num_arch=1):
+    def select_network_architectures(self, algorithm_candidates, train_data, num_arch=1, **kwargs):
         self.nas_evaluator = DLEvaluator(None,
                                          self.task_type,
                                          scorer=self.metric,
                                          dataset=train_data,
                                          device=self.device,
-                                         seed=self.seed)
+                                         seed=self.seed, **kwargs)
         self.executor = ParallelEvaluator(self.nas_evaluator, n_worker=self.n_jobs)
 
         _archs = algorithm_candidates.copy()

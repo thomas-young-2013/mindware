@@ -22,8 +22,9 @@ if phase == 'fit':
     # data_dir = 'data/img_datasets/hymenoptera_data/'
     data_dir = 'data/img_datasets/cifar10/'
     image_data = ImageDataset(data_path=data_dir, train_val_split=True)
-    clf = ImageClassifier(time_limit=86400 * 1.5,
+    clf = ImageClassifier(time_limit=86400 * 1.2,
                           # include_algorithms=['mobilenet'],
+                          evaluation='partial',
                           image_size=32,
                           ensemble_method='ensemble_selection')
     clf.fit(image_data)

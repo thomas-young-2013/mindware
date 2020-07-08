@@ -97,10 +97,6 @@ class TopKModelSaver(object):
                     self.sorted_list.append((config, perf, model_path_id))
                     break
 
-                if idx == len(self.sorted_list) - 1:
-                    self.sorted_list.append(config, perf, model_path_id)
-                    break
-
         if len(self.sorted_list) > self.k:
             model_path_removed = self.sorted_list[-1][2]
             delete_flag = True
