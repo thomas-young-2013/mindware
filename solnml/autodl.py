@@ -223,7 +223,7 @@ class AutoDL(AutoDLBase):
     def auto_hpo_fit(self, train_data):
         algorithm_candidates = self.profile_models()
 
-        cs = self.get_model_config_space(algorithm_candidates)
+        cs = self.get_pipeline_config_space(algorithm_candidates)
         default_config = cs.get_default_configuration()
         hpo_evaluator = DLEvaluator(default_config,
                                     self.task_type,
