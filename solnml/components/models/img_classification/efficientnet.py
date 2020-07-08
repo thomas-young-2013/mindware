@@ -10,23 +10,6 @@ from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PRED
 
 
 class EfficientNetClassifier(BaseImgClassificationNeuralNetwork):
-    def __init__(self, optimizer, batch_size, epoch_num, lr_decay, step_decay,
-                 sgd_learning_rate=None, sgd_momentum=None, adam_learning_rate=None, beta1=None,
-                 random_state=None, grayscale=False, device='cpu', **kwargs):
-        self.optimizer = optimizer
-        self.batch_size = batch_size
-        self.epoch_num = epoch_num
-        self.lr_decay = lr_decay
-        self.step_decay = step_decay
-        self.sgd_learning_rate = sgd_learning_rate
-        self.sgd_momentum = sgd_momentum
-        self.adam_learning_rate = adam_learning_rate
-        self.beta1 = beta1
-        self.random_state = random_state
-        self.grayscale = grayscale
-        self.model = None
-        self.device = torch.device(device)
-        self.time_limit = None
 
     def fit(self, dataset):
         from .nn_utils.efficientnet import EfficientNet
@@ -87,7 +70,7 @@ class EfficientNetClassifier(BaseImgClassificationNeuralNetwork):
                      'optimizer': hp.choice('efficientnet_optimizer',
                                             [("SGD",
                                               {'sgd_learning_rate': hp.loguniform('efficientnet_sgd_learning_rate',
-                                                                                  np.log(1e-4), np.log(1e-2)),
+                                                                                  np.log(1e-5), np.log(1e-2)),
                                                'sgd_momentum': hp.uniform('efficientnet_sgd_momentum', 0, 0.9)}),
                                              ("Adam",
                                               {'adam_learning_rate': hp.loguniform('efficientnet_adam_learning_rate',

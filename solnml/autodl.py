@@ -2,9 +2,9 @@ import os
 import time
 import torch
 import numpy as np
-from ConfigSpace.configuration_space import ConfigurationSpace
-from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
-    UniformIntegerHyperparameter, CategoricalHyperparameter, UnParametrizedHyperparameter
+from ConfigSpace import ConfigurationSpace
+from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
+
 from solnml.utils.constant import MAX_INT
 from solnml.components.utils.constants import IMG_CLS, TEXT_CLS, OBJECT_DET
 from solnml.datasets.base_dataset import BaseDataset
@@ -16,6 +16,7 @@ from solnml.components.evaluators.dl_evaluator import DLEvaluator
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters, TopKModelSaver, get_estimator
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space, \
     get_test_transforms
+from solnml.components.utils.config_parser import ConfigParser
 
 """
     imbalanced datasets.
@@ -32,6 +33,7 @@ class AutoDL(object):
                  include_algorithms=None,
                  ensemble_method='ensemble_selection',
                  ensemble_size=50,
+                 config_file_path=None,
                  evaluation='holdout',
                  logging_config=None,
                  output_dir="logs/",
@@ -60,6 +62,9 @@ class AutoDL(object):
         self.ensemble_size = ensemble_size
         self.task_type = task_type
         self.n_jobs = n_jobs
+
+        self.config_file_path = config_file_path
+        self.update_cs = None
 
         if include_algorithms is not None:
             self.include_algorithms = include_algorithms
@@ -161,8 +166,28 @@ class AutoDL(object):
         if self.task_type == IMG_CLS:
             self.image_size = kwargs['image_size']
 
+        if self.config_file_path is not None:
+            config_parser = ConfigParser(logger=self.logger)
+            self.update_cs = config_parser.read(self.config_file_path)
+
         for estimator_id in self.include_algorithms:
-            cs = self.get_model_config_space(estimator_id)
+            default_cs = self.get_model_config_space(estimator_id)
+
+            # Update configuration space according to config file
+            all_cs = self.update_cs.get('all', ConfigurationSpace())
+            all_hp_names = all_cs.get_hyperparameter_names()
+            estimator_cs = self.update_cs.get(estimator_id, ConfigurationSpace())
+            estimator_hp_names = estimator_cs.get_hyperparameter_names()
+
+            cs = ConfigurationSpace()
+            for hp_name in default_cs.get_hyperparameter_names():
+                if hp_name in estimator_hp_names:
+                    cs.add_hyperparameter(estimator_cs.get_hyperparameter(hp_name))
+                elif hp_name in all_hp_names:
+                    cs.add_hyperparameter(all_cs.get_hyperparameter(hp_name))
+                else:
+                    cs.add_hyperparameter(default_cs.get_hyperparameter(hp_name))
+
             default_config = cs.get_default_configuration()
             cs.seed(self.seed)
 

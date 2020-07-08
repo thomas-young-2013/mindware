@@ -15,9 +15,10 @@ add_classifier(ResNeXtClassifier)
 
 data_dir = 'data/img_datasets/hymenoptera_data/'
 image_data = ImageDataset(data_path=data_dir)
-clf = ImageClassifier(time_limit=10,
+clf = ImageClassifier(time_limit=7200,
                       include_algorithms=['ResNeXtClassifier'],
-                      ensemble_method='ensemble_selection')
+                      ensemble_method='ensemble_selection',
+                      config_file_path='tiny_cs.txt')
 clf.fit(image_data)
 image_data.set_test_path(data_dir)
 print(clf.predict_proba(image_data))

@@ -7,7 +7,7 @@ sys.path.append(os.getcwd())
 
 from solnml.datasets.image_dataset import ImageDataset
 from solnml.estimators import ImageClassifier
-from solnml.components.models.img_classification.resnet50 import ResNetClassifier
+from solnml.components.models.img_classification.resnet50 import ResNet50Classifier
 from solnml.components.models.img_classification.resnext import ResNeXtClassifier
 from solnml.components.models.img_classification.senet import SENetClassifier
 from solnml.components.models.img_classification.nasnet import NASNetClassifier
