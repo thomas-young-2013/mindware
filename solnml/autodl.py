@@ -3,13 +3,10 @@ import time
 import torch
 import numpy as np
 from ConfigSpace import ConfigurationSpace
-from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
+from ConfigSpace.hyperparameters import CategoricalHyperparameter
 
-from solnml.utils.constant import MAX_INT
 from solnml.components.utils.constants import IMG_CLS, TEXT_CLS, OBJECT_DET
-from solnml.datasets.base_dataset import BaseDataset
-from solnml.components.metrics.metric import get_metric
-from solnml.utils.logging_utils import setup_logger, get_logger
+from solnml.datasets.base_dl_dataset import DLDataset
 from solnml.components.ensemble.dl_ensemble.ensemble_bulider import EnsembleBuilder, ensemble_list
 from solnml.components.hpo_optimizer import build_hpo_optimizer
 from solnml.components.evaluators.dl_evaluator import DLEvaluator
@@ -17,14 +14,10 @@ from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_pa
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space, \
     get_test_transforms
 from solnml.components.utils.config_parser import ConfigParser
-
-"""
-    imbalanced datasets.
-    time_limit
-"""
+from .autodl_base import AutoDLBase
 
 
-class AutoDL(object):
+class AutoDL(AutoDLBase):
     def __init__(self, time_limit=300,
                  trial_num=None,
                  dataset_name='default_name',
@@ -39,129 +32,20 @@ class AutoDL(object):
                  output_dir="logs/",
                  random_state=1,
                  n_jobs=1):
-        from solnml.components.models.img_classification import _classifiers as _img_estimators, _addons as _img_addons
-        from solnml.components.models.text_classification import _classifiers as _text_estimators, \
-            _addons as _text_addons
-        from solnml.components.models.object_detection import _classifiers as _od_estimators, _addons as _od_addons
+        super().__init__(time_limit=time_limit, trial_num=trial_num, dataset_name=dataset_name, task_type=task_type,
+                         metric=metric, include_algorithms=include_algorithms, ensemble_method=ensemble_method,
+                         ensemble_size=ensemble_size, config_file_path=config_file_path, evaluation=evaluation,
+                         logging_config=logging_config, output_dir=output_dir, random_state=random_state, n_jobs=n_jobs)
 
-        self.metric_id = metric
-        self.metric = get_metric(self.metric_id)
-
-        self.dataset_name = dataset_name
-        self.time_limit = time_limit
-        self.trial_num = trial_num
-        self.seed = random_state
-        self.output_dir = output_dir
-        if not os.path.exists(self.output_dir):
-            os.makedirs(self.output_dir)
-        self.logging_config = logging_config
-        self.logger = self._get_logger(self.dataset_name)
-
-        self.evaluation_type = evaluation
-        self.ensemble_method = ensemble_method
-        self.ensemble_size = ensemble_size
-        self.task_type = task_type
-        self.n_jobs = n_jobs
-
-        self.config_file_path = config_file_path
-        self.update_cs = None
-
-        if include_algorithms is not None:
-            self.include_algorithms = include_algorithms
-        else:
-            if task_type == IMG_CLS:
-                self.include_algorithms = list(_img_estimators.keys())
-            elif task_type == TEXT_CLS:
-                self.include_algorithms = list(_text_estimators.keys())
-            else:
-                raise ValueError("Unknown task type %s" % task_type)
-
-        if task_type == IMG_CLS:
-            self._estimators = _img_estimators
-            self._addons = _img_addons
-        elif task_type == TEXT_CLS:
-            self._estimators = _text_estimators
-            self._addons = _text_addons
-        elif task_type == OBJECT_DET:
-            self._estimators = _od_estimators
-            self._addons = _od_addons
-        else:
-            raise ValueError("Unknown task type %s" % task_type)
-
-        if ensemble_method is not None and ensemble_method not in ensemble_list:
-            raise ValueError("%s is not supported for ensemble!" % ensemble_method)
-        self.es = None
-        self.solvers = dict()
-        self.evaluators = dict()
-        # Single model.
-        self.best_algo_id = None
-        self.best_algo_config = None
-        # Ensemble models.
-        self.candidate_algo_ids = None
-        self.device = self.get_device()
-
-    @staticmethod
-    def get_device():
-        if torch.cuda.is_available():
-            device = 'cuda'
-        else:
-            device = 'cpu'
-        return device
-
-    def _get_logger(self, name):
-        logger_name = 'SolnML-%s(%d)' % (name, self.seed)
-        setup_logger(os.path.join(self.output_dir, '%s.log' % str(logger_name)),
-                     self.logging_config,
-                     )
-        return get_logger(logger_name)
-
-    def get_model_config_space(self, estimator_id, include_estimator=True):
-        if estimator_id in self._estimators:
-            clf_class = self._estimators[estimator_id]
-        elif estimator_id in self._addons.components:
-            clf_class = self._addons.components[estimator_id]
-        else:
-            raise ValueError("Algorithm %s not supported!" % estimator_id)
-
-        cs = clf_class.get_hyperparameter_search_space()
-        model = UnParametrizedHyperparameter("estimator", estimator_id)
-        if include_estimator:
-            cs.add_hyperparameter(model)
-        if self.task_type == IMG_CLS:
-            aug_space = get_aug_hyperparameter_space()
-            cs.add_hyperparameters(aug_space.get_hyperparameters())
-            cs.add_conditions(aug_space.get_conditions())
-        return cs
-
-    def profile_models(self, profile_epoch_n=1):
-        training_cost_per_unit = list()
-        default_training_epoch = list()
-        for estimator_id in self.include_algorithms:
-            cs = self.get_model_config_space(estimator_id)
-            default_config = cs.get_default_configuration()
-            assert 'epoch_num' in default_config
-            default_training_epoch.append(default_config['epoch_num'])
-            cs.seed(self.seed)
-
-            hpo_evaluator = self.evaluators[estimator_id]
-            _start_time = time.time()
-            try:
-                hpo_evaluator(default_config, profile_epoch=profile_epoch_n)
-                training_cost_per_unit.append(time.time() - _start_time)
-            except Exception as e:
-                print(e)
-                training_cost_per_unit.append(MAX_INT)
-
-        K = 5
-        estimator_list = list()
-        for id, estimator_id in enumerate(self.include_algorithms):
-            num_of_units = default_training_epoch[id] / profile_epoch_n
-            if training_cost_per_unit[id] * num_of_units * K < self.time_limit:
-                estimator_list.append(estimator_id)
-        return estimator_list
-
-    def fit(self, train_data: BaseDataset, **kwargs):
+    def fit(self, train_data: DLDataset, **kwargs):
         _start_time = time.time()
+
+        # Execute profiling procedure.
+        algorithm_candidates = self.profile_models()
+
+        # Execute neural architecture selection.
+        algorithm_candidates = self.select_network_architectures(algorithm_candidates, train_data, num_arch=2)
+        self.logger.info('After NA selection, arch candidates={%s}' % ','.join(algorithm_candidates))
 
         if self.task_type == IMG_CLS:
             self.image_size = kwargs['image_size']
@@ -170,7 +54,7 @@ class AutoDL(object):
             config_parser = ConfigParser(logger=self.logger)
             self.update_cs = config_parser.read(self.config_file_path)
 
-        for estimator_id in self.include_algorithms:
+        for estimator_id in algorithm_candidates:
             default_cs = self.get_model_config_space(estimator_id)
 
             # Update configuration space according to config file
@@ -205,8 +89,6 @@ class AutoDL(object):
             self.solvers[estimator_id] = optimizer
             self.evaluators[estimator_id] = hpo_evaluator
 
-        algorithm_candidates = self.profile_models()
-
         # Control flow via round robin.
         n_algorithm = len(algorithm_candidates)
         if self.trial_num is None:
@@ -218,9 +100,9 @@ class AutoDL(object):
             for id in self.trial_num:
                 self.solvers[algorithm_candidates[id % n_algorithm]].iterate()
 
-        # Best model id.
+        # Best architecture id.
         best_scores_ = list()
-        for estimator_id in self.include_algorithms:
+        for estimator_id in algorithm_candidates:
             if estimator_id in self.solvers:
                 solver_ = self.solvers[estimator_id]
                 if len(solver_.perfs) > 0:
@@ -229,7 +111,8 @@ class AutoDL(object):
                     best_scores_.append(-np.inf)
             else:
                 best_scores_.append(-np.inf)
-        self.best_algo_id = self.include_algorithms[np.argmax(best_scores_)]
+
+        self.best_algo_id = algorithm_candidates[np.argmax(best_scores_)]
         # Best model configuration.
         solver_ = self.solvers[self.best_algo_id]
         inc_idx = np.argmax(solver_.perfs)
@@ -291,7 +174,7 @@ class AutoDL(object):
         self.logger.info('Preparing basic models finished.')
         return stats
 
-    def refit(self, dataset: BaseDataset):
+    def refit(self, dataset: DLDataset):
         # TODO: Bottom API changes
         if self.es is None:
             config_dict = self.best_algo_config.get_dictionary().copy()
@@ -309,7 +192,7 @@ class AutoDL(object):
         else:
             self.es.refit(dataset)
 
-    def predict_proba(self, test_data: BaseDataset, batch_size=1, n_jobs=1):
+    def predict_proba(self, test_data: DLDataset, batch_size=1, n_jobs=1):
         if self.es is None:
             if self.task_type == IMG_CLS:
                 test_transforms = get_test_transforms(self.best_algo_config, image_size=self.image_size)
@@ -322,7 +205,7 @@ class AutoDL(object):
         else:
             return self.es.predict(test_data)
 
-    def predict(self, test_data: BaseDataset, batch_size=1, n_jobs=1):
+    def predict(self, test_data: DLDataset, batch_size=1, n_jobs=1):
         if self.es is None:
             if self.task_type == IMG_CLS:
                 test_transforms = get_test_transforms(self.best_algo_config, image_size=self.image_size)
@@ -335,7 +218,7 @@ class AutoDL(object):
         else:
             return np.argmax(self.es.predict(test_data), axis=-1)
 
-    def score(self, test_data: BaseDataset, metric_func=None):
+    def score(self, test_data: DLDataset, metric_func=None):
         if metric_func is None:
             metric_func = self.metric
         return metric_func(self, test_data)
