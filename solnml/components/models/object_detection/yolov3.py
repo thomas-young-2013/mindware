@@ -45,15 +45,14 @@ class Yolov3(BaseODClassificationNeuralNetwork):
             loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=4)
             img_size = dataset.image_size
         else:
-            if hasattr(dataset, 'val_dataset'):
-                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size,
-                                    num_workers=4, collate_fn=dataset.val_dataset.collate_fn)
-                img_size = dataset.val_dataset.image_size
-            else:
-                loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
-                                    sampler=dataset.val_sampler, num_workers=4,
-                                    collate_fn=dataset.train_dataset.collate_fn)
-                img_size = dataset.train_dataset.image_size
+            loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size,
+                                num_workers=4, collate_fn=dataset.val_dataset.collate_fn)
+            img_size = dataset.val_dataset.image_size
+            # else:
+            #     loader = DataLoader(dataset=dataset.train_dataset, batch_size=batch_size,
+            #                         sampler=dataset.val_sampler, num_workers=4,
+            #                         collate_fn=dataset.train_dataset.collate_fn)
+            #     img_size = dataset.train_dataset.image_size
 
         self.model.eval()
         labels = []

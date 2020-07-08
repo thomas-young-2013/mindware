@@ -70,10 +70,10 @@ class Blending(BaseEnsembleModel):
                 estimator = get_estimator_with_parameters(self.task_type, config, train_data.train_dataset,
                                                           device=self.device)
 
-                if hasattr(train_data, 'val_dataset'):
+                if not train_data.subset_sampler_used:
                     loader = DataLoader(train_data.val_dataset)
                 else:
-                    loader = DataLoader(train_data.train_dataset, sampler=train_data.val_sampler)
+                    loader = DataLoader(train_data.train_for_val_dataset, sampler=train_data.val_sampler)
 
                 if y_p2 is None:
                     y_p2 = list()
@@ -83,10 +83,10 @@ class Blending(BaseEnsembleModel):
                     y_p2 = np.array(y_p2)
 
                 if self.task_type in CLS_TASKS:
-                    if hasattr(train_data, 'val_dataset'):
+                    if not train_data.subset_sampler_used:
                         pred = estimator.predict_proba(train_data.val_dataset)
                     else:
-                        pred = estimator.predict_proba(train_data.train_dataset, sampler=train_data.val_sampler)
+                        pred = estimator.predict_proba(train_data.train_for_val_dataset, sampler=train_data.val_sampler)
                     n_dim = np.array(pred).shape[1]
                     if n_dim == 2:
                         # Binary classificaion
@@ -99,10 +99,10 @@ class Blending(BaseEnsembleModel):
                     else:
                         feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred
                 else:
-                    if hasattr(train_data, 'val_dataset'):
+                    if not train_data.subset_sampler_used:
                         pred = estimator.predict(train_data.val_dataset)
                     else:
-                        pred = estimator.predict(train_data.train_dataset, sampler=train_data.val_sampler)
+                        pred = estimator.predict(train_data.train_for_val_dataset, sampler=train_data.val_sampler)
                     pred = pred.reshape(-1, 1)
                     n_dim = 1
                     # Initialize training matrix for phase 2

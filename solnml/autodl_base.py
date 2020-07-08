@@ -56,7 +56,7 @@ class AutoDLBase(object):
         self.n_jobs = n_jobs
 
         self.config_file_path = config_file_path
-        self.update_cs = None
+        self.update_cs = dict()
 
         if include_algorithms is not None:
             self.include_algorithms = include_algorithms

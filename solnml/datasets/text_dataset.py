@@ -60,6 +60,7 @@ class TextDataset(DLDataset):
         self.train_dataset = TextBertDataset(self.data_path, self.padding_size, self.config_path)
         self.classes = self.train_dataset.classes
         if self.train_val_split:
+            self.train_for_val_dataset = TextDataset(self.data_path, self.padding_size, self.config_path)
             self.create_train_val_split(self.train_dataset, train_val_split=self.val_split_size, shuffle=True)
 
     def load_test_data(self):

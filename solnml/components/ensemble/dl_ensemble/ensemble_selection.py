@@ -78,20 +78,20 @@ class EnsembleSelection(BaseEnsembleModel):
                 estimator = get_estimator_with_parameters(self.task_type, config, train_data.train_dataset,
                                                           device=self.device)
                 if self.task_type in CLS_TASKS:
-                    if hasattr(train_data, 'val_dataset'):
+                    if not train_data.subset_sampler_used:
                         pred = estimator.predict_proba(train_data.val_dataset)
                     else:
-                        pred = estimator.predict_proba(train_data.train_dataset, sampler=train_data.val_sampler)
+                        pred = estimator.predict_proba(train_data.train_for_val_dataset, sampler=train_data.val_sampler)
                 else:
-                    if hasattr(train_data, 'val_dataset'):
+                    if not train_data.subset_sampler_used:
                         pred = estimator.predict(train_data.val_dataset)
                     else:
-                        pred = estimator.predict(train_data.train_dataset, sampler=train_data.val_sampler)
+                        pred = estimator.predict(train_data.train_for_val_dataset, sampler=train_data.val_sampler)
 
-                if hasattr(train_data, 'val_dataset'):
+                if not train_data.subset_sampler_used:
                     loader = DataLoader(train_data.val_dataset)
                 else:
-                    loader = DataLoader(train_data.train_dataset, sampler=train_data.val_sampler)
+                    loader = DataLoader(train_data.train_for_val_dataset, sampler=train_data.val_sampler)
 
                 if val_y is None:
                     val_y = list()
