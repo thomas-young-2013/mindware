@@ -10,7 +10,7 @@ from solnml.estimators import ImageClassifier
 parser = argparse.ArgumentParser()
 parser.add_argument('--n_jobs', type=int, default=1)
 args = parser.parse_args()
-n_jobs = args['n_jobs']
+n_jobs = args.n_jobs
 print('n_jobs is set to %d.' % n_jobs)
 
 data_dir = 'data/img_datasets/cifar10/'
