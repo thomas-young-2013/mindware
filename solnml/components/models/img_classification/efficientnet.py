@@ -11,13 +11,13 @@ from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PRED
 
 class EfficientNetClassifier(BaseImgClassificationNeuralNetwork):
 
-    def fit(self, dataset):
+    def fit(self, dataset, **kwargs):
         from .nn_utils.efficientnet import EfficientNet
         self.model = EfficientNet.from_pretrained('efficientnet-b0', advprop=True,
                                                   num_classes=len(dataset.train_dataset.classes),
                                                   in_channels=1 if self.grayscale else 3)
         self.model.to(self.device)
-        super().fit(dataset)
+        super().fit(dataset, **kwargs)
         return self
 
     def set_empty_model(self, dataset):

@@ -81,7 +81,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         self.device = torch.device(device)
         self.time_limit = None
 
-    def fit(self, dataset: DLDataset or Dataset):
+    def fit(self, dataset: DLDataset or Dataset, **kwargs):
         from sklearn.metrics import accuracy_score
 
         assert self.model is not None
@@ -109,6 +109,39 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
         self.model.train()
+
+        profile_iter = kwargs.get('profile_iter', None)
+        profile_epoch = kwargs.get('profile_epoch', None)
+        assert not (profile_iter and profile_epoch)
+
+        if profile_epoch or profile_iter:  # Profile mode
+            if profile_epoch:
+                for epoch in range(int(profile_epoch)):
+                    for i, data in enumerate(train_loader):
+                        batch_x, batch_y = data[0], data[1]
+                        logits = self.model(batch_x.float().to(self.device))
+                        optimizer.zero_grad()
+                        loss = loss_func(logits, batch_y.to(self.device))
+                        loss.backward()
+                        optimizer.step()
+            else:
+                num_iter = 0
+                stop_flag = False
+                for epoch in range(int(self.epoch_num)):
+                    if stop_flag:
+                        break
+                    for i, data in enumerate(train_loader):
+                        batch_x, batch_y = data[0], data[1]
+                        logits = self.model(batch_x.float().to(self.device))
+                        optimizer.zero_grad()
+                        loss = loss_func(logits, batch_y.to(self.device))
+                        loss.backward()
+                        optimizer.step()
+                        num_iter += 1
+                        if num_iter > profile_iter:
+                            stop_flag = True
+                            break
+            return self
 
         early_stop = EarlyStop(patience=15, mode='min')
 
@@ -250,7 +283,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         self.step_decay = None
         self.device = None
 
-    def fit(self, dataset):
+    def fit(self, dataset, **kwargs):
         from sklearn.metrics import accuracy_score
 
         assert self.model is not None
@@ -278,6 +311,41 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
         self.model.train()
+
+        profile_iter = kwargs.get('profile_iter', None)
+        profile_epoch = kwargs.get('profile_epoch', None)
+        assert not (profile_iter and profile_epoch)
+
+        if profile_epoch or profile_iter:  # Profile mode
+            if profile_epoch:
+                for epoch in range(int(profile_epoch)):
+                    for i, data in enumerate(train_loader):
+                        batch_x, batch_y = data[0], data[1]
+                        masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
+                        logits = self.model(batch_x.long().to(self.device), masks.to(self.device))
+                        optimizer.zero_grad()
+                        loss = loss_func(logits, batch_y.to(self.device))
+                        loss.backward()
+                        optimizer.step()
+            else:
+                num_iter = 0
+                stop_flag = False
+                for epoch in range(int(self.epoch_num)):
+                    if stop_flag:
+                        break
+                    for i, data in enumerate(train_loader):
+                        batch_x, batch_y = data[0], data[1]
+                        masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
+                        logits = self.model(batch_x.long().to(self.device), masks.to(self.device))
+                        optimizer.zero_grad()
+                        loss = loss_func(logits, batch_y.to(self.device))
+                        loss.backward()
+                        optimizer.step()
+                        num_iter += 1
+                        if num_iter > profile_iter:
+                            stop_flag = True
+                            break
+            return self
 
         early_stop = EarlyStop(patience=15, mode='min')
 
@@ -421,7 +489,7 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
         self.step_decay = None
         self.device = None
 
-    def fit(self, dataset: DLDataset or Dataset):
+    def fit(self, dataset: DLDataset or Dataset, **kwargs):
         assert self.model is not None
         params = self.model.parameters()
 
@@ -448,6 +516,35 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
 
         scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
         self.model.train()
+
+        profile_iter = kwargs.get('profile_iter', None)
+        profile_epoch = kwargs.get('profile_epoch', None)
+        assert not (profile_iter and profile_epoch)
+
+        if profile_epoch or profile_iter:  # Profile mode
+            if profile_epoch:
+                for epoch in range(int(profile_epoch)):
+                    for i, (_, batch_x, batch_y) in enumerate(train_loader):
+                        loss, outputs = self.model(batch_x.float().to(self.device), batch_y.float().to(self.device))
+                        optimizer.zero_grad()
+                        loss.backward()
+                        optimizer.step()
+            else:
+                num_iter = 0
+                stop_flag = False
+                for epoch in range(int(self.epoch_num)):
+                    if stop_flag:
+                        break
+                    for i, (_, batch_x, batch_y) in enumerate(train_loader):
+                        loss, outputs = self.model(batch_x.float().to(self.device), batch_y.float().to(self.device))
+                        optimizer.zero_grad()
+                        loss.backward()
+                        optimizer.step()
+                        num_iter += 1
+                        if num_iter > profile_iter:
+                            stop_flag = True
+                            break
+            return self
 
         early_stop = EarlyStop(patience=15, mode='min')
 

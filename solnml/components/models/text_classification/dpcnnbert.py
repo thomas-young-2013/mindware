@@ -29,7 +29,7 @@ class DPCNNBertClassifier(BaseTextClassificationNeuralNetwork):
         self.time_limit = None
         self.config = config
 
-    def fit(self, dataset):
+    def fit(self, dataset, **kwargs):
         from .nn_utils.dpcnnbert import DPCNNModel
         if dataset.config_path is None:
             config_path = self.config
@@ -38,7 +38,7 @@ class DPCNNBertClassifier(BaseTextClassificationNeuralNetwork):
 
         self.model = DPCNNModel.from_pretrained(config_path, num_class=len(dataset.classes))
         self.model.to(self.device)
-        super().fit(dataset)
+        super().fit(dataset, **kwargs)
         return self
 
     def set_empty_model(self, dataset):

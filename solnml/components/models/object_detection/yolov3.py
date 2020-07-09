@@ -29,12 +29,12 @@ class Yolov3(BaseODClassificationNeuralNetwork):
         self.device = torch.device(device)
         self.time_limit = None
 
-    def fit(self, dataset):
+    def fit(self, dataset, **kwargs):
         from .nn_utils.yolov3 import Darknet
 
         self.model = Darknet(num_class=len(dataset.classes), img_size=dataset.image_size)
         self.model.to(self.device)
-        super().fit(dataset)
+        super().fit(dataset, **kwargs)
         return self
 
     def score(self, dataset, metric, batch_size=None):
