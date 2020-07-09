@@ -217,6 +217,9 @@ class AutoDLBase(object):
         return [config['estimator'] for config in C]
 
     def select_network_architectures(self, algorithm_candidates, train_data, num_arch=1, **kwargs):
+        if len(algorithm_candidates) == 1:
+            return algorithm_candidates
+
         self.nas_evaluator = DLEvaluator(None,
                                          self.task_type,
                                          scorer=self.metric,

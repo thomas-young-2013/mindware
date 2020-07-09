@@ -15,7 +15,7 @@ print('n_jobs is set to %d.' % n_jobs)
 
 data_dir = 'data/img_datasets/cifar10/'
 image_data = ImageDataset(data_path=data_dir, train_val_split=True)
-clf = ImageClassifier(time_limit=1800,
+clf = ImageClassifier(time_limit=10000000,
                       include_algorithms=['mobilenet'],
                       evaluation='partial',
                       image_size=32,
