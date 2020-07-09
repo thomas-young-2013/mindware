@@ -198,12 +198,14 @@ class AutoDLBase(object):
                 self.eval_hist_configs[r] = list()
             if r not in self.eval_hist_perfs:
                 self.eval_hist_perfs[r] = list()
-
+            _start_time = time.time()
+            self.logger.info('Evaluate %d configurations with %d resource' % (len(C), r))
             val_losses = self.executor.parallel_execute(C, resource_ratio=float(r / R))
             for _id, _val_loss in enumerate(val_losses):
                 if np.isfinite(_val_loss):
                     self.eval_hist_configs[r].append(C[_id])
                     self.eval_hist_perfs[r].append(_val_loss)
+            self.logger.info('Evaluation took %.2f seconds' % (time.time() - _start_time))
 
             # Select a number of best configurations for the next loop.
             # Filter out early stops, if any.
@@ -218,6 +220,9 @@ class AutoDLBase(object):
         return [config['estimator'] for config in C]
 
     def select_network_architectures(self, algorithm_candidates, train_data, num_arch=1, **kwargs):
+        if len(algorithm_candidates) == 1:
+            return algorithm_candidates
+
         self.nas_evaluator = DLEvaluator(None,
                                          self.task_type,
                                          scorer=self.metric,
@@ -225,7 +230,7 @@ class AutoDLBase(object):
                                          device=self.device,
                                          seed=self.seed, **kwargs)
         self.executor = ParallelEvaluator(self.nas_evaluator, n_worker=self.n_jobs)
-
+        self.logger.info('Create parallel executor with n_jobs=%d' % self.n_jobs)
         _archs = algorithm_candidates.copy()
         while len(_archs) > num_arch:
             _archs = self.exec_SEE(_archs)

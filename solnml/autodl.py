@@ -68,6 +68,7 @@ class AutoDL(AutoDLBase):
 
         # Execute profiling procedure.
         algorithm_candidates = self.profile_models()
+        self.logger.info('After profiling, arch candidates={%s}' % ','.join(algorithm_candidates))
 
         # Execute neural architecture selection.
         algorithm_candidates = self.select_network_architectures(algorithm_candidates, train_data, num_arch=2, **kwargs)
