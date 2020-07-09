@@ -41,16 +41,25 @@ class DLEvaluator(_BaseEvaluator):
 
         config_dict = config.get_dictionary().copy()
 
-        if 'profile_epoch' in kwargs:
-            config_dict['epoch_num'] = kwargs['profile_epoch']
-
         classifier_id, estimator = get_estimator(self.task_type, config_dict, device=self.device)
 
         epoch_ratio = kwargs.get('resource_ratio', 1.0)
         estimator.epoch_num = ceil(estimator.epoch_num * epoch_ratio)
 
+        if 'profile_epoch' in kwargs or 'profile_iter' in kwargs:  # Profile mode
+            try:
+                time_cost = dl_holdout_validation(estimator, self.scorer, self.dataset, random_state=self.seed,
+                                                  **kwargs)
+            except Exception as e:
+                self.logger.error(e)
+                time_cost = np.inf
+            self.logger.info('%d-Evaluation<%s> | Profile time cost: %.2f seconds' %
+                             (self.eval_id, classifier_id,
+                              time_cost))
+            return time_cost
+
         try:
-            score = dl_holdout_validation(estimator, self.scorer, self.dataset, random_state=self.seed)
+            score = dl_holdout_validation(estimator, self.scorer, self.dataset, random_state=self.seed, **kwargs)
         except Exception as e:
             self.logger.error(e)
             score = -np.inf
@@ -61,7 +70,7 @@ class DLEvaluator(_BaseEvaluator):
         self.eval_id += 1
 
         # Save top K models with the largest validation scores.
-        if np.isfinite(score) and 'profile_epoch' not in kwargs:
+        if np.isfinite(score):
             save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config_dict, score)
             if save_flag is True:
                 torch.save(estimator.model.state_dict(), model_path)

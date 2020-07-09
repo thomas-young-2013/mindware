@@ -146,7 +146,8 @@ class AutoDLBase(object):
                 cs.add_hyperparameter(default_cs.get_hyperparameter(hp_name))
         return cs
 
-    def profile_models(self, profile_epoch_n=1):
+    def profile_models(self):
+        profile_epoch_n = 1
         training_cost_per_unit = list()
         default_training_epoch = list()
         for estimator_id in self.include_algorithms:
@@ -157,10 +158,12 @@ class AutoDLBase(object):
             cs.seed(self.seed)
 
             hpo_evaluator = self.evaluators[estimator_id]
-            _start_time = time.time()
             try:
-                hpo_evaluator(default_config, profile_epoch=profile_epoch_n)
-                training_cost_per_unit.append(time.time() - _start_time)
+                time_cost = hpo_evaluator(default_config,
+                                          profile_epoch=profile_epoch_n,
+                                          # profile_iter=100,
+                                          )
+                training_cost_per_unit.append(time_cost)
             except Exception as e:
                 print(e)
                 training_cost_per_unit.append(MAX_INT)

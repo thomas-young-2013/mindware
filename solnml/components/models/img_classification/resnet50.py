@@ -11,13 +11,13 @@ from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PRED
 
 class ResNet50Classifier(BaseImgClassificationNeuralNetwork):
 
-    def fit(self, dataset):
+    def fit(self, dataset, **kwargs):
         from .nn_utils.pytorch_zoo_model import resnet50
         if self.grayscale:
             raise ValueError("Models from pytorch-model zoo only support RGB inputs!")
         self.model = resnet50(num_classes=len(dataset.train_dataset.classes), pretrained='imagenet')
         self.model.to(self.device)
-        super().fit(dataset)
+        super().fit(dataset, **kwargs)
         return self
 
     def set_empty_model(self, dataset):

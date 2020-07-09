@@ -11,14 +11,14 @@ from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PRED
 
 class SENetClassifier(BaseImgClassificationNeuralNetwork):
 
-    def fit(self, dataset):
+    def fit(self, dataset, **kwargs):
         from .nn_utils.senet import se_resnext101_32x4d
         self.model = se_resnext101_32x4d(num_classes=len(dataset.train_dataset.classes),
                                          grayscale=self.grayscale,
                                          pretrained=None)
 
         self.model.to(self.device)
-        super().fit(dataset)
+        super().fit(dataset, **kwargs)
         return self
 
     def set_empty_model(self, dataset):
