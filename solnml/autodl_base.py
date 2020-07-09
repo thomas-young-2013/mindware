@@ -14,6 +14,7 @@ from solnml.components.evaluators.dl_evaluator import DLEvaluator
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space
 from solnml.components.utils.mfse_utils.config_space_utils import sample_configurations
 from solnml.components.computation.parallel_evaluator import ParallelEvaluator
+from solnml.components.computation.parallel_process import ParallelProcessEvaluator
 
 
 class AutoDLBase(object):
@@ -226,7 +227,8 @@ class AutoDLBase(object):
                                          dataset=train_data,
                                          device=self.device,
                                          seed=self.seed, **kwargs)
-        self.executor = ParallelEvaluator(self.nas_evaluator, n_worker=self.n_jobs)
+        # self.executor = ParallelEvaluator(self.nas_evaluator, n_worker=self.n_jobs)
+        self.executor = ParallelProcessEvaluator(self.nas_evaluator, n_worker=self.n_jobs)
         self.logger.info('Create parallel executor with n_jobs=%d' % self.n_jobs)
         _archs = algorithm_candidates.copy()
         while len(_archs) > num_arch:
