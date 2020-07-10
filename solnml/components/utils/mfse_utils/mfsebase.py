@@ -13,6 +13,7 @@ from solnml.components.utils.mfse_utils.acq_optimizer import RandomSampling
 from solnml.components.utils.mfse_utils.prob_rf_cluster import WeightedRandomForestCluster
 from solnml.components.utils.mfse_utils.funcs import get_types, std_normalization
 from solnml.components.utils.mfse_utils.config_space_utils import convert_configurations_to_array
+from solnml.components.computation.parallel_process import ParallelProcessEvaluator
 
 
 class MfseBase:
@@ -60,7 +61,9 @@ class MfseBase:
                                                               self.eta, init_weight, 'gpoe')
         self.weight_changed_cnt = 0
         self.hist_weights = list()
-        self.executor = ParallelEvaluator(self.eval_func, n_worker=n_jobs)
+
+        # self.executor = ParallelEvaluator(self.eval_func, n_worker=n_jobs)
+        self.executor = ParallelProcessEvaluator(self.eval_func, n_worker=n_jobs)
         self.weighted_acquisition_func = EI(model=self.weighted_surrogate)
         self.weighted_acq_optimizer = RandomSampling(self.weighted_acquisition_func,
                                                      self.config_space,
