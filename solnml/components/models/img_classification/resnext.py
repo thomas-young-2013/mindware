@@ -15,7 +15,7 @@ class ResNeXtClassifier(BaseImgClassificationNeuralNetwork):
         from .nn_utils.resnext import resnext101_32x4d
         self.model = resnext101_32x4d(num_classes=len(dataset.train_dataset.classes),
                                       grayscale=self.grayscale,
-                                      pretrained=None)
+                                      pretrained='imagenet')
         self.model.to(self.device)
 
         super().fit(dataset, **kwargs)
@@ -25,7 +25,7 @@ class ResNeXtClassifier(BaseImgClassificationNeuralNetwork):
         from .nn_utils.resnext import resnext101_32x4d
         self.model = resnext101_32x4d(num_classes=len(dataset.classes),
                                       grayscale=self.grayscale,
-                                      pretrained=None)
+                                      pretrained='imagenet')
 
     @staticmethod
     def get_properties(dataset_properties=None):
