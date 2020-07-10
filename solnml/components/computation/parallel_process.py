@@ -28,16 +28,6 @@ class ParallelProcessEvaluator(object):
     def update_evaluator(self, evaluator):
         self.evaluator = evaluator
 
-    def wait_tasks_finish(self, trial_stats):
-        all_completed = False
-        while not all_completed:
-            all_completed = True
-            for trial in trial_stats:
-                if not trial.done():
-                    all_completed = False
-                    time.sleep(0.1)
-                    break
-
     def parallel_execute(self, param_list, resource_ratio=1.):
         evaluation_result = list()
         apply_results = list()
@@ -47,7 +37,7 @@ class ParallelProcessEvaluator(object):
                                                                  (self.evaluator, _param, resource_ratio)))
         for res in apply_results:
             res.wait()
-            perf = res.get()
+            perf = res.get()[0]
             evaluation_result.append(perf)
 
         return evaluation_result
