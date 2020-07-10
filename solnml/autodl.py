@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import torch
 import numpy as np
@@ -68,6 +69,10 @@ class AutoDL(AutoDLBase):
 
         # Execute profiling procedure.
         algorithm_candidates = self.profile_models()
+        if len(algorithm_candidates) == 0:
+            self.logger.error('After profiling, no arch is in the candidates!')
+            sys.exit(1)
+
         self.logger.info('After profiling, arch candidates={%s}' % ','.join(algorithm_candidates))
 
         # Execute neural architecture selection.
