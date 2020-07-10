@@ -88,18 +88,18 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         params = self.model.parameters()
         val_loader = None
         if isinstance(dataset, Dataset):
-            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
+            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=10)
         else:
             if not dataset.subset_sampler_used:
                 train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
-                                          num_workers=4)
+                                          num_workers=10)
                 val_loader = DataLoader(dataset=dataset.val_dataset, batch_size=self.batch_size, shuffle=False,
-                                        num_workers=4)
+                                        num_workers=10)
             else:
                 train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
-                                          sampler=dataset.train_sampler, num_workers=4)
+                                          sampler=dataset.train_sampler, num_workers=10)
                 val_loader = DataLoader(dataset=dataset.train_for_val_dataset, batch_size=self.batch_size,
-                                        sampler=dataset.val_sampler, num_workers=4)
+                                        sampler=dataset.val_sampler, num_workers=10)
 
         if self.optimizer == 'SGD':
             optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
