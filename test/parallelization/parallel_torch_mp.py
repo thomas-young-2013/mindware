@@ -16,10 +16,7 @@ from solnml.components.utils.mfse_utils.config_space_utils import sample_configu
 def execute_func(evaluator, config, subsample_ratio):
     start_time = time.time()
     try:
-        if isinstance(config, Configuration):
-            score = evaluator(config, name='hpo', resource_ratio=subsample_ratio)
-        else:
-            score = evaluator(None, data_node=config, name='fe', resource_ratio=subsample_ratio)
+        score = evaluator(config, name='hpo', resource_ratio=subsample_ratio)
     except Exception as e:
         print(e)
         score = np.inf
