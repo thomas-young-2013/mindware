@@ -50,5 +50,7 @@ def obj_function(data_dir, config):
 from solnml.components.computation.parallel_process import ParallelProcessEvaluator
 config_space = ResNet50Classifier.get_hyperparameter_search_space()
 executor = ParallelProcessEvaluator(obj_function, n_worker=3)
-configs = sample_configurations(config_space, 12)
+_configs = sample_configurations(config_space, 12)
+configs = [(data_dir, _config) for _config in _configs]
+
 executor.parallel_execute(configs)
