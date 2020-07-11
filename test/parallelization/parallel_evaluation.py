@@ -36,7 +36,7 @@ def obj_function(data_dir, config):
     image_data = ImageDataset(data_path=data_dir, train_val_split=True)
     image_data.load_data(data_transforms['train'], data_transforms['val'])
     image_data.set_test_path(data_dir)
-
+    config = config.get_dictionary()
     config['device'] = 'cuda'
     config['epoch_num'] = 20
     print(pid, config)
