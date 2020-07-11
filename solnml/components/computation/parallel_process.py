@@ -4,12 +4,11 @@ import multiprocessing
 from ConfigSpace import Configuration
 
 
-def execute_func(params):
+def execute_func(eval_func, params, subsample_ratio):
     start_time = time.time()
-    evaluator, eval_param, subsample_ratio = params
     try:
-        data_folder, config = eval_param
-        score = evaluator(data_folder, config)
+        data_folder, config = params
+        score = eval_func(data_folder, config)
     except Exception as e:
         score = np.inf
 
@@ -32,7 +31,7 @@ class ParallelProcessEvaluator(object):
 
         for _param in param_list:
             apply_results.append(self.process_pool.apply_async(execute_func,
-                                                                 (self.evaluator, _param, resource_ratio)))
+                                                               (self.evaluator, _param, resource_ratio)))
         for res in apply_results:
             res.wait()
             perf = res.get()[0]
