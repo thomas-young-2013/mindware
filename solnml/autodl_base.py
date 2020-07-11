@@ -186,14 +186,6 @@ class AutoDLBase(object):
 
         self.image_size = None
 
-    @staticmethod
-    def get_device():
-        if torch.cuda.is_available():
-            device = 'cuda'
-        else:
-            device = 'cpu'
-        return device
-
     def _get_logger(self, name):
         logger_name = 'SolnML-%s(%d)' % (name, self.seed)
         setup_logger(os.path.join(self.output_dir, '%s.log' % str(logger_name)),

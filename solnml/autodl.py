@@ -74,7 +74,7 @@ class AutoDL(AutoDLBase):
 
         # Execute profiling procedure.
         algorithm_candidates = self.include_algorithms.copy()
-        if self.skip_profile:
+        if not self.skip_profile:
             algorithm_candidates = self.profile_models(num_train_samples)
             if len(algorithm_candidates) == 0:
                 self.logger.error('After profiling, no arch is in the candidates!')
