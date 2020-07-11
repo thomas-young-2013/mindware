@@ -85,7 +85,6 @@ def obj_function(image_data, config):
     return train_acc
 
 
-from solnml.components.computation.parallel_process import ParallelProcessEvaluator
 config_space = ResNet50Classifier.get_hyperparameter_search_space()
 executor = ParallelProcessEvaluator(obj_function, n_worker=3)
 _configs = sample_configurations(config_space, 12)
