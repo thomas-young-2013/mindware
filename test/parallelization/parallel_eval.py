@@ -8,6 +8,7 @@ sys.path.append(os.getcwd())
 from solnml.datasets.image_dataset import ImageDataset
 from solnml.components.models.img_classification.resnet50 import ResNet50Classifier
 from solnml.components.utils.mfse_utils.config_space_utils import sample_configurations
+from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space
 from solnml.components.evaluators.dl_evaluator import DLEvaluator
 from solnml.components.metrics.metric import get_metric
 from solnml.components.utils.constants import IMG_CLS
@@ -38,28 +39,20 @@ evaluator = DLEvaluator(None,
                         IMG_CLS,
                         scorer=get_metric('acc'),
                         dataset=image_data,
-                        device='cuda')
-
-
-def obj_function(evaluator, config):
-    pid = os.getpid()
-    config = config.get_dictionary()
-    config['device'] = 'cuda'
-    config['epoch_num'] = 20
-    print(pid, config)
-    train_acc = evaluator(config)
-    print(pid, 'training score', train_acc)
-    return train_acc
+                        device='cuda',
+                        image_size=32)
 
 
 from solnml.components.computation.parallel_process import ParallelProcessEvaluator
 config_space = ResNet50Classifier.get_hyperparameter_search_space()
 model = UnParametrizedHyperparameter("estimator", 'resnet50')
 config_space.add_hyperparameter(model)
+aug_space = get_aug_hyperparameter_space()
+config_space.add_hyperparameters(aug_space.get_hyperparameters())
+config_space.add_conditions(aug_space.get_conditions())
 
-executor = ParallelProcessEvaluator(obj_function, n_worker=3)
+executor = ParallelProcessEvaluator(evaluator, n_worker=3)
 _configs = sample_configurations(config_space, 12)
-configs = [(evaluator, _config) for _config in _configs]
 
-res = executor.parallel_execute(configs)
+res = executor.parallel_execute(_configs)
 print(res)
