@@ -41,3 +41,6 @@ class ParallelProcessEvaluator(object):
             evaluation_result.append(perf)
 
         return evaluation_result
+
+    def shutdown(self):
+        self.process_pool.close()
