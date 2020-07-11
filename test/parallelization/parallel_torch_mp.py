@@ -5,7 +5,7 @@ import numpy as np
 from ConfigSpace import Configuration
 from torchvision import transforms
 from sklearn.metrics import accuracy_score
-from torch.multiprocessing import pool as ProcessPool
+from torch.multiprocessing.pool import Pool as ProcessPool
 
 sys.path.append(os.getcwd())
 from solnml.datasets.image_dataset import ImageDataset
