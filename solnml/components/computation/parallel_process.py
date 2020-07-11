@@ -11,6 +11,7 @@ def execute_func(eval_func, params, subsample_ratio):
         data_folder, config = params
         score = eval_func(data_folder, config)
     except Exception as e:
+        print(e)
         score = np.inf
 
     time_taken = time.time() - start_time
