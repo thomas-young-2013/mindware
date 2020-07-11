@@ -1,6 +1,7 @@
 import time
 import numpy as np
 import multiprocessing
+from .base.nondaemonic_processpool import ProcessPool
 from ConfigSpace import Configuration
 
 
@@ -20,7 +21,7 @@ class ParallelProcessEvaluator(object):
     def __init__(self, evaluator, n_worker=1):
         self.evaluator = evaluator
         self.n_worker = n_worker
-        self.process_pool = multiprocessing.Pool(processes=self.n_worker)
+        self.process_pool = ProcessPool(processes=self.n_worker)
 
     def update_evaluator(self, evaluator):
         self.evaluator = evaluator
