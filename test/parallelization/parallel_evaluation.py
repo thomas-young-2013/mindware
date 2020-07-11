@@ -29,13 +29,13 @@ data_transforms = {
 # data_dir = 'data/img_datasets/dogs-vs-cats/'
 # data_dir = 'data/img_datasets/cifar10/'
 data_dir = 'data/img_datasets/extremely_small/'
+image_data = ImageDataset(data_path=data_dir, train_val_split=True)
+image_data.load_data(data_transforms['train'], data_transforms['val'])
+image_data.set_test_path(data_dir)
 
 
-def obj_function(data_dir, config):
+def obj_function(image_data, config):
     pid = os.getpid()
-    image_data = ImageDataset(data_path=data_dir, train_val_split=True)
-    image_data.load_data(data_transforms['train'], data_transforms['val'])
-    image_data.set_test_path(data_dir)
     config = config.get_dictionary()
     config['device'] = 'cuda'
     config['epoch_num'] = 20
@@ -51,6 +51,6 @@ from solnml.components.computation.parallel_process import ParallelProcessEvalua
 config_space = ResNet50Classifier.get_hyperparameter_search_space()
 executor = ParallelProcessEvaluator(obj_function, n_worker=3)
 _configs = sample_configurations(config_space, 12)
-configs = [(data_dir, _config) for _config in _configs]
+configs = [(image_data, _config) for _config in _configs]
 
 executor.parallel_execute(configs)
