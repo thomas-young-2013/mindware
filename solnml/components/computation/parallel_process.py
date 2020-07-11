@@ -6,12 +6,10 @@ from ConfigSpace import Configuration
 
 def execute_func(params):
     start_time = time.time()
-    evaluator, config, subsample_ratio = params
+    evaluator, eval_param, subsample_ratio = params
     try:
-        if isinstance(config, Configuration):
-            score = evaluator(config, name='hpo', resource_ratio=subsample_ratio)
-        else:
-            score = evaluator(None, data_node=config, name='fe', resource_ratio=subsample_ratio)
+        data_folder, config = eval_param
+        score = evaluator(data_folder, config)
     except Exception as e:
         score = np.inf
 
