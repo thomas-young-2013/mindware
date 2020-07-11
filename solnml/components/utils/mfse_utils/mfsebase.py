@@ -62,8 +62,8 @@ class MfseBase:
         self.weight_changed_cnt = 0
         self.hist_weights = list()
 
-        self.executor = ParallelEvaluator(self.eval_func, n_worker=n_jobs)
-        # self.executor = ParallelProcessEvaluator(self.eval_func, n_worker=n_jobs)
+        # self.executor = ParallelEvaluator(self.eval_func, n_worker=n_jobs)
+        self.executor = ParallelProcessEvaluator(self.eval_func, n_worker=n_jobs)
         self.weighted_acquisition_func = EI(model=self.weighted_surrogate)
         self.weighted_acq_optimizer = RandomSampling(self.weighted_acquisition_func,
                                                      self.config_space,

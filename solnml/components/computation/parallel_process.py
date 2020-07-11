@@ -1,15 +1,16 @@
 import time
 import numpy as np
-import multiprocessing
-from .base.nondaemonic_processpool import ProcessPool
 from ConfigSpace import Configuration
+from .base.nondaemonic_processpool import ProcessPool
 
 
-def execute_func(eval_func, params, subsample_ratio):
+def execute_func(evaluator, config, subsample_ratio):
     start_time = time.time()
     try:
-        data_folder, config = params
-        score = eval_func(data_folder, config)
+        if isinstance(config, Configuration):
+            score = evaluator(config, name='hpo', resource_ratio=subsample_ratio)
+        else:
+            score = evaluator(None, data_node=config, name='fe', resource_ratio=subsample_ratio)
     except Exception as e:
         print(e)
         score = np.inf

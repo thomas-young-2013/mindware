@@ -1,7 +1,6 @@
 import os
 from .base_dl_dataset import DLDataset
 from solnml.components.models.img_classification.nn_utils.dataset import get_folder_dataset
-from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_test_transforms
 
 
 class ImageDataset(DLDataset):
