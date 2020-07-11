@@ -91,20 +91,12 @@ class AutoDLBase(object):
         self.best_algo_config = None
         # Ensemble models.
         self.candidate_algo_ids = None
-        self.device = self.get_device()
+        self.device = 'cuda'
 
         # Neural architecture selection.
         self.nas_evaluator, self.executor = None, None
         self.eval_hist_configs = dict()
         self.eval_hist_perfs = dict()
-
-    @staticmethod
-    def get_device():
-        if torch.cuda.is_available():
-            device = 'cuda'
-        else:
-            device = 'cpu'
-        return device
 
     def _get_logger(self, name):
         logger_name = 'SolnML-%s(%d)' % (name, self.seed)
