@@ -13,6 +13,7 @@ class Bagging(BaseEnsembleModel):
     def __init__(self, stats,
                  ensemble_size: int,
                  task_type: int,
+                 max_epoch: int,
                  metric: _BaseScorer,
                  output_dir=None,
                  device='cpu', **kwargs):
@@ -20,6 +21,7 @@ class Bagging(BaseEnsembleModel):
                          ensemble_method='bagging',
                          ensemble_size=ensemble_size,
                          task_type=task_type,
+                         max_epoch=max_epoch,
                          metric=metric,
                          output_dir=output_dir,
                          device=device)
@@ -44,8 +46,8 @@ class Bagging(BaseEnsembleModel):
                     test_data.load_test_data(test_transforms)
                 else:
                     test_data.load_test_data()
-                estimator = get_estimator_with_parameters(self.task_type, config, test_data.test_dataset,
-                                                          device=self.device)
+                estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
+                                                          test_data.test_dataset, device=self.device)
                 if self.task_type in CLS_TASKS:
                     model_pred_list.append(estimator.predict_proba(test_data.test_dataset, sampler=sampler))
                 else:

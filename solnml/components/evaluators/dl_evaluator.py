@@ -15,10 +15,11 @@ from .base_dl_evaluator import TopKModelSaver, get_estimator
 
 
 class DLEvaluator(_BaseEvaluator):
-    def __init__(self, clf_config, task_type, model_dir='data/dl_models/', scorer=None, dataset=None, device='cpu',
-                 seed=1, **kwargs):
+    def __init__(self, clf_config, task_type, model_dir='data/dl_models/', max_epoch=150, scorer=None, dataset=None,
+                 device='cpu', seed=1, **kwargs):
         self.hpo_config = clf_config
         self.task_type = task_type
+        self.max_epoch = max_epoch
         self.scorer = scorer if scorer is not None else accuracy_scorer
         self.dataset = copy.deepcopy(dataset)
         self.seed = seed
@@ -41,7 +42,7 @@ class DLEvaluator(_BaseEvaluator):
 
         config_dict = config.get_dictionary().copy()
 
-        classifier_id, estimator = get_estimator(self.task_type, config_dict, device=self.device)
+        classifier_id, estimator = get_estimator(self.task_type, config_dict, self.max_epoch, device=self.device)
 
         epoch_ratio = kwargs.get('resource_ratio', 1.0)
         estimator.epoch_num = ceil(estimator.epoch_num * epoch_ratio)

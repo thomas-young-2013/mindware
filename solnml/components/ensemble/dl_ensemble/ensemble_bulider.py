@@ -15,15 +15,19 @@ class EnsembleBuilder:
     def __init__(self, stats, ensemble_method: str,
                  ensemble_size: int,
                  task_type: int,
+                 max_epoch: int,
                  metric: _BaseScorer,
                  output_dir=None,
                  device='cpu', **kwargs):
         self.model = None
         self.device = device
+        self.task_type = task_type
+        self.max_epoch = max_epoch
         if ensemble_method == 'bagging':
             self.model = Bagging(stats=stats,
                                  ensemble_size=ensemble_size,
                                  task_type=task_type,
+                                 max_epoch=max_epoch,
                                  metric=metric,
                                  output_dir=output_dir,
                                  device=device, **kwargs)
@@ -31,6 +35,7 @@ class EnsembleBuilder:
             self.model = Blending(stats=stats,
                                   ensemble_size=ensemble_size,
                                   task_type=task_type,
+                                  max_epoch=max_epoch,
                                   metric=metric,
                                   output_dir=output_dir,
                                   device=device, **kwargs)
@@ -38,6 +43,7 @@ class EnsembleBuilder:
             self.model = EnsembleSelection(stats=stats,
                                            ensemble_size=ensemble_size,
                                            task_type=task_type,
+                                           max_epoch=max_epoch,
                                            metric=metric,
                                            output_dir=output_dir,
                                            device=device, **kwargs)
@@ -60,7 +66,7 @@ class EnsembleBuilder:
                     os.remove(model_path)
 
                 # Refit the models.
-                _, clf = get_estimator(config_dict, device=self.device)
+                _, clf = get_estimator(self.task_type, config_dict, max_epoch=self.max_epoch, device=self.device)
                 # TODO: if train ans val are two parts, we need to merge it into one dataset.
                 clf.fit(dataset.train_dataset)
                 # Save to the disk.

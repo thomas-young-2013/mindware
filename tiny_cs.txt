@@ -1,0 +1,5 @@
+densenet121 sgd_learning_rate [0.00001,0.0001] float 0.0001 True
+all epoch_num 100 int
+densenet121 epoch_num 120 int
+densenet121 step_decay {10,20,30} float 20
+all optimizer SGD str

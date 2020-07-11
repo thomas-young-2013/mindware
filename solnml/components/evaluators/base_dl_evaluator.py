@@ -26,7 +26,7 @@ def get_device(device=None):
         return device
 
 
-def get_estimator(task_type, config, device='cpu'):
+def get_estimator(task_type, config, max_epoch, device='cpu'):
     if task_type == IMG_CLS:
         from solnml.components.models.img_classification import _classifiers, _addons
     elif task_type == TEXT_CLS:
@@ -39,6 +39,7 @@ def get_estimator(task_type, config, device='cpu'):
     config_ = config.copy()
     config_.pop('estimator', None)
     config_['random_state'] = 1
+    config_['epoch_num'] = max_epoch
     config_['device'] = torch.device(device)
     try:
         estimator = _classifiers[classifier_type](**config_)
@@ -47,9 +48,9 @@ def get_estimator(task_type, config, device='cpu'):
     return classifier_type, estimator
 
 
-def get_estimator_with_parameters(task_type, config, dataset, device='cpu', model_dir='data/dl_models/'):
+def get_estimator_with_parameters(task_type, config, max_epoch, dataset, device='cpu', model_dir='data/dl_models/'):
     config_dict = config.get_dictionary().copy()
-    _, model = get_estimator(task_type, config_dict, device=device)
+    _, model = get_estimator(task_type, config_dict, max_epoch, device=device)
     model_path = model_dir + TopKModelSaver.get_configuration_id(config_dict) + '.pt'
     model.set_empty_model(dataset)
     model.model.load_state_dict(torch.load(model_path))

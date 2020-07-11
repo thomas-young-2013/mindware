@@ -26,6 +26,8 @@ if phase == 'fit':
                           # include_algorithms=['mobilenet'],
                           evaluation='partial',
                           image_size=32,
+                          max_epoch=80,
+                          skip_profile=True,
                           ensemble_method='ensemble_selection')
     clf.fit(image_data)
     image_data.set_test_path(data_dir)

@@ -27,6 +27,7 @@ class AutoDL(AutoDLBase):
                  include_algorithms=None,
                  ensemble_method='ensemble_selection',
                  ensemble_size=50,
+                 max_epoch=150,
                  skip_profile=False,
                  config_file_path=None,
                  evaluation='holdout',
@@ -36,8 +37,9 @@ class AutoDL(AutoDLBase):
                  n_jobs=1):
         super().__init__(time_limit=time_limit, trial_num=trial_num, dataset_name=dataset_name, task_type=task_type,
                          metric=metric, include_algorithms=include_algorithms, ensemble_method=ensemble_method,
-                         ensemble_size=ensemble_size, config_file_path=config_file_path, evaluation=evaluation,
-                         logging_config=logging_config, output_dir=output_dir, random_state=random_state, n_jobs=n_jobs)
+                         ensemble_size=ensemble_size, max_epoch=max_epoch, config_file_path=config_file_path,
+                         evaluation=evaluation, logging_config=logging_config, output_dir=output_dir,
+                         random_state=random_state, n_jobs=n_jobs)
         self.skip_profile = skip_profile
 
     def fit(self, train_data: DLDataset, **kwargs):
@@ -57,6 +59,7 @@ class AutoDL(AutoDLBase):
 
             hpo_evaluator = DLEvaluator(default_config,
                                         self.task_type,
+                                        max_epoch=self.max_epoch,
                                         scorer=self.metric,
                                         dataset=train_data,
                                         device=self.device,
@@ -128,6 +131,7 @@ class AutoDL(AutoDLBase):
                                       ensemble_method=self.ensemble_method,
                                       ensemble_size=self.ensemble_size,
                                       task_type=self.task_type,
+                                      max_epoch=self.max_epoch,
                                       metric=self.metric,
                                       device=self.device,
                                       output_dir=self.output_dir, **kwargs)
@@ -182,7 +186,7 @@ class AutoDL(AutoDLBase):
                 os.remove(model_path)
 
             # Refit the models.
-            _, clf = get_estimator(self.task_type, config_dict, device=self.device)
+            _, clf = get_estimator(self.task_type, config_dict, self.max_epoch, device=self.device)
             # TODO: if train ans val are two parts, we need to merge it into one dataset.
             clf.fit(dataset.train_dataset)
             # Save to the disk.
@@ -197,8 +201,8 @@ class AutoDL(AutoDLBase):
                 test_data.load_test_data(test_transforms)
             else:
                 test_data.load_test_data()
-            model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, test_data.test_dataset,
-                                                   device=self.device)
+            model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, self.max_epoch,
+                                                   test_data.test_dataset, device=self.device)
             return model_.predict_proba(test_data.test_dataset, batch_size=batch_size)
         else:
             return self.es.predict(test_data)
@@ -210,8 +214,8 @@ class AutoDL(AutoDLBase):
                 test_data.load_test_data(test_transforms)
             else:
                 test_data.load_test_data()
-            model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, test_data.test_dataset,
-                                                   device=self.device)
+            model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, self.max_epoch,
+                                                   test_data.test_dataset, device=self.device)
             return model_.predict(test_data.test_dataset, batch_size=batch_size)
         else:
             return np.argmax(self.es.predict(test_data), axis=-1)

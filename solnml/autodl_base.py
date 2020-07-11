@@ -110,6 +110,7 @@ class AutoDLBase(object):
                  include_algorithms=None,
                  ensemble_method='ensemble_selection',
                  ensemble_size=50,
+                 max_epoch=150,
                  config_file_path=None,
                  evaluation='holdout',
                  logging_config=None,
@@ -184,6 +185,7 @@ class AutoDLBase(object):
         self.eval_hist_configs = dict()
         self.eval_hist_perfs = dict()
 
+        self.max_epoch = max_epoch
         self.image_size = None
 
     def _get_logger(self, name):
@@ -248,8 +250,6 @@ class AutoDLBase(object):
                     if not ref_time_cost:
                         cs = self.get_model_config_space('mobilenet')
                         default_config = cs.get_default_configuration()
-                        assert 'epoch_num' in default_config
-                        default_training_epoch = default_config['epoch_num']
                         cs.seed(self.seed)
 
                         hpo_evaluator = self.evaluators[estimator_id]
@@ -266,8 +266,6 @@ class AutoDLBase(object):
 
                     cs = self.get_model_config_space(estimator_id)
                     default_config = cs.get_default_configuration()
-                    assert 'epoch_num' in default_config
-                    default_training_epoch = default_config['epoch_num']
                     default_batch_size = default_config['batch_size']
                     # TODO: hardware device
                     device = 'p100'
@@ -279,15 +277,13 @@ class AutoDLBase(object):
                             distance = abs(self.image_size - possible_image_size)
                     time_cost = ref_time_cost * profile_ratio[device][nearest_image_size][estimator_id] / \
                                 profile_ratio[device][nearest_image_size]['mobilenet']
-                    time_cost = time_cost * default_training_epoch * num_samples / default_batch_size / profile_iter
+                    time_cost = time_cost * self.max_epoch * num_samples / default_batch_size / profile_iter
                 else:
                     time_cost = 0
 
             else:
                 cs = self.get_model_config_space(estimator_id)
                 default_config = cs.get_default_configuration()
-                assert 'epoch_num' in default_config
-                default_training_epoch = default_config['epoch_num']
                 default_batch_size = default_config['batch_size']
                 cs.seed(self.seed)
 
@@ -297,7 +293,7 @@ class AutoDLBase(object):
                                               # profile_epoch=profile_epoch_n,
                                               profile_iter=profile_iter,
                                               )
-                    time_cost *= time_cost * default_training_epoch * (num_samples / default_batch_size) / profile_iter
+                    time_cost *= time_cost * self.max_epoch * (num_samples / default_batch_size) / profile_iter
 
                 except Exception as e:
                     self.logger.error(e)

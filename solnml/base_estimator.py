@@ -183,6 +183,7 @@ class BaseDLEstimator(object):
             include_algorithms=None,
             ensemble_method='bagging',
             ensemble_size=50,
+            max_epoch=150,
             skip_profile=False,
             config_file_path=None,
             random_state=1,
@@ -196,6 +197,7 @@ class BaseDLEstimator(object):
         self.include_algorithms = include_algorithms
         self.ensemble_method = ensemble_method
         self.ensemble_size = ensemble_size
+        self.max_epoch = max_epoch
         self.skip_profile = skip_profile
         self.config_file_path = config_file_path
         self.random_state = random_state
@@ -217,6 +219,7 @@ class BaseDLEstimator(object):
             include_algorithms=self.include_algorithms,
             ensemble_method=self.ensemble_method,
             ensemble_size=self.ensemble_size,
+            max_epoch=self.max_epoch,
             config_file_path=self.config_file_path,
             skip_profile=self.skip_profile,
             random_state=self.random_state,

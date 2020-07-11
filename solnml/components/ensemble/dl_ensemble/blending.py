@@ -13,6 +13,7 @@ class Blending(BaseEnsembleModel):
     def __init__(self, stats,
                  ensemble_size: int,
                  task_type: int,
+                 max_epoch: int,
                  metric: _BaseScorer,
                  output_dir=None,
                  device='cpu',
@@ -21,6 +22,7 @@ class Blending(BaseEnsembleModel):
                          ensemble_method='blending',
                          ensemble_size=ensemble_size,
                          task_type=task_type,
+                         max_epoch=max_epoch,
                          metric=metric,
                          output_dir=output_dir,
                          device=device)
@@ -67,8 +69,8 @@ class Blending(BaseEnsembleModel):
                     train_data.load_data(test_transforms, test_transforms)
                 else:
                     train_data.load_data()
-                estimator = get_estimator_with_parameters(self.task_type, config, train_data.train_dataset,
-                                                          device=self.device)
+                estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
+                                                          train_data.train_dataset, device=self.device)
 
                 if not train_data.subset_sampler_used:
                     loader = DataLoader(train_data.val_dataset)
@@ -132,8 +134,8 @@ class Blending(BaseEnsembleModel):
                     loader = DataLoader(test_data.test_dataset, sampler=sampler)
                     num_samples = len(list(loader))
 
-                estimator = get_estimator_with_parameters(self.task_type, config, test_data.test_dataset,
-                                                          device=self.device)
+                estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
+                                                          test_data.test_dataset, device=self.device)
                 if self.task_type in CLS_TASKS:
                     pred = estimator.predict_proba(test_data.test_dataset, sampler=sampler)
                     n_dim = np.array(pred).shape[1]
