@@ -39,3 +39,10 @@ class ImageDataset(DLDataset):
                                                udf_transforms=transforms,
                                                grayscale=self.grayscale)
         self.test_dataset.classes = self.classes
+
+    def get_num_train_samples(self):
+        self.load_data(None, None)
+        if self.subset_sampler_used:
+            return len(list(self.train_sampler))
+        else:
+            return len(self.train_dataset)

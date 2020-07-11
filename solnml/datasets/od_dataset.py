@@ -203,3 +203,10 @@ class ODDataset(DLDataset):
     def load_test_data(self):
         self.test_dataset = ListDataset(self.test_data_path, self.classes, self.image_size, augment=False,
                                         multiscale=False, mode='test')
+
+    def get_num_train_samples(self):
+        self.load_data()
+        if self.subset_sampler_used:
+            return len(list(self.train_sampler))
+        else:
+            return len(self.train_dataset)

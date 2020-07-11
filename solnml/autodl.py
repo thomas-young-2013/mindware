@@ -68,7 +68,9 @@ class AutoDL(AutoDLBase):
             self.evaluators[estimator_id] = hpo_evaluator
 
         # Execute profiling procedure.
-        algorithm_candidates = self.profile_models()
+        # TODO: For first-time user, download pretrained params here!
+        num_train_samples = train_data.get_num_train_samples()
+        algorithm_candidates = self.profile_models(num_train_samples)
         if len(algorithm_candidates) == 0:
             self.logger.error('After profiling, no arch is in the candidates!')
             sys.exit(1)

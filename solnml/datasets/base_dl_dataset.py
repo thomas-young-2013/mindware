@@ -24,3 +24,6 @@ class DLDataset(BaseDataset):
         self.train_sampler = SubsetRandomSampler(train_indices)
         self.val_sampler = SequentialSampler(val_indices)
         self.subset_sampler_used = True
+
+    def get_num_train_samples(self):
+        raise NotImplementedError()

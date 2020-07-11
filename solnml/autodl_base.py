@@ -16,6 +16,92 @@ from solnml.components.utils.mfse_utils.config_space_utils import sample_configu
 from solnml.components.computation.parallel_evaluator import ParallelEvaluator
 from solnml.components.computation.parallel_process import ParallelProcessEvaluator
 
+profile_image_size = [32, 128, 256]
+profile_ratio = {
+    'p100': {
+        32: {
+            'densenet121': 2.87,
+            'densenet161': 3.24,
+            'efficientnet': 1.79,
+            'mobilenet': 1.07,
+            'nasnet': 4.76,
+            'resnet34': 1,
+            'resnet50': 1.34,
+            'resnet101': 2.07,
+            'resnet152': 2.7,
+            'resnext': 3.37,
+            'senet': 4.03
+        },
+        128: {
+            'densenet121': 2.57,
+            'densenet161': 2.73,
+            'efficientnet': 1.62,
+            'mobilenet': 1,
+            'nasnet': 4.39,
+            'resnet34': 1.01,
+            'resnet50': 1.56,
+            'resnet101': 2.55,
+            'resnet152': 3.56,
+            'resnext': 4.13,
+            'senet': 4.74
+        },
+        256: {
+            'densenet121': 2.72,
+            'densenet161': 2.68,
+            'efficientnet': 1.76,
+            'mobilenet': 1,
+            'nasnet': 3.77,
+            'resnet34': 1.18,
+            'resnet50': 2.13,
+            'resnet101': 3.34,
+            'resnet152': 4.65,
+            'resnext': 4.02,
+            'senet': 4.48
+        }
+    },
+    'titan rtx': {
+        32: {
+            'densenet121': 2.89,
+            'densenet161': 3.3,
+            'efficientnet': 1.66,
+            'mobilenet': 1.08,
+            'nasnet': 5.2,
+            'resnet34': 1,
+            'resnet50': 1.22,
+            'resnet101': 1.9,
+            'resnet152': 2.76,
+            'resnext': 3.21,
+            'senet': 3.73
+        },
+        128: {
+            'densenet121': 2.68,
+            'densenet161': 2.75,
+            'efficientnet': 1.5,
+            'mobilenet': 1,
+            'nasnet': 4.53,
+            'resnet34': 0.99,
+            'resnet50': 1.54,
+            'resnet101': 2.33,
+            'resnet152': 3.22,
+            'resnext': 2.83,
+            'senet': 3.27
+        },
+        256: {
+            'densenet121': 3.09,
+            'densenet161': 2.87,
+            'efficientnet': 1.83,
+            'mobilenet': 1,
+            'nasnet': 3.82,
+            'resnet34': 1.37,
+            'resnet50': 2.48,
+            'resnet101': 3.89,
+            'resnet152': 5.43,
+            'resnext': 3.16,
+            'senet': 3.58
+        }
+    }
+}
+
 
 class AutoDLBase(object):
     def __init__(self, time_limit=300,
@@ -66,6 +152,8 @@ class AutoDLBase(object):
                 self.include_algorithms = list(_img_estimators.keys())
             elif task_type == TEXT_CLS:
                 self.include_algorithms = list(_text_estimators.keys())
+            elif task_type == OBJECT_DET:
+                self.include_algorithms = list(_od_estimators.keys())
             else:
                 raise ValueError("Unknown task type %s" % task_type)
 
@@ -97,6 +185,8 @@ class AutoDLBase(object):
         self.nas_evaluator, self.executor = None, None
         self.eval_hist_configs = dict()
         self.eval_hist_perfs = dict()
+
+        self.image_size = None
 
     @staticmethod
     def get_device():
@@ -146,33 +236,89 @@ class AutoDLBase(object):
                 cs.add_hyperparameter(default_cs.get_hyperparameter(hp_name))
         return cs
 
-    def profile_models(self):
-        profile_epoch_n = 1
-        training_cost_per_unit = list()
-        default_training_epoch = list()
+    def profile_models(self, num_samples):
+        profile_iter = 200
+        training_costs = list()
+        ref_time_cost = 0
+        if self.task_type == IMG_CLS:
+            from solnml.components.models.img_classification import _classifiers
+            builtin_classifiers = _classifiers.keys()
+        elif self.task_type == TEXT_CLS:
+            from solnml.components.models.text_classification import _classifiers
+            builtin_classifiers = _classifiers.keys()
+        elif self.task_type == OBJECT_DET:
+            from solnml.components.models.object_detection import _classifiers
+            builtin_classifiers = _classifiers.keys()
+        else:
+            raise ValueError("Invalid task type %s" % self.task_type)
         for estimator_id in self.include_algorithms:
-            cs = self.get_model_config_space(estimator_id)
-            default_config = cs.get_default_configuration()
-            assert 'epoch_num' in default_config
-            default_training_epoch.append(default_config['epoch_num'])
-            cs.seed(self.seed)
+            if self.task_type == IMG_CLS:
+                if estimator_id in builtin_classifiers:
+                    # Get time cost for reference (use MobileNet as reference model)
+                    if not ref_time_cost:
+                        cs = self.get_model_config_space('mobilenet')
+                        default_config = cs.get_default_configuration()
+                        assert 'epoch_num' in default_config
+                        default_training_epoch = default_config['epoch_num']
+                        cs.seed(self.seed)
 
-            hpo_evaluator = self.evaluators[estimator_id]
-            try:
-                time_cost = hpo_evaluator(default_config,
-                                          profile_epoch=profile_epoch_n,
-                                          # profile_iter=100,
-                                          )
-                training_cost_per_unit.append(time_cost)
-            except Exception as e:
-                print(e)
-                training_cost_per_unit.append(MAX_INT)
+                        hpo_evaluator = self.evaluators[estimator_id]
+                        try:
+                            ref_time_cost = hpo_evaluator(default_config,
+                                                          # profile_epoch=profile_epoch_n,
+                                                          profile_iter=profile_iter,
+                                                          )
+
+                        except Exception as e:
+                            self.logger.error(e)
+                            self.logger.error('Reference model for profile failed! All base models will be chosen!')
+                            ref_time_cost = 0
+
+                    cs = self.get_model_config_space(estimator_id)
+                    default_config = cs.get_default_configuration()
+                    assert 'epoch_num' in default_config
+                    default_training_epoch = default_config['epoch_num']
+                    default_batch_size = default_config['batch_size']
+                    # TODO: hardware device
+                    device = 'p100'
+                    nearest_image_size = None
+                    distance = np.inf
+                    for possible_image_size in profile_image_size:
+                        if abs(self.image_size - possible_image_size) < distance:
+                            nearest_image_size = possible_image_size
+                            distance = abs(self.image_size - possible_image_size)
+                    time_cost = ref_time_cost * profile_ratio[device][nearest_image_size][estimator_id] / \
+                                profile_ratio[device][nearest_image_size]['mobilenet']
+                    time_cost = time_cost * default_training_epoch * num_samples / default_batch_size / profile_iter
+                else:
+                    time_cost = 0
+
+            else:
+                cs = self.get_model_config_space(estimator_id)
+                default_config = cs.get_default_configuration()
+                assert 'epoch_num' in default_config
+                default_training_epoch = default_config['epoch_num']
+                default_batch_size = default_config['batch_size']
+                cs.seed(self.seed)
+
+                hpo_evaluator = self.evaluators[estimator_id]
+                try:
+                    time_cost = hpo_evaluator(default_config,
+                                              # profile_epoch=profile_epoch_n,
+                                              profile_iter=profile_iter,
+                                              )
+                    time_cost *= time_cost * default_training_epoch * (num_samples / default_batch_size) / profile_iter
+
+                except Exception as e:
+                    self.logger.error(e)
+                    time_cost = MAX_INT
+
+            training_costs.append(time_cost)
 
         K = 5
         estimator_list = list()
         for id, estimator_id in enumerate(self.include_algorithms):
-            num_of_units = default_training_epoch[id] / profile_epoch_n
-            if training_cost_per_unit[id] * num_of_units * K < self.time_limit:
+            if training_costs[id] * K < self.time_limit:
                 estimator_list.append(estimator_id)
         return estimator_list
 
