@@ -27,6 +27,7 @@ class AutoDL(AutoDLBase):
                  include_algorithms=None,
                  ensemble_method='ensemble_selection',
                  ensemble_size=50,
+                 skip_profile=False,
                  config_file_path=None,
                  evaluation='holdout',
                  logging_config=None,
@@ -37,6 +38,7 @@ class AutoDL(AutoDLBase):
                          metric=metric, include_algorithms=include_algorithms, ensemble_method=ensemble_method,
                          ensemble_size=ensemble_size, config_file_path=config_file_path, evaluation=evaluation,
                          logging_config=logging_config, output_dir=output_dir, random_state=random_state, n_jobs=n_jobs)
+        self.skip_profile = skip_profile
 
     def fit(self, train_data: DLDataset, **kwargs):
         _start_time = time.time()
@@ -68,16 +70,19 @@ class AutoDL(AutoDLBase):
             self.evaluators[estimator_id] = hpo_evaluator
 
         # Execute profiling procedure.
-        algorithm_candidates = self.profile_models()
-        if len(algorithm_candidates) == 0:
-            self.logger.error('After profiling, no arch is in the candidates!')
-            sys.exit(1)
-
-        self.logger.info('After profiling, arch candidates={%s}' % ','.join(algorithm_candidates))
+        algorithm_candidates = self.include_algorithms.copy()
+        if self.skip_profile:
+            algorithm_candidates = self.profile_models()
+            if len(algorithm_candidates) == 0:
+                self.logger.error('After profiling, no arch is in the candidates!')
+                sys.exit(1)
+            else:
+                self.logger.info('After profiling, arch candidates={%s}' % ','.join(algorithm_candidates))
 
         # Execute neural architecture selection.
+        self.logger.info('Before NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
         algorithm_candidates = self.select_network_architectures(algorithm_candidates, train_data, num_arch=2, **kwargs)
-        self.logger.info('After NA selection, arch candidates={%s}' % ','.join(algorithm_candidates))
+        self.logger.info('After NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
 
         # Control flow via round robin.
         n_algorithm = len(algorithm_candidates)
