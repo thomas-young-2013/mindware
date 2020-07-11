@@ -54,5 +54,5 @@ config_space.add_conditions(aug_space.get_conditions())
 executor = ParallelProcessEvaluator(evaluator, n_worker=3)
 _configs = sample_configurations(config_space, 12)
 
-res = executor.parallel_execute(_configs)
+res = executor.parallel_execute(_configs, resource_ratio=0.1)
 print(res)
