@@ -179,7 +179,7 @@ class AutoDLBase(object):
         self.best_algo_config = None
         # Ensemble models.
         self.candidate_algo_ids = None
-        self.device = self.get_device()
+        self.device = 'cuda'
 
         # Neural architecture selection.
         self.nas_evaluator, self.executor = None, None
