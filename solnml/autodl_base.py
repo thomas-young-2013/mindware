@@ -367,4 +367,6 @@ class AutoDLBase(object):
         _archs = algorithm_candidates.copy()
         while len(_archs) > num_arch:
             _archs = self.exec_SEE(_archs)
+        # gc.
+        self.executor.shutdown()
         return _archs
