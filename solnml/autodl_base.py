@@ -366,10 +366,12 @@ class AutoDLBase(object):
 
         self.nas_evaluator = DLEvaluator(None,
                                          self.task_type,
+                                         max_epoch=self.max_epoch,
                                          scorer=self.metric,
                                          dataset=train_data,
                                          device=self.device,
                                          seed=self.seed, **kwargs)
+
         if self.n_jobs > 1:
             self.executor = ParallelProcessEvaluator(self.nas_evaluator, n_worker=self.n_jobs)
             self.logger.info('Create parallel executor with n_jobs=%d' % self.n_jobs)
