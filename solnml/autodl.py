@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import torch
+import resource
 import numpy as np
 from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter
@@ -16,6 +17,10 @@ from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space im
     get_test_transforms
 from solnml.components.utils.config_parser import ConfigParser
 from .autodl_base import AutoDLBase
+
+
+rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+resource.setrlimit(resource.RLIMIT_NOFILE, (10240, rlimit[1]))
 
 
 class AutoDL(AutoDLBase):
