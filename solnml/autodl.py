@@ -242,7 +242,7 @@ class AutoDL(AutoDLBase):
         if metric_func is None:
             metric_func = self.metric
         preds = self.predict(test_data, mode=mode)
-        labels = test_data.get_labels(dataset_partition=mode)
+        labels = test_data.get_labels(mode=mode)
         return metric_func(labels, preds)
 
     def get_pipeline_config_space(self, algorithm_candidates):
