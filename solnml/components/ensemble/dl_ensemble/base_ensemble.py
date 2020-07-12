@@ -35,7 +35,7 @@ class BaseEnsembleModel(object):
     def fit(self, data: DLDataset):
         raise NotImplementedError
 
-    def predict(self, dataset: Dataset, sampler=None):
+    def predict(self, dataset: Dataset, mode='test'):
         raise NotImplementedError
 
     def refit(self, dataset: DLDataset):

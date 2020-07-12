@@ -235,8 +235,8 @@ class BaseDLEstimator(object):
         self._ml_engine.fit(data, **kwargs)
         return self
 
-    def predict(self, X: DLDataset, batch_size=1, n_jobs=1):
-        return self._ml_engine.predict(X, batch_size=batch_size, n_jobs=n_jobs)
+    def predict(self, X: DLDataset, mode='test', batch_size=1, n_jobs=1):
+        return self._ml_engine.predict(X, mode=mode, batch_size=batch_size, n_jobs=n_jobs)
 
     def score(self, data: DLDataset):
         return self._ml_engine.score(data)
@@ -244,8 +244,8 @@ class BaseDLEstimator(object):
     def refit(self):
         return self._ml_engine.refit()
 
-    def predict_proba(self, X: DLDataset, batch_size=1, n_jobs=1):
-        return self._ml_engine.predict_proba(X, batch_size=batch_size, n_jobs=n_jobs)
+    def predict_proba(self, X: DLDataset, mode='test', batch_size=1, n_jobs=1):
+        return self._ml_engine.predict_proba(X, mode=mode, batch_size=batch_size, n_jobs=n_jobs)
 
     def get_automl(self):
         return AutoDL

@@ -116,7 +116,7 @@ class Blending(BaseEnsembleModel):
 
         return self
 
-    def get_feature(self, test_data, sampler=None):
+    def get_feature(self, test_data, mode='test'):
         # Predict the labels via blending
         feature_p2 = None
         model_cnt = 0
@@ -131,13 +131,27 @@ class Blending(BaseEnsembleModel):
                     test_data.load_test_data()
 
                 if num_samples == 0:
-                    loader = DataLoader(test_data.test_dataset, sampler=sampler)
-                    num_samples = len(list(loader))
+                    if mode == 'test':
+                        loader = DataLoader(test_data.test_dataset)
+                        num_samples = len(list(loader))
+                    else:
+                        if test_data.subset_sampler_used:
+                            num_samples = len(list(test_data.val_sampler))
+                        else:
+                            loader = DataLoader(test_data.val_dataset)
+                            num_samples = len(list(loader))
 
                 estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
                                                           test_data.test_dataset, device=self.device)
                 if self.task_type in CLS_TASKS:
-                    pred = estimator.predict_proba(test_data.test_dataset, sampler=sampler)
+                    if mode == 'test':
+                        pred = estimator.predict_proba(test_data.test_dataset)
+                    else:
+                        if test_data.subset_sampler_used:
+                            pred = estimator.predict_proba(test_data.train_dataset, sampler=test_data.val_sampler)
+                        else:
+                            pred = estimator.predict_proba(test_data.val_dataset)
+
                     n_dim = np.array(pred).shape[1]
                     if n_dim == 2:
                         # Binary classificaion
@@ -150,7 +164,13 @@ class Blending(BaseEnsembleModel):
                     else:
                         feature_p2[:, model_cnt * n_dim:(model_cnt + 1) * n_dim] = pred
                 else:
-                    pred = estimator.predict_proba(test_data.test_dataset, sampler=sampler)
+                    if mode == 'test':
+                        pred = estimator.predict(test_data.test_dataset)
+                    else:
+                        if test_data.subset_sampler_used:
+                            pred = estimator.predict(test_data.train_dataset, sampler=test_data.val_sampler)
+                        else:
+                            pred = estimator.predict(test_data.val_dataset)
                     pred = pred.reshape(-1, 1)
                     n_dim = 1
                     # Initialize training matrix for phase 2
@@ -161,8 +181,8 @@ class Blending(BaseEnsembleModel):
 
         return feature_p2
 
-    def predict(self, test_data, sampler=None):
-        feature_p2 = self.get_feature(test_data, sampler=sampler)
+    def predict(self, test_data, mode='test'):
+        feature_p2 = self.get_feature(test_data, mode=mode)
         # Get predictions from meta-learner
         if self.task_type in CLS_TASKS:
             final_pred = self.meta_learner.predict_proba(feature_p2)

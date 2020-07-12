@@ -194,31 +194,45 @@ class AutoDL(AutoDLBase):
         else:
             self.es.refit(dataset)
 
-    def predict_proba(self, test_data: DLDataset, batch_size=1, n_jobs=1):
-        if self.es is None:
-            if self.task_type == IMG_CLS:
-                test_transforms = get_test_transforms(self.best_algo_config, image_size=self.image_size)
-                test_data.load_test_data(test_transforms)
-            else:
-                test_data.load_test_data()
-            model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, self.max_epoch,
-                                                   test_data.test_dataset, device=self.device)
-            return model_.predict_proba(test_data.test_dataset, batch_size=batch_size)
+    def load_predict_data(self, test_data: DLDataset):
+        if self.task_type == IMG_CLS:
+            test_transforms = get_test_transforms(self.best_algo_config, image_size=self.image_size)
+            test_data.load_test_data(test_transforms)
+            test_data.load_data(test_transforms, test_transforms)
         else:
-            return self.es.predict(test_data)
+            test_data.load_test_data()
+            test_data.load_data()
 
-    def predict(self, test_data: DLDataset, batch_size=1, n_jobs=1):
+    def predict_proba(self, test_data: DLDataset, mode='test', batch_size=1, n_jobs=1):
         if self.es is None:
-            if self.task_type == IMG_CLS:
-                test_transforms = get_test_transforms(self.best_algo_config, image_size=self.image_size)
-                test_data.load_test_data(test_transforms)
-            else:
-                test_data.load_test_data()
+            self.load_predict_data(test_data)
             model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, self.max_epoch,
                                                    test_data.test_dataset, device=self.device)
-            return model_.predict(test_data.test_dataset, batch_size=batch_size)
+            if mode == 'test':
+                return model_.predict_proba(test_data.test_dataset)
+            else:
+                if test_data.subset_sampler_used:
+                    return model_.predict_proba(test_data.train_dataset, sampler=test_data.val_sampler)
+                else:
+                    return model_.predict_proba(test_data.val_dataset)
         else:
-            return np.argmax(self.es.predict(test_data), axis=-1)
+            return self.es.predict(test_data, mode=mode)
+
+    def predict(self, test_data: DLDataset, mode='test', batch_size=1, n_jobs=1):
+        if self.es is None:
+            self.load_predict_data(test_data)
+            model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, self.max_epoch,
+                                                   test_data.test_dataset, device=self.device)
+            if mode == 'test':
+                return model_.predict(test_data.test_dataset, batch_size=batch_size)
+            else:
+                if test_data.subset_sampler_used:
+                    return model_.predict(test_data.train_dataset, sampler=test_data.val_sampler,
+                                          batch_size=batch_size)
+                else:
+                    return model_.predict(test_data.val_dataset, batch_size=batch_size)
+        else:
+            return np.argmax(self.es.predict(test_data, mode=mode), axis=-1)
 
     def score(self, test_data: DLDataset, metric_func=None):
         if metric_func is None:

@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from sklearn.metrics.scorer import _BaseScorer, _PredictScorer, _ThresholdScorer
 
 from solnml.components.utils.constants import CLS_TASKS, TASK_TYPES, IMG_CLS
+from solnml.datasets.base_dl_dataset import DLDataset
 from solnml.components.ensemble.dl_ensemble.base_ensemble import BaseEnsembleModel
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_test_transforms
@@ -257,7 +258,7 @@ class EnsembleSelection(BaseEnsembleModel):
         indices = np.argsort(perf)[perf.shape[0] - n_best:]
         return indices
 
-    def predict(self, test_data, sampler=None):
+    def predict(self, test_data: DLDataset, mode='test'):
         predictions = []
         cur_idx = 0
         num_samples = 0
@@ -268,20 +269,43 @@ class EnsembleSelection(BaseEnsembleModel):
                 if self.task_type == IMG_CLS:
                     test_transforms = get_test_transforms(config, image_size=self.image_size)
                     test_data.load_test_data(test_transforms)
+                    test_data.load_data(test_transforms, test_transforms)
                 else:
                     test_data.load_test_data()
+                    test_data.load_data()
 
                 if num_samples == 0:
-                    loader = DataLoader(test_data.test_dataset, sampler=sampler)
-                    num_samples = len(list(loader))
+                    if mode == 'test':
+                        loader = DataLoader(test_data.test_dataset)
+                        num_samples = len(list(loader))
+                    else:
+                        if test_data.subset_sampler_used:
+                            num_samples = len(list(test_data.val_sampler))
+                        else:
+                            loader = DataLoader(test_data.val_dataset)
+                            num_samples = len(list(loader))
 
                 estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
                                                           test_data.test_dataset, device=self.device)
                 if cur_idx in self.model_idx:
                     if self.task_type in CLS_TASKS:
-                        predictions.append(estimator.predict_proba(test_data.test_dataset, sampler=sampler))
+                        if mode == 'test':
+                            predictions.append(estimator.predict_proba(test_data.test_dataset))
+                        else:
+                            if test_data.subset_sampler_used:
+                                predictions.append(
+                                    estimator.predict_proba(test_data.train_dataset, sampler=test_data.val_sampler))
+                            else:
+                                predictions.append(estimator.predict_proba(test_data.val_dataset))
                     else:
-                        predictions.append(estimator.predict(test_data.test_dataset, sampler=sampler))
+                        if mode == 'test':
+                            predictions.append(estimator.predict(test_data.test_dataset))
+                        else:
+                            if test_data.subset_sampler_used:
+                                predictions.append(
+                                    estimator.predict(test_data.train_dataset, sampler=test_data.val_sampler))
+                            else:
+                                predictions.append(estimator.predict(test_data.val_dataset))
                 else:
                     if len(self.shape) == 1:
                         predictions.append(np.zeros(num_samples))
