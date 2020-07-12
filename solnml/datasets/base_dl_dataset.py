@@ -38,4 +38,4 @@ class DLDataset(BaseDataset):
             if len(data) != 2:
                 raise ValueError('No labels found!')
             labels.extend(list(data[1]))
-        return labels
+        return np.asarray(labels)
