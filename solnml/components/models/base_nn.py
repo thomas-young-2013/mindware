@@ -246,8 +246,8 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             if not dataset.subset_sampler_used:
                 loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, num_workers=4)
             else:
-                loader = DataLoader(dataset=dataset.train_for_val_dataset, batch_size=batch_size,
-                                    sampler=dataset.val_sampler, num_workers=4)
+                loader = DataLoader(dataset=dataset.train_dataset[dataset.val_indices], batch_size=batch_size,
+                                    sampler=None, num_workers=4)
 
         self.model.to(self.device)
         self.model.eval()
@@ -427,7 +427,8 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, num_workers=4)
+        assert sampler is None
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=None, num_workers=4)
         self.model.to(self.device)
         self.model.eval()
 

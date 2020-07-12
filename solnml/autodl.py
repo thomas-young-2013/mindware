@@ -231,7 +231,7 @@ class AutoDL(AutoDLBase):
                 return model_.predict(test_data.test_dataset, batch_size=batch_size)
             else:
                 if test_data.subset_sampler_used:
-                    return model_.predict(test_data.train_dataset, sampler=test_data.val_sampler,
+                    return model_.predict(test_data.train_dataset[test_data.val_indices], sampler=None,
                                           batch_size=batch_size)
                 else:
                     return model_.predict(test_data.val_dataset, batch_size=batch_size)
