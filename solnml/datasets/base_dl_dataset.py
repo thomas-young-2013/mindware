@@ -39,9 +39,9 @@ class DLDataset(BaseDataset):
             dataset = self.train_dataset
         else:
             dataset = self.test_dataset
-        assert isinstance(dataset, Dataset)
+
         loader = DataLoader(dataset=dataset, batch_size=32, shuffle=False,
-                                num_workers=4)
+                            num_workers=4)
         labels = list()
         for i, data in enumerate(loader):
             if len(data) != 2:
