@@ -96,7 +96,16 @@ class AutoDL(AutoDLBase):
 
         # Execute neural architecture selection.
         self.logger.info('Before NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
-        algorithm_candidates = self.select_network_architectures(algorithm_candidates, train_data, num_arch=2, **kwargs)
+
+        dl_evaluator = DLEvaluator(None,
+                                   self.task_type,
+                                   max_epoch=self.max_epoch,
+                                   scorer=self.metric,
+                                   dataset=train_data,
+                                   device=self.device,
+                                   seed=self.seed, **kwargs)
+
+        algorithm_candidates = self.select_network_architectures(algorithm_candidates, dl_evaluator, num_arch=2, **kwargs)
         self.logger.info('After NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
 
         # Control flow via round robin.

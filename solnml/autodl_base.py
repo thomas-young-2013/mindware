@@ -360,20 +360,11 @@ class AutoDLBase(object):
             r *= eta
         return [config['estimator'] for config in C]
 
-    def select_network_architectures(self, algorithm_candidates, train_data, num_arch=1, **kwargs):
+    def select_network_architectures(self, algorithm_candidates, dl_evaluator, num_arch=1, **kwargs):
         if len(algorithm_candidates) == 1:
             return algorithm_candidates
-
-        self.nas_evaluator = DLEvaluator(None,
-                                         self.task_type,
-                                         max_epoch=self.max_epoch,
-                                         scorer=self.metric,
-                                         dataset=train_data,
-                                         device=self.device,
-                                         seed=self.seed, **kwargs)
-
         if self.n_jobs > 1:
-            self.executor = ParallelProcessEvaluator(self.nas_evaluator, n_worker=self.n_jobs)
+            self.executor = ParallelProcessEvaluator(dl_evaluator, n_worker=self.n_jobs)
             self.logger.info('Create parallel executor with n_jobs=%d' % self.n_jobs)
         _archs = algorithm_candidates.copy()
         while len(_archs) > num_arch:
