@@ -1,12 +1,11 @@
 import os
 import sys
 import argparse
-
+from sklearn.metrics import accuracy_score
 sys.path.append(os.getcwd())
 
 from solnml.datasets.image_dataset import ImageDataset
 from solnml.estimators import ImageClassifier
-from solnml.components.metrics.metric import get_metric
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--n_jobs', type=int, default=3)
@@ -47,7 +46,7 @@ else:
 
 preds = clf.predict(image_data, mode='val')
 val_labels = image_data.get_labels(mode='val')
-metric = get_metric('acc')
+metric = accuracy_score
 print('validation acc', metric(val_labels, preds))
 
 preds = clf.predict(image_data, mode='test')
