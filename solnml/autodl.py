@@ -234,10 +234,12 @@ class AutoDL(AutoDLBase):
         else:
             return np.argmax(self.es.predict(test_data, mode=mode), axis=-1)
 
-    def score(self, test_data: DLDataset, metric_func=None):
+    def score(self, test_data: DLDataset, mode='test', metric_func=None):
         if metric_func is None:
             metric_func = self.metric
-        return metric_func(self, test_data)
+        preds = self.predict(test_data, mode=mode)
+        labels = test_data.get_labels(dataset_partition=mode)
+        return metric_func(labels, preds)
 
     def get_pipeline_config_space(self, algorithm_candidates):
         cs = ConfigurationSpace()
