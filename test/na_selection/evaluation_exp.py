@@ -32,6 +32,7 @@ clf = ImageClassifier(time_limit=time_limit,
                       image_size=32,
                       ensemble_method=None,
                       skip_profile=True,
+                      max_epoch=5,
                       n_jobs=n_jobs)
 clf.fit(image_data)
 image_data.set_test_path(data_dir)
