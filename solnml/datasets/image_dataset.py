@@ -50,7 +50,7 @@ class ImageDataset(DLDataset):
 
     def get_labels(self, mode='val'):
         if mode == 'val':
-            loader = DataLoader(dataset=self.train_for_val_dataset, batch_size=32, shuffle=False,
+            loader = DataLoader(dataset=self.train_dataset, batch_size=32, shuffle=False,
                                 sampler=self.val_sampler,
                                 num_workers=4)
         elif mode == 'train':
