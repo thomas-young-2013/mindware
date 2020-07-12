@@ -43,6 +43,10 @@ class AutoDL(AutoDLBase):
         self.skip_profile = skip_profile
 
     def fit(self, train_data: DLDataset, **kwargs):
+        if 'opt_method' in kwargs and kwargs['opt_method'] == 'hpo':
+            self._fit_in_hpo_way(train_data, **kwargs)
+            return
+
         _start_time = time.time()
 
         if self.task_type == IMG_CLS:
@@ -254,12 +258,12 @@ class AutoDL(AutoDLBase):
                                        parent_hyperparameter=parent_hyperparameter)
         return cs
 
-    def auto_hpo_fit(self, train_data):
-        algorithm_candidates = self.profile_models()
+    def _fit_in_hpo_way(self, train_data, **kwargs):
+        num_train_samples = train_data.get_num_train_samples()
+        algorithm_candidates = self.profile_models(num_train_samples)
 
         cs = self.get_pipeline_config_space(algorithm_candidates)
-        default_config = cs.get_default_configuration()
-        hpo_evaluator = DLEvaluator(default_config,
+        hpo_evaluator = DLEvaluator(None,
                                     self.task_type,
                                     scorer=self.metric,
                                     dataset=train_data,
@@ -294,14 +298,15 @@ class AutoDL(AutoDLBase):
             return
 
         if self.ensemble_method is not None:
-            stats = self.fetch_ensemble_members([self.best_algo_id])
+            stats = self.fetch_ensemble_members(algorithm_candidates)
 
             # Ensembling all intermediate/ultimate models found in above optimization process.
             self.es = EnsembleBuilder(stats=stats,
                                       ensemble_method=self.ensemble_method,
                                       ensemble_size=self.ensemble_size,
                                       task_type=self.task_type,
+                                      max_epoch=self.max_epoch,
                                       metric=self.metric,
                                       device=self.device,
-                                      output_dir=self.output_dir)
+                                      output_dir=self.output_dir, **kwargs)
             self.es.fit(data=train_data)

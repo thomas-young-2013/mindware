@@ -34,6 +34,7 @@ clf = ImageClassifier(time_limit=time_limit,
                       skip_profile=True,
                       n_jobs=n_jobs)
 clf.fit(image_data)
+image_data.set_test_path(data_dir)
 preds = clf.predict(image_data, mode='val')
 val_labels = image_data.get_labels(dataset_partition='val')
 metric = get_metric('acc')
