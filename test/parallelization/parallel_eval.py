@@ -1,39 +1,24 @@
 import os
 import sys
-
-from torchvision import transforms
+import argparse
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 
 sys.path.append(os.getcwd())
 from solnml.datasets.image_dataset import ImageDataset
-from solnml.components.models.img_classification.resnet50 import ResNet50Classifier
 from solnml.components.utils.mfse_utils.config_space_utils import sample_configurations
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space
 from solnml.components.evaluators.dl_evaluator import DLEvaluator
 from solnml.components.metrics.metric import get_metric
 from solnml.components.utils.constants import IMG_CLS
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--network', type=str, default='mobilenet')
+parser.add_argument('--dataset', type=str, default='extremely_small')
+args = parser.parse_args()
 
-data_transforms = {
-    'train': transforms.Compose([
-        transforms.RandomResizedCrop(560),
-        transforms.RandomCrop(256),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-    'val': transforms.Compose([
-        transforms.Resize(560),
-        transforms.CenterCrop(256),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ]),
-}
-# data_dir = 'data/img_datasets/dogs-vs-cats/'
-# data_dir = 'data/img_datasets/cifar10/'
-data_dir = 'data/img_datasets/extremely_small/'
+data_dir = 'data/img_datasets/%s/' % args.dataset
+
 image_data = ImageDataset(data_path=data_dir, train_val_split=True)
-image_data.load_data(data_transforms['train'], data_transforms['val'])
 image_data.set_test_path(data_dir)
 evaluator = DLEvaluator(None,
                         IMG_CLS,
@@ -44,8 +29,10 @@ evaluator = DLEvaluator(None,
 
 
 from solnml.components.computation.parallel_process import ParallelProcessEvaluator
-config_space = ResNet50Classifier.get_hyperparameter_search_space()
-model = UnParametrizedHyperparameter("estimator", 'resnet50')
+from solnml.components.models.img_classification import _classifiers
+network_id = args.network
+config_space = _classifiers[network_id].get_hyperparameter_search_space()
+model = UnParametrizedHyperparameter("estimator", network_id)
 config_space.add_hyperparameter(model)
 aug_space = get_aug_hyperparameter_space()
 config_space.add_hyperparameters(aug_space.get_hyperparameters())
