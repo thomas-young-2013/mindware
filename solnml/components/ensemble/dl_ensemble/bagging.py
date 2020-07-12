@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.metrics.scorer import _BaseScorer
 
 from solnml.components.utils.constants import CLS_TASKS, IMG_CLS
+from solnml.datasets.base_dl_dataset import DLDataset
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
 from solnml.components.ensemble.dl_ensemble.base_ensemble import BaseEnsembleModel
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_test_transforms
@@ -33,7 +34,7 @@ class Bagging(BaseEnsembleModel):
         # Do nothing, models has been trained and saved.
         return self
 
-    def predict(self, test_data, sampler=None):
+    def predict(self, test_data: DLDataset, mode='test'):
         model_pred_list = list()
         final_pred = list()
 
@@ -44,14 +45,30 @@ class Bagging(BaseEnsembleModel):
                 if self.task_type == IMG_CLS:
                     test_transforms = get_test_transforms(config, image_size=self.image_size)
                     test_data.load_test_data(test_transforms)
+                    test_data.load_data(test_transforms, test_transforms)
                 else:
                     test_data.load_test_data()
+                    test_data.load_data()
                 estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
                                                           test_data.test_dataset, device=self.device)
                 if self.task_type in CLS_TASKS:
-                    model_pred_list.append(estimator.predict_proba(test_data.test_dataset, sampler=sampler))
+                    if mode == 'test':
+                        model_pred_list.append(estimator.predict_proba(test_data.test_dataset))
+                    else:
+                        if test_data.subset_sampler_used:
+                            model_pred_list.append(
+                                estimator.predict_proba(test_data.train_dataset, sampler=test_data.val_sampler))
+                        else:
+                            model_pred_list.append(estimator.predict_proba(test_data.val_dataset))
                 else:
-                    model_pred_list.append(estimator.predict(test_data.test_dataset, sampler=sampler))
+                    if mode == 'test':
+                        model_pred_list.append(estimator.predict(test_data.test_dataset))
+                    else:
+                        if test_data.subset_sampler_used:
+                            model_pred_list.append(
+                                estimator.predict(test_data.train_dataset, sampler=test_data.val_sampler))
+                        else:
+                            model_pred_list.append(estimator.predict(test_data.val_dataset))
                 model_cnt += 1
 
         # Calculate the average of predictions

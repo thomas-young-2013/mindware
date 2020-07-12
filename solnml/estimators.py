@@ -225,15 +225,16 @@ class ImageClassifier(BaseDLEstimator):
 
         return self
 
-    def predict(self, dataset, batch_size=1, n_jobs=1):
-        return super().predict(dataset, batch_size=batch_size, n_jobs=n_jobs)
+    def predict(self, dataset, mode='test', batch_size=None, n_jobs=1):
+        return super().predict(dataset, mode=mode, batch_size=batch_size, n_jobs=n_jobs)
 
     def refit(self):
         return super().refit()
 
-    def predict_proba(self, dataset, batch_size=1, n_jobs=1):
+    def predict_proba(self, dataset, mode='test', batch_size=None, n_jobs=1):
         """
         Predict probabilities of classes for all samples X.
+        :param mode: 'test' or 'val'
         :param dataset: ImageDataset
         :param batch_size: int
         :param n_jobs: int
@@ -242,7 +243,7 @@ class ImageClassifier(BaseDLEstimator):
         """
         if not isinstance(dataset, ImageDataset):
             raise ValueError("X is supposed to be an ImageDataset, but get %s" % type(dataset))
-        pred_proba = super().predict_proba(dataset, batch_size=batch_size, n_jobs=n_jobs)
+        pred_proba = super().predict_proba(dataset, mode=mode, batch_size=batch_size, n_jobs=n_jobs)
 
         if self.task_type != MULTILABEL_CLS:
             assert (
@@ -275,15 +276,16 @@ class TextClassifier(BaseDLEstimator):
 
         return self
 
-    def predict(self, dataset, batch_size=1, n_jobs=1):
-        return super().predict(X, batch_size=batch_size, n_jobs=n_jobs)
+    def predict(self, dataset, mode='test', batch_size=None, n_jobs=1):
+        return super().predict(dataset, batch_size=batch_size, n_jobs=n_jobs)
 
     def refit(self):
         return super().refit()
 
-    def predict_proba(self, dataset, batch_size=1, n_jobs=1):
+    def predict_proba(self, dataset, mode='test', batch_size=None, n_jobs=1):
         """
         Predict probabilities of classes for all samples X.
+        :param mode: 'test' or 'val'
         :param dataset: TextDataset
         :param batch_size: int
         :param n_jobs: int
@@ -292,7 +294,7 @@ class TextClassifier(BaseDLEstimator):
         """
         if not isinstance(dataset, TextDataset):
             raise ValueError("X is supposed to be a TextDataset, but get %s" % type(dataset))
-        pred_proba = super().predict_proba(dataset, batch_size=batch_size, n_jobs=n_jobs)
+        pred_proba = super().predict_proba(dataset, mode='test', batch_size=batch_size, n_jobs=n_jobs)
 
         if self.task_type != MULTILABEL_CLS:
             assert (
@@ -324,8 +326,8 @@ class ObjectionDetecter(BaseDLEstimator):
 
         return self
 
-    def predict(self, dataset, batch_size=1, n_jobs=1):
-        return super().predict(dataset, batch_size=batch_size, n_jobs=n_jobs)
+    def predict(self, dataset, mode='test', batch_size=1, n_jobs=1):
+        return super().predict(dataset, mode='test', batch_size=batch_size, n_jobs=n_jobs)
 
     def refit(self):
         return super().refit()

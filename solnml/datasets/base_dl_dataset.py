@@ -1,6 +1,6 @@
 import numpy as np
 from torch.utils.data import Dataset
-from torch.utils.data.sampler import SubsetRandomSampler, SequentialSampler
+from torch.utils.data.sampler import SubsetRandomSampler
 from .base_dataset import BaseDataset
 
 
@@ -10,7 +10,7 @@ class DLDataset(BaseDataset):
         self.train_sampler, self.val_sampler = None, None
         self.subset_sampler_used = False
 
-    def create_train_val_split(self, dataset: Dataset, train_val_split=0.2, shuffle=False):
+    def create_train_val_split(self, dataset: Dataset, train_val_split=0.2, shuffle=True):
         dataset_size = len(dataset)
         indices = list(range(dataset_size))
         test_split = int(np.floor(train_val_split * dataset_size))
@@ -22,7 +22,7 @@ class DLDataset(BaseDataset):
         val_indices, train_indices = indices[:test_split], indices[test_split:]
 
         self.train_sampler = SubsetRandomSampler(train_indices)
-        self.val_sampler = SequentialSampler(val_indices)
+        self.val_sampler = SubsetRandomSampler(val_indices)
         self.subset_sampler_used = True
 
     def get_num_train_samples(self):

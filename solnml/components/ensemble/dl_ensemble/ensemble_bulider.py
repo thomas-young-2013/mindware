@@ -1,6 +1,5 @@
 import os
 import torch
-from torch.utils.data import Dataset
 from sklearn.metrics.scorer import _BaseScorer
 from solnml.components.ensemble.dl_ensemble.bagging import Bagging
 from solnml.components.ensemble.dl_ensemble.blending import Blending
@@ -53,8 +52,8 @@ class EnsembleBuilder:
     def fit(self, data):
         return self.model.fit(data)
 
-    def predict(self, dataset: Dataset, sampler=None):
-        return self.model.predict(dataset, sampler=sampler)
+    def predict(self, dataset: DLDataset, mode='test'):
+        return self.model.predict(dataset, mode=mode)
 
     def refit(self, dataset: DLDataset):
         for algo_id in self.model.stats['include_algorithms']:
