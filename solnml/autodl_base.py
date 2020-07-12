@@ -315,10 +315,13 @@ class AutoDLBase(object):
             configs.extend(sample_configurations(_cs, N))
         return configs
 
-    def exec_SEE(self, architecture_candidates):
+    def exec_SEE(self, architecture_candidates, nas_evaluator):
         eta, N, R = 3, 9, 27
         r = 1
         C = self.sample_configs_for_archs(architecture_candidates, N)
+
+        executor = ParallelProcessEvaluator(nas_evaluator, n_worker=self.n_jobs)
+        self.logger.info('Create parallel executor with n_jobs=%d' % self.n_jobs)
 
         """
             iteration procedure.
@@ -333,7 +336,7 @@ class AutoDLBase(object):
                 self.eval_hist_perfs[r] = list()
             _start_time = time.time()
             self.logger.info('Evaluate %d configurations with %d resource' % (len(C), r))
-            val_losses = self.executor.parallel_execute(C, resource_ratio=float(r / R))
+            val_losses = executor.parallel_execute(C, resource_ratio=float(r / R))
             for _id, _val_loss in enumerate(val_losses):
                 if np.isfinite(_val_loss):
                     self.eval_hist_configs[r].append(C[_id])
@@ -350,23 +353,23 @@ class AutoDLBase(object):
             else:
                 C = [C[indices[0]]]
             r *= eta
+        executor.shutdown()
         return [config['estimator'] for config in C]
 
     def select_network_architectures(self, algorithm_candidates, train_data, num_arch=1, **kwargs):
         if len(algorithm_candidates) == 1:
             return algorithm_candidates
 
-        self.nas_evaluator = DLEvaluator(None,
-                                         self.task_type,
-                                         scorer=self.metric,
-                                         dataset=train_data,
-                                         device=self.device,
-                                         seed=self.seed, **kwargs)
-        self.executor = ParallelProcessEvaluator(self.nas_evaluator, n_worker=self.n_jobs)
-        self.logger.info('Create parallel executor with n_jobs=%d' % self.n_jobs)
+        nas_evaluator = DLEvaluator(None,
+                                    self.task_type,
+                                    scorer=self.metric,
+                                    dataset=train_data,
+                                    device=self.device,
+                                    seed=self.seed, **kwargs)
+        # self.executor = ParallelProcessEvaluator(nas_evaluator, n_worker=self.n_jobs)
+        # self.logger.info('Create parallel executor with n_jobs=%d' % self.n_jobs)
         _archs = algorithm_candidates.copy()
         while len(_archs) > num_arch:
-            _archs = self.exec_SEE(_archs)
+            _archs = self.exec_SEE(_archs, nas_evaluator)
         # gc.
-        self.executor.shutdown()
         return _archs
