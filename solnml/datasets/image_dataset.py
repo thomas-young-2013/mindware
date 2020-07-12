@@ -1,5 +1,6 @@
 import os
 from .base_dl_dataset import DLDataset
+from torch.utils.data import DataLoader, Dataset
 from solnml.components.models.img_classification.nn_utils.dataset import get_folder_dataset
 
 
@@ -46,3 +47,18 @@ class ImageDataset(DLDataset):
             return len(list(self.train_sampler))
         else:
             return len(self.train_dataset)
+
+    def get_labels(self, mode='val'):
+        if mode == 'val':
+            loader = DataLoader(dataset=self.train_for_val_dataset, batch_size=32, shuffle=False,
+                                sampler=self.val_sampler,
+                                num_workers=4)
+        elif mode == 'train':
+            loader = DataLoader(dataset=self.train_dataset, batch_size=32,
+                                sampler=self.train_sampler, num_workers=4, shuffle=False)
+        else:
+            loader = DataLoader(dataset=self.test_dataset, batch_size=32, shuffle=False,
+                                sampler=self.val_sampler,
+                                num_workers=4)
+
+        return self.get_loader_labels(loader)

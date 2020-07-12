@@ -32,16 +32,7 @@ class DLDataset(BaseDataset):
     def get_train_val_indices(self):
         return self.train_indices, self.val_indices
 
-    def get_labels(self, dataset_partition='val'):
-        if dataset_partition == 'val':
-            dataset = self.val_dataset
-        elif dataset_partition == 'train':
-            dataset = self.train_dataset
-        else:
-            dataset = self.test_dataset
-
-        loader = DataLoader(dataset=dataset, batch_size=32, shuffle=False,
-                            num_workers=4)
+    def get_loader_labels(self, loader: DataLoader):
         labels = list()
         for i, data in enumerate(loader):
             if len(data) != 2:

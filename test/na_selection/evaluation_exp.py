@@ -38,12 +38,13 @@ clf = ImageClassifier(time_limit=time_limit,
                       skip_profile=True,
                       max_epoch=5,
                       n_jobs=n_jobs)
+image_data.set_test_path(data_dir)
+
 if opt_method == 'ours':
     clf.fit(image_data)
 else:
     clf.fit(image_data, opt_method=opt_method)
 
-image_data.set_test_path(data_dir)
 preds = clf.predict(image_data, mode='val')
 val_labels = image_data.get_labels(dataset_partition='val')
 metric = get_metric('acc')
