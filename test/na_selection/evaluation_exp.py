@@ -46,10 +46,10 @@ else:
     clf.fit(image_data, opt_method=opt_method)
 
 preds = clf.predict(image_data, mode='val')
-val_labels = image_data.get_labels(dataset_partition='val')
+val_labels = image_data.get_labels(mode='val')
 metric = get_metric('acc')
 print('validation acc', metric(val_labels, preds))
 
 preds = clf.predict(image_data, mode='test')
-test_labels = image_data.get_labels(dataset_partition='test')
+test_labels = image_data.get_labels(mode='test')
 print('test acc', metric(test_labels, preds))
