@@ -270,7 +270,7 @@ class AutoDL(AutoDLBase):
             cs.add_conditions(aug_space.get_conditions())
 
         for estimator_id in algorithm_candidates:
-            sub_cs = self.get_model_config_space(estimator_id, include_estimator=False)
+            sub_cs = self.get_model_config_space(estimator_id, include_estimator=False, include_aug=False)
             parent_hyperparameter = {'parent': estimator_choice,
                                      'value': estimator_id}
             cs.add_configuration_space(estimator_id, sub_cs,
