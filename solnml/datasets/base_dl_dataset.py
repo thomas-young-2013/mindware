@@ -26,7 +26,7 @@ class DLDataset(BaseDataset):
         self.val_sampler = SubsetRandomSampler(self.val_indices)
         self.subset_sampler_used = True
 
-    def get_num_train_samples(self):
+    def get_train_samples_num(self):
         raise NotImplementedError()
 
     def get_train_val_indices(self):

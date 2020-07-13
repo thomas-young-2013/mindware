@@ -204,7 +204,7 @@ class ODDataset(DLDataset):
         self.test_dataset = ListDataset(self.test_data_path, self.classes, self.image_size, augment=False,
                                         multiscale=False, mode='test')
 
-    def get_num_train_samples(self):
+    def get_train_samples_num(self):
         if self.train_dataset is None:
             train_dataset = ListDataset(self.train_path, self.classes, self.image_size, self.augment,
                                         self.multiscale,
