@@ -2,12 +2,10 @@ import time
 import numpy as np
 import random as rd
 from math import log, ceil
-from sklearn.model_selection import KFold
+
+from solnml.utils.logging_utils import get_logger
 from solnml.components.utils.mfse_utils.prob_rf import RandomForestWithInstances
-from solnml.components.utils.mfse_utils.funcs import get_types, minmax_normalization
-from solnml.components.utils.mfse_utils.config_space_utils import convert_configurations_to_array, \
-    sample_configurations, expand_configurations
-from solnml.components.computation.parallel_evaluator import ParallelEvaluator
+from solnml.components.utils.mfse_utils.config_space_utils import sample_configurations
 from solnml.components.utils.mfse_utils.acquisition import EI
 from solnml.components.utils.mfse_utils.acq_optimizer import RandomSampling
 from solnml.components.utils.mfse_utils.prob_rf_cluster import WeightedRandomForestCluster
@@ -16,7 +14,7 @@ from solnml.components.utils.mfse_utils.config_space_utils import convert_config
 from solnml.components.computation.parallel_process import ParallelProcessEvaluator
 
 
-class MfseBase:
+class MfseBase(object):
     def __init__(self, eval_func, config_space,
                  seed=1, R=81, eta=3, n_jobs=1):
         self.eval_func = eval_func
@@ -28,8 +26,11 @@ class MfseBase:
         self.perfs = list()
         self.incumbent_perf = float("-INF")
         self.incumbent_config = self.config_space.get_default_configuration()
-        self.incumbent_configs = []
-        self.incumbent_perfs = []
+        self.incumbent_configs = list()
+        self.incumbent_perfs = list()
+        self.time_ticks = list()
+        self.global_start_time = time.time()
+        self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
 
         # Parameters in Hyperband framework.
         self.restart_needed = True
@@ -71,7 +72,7 @@ class MfseBase:
                                                      rng=np.random.RandomState(seed))
         self.eval_dict = dict()
 
-    def _mfse_iterate(self, s, skip_last=0):
+    def _iterate(self, s, skip_last=0):
         if self.weight_update_id > self.s_max:
             self.update_weight()
         self.weight_update_id += 1
@@ -109,6 +110,7 @@ class MfseBase:
             if int(n_resource) == self.R:
                 self.incumbent_configs.extend(T)
                 self.incumbent_perfs.extend(val_losses)
+                self.time_ticks.extend([time.time() - self.global_start_time] * len(T))
 
             # Select a number of best configurations for the next loop.
             # Filter out early stops, if any.
@@ -120,7 +122,6 @@ class MfseBase:
             else:
                 T = [T[indices[0]]]
         for item in self.iterate_r[self.iterate_r.index(r):]:
-            # NORMALIZE Objective value: Std normalization
             if len(self.target_y[item]) == 0:
                 continue
             normalized_y = std_normalization(self.target_y[item])
