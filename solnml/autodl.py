@@ -264,6 +264,11 @@ class AutoDL(AutoDLBase):
         estimator_choice = CategoricalHyperparameter("estimator", algorithm_candidates,
                                                      default_value=algorithm_candidates[0])
         cs.add_hyperparameter(estimator_choice)
+        if self.task_type == IMG_CLS:
+            aug_space = get_aug_hyperparameter_space()
+            cs.add_hyperparameters(aug_space.get_hyperparameters())
+            cs.add_conditions(aug_space.get_conditions())
+
         for estimator_id in algorithm_candidates:
             sub_cs = self.get_model_config_space(estimator_id, include_estimator=False)
             parent_hyperparameter = {'parent': estimator_choice,

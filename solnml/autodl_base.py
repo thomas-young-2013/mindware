@@ -195,7 +195,7 @@ class AutoDLBase(object):
                      )
         return get_logger(logger_name)
 
-    def get_model_config_space(self, estimator_id, include_estimator=True):
+    def get_model_config_space(self, estimator_id, include_estimator=True, include_aug=True):
         if estimator_id in self._estimators:
             clf_class = self._estimators[estimator_id]
         elif estimator_id in self._addons.components:
@@ -207,7 +207,7 @@ class AutoDLBase(object):
         model = UnParametrizedHyperparameter("estimator", estimator_id)
         if include_estimator:
             default_cs.add_hyperparameter(model)
-        if self.task_type == IMG_CLS:
+        if self.task_type == IMG_CLS and include_aug is True:
             aug_space = get_aug_hyperparameter_space()
             default_cs.add_hyperparameters(aug_space.get_hyperparameters())
             default_cs.add_conditions(aug_space.get_conditions())
