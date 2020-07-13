@@ -41,10 +41,28 @@ def get_estimator(task_type, config, max_epoch, device='cpu'):
     config_['random_state'] = 1
     config_['epoch_num'] = max_epoch
     config_['device'] = torch.device(device)
-    try:
-        estimator = _classifiers[classifier_type](**config_)
-    except:
-        estimator = _addons.components[classifier_type](**config_)
+
+    new_config = dict()
+    for key in config_.keys():
+        if key.find(':') != -1:
+            _key = key.split(':')[-1]
+        else:
+            _key = key
+        new_config[_key] = config_[key]
+
+    if classifier_type in _classifiers.keys():
+        try:
+            estimator = _classifiers[classifier_type](**new_config)
+        except Exception as e:
+            raise ValueError('Create estimator error: %s' % str(e))
+    elif classifier_type in _addons.components.keys():
+        try:
+            estimator = _addons.components[classifier_type](**new_config)
+        except Exception as e:
+            raise ValueError('Create estimator error: %s' % str(e))
+    else:
+        raise ValueError('classifier type - %s is invalid!' % classifier_type)
+
     return classifier_type, estimator
 
 

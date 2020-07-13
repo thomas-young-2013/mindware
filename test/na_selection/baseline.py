@@ -44,14 +44,10 @@ def get_pipeline_config_space(algorithm_candidates):
 
     for estimator_id in algorithm_candidates:
         sub_cs = get_model_config_space(estimator_id, include_estimator=False, include_aug=False)
-        # parent_hyperparameter = {'parent': estimator_choice,
-        #                          'value': estimator_id}
-        # cs.add_configuration_space(estimator_id, sub_cs,
-        #                            parent_hyperparameter=parent_hyperparameter)
-        cs.add_hyperparameters(sub_cs.get_hyperparameters())
-        for _hyper_parameter in sub_cs.get_hyperparameters():
-            _condition = InCondition(child=_hyper_parameter, parent=estimator_choice, values=[estimator_id])
-            cs.add_condition(_condition)
+        parent_hyperparameter = {'parent': estimator_choice,
+                                 'value': estimator_id}
+        cs.add_configuration_space(estimator_id, sub_cs,
+                                   parent_hyperparameter=parent_hyperparameter)
 
     return cs
 
