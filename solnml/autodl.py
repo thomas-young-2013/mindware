@@ -78,7 +78,7 @@ class AutoDL(AutoDLBase):
             self.evaluators[estimator_id] = hpo_evaluator
 
         # TODO: For first-time user, download pretrained params here!
-        num_train_samples = train_data.get_num_train_samples()
+        num_train_samples = train_data.get_train_samples_num()
 
         # Execute profiling procedure.
         algorithm_candidates = self.include_algorithms.copy()
