@@ -61,5 +61,6 @@ print('test acc', test_acc)
 
 file_path = 'autodl_%s_%s_%d_%d.pkl' % (dataset, opt_method, time_limit, time.time())
 result = [res, val_acc, test_acc]
+print(res)
 with open(file_path, 'wb') as f:
     pk.dump(result, f)
