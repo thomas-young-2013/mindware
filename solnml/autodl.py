@@ -279,7 +279,7 @@ class AutoDL(AutoDLBase):
 
     def _fit_in_hpo_way(self, algorithm_candidates, train_data, **kwargs):
         cs = self.get_pipeline_config_space(algorithm_candidates)
-        hpo_evaluator = DLEvaluator(None,
+        hpo_evaluator = DLEvaluator(cs.get_default_configuration(),
                                     self.task_type,
                                     scorer=self.metric,
                                     dataset=train_data,

@@ -370,5 +370,6 @@ class AutoDLBase(object):
         while len(_archs) > num_arch:
             _archs = self.exec_SEE(_archs)
         # gc.
-        self.executor.shutdown()
+        if self.n_jobs > 1:
+            self.executor.shutdown()
         return _archs
