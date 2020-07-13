@@ -23,3 +23,9 @@ class BaseHPOptimizer(object):
     @abc.abstractmethod
     def iterate(self):
         pass
+
+    def get_runtime_history(self):
+        return
+
+    def gc(self):
+        return

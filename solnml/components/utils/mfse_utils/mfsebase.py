@@ -162,6 +162,8 @@ class MfseBase(object):
     def update_weight(self):
         max_r = self.iterate_r[-1]
         incumbent_configs = self.target_x[max_r]
+        if len(incumbent_configs) <= 3:
+            return
         test_x = convert_configurations_to_array(incumbent_configs)
         test_y = np.array(self.target_y[max_r], dtype=np.float64)
 
