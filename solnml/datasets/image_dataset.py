@@ -41,9 +41,14 @@ class ImageDataset(DLDataset):
         self.test_dataset.classes = self.classes
 
     def get_num_train_samples(self):
-        self.load_data(None, None)
-        if self.subset_sampler_used:
-            return len(list(self.train_sampler))
+        if self.train_dataset is None:
+            _train_dataset = get_folder_dataset(os.path.join(self.data_path, 'train'),
+                                                udf_transforms=None,
+                                                grayscale=self.grayscale)
+            _train_size = len(_train_dataset)
         else:
-            return len(self.train_dataset)
-
+            _train_size = len(self.train_dataset)
+        if self.subset_sampler_used:
+            return _train_size * (1 - self.val_split_size)
+        else:
+            return _train_size
