@@ -279,6 +279,7 @@ class AutoDL(AutoDLBase):
                                     scorer=self.metric,
                                     dataset=train_data,
                                     device=self.device,
+                                    image_size=self.image_size,
                                     seed=self.seed)
         optimizer = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs,
                                         output_dir=self.output_dir,
