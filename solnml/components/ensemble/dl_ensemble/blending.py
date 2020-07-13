@@ -132,17 +132,20 @@ class Blending(BaseEnsembleModel):
 
                 if num_samples == 0:
                     if mode == 'test':
-                        loader = DataLoader(test_data.test_dataset)
+                        dataset = test_data.test_dataset
+                        loader = DataLoader(dataset)
                         num_samples = len(loader)
                     else:
                         if test_data.subset_sampler_used:
+                            dataset = test_data.train_dataset
                             num_samples = len(test_data.val_sampler)
                         else:
-                            loader = DataLoader(test_data.val_dataset)
+                            dataset = test_data.val_dataset
+                            loader = DataLoader(dataset)
                             num_samples = len(loader)
 
                 estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
-                                                          test_data.test_dataset, device=self.device)
+                                                          dataset, device=self.device)
                 if self.task_type in CLS_TASKS:
                     if mode == 'test':
                         pred = estimator.predict_proba(test_data.test_dataset)
