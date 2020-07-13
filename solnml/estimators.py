@@ -221,7 +221,7 @@ class ImageClassifier(BaseDLEstimator):
         self.metric = 'acc' if self.metric is None else self.metric
         # Set task type to image classification.
         self.task_type = IMG_CLS
-        super().fit(data, image_size=self.image_size)
+        super().fit(data, image_size=self.image_size, **kwargs)
 
         return self
 

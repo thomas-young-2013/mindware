@@ -48,10 +48,6 @@ class AutoDL(AutoDLBase):
         self.skip_profile = skip_profile
 
     def fit(self, train_data: DLDataset, **kwargs):
-        if 'opt_method' in kwargs and kwargs['opt_method'] == 'hpo':
-            self._fit_in_hpo_way(train_data, **kwargs)
-            return
-
         _start_time = time.time()
 
         if self.task_type == IMG_CLS:
@@ -107,6 +103,10 @@ class AutoDL(AutoDLBase):
 
         algorithm_candidates = self.select_network_architectures(algorithm_candidates, dl_evaluator, num_arch=2, **kwargs)
         self.logger.info('After NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
+
+        if 'opt_method' in kwargs and kwargs['opt_method'] == 'hpo':
+            self._fit_in_hpo_way(algorithm_candidates, train_data, **kwargs)
+            return
 
         # Control flow via round robin.
         n_algorithm = len(algorithm_candidates)
@@ -272,10 +272,7 @@ class AutoDL(AutoDLBase):
                                        parent_hyperparameter=parent_hyperparameter)
         return cs
 
-    def _fit_in_hpo_way(self, train_data, **kwargs):
-        num_train_samples = train_data.get_num_train_samples()
-        algorithm_candidates = self.profile_models(num_train_samples)
-
+    def _fit_in_hpo_way(self, algorithm_candidates, train_data, **kwargs):
         cs = self.get_pipeline_config_space(algorithm_candidates)
         hpo_evaluator = DLEvaluator(None,
                                     self.task_type,
