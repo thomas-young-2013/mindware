@@ -18,7 +18,6 @@ from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space im
 from solnml.components.utils.config_parser import ConfigParser
 from .autodl_base import AutoDLBase
 
-
 rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (10240, rlimit[1]))
 
@@ -101,7 +100,8 @@ class AutoDL(AutoDLBase):
                                    device=self.device,
                                    seed=self.seed, **kwargs)
 
-        algorithm_candidates = self.select_network_architectures(algorithm_candidates, dl_evaluator, num_arch=2, **kwargs)
+        algorithm_candidates = self.select_network_architectures(algorithm_candidates, dl_evaluator, num_arch=2,
+                                                                 **kwargs)
         self.logger.info('After NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
 
         if 'opt_method' in kwargs and kwargs['opt_method'] == 'hpo':

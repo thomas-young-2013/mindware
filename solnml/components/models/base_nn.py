@@ -8,6 +8,8 @@ from torch.optim.lr_scheduler import StepLR
 from solnml.datasets.base_dl_dataset import DLDataset
 from solnml.components.utils.dl_util import EarlyStop
 
+NUM_WORKERS = 10
+
 
 class BaseNeuralNetwork:
     @staticmethod
@@ -88,18 +90,18 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         params = self.model.parameters()
         val_loader = None
         if isinstance(dataset, Dataset):
-            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=10)
+            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=NUM_WORKERS)
         else:
             if not dataset.subset_sampler_used:
                 train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
-                                          num_workers=10)
+                                          num_workers=NUM_WORKERS)
                 val_loader = DataLoader(dataset=dataset.val_dataset, batch_size=self.batch_size, shuffle=False,
-                                        num_workers=10)
+                                        num_workers=NUM_WORKERS)
             else:
                 train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
-                                          sampler=dataset.train_sampler, num_workers=10)
+                                          sampler=dataset.train_sampler, num_workers=NUM_WORKERS)
                 val_loader = DataLoader(dataset=dataset.train_for_val_dataset, batch_size=self.batch_size,
-                                        sampler=dataset.val_sampler, num_workers=10)
+                                        sampler=dataset.val_sampler, num_workers=NUM_WORKERS)
 
         if self.optimizer == 'SGD':
             optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
@@ -200,7 +202,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, num_workers=4)
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, num_workers=NUM_WORKERS)
         self.model.to(self.device)
         self.model.eval()
 
@@ -221,7 +223,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, num_workers=4)
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, num_workers=NUM_WORKERS)
         self.model.to(self.device)
         self.model.eval()
 
@@ -241,13 +243,13 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
         if isinstance(dataset, Dataset):
-            loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=4)
+            loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=NUM_WORKERS)
         else:
             if not dataset.subset_sampler_used:
-                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, num_workers=4)
+                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, num_workers=NUM_WORKERS)
             else:
                 loader = DataLoader(dataset=dataset.train_for_val_dataset, batch_size=batch_size,
-                                    sampler=dataset.val_sampler, num_workers=4)
+                                    sampler=dataset.val_sampler, num_workers=NUM_WORKERS)
 
         self.model.to(self.device)
         self.model.eval()
@@ -290,18 +292,18 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         params = self.model.parameters()
         val_loader = None
         if isinstance(dataset, Dataset):
-            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
+            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=NUM_WORKERS)
         else:
             if not dataset.subset_sampler_used:
                 train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
-                                          num_workers=4)
+                                          num_workers=NUM_WORKERS)
                 val_loader = DataLoader(dataset=dataset.val_dataset, batch_size=self.batch_size, shuffle=False,
-                                        num_workers=4)
+                                        num_workers=NUM_WORKERS)
             else:
                 train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
-                                          sampler=dataset.train_sampler, num_workers=4)
+                                          sampler=dataset.train_sampler, num_workers=NUM_WORKERS)
                 val_loader = DataLoader(dataset=dataset.train_for_val_dataset, batch_size=self.batch_size,
-                                        sampler=dataset.val_sampler, num_workers=4)
+                                        sampler=dataset.val_sampler, num_workers=NUM_WORKERS)
 
         if self.optimizer == 'SGD':
             optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
@@ -406,7 +408,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         if not self.model:
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
-        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, num_workers=4)
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler, num_workers=NUM_WORKERS)
         self.model.to(self.device)
         self.model.eval()
 
@@ -428,7 +430,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
         assert sampler is None
-        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=None, num_workers=4)
+        loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=None, num_workers=NUM_WORKERS)
         self.model.to(self.device)
         self.model.eval()
 
@@ -449,13 +451,13 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
         if isinstance(dataset, Dataset):
-            loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=4)
+            loader = DataLoader(dataset=dataset, batch_size=batch_size, num_workers=NUM_WORKERS)
         else:
             if not dataset.subset_sampler_used:
-                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, num_workers=4)
+                loader = DataLoader(dataset=dataset.val_dataset, batch_size=batch_size, num_workers=NUM_WORKERS)
             else:
                 loader = DataLoader(dataset=dataset.train_for_val_dataset, batch_size=batch_size,
-                                    sampler=dataset.val_sampler, num_workers=4)
+                                    sampler=dataset.val_sampler, num_workers=NUM_WORKERS)
         self.model.eval()
         total_len = 0
         score = 0
@@ -496,12 +498,13 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
 
         val_loader = None
         if isinstance(dataset, Dataset):
-            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=4)
+            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True,
+                                      num_workers=NUM_WORKERS)
         else:
             train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
-                                      num_workers=4, collate_fn=dataset.train_dataset.collate_fn)
+                                      num_workers=NUM_WORKERS, collate_fn=dataset.train_dataset.collate_fn)
             val_loader = DataLoader(dataset=dataset.val_dataset, batch_size=self.batch_size, shuffle=False,
-                                    num_workers=4, collate_fn=dataset.val_dataset.collate_fn)
+                                    num_workers=NUM_WORKERS, collate_fn=dataset.val_dataset.collate_fn)
             # else:
             #     train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size,
             #                               sampler=dataset.train_sampler, num_workers=4,
@@ -589,7 +592,7 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
             raise ValueError("Model not fitted!")
         batch_size = self.batch_size if batch_size is None else batch_size
         loader = DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler,
-                            num_workers=4, collate_fn=dataset.collate_fn)
+                            num_workers=NUM_WORKERS, collate_fn=dataset.collate_fn)
         self.model.to(self.device)
         self.model.eval()
 
