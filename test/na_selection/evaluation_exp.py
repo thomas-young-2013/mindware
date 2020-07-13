@@ -44,9 +44,10 @@ clf = ImageClassifier(time_limit=time_limit,
 image_data.set_test_path(data_dir)
 
 if opt_method == 'ours':
-    res = clf.fit(image_data)
+    clf.fit(image_data)
 else:
-    res = clf.fit(image_data, opt_method=opt_method)
+    clf.fit(image_data, opt_method=opt_method)
+res = clf.get_runtime_history()
 
 preds = clf.predict(image_data, mode='val')
 val_labels = image_data.get_labels(mode='val')
