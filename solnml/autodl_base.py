@@ -366,6 +366,8 @@ class AutoDLBase(object):
         if self.n_jobs > 1:
             self.executor = ParallelProcessEvaluator(dl_evaluator, n_worker=self.n_jobs)
             self.logger.info('Create parallel executor with n_jobs=%d' % self.n_jobs)
+        else:
+            self.nas_evaluator = dl_evaluator
         _archs = algorithm_candidates.copy()
         while len(_archs) > num_arch:
             _archs = self.exec_SEE(_archs)

@@ -43,7 +43,7 @@ class ImageDataset(DLDataset):
     def get_num_train_samples(self):
         self.load_data(None, None)
         if self.subset_sampler_used:
-            return len(list(self.train_sampler))
+            return len(self.train_sampler)
         else:
             return len(self.train_dataset)
 

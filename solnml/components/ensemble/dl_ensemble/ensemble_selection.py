@@ -277,13 +277,13 @@ class EnsembleSelection(BaseEnsembleModel):
                 if num_samples == 0:
                     if mode == 'test':
                         loader = DataLoader(test_data.test_dataset)
-                        num_samples = len(list(loader))
+                        num_samples = len(loader)
                     else:
                         if test_data.subset_sampler_used:
-                            num_samples = len(list(test_data.val_sampler))
+                            num_samples = len(test_data.val_sampler)
                         else:
                             loader = DataLoader(test_data.val_dataset)
-                            num_samples = len(list(loader))
+                            num_samples = len(loader)
 
                 estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
                                                           test_data.test_dataset, device=self.device)
