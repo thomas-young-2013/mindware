@@ -4,6 +4,7 @@ import random as rd
 from math import log, ceil
 from solnml.components.utils.mfse_utils.config_space_utils import convert_configurations_to_array, \
     sample_configurations
+from solnml.components.utils.mfse_utils.bohb_config_gen import BOHB
 from solnml.components.utils.mfse_utils.acquisition import EI
 from solnml.components.utils.mfse_utils.acq_optimizer import RandomSampling
 from solnml.components.utils.mfse_utils.funcs import get_types, std_normalization
@@ -14,10 +15,11 @@ from .prob_rf import RandomForestWithInstances
 
 
 class BohbBase(object):
-    def __init__(self, eval_func, config_space,
+    def __init__(self, eval_func, config_space, mode='smac',
                  seed=1, R=81, eta=3, n_jobs=1):
         self.eval_func = eval_func
         self.config_space = config_space
+        self.mode = mode
         self.n_workers = n_jobs
 
         self.trial_cnt = 0
@@ -27,6 +29,8 @@ class BohbBase(object):
         self.incumbent_config = self.config_space.get_default_configuration()
         self.incumbent_configs = list()
         self.incumbent_perfs = list()
+        self.global_start_time = time.time()
+        self.time_ticks = list()
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
 
         # Parameters in Hyperband framework.
@@ -62,6 +66,9 @@ class BohbBase(object):
                                             self.config_space,
                                             n_samples=2000,
                                             rng=np.random.RandomState(seed))
+
+        self.config_gen = BOHB(config_space)
+
         self.eval_dict = dict()
 
     def _iterate(self, s, skip_last=0):
@@ -98,6 +105,14 @@ class BohbBase(object):
             if int(n_resource) == self.R:
                 self.incumbent_configs.extend(T)
                 self.incumbent_perfs.extend(val_losses)
+                self.time_ticks.extend([time.time() - self.global_start_time] * len(T))
+
+                # Only update results using maximal resources
+                if self.mode != 'smac':
+                    for _id, _val_loss in enumerate(val_losses):
+                        if np.isfinite(_val_loss):
+                            self.config_gen.new_result(T[_id], _val_loss, int(n_resource))
+
 
             # Select a number of best configurations for the next loop.
             # Filter out early stops, if any.
@@ -112,11 +127,12 @@ class BohbBase(object):
         # Refit the surrogate model.
         resource_val = self.iterate_r[-1]
         if len(self.target_y[resource_val]) > 1:
-            normalized_y = std_normalization(self.target_y[resource_val])
-            self.surrogate.train(convert_configurations_to_array(self.target_x[resource_val]),
-                                 np.array(normalized_y, dtype=np.float64))
+            if self.mode == 'smac':
+                normalized_y = std_normalization(self.target_y[resource_val])
+                self.surrogate.train(convert_configurations_to_array(self.target_x[resource_val]),
+                                     np.array(normalized_y, dtype=np.float64))
 
-    def get_candidate_configurations(self, num_config):
+    def smac_get_candidate_configurations(self, num_config):
         if len(self.target_y[self.iterate_r[-1]]) <= 3:
             return sample_configurations(self.config_space, num_config)
 
@@ -139,3 +155,19 @@ class BohbBase(object):
                 idx_acq += 1
             candidates.append(config)
         return candidates
+
+    def baseline_get_candidate_configurations(self, num_config):
+        config_list = list()
+        while num_config:
+            config = self.config_gen.get_config(None)[0]
+            if config in config_list:
+                continue
+            config_list.append(config)
+            num_config -= 1
+        return config_list
+
+    def get_candidate_configurations(self, num_config):
+        if self.mode == 'smac':
+            return self.smac_get_candidate_configurations(num_config)
+        else:
+            return self.baseline_get_candidate_configurations(num_config)

@@ -1,5 +1,6 @@
 from solnml.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from solnml.components.hpo_optimizer.mfse_optimizer import MfseOptimizer
+from solnml.components.hpo_optimizer.bohb_optimizer import BohbOptimizer
 
 
 def build_hpo_optimizer(eval_type, evaluator, config_space,
@@ -7,6 +8,8 @@ def build_hpo_optimizer(eval_type, evaluator, config_space,
                         output_dir='./', trials_per_iter=1, seed=1, n_jobs=1):
     if eval_type == 'partial':
         optimizer_class = MfseOptimizer
+    elif eval_type == 'partial_bohb':
+        optimizer_class = BohbOptimizer
     else:
         # TODO: Support asynchronous BO
         optimizer_class = SMACOptimizer

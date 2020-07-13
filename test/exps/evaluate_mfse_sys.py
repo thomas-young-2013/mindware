@@ -283,7 +283,7 @@ if __name__ == "__main__":
                 elif dataset == 'higgs':
                     plt.ylim(0.2775, 0.29)
                 elif dataset == 'codrna':
-                    plt.ylim(0.022, 0.03)
+                    plt.ylim(0.022, 0.026)
                 elif dataset == 'vehicle_sensIT':
                     plt.ylim(0.1275, 0.14)
                 elif dataset == 'mnist_784':
