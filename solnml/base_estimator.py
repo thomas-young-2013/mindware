@@ -247,5 +247,8 @@ class BaseDLEstimator(object):
     def predict_proba(self, X: DLDataset, mode='test', batch_size=1, n_jobs=1):
         return self._ml_engine.predict_proba(X, mode=mode, batch_size=batch_size, n_jobs=n_jobs)
 
+    def get_runtime_history(self):
+        return self._ml_engine._get_runtime_info()
+
     def get_automl(self):
         return AutoDL

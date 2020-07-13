@@ -106,7 +106,7 @@ class AutoDL(AutoDLBase):
 
         if 'opt_method' in kwargs and kwargs['opt_method'] == 'hpo':
             self._fit_in_hpo_way(algorithm_candidates, train_data, **kwargs)
-            return self._get_runtime_info()
+            return
 
         # Control flow via round robin.
         n_algorithm = len(algorithm_candidates)
@@ -154,8 +154,6 @@ class AutoDL(AutoDLBase):
                                       device=self.device,
                                       output_dir=self.output_dir, **kwargs)
             self.es.fit(data=train_data)
-
-        return self._get_runtime_info()
 
     def fetch_ensemble_members(self, candidate_algorithms):
         stats = dict()
