@@ -205,8 +205,11 @@ class ODDataset(DLDataset):
                                         multiscale=False, mode='test')
 
     def get_num_train_samples(self):
-        self.load_data()
-        if self.subset_sampler_used:
-            return len(list(self.train_sampler))
+        if self.train_dataset is None:
+            train_dataset = ListDataset(self.train_path, self.classes, self.image_size, self.augment,
+                                        self.multiscale,
+                                        self.normlized_labels)
+            _train_size = len(train_dataset)
         else:
-            return len(self.train_dataset)
+            _train_size = len(self.train_dataset)
+        return _train_size

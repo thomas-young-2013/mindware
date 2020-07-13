@@ -68,9 +68,13 @@ class TextDataset(DLDataset):
         self.test_dataset.classes = self.classes
 
     def get_num_train_samples(self):
-        self.load_data()
-        if self.subset_sampler_used:
-            return len(list(self.train_sampler))
+        if self.train_dataset is None:
+            train_dataset = TextBertDataset(self.data_path, self.padding_size, self.config_path)
+            _train_size = len(train_dataset)
         else:
-            return len(self.train_dataset)
+            _train_size = len(self.train_dataset)
 
+        if self.subset_sampler_used:
+            return int(_train_size * (1 - self.val_split_size))
+        else:
+            return _train_size

@@ -40,7 +40,7 @@ class ImageDataset(DLDataset):
                                                grayscale=self.grayscale)
         self.test_dataset.classes = self.classes
 
-    def get_num_train_samples(self):
+    def get_train_samples_num(self):
         if self.train_dataset is None:
             _train_dataset = get_folder_dataset(os.path.join(self.data_path, 'train'),
                                                 udf_transforms=None,
