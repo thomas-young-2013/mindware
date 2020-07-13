@@ -1,7 +1,18 @@
 import numpy as np
-from torch.utils.data.sampler import SubsetRandomSampler
+from torch.utils.data.sampler import SubsetRandomSampler, Sampler
 from .base_dataset import BaseDataset
 from torch.utils.data import DataLoader, Dataset
+
+
+class SubsetSequentialampler(Sampler):
+    def __init__(self, indices):
+        self.indices = indices
+
+    def __iter__(self):
+        return (self.indices[i] for i in range(len(self.indices)))
+
+    def __len__(self):
+        return len(self.indices)
 
 
 class DLDataset(BaseDataset):
@@ -23,7 +34,7 @@ class DLDataset(BaseDataset):
         self.val_indices, self.train_indices = indices[:test_split], indices[test_split:]
 
         self.train_sampler = SubsetRandomSampler(self.train_indices)
-        self.val_sampler = SubsetRandomSampler(self.val_indices)
+        self.val_sampler = SubsetSequentialampler(self.val_indices)
         self.subset_sampler_used = True
 
     def get_train_samples_num(self):
@@ -42,14 +53,23 @@ class DLDataset(BaseDataset):
 
     def get_labels(self, mode='val'):
         if mode == 'val':
-            loader = DataLoader(dataset=self.train_dataset, batch_size=32, shuffle=False,
-                                sampler=None,
-                                num_workers=4)
-            return self.get_loader_labels(loader)[self.val_indices]
+            if self.subset_sampler_used:
+                loader = DataLoader(dataset=self.train_dataset, batch_size=32,
+                                    sampler=self.val_sampler, num_workers=4)
+                return self.get_loader_labels(loader)
+            else:
+                loader = DataLoader(dataset=self.val_dataset, batch_size=32, shuffle=False,
+                                    sampler=None, num_workers=4)
+                return self.get_loader_labels(loader)
         elif mode == 'train':
-            loader = DataLoader(dataset=self.train_dataset, batch_size=32,
-                                sampler=None, num_workers=4, shuffle=False)
-            return self.get_loader_labels(loader)[self.train_indices]
+            if self.subset_sampler_used:
+                loader = DataLoader(dataset=self.train_dataset, batch_size=32,
+                                    sampler=self.train_sampler, num_workers=4)
+                return self.get_loader_labels(loader)
+            else:
+                loader = DataLoader(dataset=self.train_dataset, batch_size=32, shuffle=False,
+                                    sampler=None, num_workers=4)
+                return self.get_loader_labels(loader)
         else:
             loader = DataLoader(dataset=self.test_dataset, batch_size=32, shuffle=False,
                                 num_workers=4)

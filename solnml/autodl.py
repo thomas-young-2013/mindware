@@ -221,22 +221,23 @@ class AutoDL(AutoDLBase):
             test_data.load_test_data()
             test_data.load_data()
 
-    def predict_proba(self, test_data: DLDataset, mode='test', batch_size=1, n_jobs=1):
+    def predict_proba(self, test_data: DLDataset, mode='test', batch_size=None, n_jobs=1):
         if self.es is None:
             self.load_predict_data(test_data)
             model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, self.max_epoch,
                                                    test_data.test_dataset, device=self.device)
             if mode == 'test':
-                return model_.predict_proba(test_data.test_dataset)
+                return model_.predict_proba(test_data.test_dataset, batch_size=batch_size)
             else:
                 if test_data.subset_sampler_used:
-                    return model_.predict_proba(test_data.train_dataset, sampler=test_data.val_sampler)
+                    return model_.predict_proba(test_data.train_dataset, sampler=test_data.val_sampler,
+                                                batch_size=batch_size)
                 else:
-                    return model_.predict_proba(test_data.val_dataset)
+                    return model_.predict_proba(test_data.val_dataset, batch_size=batch_size)
         else:
             return self.es.predict(test_data, mode=mode)
 
-    def predict(self, test_data: DLDataset, mode='test', batch_size=1, n_jobs=1):
+    def predict(self, test_data: DLDataset, mode='test', batch_size=None, n_jobs=1):
         if self.es is None:
             self.load_predict_data(test_data)
             model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, self.max_epoch,
@@ -245,8 +246,8 @@ class AutoDL(AutoDLBase):
                 return model_.predict(test_data.test_dataset, batch_size=batch_size)
             else:
                 if test_data.subset_sampler_used:
-                    return model_.predict(test_data.train_dataset, sampler=None,
-                                          batch_size=batch_size)[test_data.val_indices]
+                    return model_.predict(test_data.train_dataset, sampler=test_data.val_sampler,
+                                          batch_size=batch_size)
                 else:
                     return model_.predict(test_data.val_dataset, batch_size=batch_size)
         else:
@@ -257,7 +258,8 @@ class AutoDL(AutoDLBase):
             metric_func = self.metric
         preds = self.predict(test_data, mode=mode)
         labels = test_data.get_labels(mode=mode)
-        return metric_func(labels, preds)
+        # TODO: support AUC
+        return metric_func._score_func(preds, labels)
 
     def get_pipeline_config_space(self, algorithm_candidates):
         cs = ConfigurationSpace()
