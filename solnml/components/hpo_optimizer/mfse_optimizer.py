@@ -25,7 +25,7 @@ class MfseOptimizer(BaseHPOptimizer, MfseBase):
         '''
         _start_time = time.time()
         for _ in range(num_iter):
-            self._mfse_iterate(self.s_values[self.inner_iter_id])
+            self._iterate(self.s_values[self.inner_iter_id])
             self.inner_iter_id = (self.inner_iter_id + 1) % (self.s_max + 1)
 
         iteration_cost = time.time() - _start_time
@@ -40,3 +40,6 @@ class MfseOptimizer(BaseHPOptimizer, MfseBase):
         self.incumbent_config = self.incumbent_configs[inc_idx]
         # incumbent_perf: the large the better
         return self.incumbent_perf, iteration_cost, self.incumbent_config
+
+    def get_runtime_history(self):
+        return self.incumbent_perfs, self.time_ticks, self.incumbent_perf
