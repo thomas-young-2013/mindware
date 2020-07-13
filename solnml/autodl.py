@@ -155,6 +155,10 @@ class AutoDL(AutoDLBase):
                                       output_dir=self.output_dir, **kwargs)
             self.es.fit(data=train_data)
 
+        # Release the resource.
+        for _solver in self.solvers.keys():
+            self.solvers[_solver].gc()
+
     def fetch_ensemble_members(self, candidate_algorithms):
         stats = dict()
         # a subset of included algorithms.

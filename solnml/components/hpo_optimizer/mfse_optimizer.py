@@ -43,3 +43,6 @@ class MfseOptimizer(BaseHPOptimizer, MfseBase):
 
     def get_runtime_history(self):
         return self.incumbent_perfs, self.time_ticks, self.incumbent_perf
+
+    def gc(self):
+        self.executor.shutdown()
