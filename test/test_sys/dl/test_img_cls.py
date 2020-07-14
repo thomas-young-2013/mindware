@@ -22,17 +22,18 @@ if phase == 'fit':
     # data_dir = 'data/img_datasets/hymenoptera_data/'
     data_dir = 'data/img_datasets/cifar10/'
     image_data = ImageDataset(data_path=data_dir, train_val_split=True)
-    clf = ImageClassifier(time_limit=86400 * 1.2,
-                          # include_algorithms=['mobilenet'],
+    clf = ImageClassifier(time_limit=1800,
+                          include_algorithms=['mobilenet'],
                           evaluation='holdout',
                           image_size=32,
-                          max_epoch=80,
+                          max_epoch=30,
                           skip_profile=True,
-                          ensemble_method='ensemble_selection')
+                          ensemble_method='ensemble_selection',
+                          n_jobs=3)
     clf.fit(image_data)
     image_data.set_test_path(data_dir)
-    print(clf.predict_proba(image_data, mode='val'))
-    print(clf.predict_proba(image_data))
+    print(clf.score(image_data, mode='val'))
+    print(clf.score(image_data))
     pred = clf.predict(image_data)
     timestamp = time.time()
     with open('es_output_%s.pkl' % timestamp, 'wb') as f:

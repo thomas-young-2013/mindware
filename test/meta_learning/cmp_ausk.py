@@ -59,7 +59,7 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
                               fe_algo='bo',
                               seed=seed,
                               time_limit=time_limit,
-                              eval_type='holdout')
+                              eval_type='holdout_tpe')
     bandit.optimize()
     time_taken = time.time() - _start_time
     model_desc = [bandit.nbest_algo_ids, bandit.optimal_algo_id, bandit.final_rewards, bandit.action_sequence]
@@ -68,24 +68,24 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
     best_pred = bandit._best_predict(test_data)
     test_accuracy = balanced_accuracy(test_data.data[1], best_pred)
 
-    bandit.refit()
-    es_pred = bandit._es_predict(test_data)
-    test_accuracy_with_ens = balanced_accuracy(test_data.data[1], es_pred)
+    # bandit.refit()
+    # es_pred = bandit._es_predict(test_data)
+    # test_accuracy_with_ens = balanced_accuracy(test_data.data[1], es_pred)
 
-    data = [dataset, validation_accuracy, test_accuracy, test_accuracy_with_ens, time_taken, model_desc]
+    # data = [dataset, validation_accuracy, test_accuracy, test_accuracy_with_ens, time_taken, model_desc]
     print(model_desc)
-    print(data)
+    # print(data)
 
-    save_path = project_dir + '%s_%s_%s_%d_%d_%d_%d_%d.pkl' % (
-        hmab_flag, opt_algo, dataset, trial_num, len(algorithms), seed, run_id, time_limit)
-    with open(save_path, 'wb') as f:
-        pickle.dump(data, f)
-
-    del_path = './logs/'
-    for i in os.listdir(del_path):
-        file_data = del_path + "/" + i
-        if os.path.isfile(file_data):
-            os.remove(file_data)
+    # save_path = project_dir + '%s_%s_%s_%d_%d_%d_%d_%d.pkl' % (
+    #     hmab_flag, opt_algo, dataset, trial_num, len(algorithms), seed, run_id, time_limit)
+    # with open(save_path, 'wb') as f:
+    #     pickle.dump(data, f)
+    #
+    # del_path = './logs/'
+    # for i in os.listdir(del_path):
+    #     file_data = del_path + "/" + i
+    #     if os.path.isfile(file_data):
+    #         os.remove(file_data)
 
 
 def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limit=1200):
@@ -179,9 +179,10 @@ if __name__ == "__main__":
     np.random.seed(args.seed)
     seeds = np.random.randint(low=1, high=10000, size=start_id + args.rep_num)
 
-    algorithms = ['adaboost', 'random_forest',
-                  'extra_trees', 'liblinear_svc',
-                  'k_nearest_neighbors', 'libsvm_svc', 'gradient_boosting']
+    # algorithms = ['adaboost', 'random_forest',
+    #               'extra_trees', 'liblinear_svc',
+    #               'k_nearest_neighbors', 'libsvm_svc', 'gradient_boosting']
+    algorithms = ['random_forest']
 
     dataset_list = dataset_str.split(',')
 

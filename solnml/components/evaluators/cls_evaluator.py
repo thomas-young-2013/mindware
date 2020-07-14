@@ -81,7 +81,7 @@ class ClassificationEvaluator(_BaseEvaluator):
             self.onehot_encoder.fit(y)
 
         try:
-            if self.resampling_strategy == 'cv':
+            if 'cv' in self.resampling_strategy:
                 if self.resampling_params is None or 'folds' not in self.resampling_params:
                     folds = 5
                 else:
@@ -93,7 +93,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                                          onehot=self.onehot_encoder if isinstance(self.scorer,
                                                                                   _ThresholdScorer) else None,
                                          fit_params=fit_params)
-            elif self.resampling_strategy == 'holdout':
+            elif 'holdout' in self.resampling_strategy:
                 if self.resampling_params is None or 'test_size' not in self.resampling_params:
                     test_size = 0.33
                 else:
@@ -105,7 +105,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                                            onehot=self.onehot_encoder if isinstance(self.scorer,
                                                                                     _ThresholdScorer) else None,
                                            fit_params=fit_params)
-            elif self.resampling_strategy == 'partial':
+            elif 'partial' in self.resampling_strategy:
                 if self.resampling_params is None or 'test_size' not in self.resampling_params:
                     test_size = 0.33
                 else:

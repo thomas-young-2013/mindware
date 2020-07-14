@@ -4,7 +4,7 @@ import random as rd
 from math import log, ceil
 from solnml.components.utils.mfse_utils.config_space_utils import convert_configurations_to_array, \
     sample_configurations
-from solnml.components.utils.mfse_utils.bohb_config_gen import BOHB
+from solnml.components.utils.mfse_utils.tpe_config_gen import TPE
 from solnml.components.utils.mfse_utils.acquisition import EI
 from solnml.components.utils.mfse_utils.acq_optimizer import RandomSampling
 from solnml.components.utils.mfse_utils.funcs import get_types, std_normalization
@@ -67,7 +67,7 @@ class BohbBase(object):
                                             n_samples=2000,
                                             rng=np.random.RandomState(seed))
 
-        self.config_gen = BOHB(config_space)
+        self.config_gen = TPE(config_space)
 
         self.eval_dict = dict()
 
@@ -111,8 +111,7 @@ class BohbBase(object):
                 if self.mode != 'smac':
                     for _id, _val_loss in enumerate(val_losses):
                         if np.isfinite(_val_loss):
-                            self.config_gen.new_result(T[_id], _val_loss, int(n_resource))
-
+                            self.config_gen.new_result(T[_id], _val_loss)
 
             # Select a number of best configurations for the next loop.
             # Filter out early stops, if any.
@@ -157,14 +156,25 @@ class BohbBase(object):
         return candidates
 
     def baseline_get_candidate_configurations(self, num_config):
-        config_list = list()
+        config_candidates = list()
         while num_config:
             config = self.config_gen.get_config(None)[0]
-            if config in config_list:
+            if config in config_candidates:
                 continue
-            config_list.append(config)
+            config_candidates.append(config)
             num_config -= 1
-        return config_list
+
+        p_threshold = 0.3
+        candidates = list()
+        idx_acq = 0
+        for _id in range(num_config):
+            if rd.random() < p_threshold:
+                config = sample_configurations(self.config_space, 1)[0]
+            else:
+                config = config_candidates[idx_acq]
+                idx_acq += 1
+            candidates.append(config)
+        return candidates
 
     def get_candidate_configurations(self, num_config):
         if self.mode == 'smac':

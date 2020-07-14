@@ -12,7 +12,7 @@ import statsmodels.api as sm
 from solnml.utils.logging_utils import get_logger
 
 
-class BOHB:
+class TPE:
     def __init__(self, configspace, min_points_in_model=None,
                  top_n_percent=15, num_samples=64, random_fraction=1 / 3,
                  bandwidth_factor=3, min_bandwidth=1e-3,
@@ -93,7 +93,7 @@ class BOHB:
             return -float('inf')
         return max(self.kde_models.keys())
 
-    def get_config(self, budget):
+    def get_config(self):
         """
             Function to sample a new configuration
 
@@ -264,7 +264,6 @@ class BOHB:
             return
 
         # We want to get a numerical representation of the configuration in the original space
-
         conf = ConfigSpace.Configuration(self.configspace, config)
         self.configs[budget].append(conf.get_array())
         self.losses[budget].append(loss)
