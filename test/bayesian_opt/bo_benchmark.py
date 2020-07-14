@@ -16,7 +16,7 @@ from solnml.components.utils.constants import MULTICLASS_CLS
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--algo', type=str, default='libsvm_svc')
-parser.add_argument('--mths', type=str, default='gp_bo,lite_bo,smac,tpe_bo')
+parser.add_argument('--mths', type=str, default='gp_bo,lite_bo,smac,tpe_bo,random_search')
 parser.add_argument('--plot_mode', type=int, default=0)
 parser.add_argument('--datasets', type=str, default='splice')
 parser.add_argument('--n_jobs', type=int, default=2)
@@ -122,6 +122,13 @@ def evaluate(mth, dataset, run_id):
     elif mth == 'tpe_bo':
         from solnml.components.transfer_learning.tlbo.tpe_optimizer import TPE_BO
         bo = TPE_BO(objective_function, config_space, max_runs=max_runs)
+        bo.run()
+        print('lite BO result')
+        print(bo.get_incumbent())
+        perf_bo = bo.history_container.incumbent_value
+    elif mth == 'random_search':
+        from solnml.components.transfer_learning.tlbo.tpe_optimizer import TPE_BO
+        bo = TPE_BO(objective_function, config_space, surrogate_model=mth, max_runs=max_runs)
         bo.run()
         print('lite BO result')
         print(bo.get_incumbent())

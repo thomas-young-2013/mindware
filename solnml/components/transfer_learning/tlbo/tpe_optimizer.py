@@ -41,6 +41,8 @@ class TPE_BO(BaseFacade):
         self.objective_function = objective_function
         if self.surrogate_model == 'tpe':
             self.model = TPE(configspace=config_space)
+        elif self.surrogate_model == 'random_search':
+            pass
         else:
             raise ValueError('Unsupported surrogate model - %s!' % self.surrogate_model)
 
@@ -76,7 +78,8 @@ class TPE_BO(BaseFacade):
                 self.configurations.append(config)
                 self.perfs.append(perf)
                 # Update KDE model.
-                self.model.new_result(config, perf, 1)
+                if self.surrogate_model == 'tpe':
+                    self.model.new_result(config, perf, 1)
                 self.history_container.add(config, perf)
             else:
                 self.failed_configurations.append(config)
@@ -104,5 +107,10 @@ class TPE_BO(BaseFacade):
             else:
                 return self.initial_configurations[_config_num]
         else:
-            config, _ = self.model.get_config()
+            if self.surrogate_model == 'tpe':
+                config, _ = self.model.get_config()
+            elif self.surrogate_model == 'random_search':
+                config = sample_configurations(self.config_space, 1)[0]
+            else:
+                 raise ValueError('Invalid surrogate model - %s.' % self.surrogate_model)
             return config
