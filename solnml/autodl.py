@@ -1,5 +1,4 @@
 import os
-import sys
 import time
 import torch
 import resource
@@ -17,6 +16,7 @@ from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space im
     get_test_transforms
 from solnml.components.utils.config_parser import ConfigParser
 from .autodl_base import AutoDLBase
+from .utils.proc_thread.proc_func import kill_proc_tree
 
 rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (10240, rlimit[1]))
@@ -84,8 +84,7 @@ class AutoDL(AutoDLBase):
         if not self.skip_profile:
             algorithm_candidates = self.profile_models(num_train_samples)
             if len(algorithm_candidates) == 0:
-                self.logger.error('After profiling, no arch is in the candidates!')
-                sys.exit(1)
+                raise ValueError('After profiling, no arch is in the candidates!')
             else:
                 self.logger.info('After profiling, arch candidates={%s}' % ','.join(algorithm_candidates))
 
@@ -154,10 +153,6 @@ class AutoDL(AutoDLBase):
                                       device=self.device,
                                       output_dir=self.output_dir, **kwargs)
             self.es.fit(data=train_data)
-
-        # Release the resource.
-        for _solver in self.solvers.keys():
-            self.solvers[_solver].gc()
 
     def fetch_ensemble_members(self, candidate_algorithms):
         stats = dict()
@@ -339,3 +334,10 @@ class AutoDL(AutoDLBase):
         for _solver in self.solvers.keys():
             runtime_info.append(self.solvers[_solver].get_runtime_history())
         return runtime_info
+
+    # TODO: in a graceful way.
+    def recycle(self):
+        for _solver in self.solvers.keys():
+            self.solvers[_solver].gc()
+        pid = os.getpid()
+        kill_proc_tree(pid, including_parent=False)

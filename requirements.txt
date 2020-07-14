@@ -2,6 +2,7 @@ setuptools
 nose
 arff
 pillow
+psutil
 
 Cython
 pyyaml
