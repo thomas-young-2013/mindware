@@ -1,4 +1,5 @@
 import os
+import sys
 import numpy as np
 import pandas as pd
 
@@ -230,9 +231,14 @@ class BaseDLEstimator(object):
         return engine
 
     def fit(self, data: DLDataset, **kwargs):
-        assert data is not None and isinstance(data, DLDataset)
-        self._ml_engine = self.build_engine()
-        self._ml_engine.fit(data, **kwargs)
+        try:
+            assert data is not None and isinstance(data, DLDataset)
+            self._ml_engine = self.build_engine()
+            self._ml_engine.fit(data, **kwargs)
+        except Exception as e:
+            print(e)
+        finally:
+            self._ml_engine.recycle()
         return self
 
     def predict(self, X: DLDataset, mode='test', batch_size=1, n_jobs=1):

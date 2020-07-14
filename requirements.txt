@@ -2,10 +2,12 @@ setuptools
 nose
 arff
 pillow
+psutil
 
 Cython
 pyyaml
 litebo
+statsmodels
 
 lazy-import
 lightgbm

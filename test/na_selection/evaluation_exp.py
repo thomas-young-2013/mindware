@@ -17,8 +17,7 @@ parser.add_argument('--dataset', type=str, default='cifar10')
 parser.add_argument('--opt_method', type=str, default='ours')
 parser.add_argument('--eval', type=str, default='partial')
 networks_template = ['mobilenet', 'resnet34', 'efficientnet',
-                     'resnet50', 'resnet152', 'resnet101',
-                     'densenet121']
+                     'resnet50', 'resnet101', 'densenet121']
 parser.add_argument('--networks', type=str, default=','.join(networks_template))
 args = parser.parse_args()
 n_jobs = args.n_jobs

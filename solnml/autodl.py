@@ -1,5 +1,4 @@
 import os
-import sys
 import time
 import torch
 import resource
@@ -17,6 +16,7 @@ from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space im
     get_test_transforms
 from solnml.components.utils.config_parser import ConfigParser
 from .autodl_base import AutoDLBase
+from .utils.proc_thread.proc_func import kill_proc_tree
 
 rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (10240, rlimit[1]))
@@ -56,6 +56,13 @@ class AutoDL(AutoDLBase):
             config_parser = ConfigParser(logger=self.logger)
             self.update_cs = config_parser.read(self.config_file_path)
 
+        # TODO: For first-time user, download pretrained params here!
+        algorithm_candidates = self.include_algorithms.copy()
+        num_train_samples = train_data.get_train_samples_num()
+        if 'opt_method' in kwargs and kwargs['opt_method'] == 'hpo':
+            self._fit_in_hpo_way(algorithm_candidates, train_data, **kwargs)
+            return
+
         for estimator_id in self.include_algorithms:
             cs = self.get_model_config_space(estimator_id)
             default_config = cs.get_default_configuration()
@@ -76,16 +83,11 @@ class AutoDL(AutoDLBase):
             self.solvers[estimator_id] = optimizer
             self.evaluators[estimator_id] = hpo_evaluator
 
-        # TODO: For first-time user, download pretrained params here!
-        num_train_samples = train_data.get_train_samples_num()
-
         # Execute profiling procedure.
-        algorithm_candidates = self.include_algorithms.copy()
         if not self.skip_profile:
             algorithm_candidates = self.profile_models(num_train_samples)
             if len(algorithm_candidates) == 0:
-                self.logger.error('After profiling, no arch is in the candidates!')
-                sys.exit(1)
+                raise ValueError('After profiling, no arch is in the candidates!')
             else:
                 self.logger.info('After profiling, arch candidates={%s}' % ','.join(algorithm_candidates))
 
@@ -103,10 +105,6 @@ class AutoDL(AutoDLBase):
         algorithm_candidates = self.select_network_architectures(algorithm_candidates, dl_evaluator, num_arch=2,
                                                                  **kwargs)
         self.logger.info('After NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
-
-        if 'opt_method' in kwargs and kwargs['opt_method'] == 'hpo':
-            self._fit_in_hpo_way(algorithm_candidates, train_data, **kwargs)
-            return
 
         # Control flow via round robin.
         n_algorithm = len(algorithm_candidates)
@@ -154,10 +152,6 @@ class AutoDL(AutoDLBase):
                                       device=self.device,
                                       output_dir=self.output_dir, **kwargs)
             self.es.fit(data=train_data)
-
-        # Release the resource.
-        for _solver in self.solvers.keys():
-            self.solvers[_solver].gc()
 
     def fetch_ensemble_members(self, candidate_algorithms):
         stats = dict()
@@ -339,3 +333,10 @@ class AutoDL(AutoDLBase):
         for _solver in self.solvers.keys():
             runtime_info.append(self.solvers[_solver].get_runtime_history())
         return runtime_info
+
+    # TODO: in a graceful way.
+    def recycle(self):
+        for _solver in self.solvers.keys():
+            self.solvers[_solver].gc()
+        pid = os.getpid()
+        kill_proc_tree(pid, including_parent=False)
