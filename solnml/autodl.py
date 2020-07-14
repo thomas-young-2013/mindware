@@ -56,6 +56,13 @@ class AutoDL(AutoDLBase):
             config_parser = ConfigParser(logger=self.logger)
             self.update_cs = config_parser.read(self.config_file_path)
 
+        # TODO: For first-time user, download pretrained params here!
+        algorithm_candidates = self.include_algorithms.copy()
+        num_train_samples = train_data.get_train_samples_num()
+        if 'opt_method' in kwargs and kwargs['opt_method'] == 'hpo':
+            self._fit_in_hpo_way(algorithm_candidates, train_data, **kwargs)
+            return
+
         for estimator_id in self.include_algorithms:
             cs = self.get_model_config_space(estimator_id)
             default_config = cs.get_default_configuration()
@@ -76,11 +83,7 @@ class AutoDL(AutoDLBase):
             self.solvers[estimator_id] = optimizer
             self.evaluators[estimator_id] = hpo_evaluator
 
-        # TODO: For first-time user, download pretrained params here!
-        num_train_samples = train_data.get_train_samples_num()
-
         # Execute profiling procedure.
-        algorithm_candidates = self.include_algorithms.copy()
         if not self.skip_profile:
             algorithm_candidates = self.profile_models(num_train_samples)
             if len(algorithm_candidates) == 0:
@@ -102,10 +105,6 @@ class AutoDL(AutoDLBase):
         algorithm_candidates = self.select_network_architectures(algorithm_candidates, dl_evaluator, num_arch=2,
                                                                  **kwargs)
         self.logger.info('After NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
-
-        if 'opt_method' in kwargs and kwargs['opt_method'] == 'hpo':
-            self._fit_in_hpo_way(algorithm_candidates, train_data, **kwargs)
-            return
 
         # Control flow via round robin.
         n_algorithm = len(algorithm_candidates)
