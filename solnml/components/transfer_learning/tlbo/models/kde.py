@@ -1,5 +1,3 @@
-import logging
-from copy import deepcopy
 import traceback
 
 import ConfigSpace

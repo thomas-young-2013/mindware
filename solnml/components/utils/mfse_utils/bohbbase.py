@@ -2,9 +2,8 @@ import time
 import numpy as np
 import random as rd
 from math import log, ceil
-from solnml.components.utils.mfse_utils.config_space_utils import convert_configurations_to_array, \
-    sample_configurations
-from solnml.components.utils.mfse_utils.tpe_config_gen import TPE
+from solnml.components.utils.mfse_utils.config_space_utils import sample_configurations
+from solnml.components.transfer_learning.tlbo.models.kde import TPE
 from solnml.components.utils.mfse_utils.acquisition import EI
 from solnml.components.utils.mfse_utils.acq_optimizer import RandomSampling
 from solnml.components.utils.mfse_utils.funcs import get_types, std_normalization

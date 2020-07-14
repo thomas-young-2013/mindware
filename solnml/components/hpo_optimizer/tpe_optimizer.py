@@ -1,9 +1,8 @@
 import time
 import numpy as np
-from litebo.facade.bo_facade import BayesianOptimization as BO
 from litebo.utils.constants import SUCCESS, FAILDED
 from solnml.components.hpo_optimizer.base_optimizer import BaseHPOptimizer
-from solnml.components.utils.mfse_utils.tpe_config_gen import TPE
+from solnml.components.transfer_learning.tlbo.models.kde import TPE
 
 
 class TPEOptimizer(BaseHPOptimizer):
