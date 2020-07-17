@@ -237,8 +237,6 @@ class BaseDLEstimator(object):
             self._ml_engine.fit(data, **kwargs)
         except Exception as e:
             print(e)
-        finally:
-            self._ml_engine.recycle()
         return self
 
     def predict(self, X: DLDataset, mode='test', batch_size=1, n_jobs=1):

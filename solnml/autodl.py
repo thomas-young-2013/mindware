@@ -342,9 +342,8 @@ class AutoDL(AutoDLBase):
             runtime_info.append(self.solvers[_solver].get_runtime_history())
         return runtime_info
 
-    # TODO: in a graceful way.
-    def recycle(self):
-        for _solver in self.solvers.keys():
-            self.solvers[_solver].gc()
-        pid = os.getpid()
-        kill_proc_tree(pid, including_parent=False)
+    # def recycle(self):
+    #     for _solver in self.solvers.keys():
+    #         self.solvers[_solver].gc()
+    #     pid = os.getpid()
+    #     kill_proc_tree(pid, including_parent=False)

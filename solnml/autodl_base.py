@@ -180,7 +180,7 @@ class AutoDLBase(object):
         self.device = 'cuda'
 
         # Neural architecture selection.
-        self.nas_evaluator, self.executor = None, None
+        self.nas_evaluator = None
         self.eval_hist_configs = dict()
         self.eval_hist_perfs = dict()
 
@@ -314,7 +314,7 @@ class AutoDLBase(object):
             configs.extend(sample_configurations(_cs, N))
         return configs
 
-    def exec_SEE(self, architecture_candidates):
+    def exec_SEE(self, architecture_candidates, executor=None):
         eta, N, R = 3, 9, 27
         r = 1
         C = self.sample_configs_for_archs(architecture_candidates, N)
@@ -334,7 +334,7 @@ class AutoDLBase(object):
             self.logger.info('Evaluate %d configurations with %d resource' % (len(C), r))
 
             if self.n_jobs > 1:
-                val_losses = self.executor.parallel_execute(C, resource_ratio=float(r / R))
+                val_losses = executor.parallel_execute(C, resource_ratio=float(r / R))
             else:
                 val_losses = list()
                 for _config in C:
@@ -362,15 +362,17 @@ class AutoDLBase(object):
     def select_network_architectures(self, algorithm_candidates, dl_evaluator, num_arch=1, **kwargs):
         if len(algorithm_candidates) == 1:
             return algorithm_candidates
+
+        _archs = algorithm_candidates.copy()
         if self.n_jobs > 1:
-            self.executor = ParallelProcessEvaluator(dl_evaluator, n_worker=self.n_jobs)
-            self.logger.info('Create parallel executor with n_jobs=%d' % self.n_jobs)
+            # self.executor = ParallelProcessEvaluator(dl_evaluator, n_worker=self.n_jobs)
+            with ParallelProcessEvaluator(dl_evaluator, n_worker=self.n_jobs) as executor:
+                self.logger.info('Create parallel executor with n_jobs=%d' % self.n_jobs)
+                while len(_archs) > num_arch:
+                    _archs = self.exec_SEE(_archs, executor=executor)
         else:
             self.nas_evaluator = dl_evaluator
-        _archs = algorithm_candidates.copy()
-        while len(_archs) > num_arch:
-            _archs = self.exec_SEE(_archs)
-        # gc.
-        if self.n_jobs > 1:
-            self.executor.shutdown()
+            while len(_archs) > num_arch:
+                _archs = self.exec_SEE(_archs)
+
         return _archs

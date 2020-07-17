@@ -23,7 +23,7 @@ class ParallelProcessEvaluator(object):
     def __init__(self, evaluator, n_worker=1):
         self.evaluator = evaluator
         self.n_worker = n_worker
-        self.process_pool = ProcessPool(processes=self.n_worker)
+        self.process_pool = None
 
     def update_evaluator(self, evaluator):
         self.evaluator = evaluator
@@ -43,4 +43,11 @@ class ParallelProcessEvaluator(object):
         return evaluation_result
 
     def shutdown(self):
+        self.process_pool.close()
+
+    def __enter__(self):
+        self.process_pool = ProcessPool(processes=self.n_worker)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self.process_pool.close()

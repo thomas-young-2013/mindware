@@ -64,7 +64,7 @@ class MfseBase(object):
         self.hist_weights = list()
 
         # self.executor = ParallelEvaluator(self.eval_func, n_worker=n_jobs)
-        self.executor = ParallelProcessEvaluator(self.eval_func, n_worker=n_jobs)
+        # self.executor = ParallelProcessEvaluator(self.eval_func, n_worker=n_jobs)
         self.weighted_acquisition_func = EI(model=self.weighted_surrogate)
         self.weighted_acq_optimizer = RandomSampling(self.weighted_acquisition_func,
                                                      self.config_space,
@@ -88,39 +88,41 @@ class MfseBase(object):
         time_elapsed = time.time() - start_time
         self.logger.info("Choosing next batch of configurations took %.2f sec." % time_elapsed)
 
-        for i in range((s + 1) - int(skip_last)):  # changed from s + 1
+        with ParallelProcessEvaluator(self.eval_func, n_worker=self.n_workers) as executor:
+            for i in range((s + 1) - int(skip_last)):  # changed from s + 1
 
-            # Run each of the n configs for <iterations>
-            # and keep best (n_configs / eta) configurations
+                # Run each of the n configs for <iterations>
+                # and keep best (n_configs / eta) configurations
 
-            n_configs = n * self.eta ** (-i)
-            n_resource = r * self.eta ** i
+                n_configs = n * self.eta ** (-i)
+                n_resource = r * self.eta ** i
 
-            self.logger.info("MFSE: %d configurations x size %d / %d each" %
-                             (int(n_configs), n_resource, self.R))
+                self.logger.info("MFSE: %d configurations x size %d / %d each" %
+                                 (int(n_configs), n_resource, self.R))
 
-            val_losses = self.executor.parallel_execute(T, resource_ratio=float(n_resource / self.R))
-            for _id, _val_loss in enumerate(val_losses):
-                if np.isfinite(_val_loss):
-                    self.target_x[int(n_resource)].append(T[_id])
-                    self.target_y[int(n_resource)].append(_val_loss)
+                val_losses = executor.parallel_execute(T, resource_ratio=float(n_resource / self.R))
+                for _id, _val_loss in enumerate(val_losses):
+                    if np.isfinite(_val_loss):
+                        self.target_x[int(n_resource)].append(T[_id])
+                        self.target_y[int(n_resource)].append(_val_loss)
 
-            self.exp_output[time.time()] = (int(n_resource), T, val_losses)
+                self.exp_output[time.time()] = (int(n_resource), T, val_losses)
 
-            if int(n_resource) == self.R:
-                self.incumbent_configs.extend(T)
-                self.incumbent_perfs.extend(val_losses)
-                self.time_ticks.extend([time.time() - self.global_start_time] * len(T))
+                if int(n_resource) == self.R:
+                    self.incumbent_configs.extend(T)
+                    self.incumbent_perfs.extend(val_losses)
+                    self.time_ticks.extend([time.time() - self.global_start_time] * len(T))
 
-            # Select a number of best configurations for the next loop.
-            # Filter out early stops, if any.
-            indices = np.argsort(val_losses)
-            if len(T) >= self.eta:
-                T = [T[i] for i in indices]
-                reduced_num = int(n_configs / self.eta)
-                T = T[0:reduced_num]
-            else:
-                T = [T[indices[0]]]
+                # Select a number of best configurations for the next loop.
+                # Filter out early stops, if any.
+                indices = np.argsort(val_losses)
+                if len(T) >= self.eta:
+                    T = [T[i] for i in indices]
+                    reduced_num = int(n_configs / self.eta)
+                    T = T[0:reduced_num]
+                else:
+                    T = [T[indices[0]]]
+
         for item in self.iterate_r[self.iterate_r.index(r):]:
             if len(self.target_y[item]) == 0:
                 continue
