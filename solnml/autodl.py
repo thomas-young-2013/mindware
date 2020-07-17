@@ -107,7 +107,7 @@ class AutoDL(AutoDLBase):
                                    timestamp=self.timestamp,
                                    **kwargs)
 
-        algorithm_candidates = self.select_network_architectures(algorithm_candidates, dl_evaluator, num_arch=2,
+        algorithm_candidates = self.select_network_architectures(algorithm_candidates, dl_evaluator, num_arch=1,
                                                                  **kwargs)
         self.logger.info('After NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
         # Control flow via round robin.
