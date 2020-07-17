@@ -92,7 +92,6 @@ class TPE_BO(BaseFacade):
                 trial_state, perf = FAILDED, MAXINT
 
         self.iteration_id += 1
-        print(self.iteration_id, trial_state)
         self.logger.debug('Iteration-%d, objective improvement: %.4f' % (self.iteration_id, max(0, self.default_obj_value - perf)))
         return config, trial_state, perf, trial_info
 
