@@ -45,6 +45,7 @@ class AutoDL(AutoDLBase):
                          evaluation=evaluation, logging_config=logging_config, output_dir=output_dir,
                          random_state=random_state, n_jobs=n_jobs)
         self.skip_profile = skip_profile
+        self.timestamp = time.time()
 
     def fit(self, train_data: DLDataset, **kwargs):
         _start_time = time.time()
@@ -74,7 +75,9 @@ class AutoDL(AutoDLBase):
                                         scorer=self.metric,
                                         dataset=train_data,
                                         device=self.device,
-                                        seed=self.seed, **kwargs)
+                                        seed=self.seed,
+                                        timestamp=self.timestamp,
+                                        **kwargs)
             optimizer = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs,
                                             output_dir=self.output_dir,
                                             per_run_time_limit=100000,
@@ -100,12 +103,13 @@ class AutoDL(AutoDLBase):
                                    scorer=self.metric,
                                    dataset=train_data,
                                    device=self.device,
-                                   seed=self.seed, **kwargs)
+                                   seed=self.seed,
+                                   timestamp=self.timestamp,
+                                   **kwargs)
 
         algorithm_candidates = self.select_network_architectures(algorithm_candidates, dl_evaluator, num_arch=2,
                                                                  **kwargs)
         self.logger.info('After NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
-
         # Control flow via round robin.
         n_algorithm = len(algorithm_candidates)
         if self.trial_num is None:
@@ -167,7 +171,10 @@ class AutoDL(AutoDLBase):
             model_num, min_model_num = 20, 5
 
             hpo_eval_dict = self.solvers[algo_id].eval_dict
-            topk_configs = [element[0] for element in self.evaluators[algo_id].topk_model_saver.sorted_list]
+
+            # TODO: Load path
+            topk_configs = [element[0] for element in TopKModelSaver.get_topk_config(
+                os.path.join('data/dl_models/', '%s_topk_config.pkl' % self.timestamp))]
 
             intersection_dict = dict()
             for key in hpo_eval_dict:
@@ -285,7 +292,8 @@ class AutoDL(AutoDLBase):
                                     dataset=train_data,
                                     device=self.device,
                                     image_size=self.image_size,
-                                    seed=self.seed)
+                                    seed=self.seed,
+                                    timestamp=self.timestamp)
         optimizer = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs,
                                         output_dir=self.output_dir,
                                         per_run_time_limit=100000,

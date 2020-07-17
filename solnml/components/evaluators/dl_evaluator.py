@@ -16,16 +16,17 @@ from .base_dl_evaluator import TopKModelSaver, get_estimator
 
 class DLEvaluator(_BaseEvaluator):
     def __init__(self, clf_config, task_type, model_dir='data/dl_models/', max_epoch=150, scorer=None, dataset=None,
-                 device='cpu', seed=1, **kwargs):
+                 device='cpu', seed=1, timestamp=None, **kwargs):
         self.hpo_config = clf_config
         self.task_type = task_type
         self.max_epoch = max_epoch
         self.scorer = scorer if scorer is not None else accuracy_scorer
         self.dataset = copy.deepcopy(dataset)
         self.seed = seed
+        self.timestamp = timestamp
         self.eval_id = 0
         self.onehot_encoder = None
-        self.topk_model_saver = TopKModelSaver(k=20, model_dir=model_dir)
+        self.topk_model_saver = TopKModelSaver(k=20, model_dir=model_dir, identifier=timestamp)
         self.model_dir = model_dir
         self.device = device
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
@@ -55,8 +56,7 @@ class DLEvaluator(_BaseEvaluator):
                 self.logger.error(e)
                 time_cost = np.inf
             self.logger.info('%d-Evaluation<%s> | Profile time cost: %.2f seconds' %
-                             (self.eval_id, classifier_id,
-                              time_cost))
+                             (self.eval_id, classifier_id, time_cost))
             return time_cost
 
         try:
@@ -77,9 +77,13 @@ class DLEvaluator(_BaseEvaluator):
                 torch.save(estimator.model.state_dict(), model_path)
                 self.logger.info("Model saved to %s" % model_path)
 
-            if delete_flag is True:
-                os.remove(model_path_deleted)
-                self.logger.info("Model deleted from %s" % model_path)
+            # In case of double-deletion
+            try:
+                if delete_flag is True:
+                    os.remove(model_path_deleted)
+                    self.logger.info("Model deleted from %s" % model_path)
+            except:
+                pass
 
         # Turn it into a minimization problem.
         return -score

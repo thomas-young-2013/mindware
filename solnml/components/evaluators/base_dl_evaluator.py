@@ -1,6 +1,7 @@
 import os
 import torch
 import hashlib
+import pickle as pkl
 
 from solnml.components.utils.constants import IMG_CLS, TEXT_CLS, OBJECT_DET
 
@@ -77,10 +78,10 @@ def get_estimator_with_parameters(task_type, config, max_epoch, dataset, device=
 
 
 class TopKModelSaver(object):
-    def __init__(self, k, model_dir):
+    def __init__(self, k, model_dir, identifier):
         self.k = k
-        self.sorted_list = list()
         self.model_dir = model_dir
+        self.sorted_list_path = os.path.join(model_dir, '%s_topk_config.pkl' % identifier)
 
     @staticmethod
     def get_configuration_id(data_dict):
@@ -93,6 +94,19 @@ class TopKModelSaver(object):
         sha = hashlib.sha1(data_id.encode('utf8'))
         return sha.hexdigest()
 
+    @staticmethod
+    def get_topk_config(config_path):
+        if not os.path.exists(config_path):
+            return list()
+        with open(config_path, 'rb') as f:
+            configs = pkl.load(f)
+        return configs
+
+    @staticmethod
+    def save_topk_config(config_path, configs):
+        with open(config_path, 'wb') as f:
+            pkl.dump(configs, f)
+
     def add(self, config: dict, perf: float):
         """
             perf is larger, the better.
@@ -100,26 +114,31 @@ class TopKModelSaver(object):
         :param perf:
         :return:
         """
+
         model_path_id = self.model_dir + self.get_configuration_id(config) + '.pt'
         model_path_removed = None
         save_flag, delete_flag = False, False
+        sorted_list = self.get_topk_config(self.sorted_list_path)
 
-        if len(self.sorted_list) == 0:
-            self.sorted_list.append((config, perf, model_path_id))
+        if len(sorted_list) == 0:
+            sorted_list.append((config, perf, model_path_id))
         else:
             # Sorted list is in a descending order.
-            for idx, item in enumerate(self.sorted_list):
+            for idx, item in enumerate(sorted_list):
                 if perf > item[1]:
-                    self.sorted_list.insert(idx, (config, perf, model_path_id))
+                    sorted_list.insert(idx, (config, perf, model_path_id))
                     break
-                if idx == len(self.sorted_list) - 1:
-                    self.sorted_list.append((config, perf, model_path_id))
+                if idx == len(sorted_list) - 1:
+                    sorted_list.append((config, perf, model_path_id))
                     break
 
-        if len(self.sorted_list) > self.k:
-            model_path_removed = self.sorted_list[-1][2]
+        if len(sorted_list) > self.k:
+            model_path_removed = sorted_list[-1][2]
             delete_flag = True
-            self.sorted_list = self.sorted_list[:-1]
-        if model_path_id in [item[2] for item in self.sorted_list]:
+            sorted_list = sorted_list[:-1]
+        if model_path_id in [item[2] for item in sorted_list]:
             save_flag = True
+
+        self.save_topk_config(self.sorted_list_path, sorted_list)
+
         return save_flag, model_path_id, delete_flag, model_path_removed
