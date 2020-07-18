@@ -42,8 +42,8 @@ class ParallelProcessEvaluator(object):
 
         return evaluation_result
 
-    def shutdown(self):
-        self.process_pool.close()
+    # def shutdown(self):
+    #     self.process_pool.close()
 
     def __enter__(self):
         self.process_pool = ProcessPool(processes=self.n_worker)
