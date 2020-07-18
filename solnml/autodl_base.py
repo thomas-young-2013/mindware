@@ -344,7 +344,8 @@ class AutoDLBase(object):
             for _id, _val_loss in enumerate(val_losses):
                 if np.isfinite(_val_loss):
                     self.eval_hist_configs[r].append(C[_id])
-                    self.eval_hist_perfs[r].append(_val_loss)
+                    # Turn it into a maximization problem.
+                    self.eval_hist_perfs[r].append(-_val_loss)
             self.logger.info('Evaluation took %.2f seconds' % (time.time() - _start_time))
 
             # Select a number of best configurations for the next loop.

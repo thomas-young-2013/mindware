@@ -143,14 +143,15 @@ class AutoDL(AutoDLBase):
             inc_idx = np.argmax(solver_.perfs)
             self.best_algo_config = solver_.configs[inc_idx]
         else:
-            rs = self.eval_hist_perfs.keys()
+            rs = list(self.eval_hist_perfs.keys())
             max_resource = np.max(rs)
             self.best_algo_id = algorithm_candidates[0]
             idxs = [idx for (idx, config) in enumerate(self.eval_hist_configs[max_resource])
                     if config['estimator'] == self.best_algo_id]
             best_idx = np.argmax([self.eval_hist_perfs[max_resource][idx] for idx in idxs])
-            self.best_algo_config = self.eval_hist_perfs[max_resource][best_idx]
+            self.best_algo_config = self.eval_hist_configs[max_resource][best_idx]
 
+        print(self.best_algo_config)
         # Skip Ensemble
         if self.task_type == OBJECT_DET:
             return
