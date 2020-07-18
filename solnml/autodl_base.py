@@ -357,7 +357,11 @@ class AutoDLBase(object):
             else:
                 C = [C[indices[0]]]
             r *= eta
-        return [config['estimator'] for config in C]
+        archs, reduced_archs = [config['estimator'] for config in C], list()
+        for _arch in archs:
+            if _arch not in reduced_archs:
+                reduced_archs.append(_arch)
+        return reduced_archs
 
     def select_network_architectures(self, algorithm_candidates, dl_evaluator, num_arch=1, **kwargs):
         if len(algorithm_candidates) == 1:

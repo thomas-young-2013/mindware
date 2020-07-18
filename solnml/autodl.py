@@ -64,6 +64,7 @@ class AutoDL(AutoDLBase):
             self._fit_in_hpo_way(algorithm_candidates, train_data, **kwargs)
             return
 
+        # Initialize solver for each architecture.
         for estimator_id in self.include_algorithms:
             cs = self.get_model_config_space(estimator_id)
             default_config = cs.get_default_configuration()
@@ -132,12 +133,23 @@ class AutoDL(AutoDLBase):
                     best_scores_.append(-np.inf)
             else:
                 best_scores_.append(-np.inf)
+        print(algorithm_candidates, best_scores_)
+        assert len(algorithm_candidates) > 0
 
-        self.best_algo_id = algorithm_candidates[np.argmax(best_scores_)]
-        # Best model configuration.
-        solver_ = self.solvers[self.best_algo_id]
-        inc_idx = np.argmax(solver_.perfs)
-        self.best_algo_config = solver_.configs[inc_idx]
+        if len(best_scores_) > 1 and (np.array(best_scores_) > -np.inf).any():
+            self.best_algo_id = algorithm_candidates[np.argmax(best_scores_)]
+            # Best model configuration.
+            solver_ = self.solvers[self.best_algo_id]
+            inc_idx = np.argmax(solver_.perfs)
+            self.best_algo_config = solver_.configs[inc_idx]
+        else:
+            rs = self.eval_hist_perfs.keys()
+            max_resource = np.max(rs)
+            self.best_algo_id = algorithm_candidates[0]
+            idxs = [idx for (idx, config) in enumerate(self.eval_hist_configs[max_resource])
+                    if config['estimator'] == self.best_algo_id]
+            best_idx = np.argmax([self.eval_hist_perfs[max_resource][idx] for idx in idxs])
+            self.best_algo_config = self.eval_hist_perfs[max_resource][best_idx]
 
         # Skip Ensemble
         if self.task_type == OBJECT_DET:
