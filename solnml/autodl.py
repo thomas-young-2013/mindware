@@ -145,13 +145,16 @@ class AutoDL(AutoDLBase):
         else:
             self.best_algo_id = algorithm_candidates[0]
             rs = list(self.eval_hist_perfs.keys())
-            max_resource = np.max(rs)
-            if max_resource in self.eval_hist_configs:
-                idxs = [idx for (idx, config) in enumerate(self.eval_hist_configs[max_resource])
-                        if config['estimator'] == self.best_algo_id]
-                best_idx = np.argmax([self.eval_hist_perfs[max_resource][idx] for idx in idxs])
-                self.best_algo_config = self.eval_hist_configs[max_resource][best_idx]
-            else:
+            set_flag = False
+            if len(rs) > 0:
+                max_resource = np.max(rs)
+                if max_resource in self.eval_hist_configs:
+                    idxs = [idx for (idx, config) in enumerate(self.eval_hist_configs[max_resource])
+                            if config['estimator'] == self.best_algo_id]
+                    best_idx = np.argmax([self.eval_hist_perfs[max_resource][idx] for idx in idxs])
+                    self.best_algo_config = self.eval_hist_configs[max_resource][best_idx]
+                    set_flag = True
+            if not set_flag:
                 solver_ = self.solvers[self.best_algo_id]
                 inc_idx = np.argmax(solver_.perfs)
                 self.best_algo_config = solver_.configs[inc_idx]
