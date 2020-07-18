@@ -191,18 +191,26 @@ class AutoDL(AutoDLBase):
             leap = 2
             model_num, min_model_num = 20, 5
 
-            hpo_eval_dict = self.solvers[algo_id].eval_dict
+            # hpo_eval_dict = self.solvers[algo_id].eval_dict
 
             # TODO: Load path
-            topk_configs = [element[0] for element in TopKModelSaver.get_topk_config(
-                os.path.join('data/dl_models/', '%s_topk_config.pkl' % self.timestamp))]
+            topk_list = TopKModelSaver.get_topk_config(
+                os.path.join('data/dl_models/', '%s_topk_config.pkl' % self.timestamp))
 
-            intersection_dict = dict()
-            for key in hpo_eval_dict:
-                if key[1].get_dictionary() in topk_configs:
-                    intersection_dict[key] = hpo_eval_dict[key]
+            # TODO: Redesign data structure
+            hpo_eval_dict = dict()
+            for element in topk_list:
+                hpo_eval_dict[(None, element[0])] = element[1]
 
-            hpo_eval_list = filter(lambda item: item[1] != -np.inf, intersection_dict.items())
+            # topk_configs = [element[0] for element in TopKModelSaver.get_topk_config(
+            #     os.path.join('data/dl_models/', '%s_topk_config.pkl' % self.timestamp))]
+            #
+            # intersection_dict = dict()
+            # for key in hpo_eval_dict:
+            #     if key[1].get_dictionary() in topk_configs:
+            #         intersection_dict[key] = hpo_eval_dict[key]
+
+            hpo_eval_list = filter(lambda item: item[1] != -np.inf, hpo_eval_dict.items())
             hpo_eval_list = sorted(hpo_eval_list, key=lambda item: item[1], reverse=True)
             model_items = list()
 
@@ -224,7 +232,7 @@ class AutoDL(AutoDLBase):
         # TODO: Bottom API changes
         if self.es is None:
             config_dict = self.best_algo_config.get_dictionary().copy()
-            model_path = self.output_dir + TopKModelSaver.get_configuration_id(config_dict) + '.pt'
+            model_path = self.output_dir + TopKModelSaver.get_configuration_id(self.best_algo_config) + '.pt'
             # Remove the old models.
             if os.path.exists(model_path):
                 os.remove(model_path)

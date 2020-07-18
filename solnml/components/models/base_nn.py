@@ -82,15 +82,22 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         self.model = None
         self.device = torch.device(device)
         self.time_limit = None
+        self.load_path = None
+
+        self.optimizer_ = None
+        self.scheduler = None
+        self.cur_epoch_num = 0
 
     def fit(self, dataset: DLDataset or Dataset, **kwargs):
         from sklearn.metrics import accuracy_score
 
         assert self.model is not None
+
         params = self.model.parameters()
         val_loader = None
         if isinstance(dataset, Dataset):
-            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=NUM_WORKERS)
+            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True,
+                                      num_workers=NUM_WORKERS)
         else:
             if not dataset.subset_sampler_used:
                 train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
@@ -110,6 +117,14 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
 
         scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
+
+        if self.load_path:
+            checkpoint = torch.load(self.load_path)
+            self.model.load_state_dict(checkpoint['model'])
+            optimizer.load_state_dict(checkpoint['optimizer'])
+            scheduler.load_state_dict(checkpoint['scheduler'])
+            self.cur_epoch_num = checkpoint['epoch_num']
+
         self.model.train()
 
         profile_iter = kwargs.get('profile_iter', None)
@@ -147,7 +162,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
 
         early_stop = EarlyStop(patience=15, mode='min')
 
-        for epoch in range(int(self.epoch_num)):
+        for epoch in range(int(self.cur_epoch_num), int(self.cur_epoch_num) + int(self.epoch_num)):
             epoch_avg_loss = 0
             epoch_avg_acc = 0
             val_avg_loss = 0
@@ -196,6 +211,11 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
                         break
 
             scheduler.step()
+
+        self.optimizer_ = optimizer
+        self.epoch_num = int(self.epoch_num) + int(self.cur_epoch_num)
+        self.scheduler = scheduler
+
         return self
 
     def predict_proba(self, dataset: Dataset, sampler=None, batch_size=None):
@@ -284,15 +304,22 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         self.lr_decay = None
         self.step_decay = None
         self.device = None
+        self.load_path = None
+
+        self.optimizer_ = None
+        self.scheduler = None
+        self.cur_epoch_num = 0
 
     def fit(self, dataset, **kwargs):
         from sklearn.metrics import accuracy_score
 
         assert self.model is not None
+
         params = self.model.parameters()
         val_loader = None
         if isinstance(dataset, Dataset):
-            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True, num_workers=NUM_WORKERS)
+            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True,
+                                      num_workers=NUM_WORKERS)
         else:
             if not dataset.subset_sampler_used:
                 train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
@@ -312,6 +339,14 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
 
         scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
+
+        if self.load_path:
+            checkpoint = torch.load(self.load_path)
+            self.model.load_state_dict(checkpoint['model'])
+            optimizer.load_state_dict(checkpoint['optimizer'])
+            scheduler.load_state_dict(checkpoint['scheduler'])
+            self.cur_epoch_num = checkpoint['epoch_num']
+
         self.model.train()
 
         profile_iter = kwargs.get('profile_iter', None)
@@ -351,7 +386,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
 
         early_stop = EarlyStop(patience=15, mode='min')
 
-        for epoch in range(int(self.epoch_num)):
+        for epoch in range(int(self.cur_epoch_num), int(self.cur_epoch_num) + int(self.epoch_num)):
             epoch_avg_loss = 0
             epoch_avg_acc = 0
             val_avg_loss = 0
@@ -402,6 +437,11 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
                         break
 
             scheduler.step()
+
+        self.optimizer_ = optimizer
+        self.epoch_num = int(self.epoch_num) + int(self.cur_epoch_num)
+        self.scheduler = scheduler
+
         return self
 
     def predict_proba(self, dataset: Dataset, sampler=None, batch_size=None):
@@ -491,9 +531,18 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
         self.lr_decay = None
         self.step_decay = None
         self.device = None
+        self.load_path = None
+
+        self.optimizer_ = None
+        self.scheduler = None
+        self.cur_epoch_num = 0
 
     def fit(self, dataset: DLDataset or Dataset, **kwargs):
         assert self.model is not None
+
+        if self.load_path:
+            self.model.load_state_dict(torch.load(self.load_path))
+
         params = self.model.parameters()
 
         val_loader = None
@@ -519,6 +568,14 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
             optimizer = Adam(params=params, lr=self.adam_learning_rate, betas=(self.beta1, 0.999))
 
         scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
+
+        if self.load_path:
+            checkpoint = torch.load(self.load_path)
+            self.model.load_state_dict(checkpoint['model'])
+            optimizer.load_state_dict(checkpoint['optimizer'])
+            scheduler.load_state_dict(checkpoint['scheduler'])
+            self.cur_epoch_num = checkpoint['epoch_num']
+
         self.model.train()
 
         profile_iter = kwargs.get('profile_iter', None)
@@ -552,7 +609,7 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
 
         early_stop = EarlyStop(patience=15, mode='min')
 
-        for epoch in range(int(self.epoch_num)):
+        for epoch in range(int(self.cur_epoch_num), int(self.cur_epoch_num) + int(self.epoch_num)):
             epoch_avg_loss = 0
             val_avg_loss = 0
             num_train_samples = 0
@@ -584,6 +641,10 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
                 if early_stop.if_early_stop:
                     print("Early stop!")
                     break
+
+        self.optimizer_ = optimizer
+        self.epoch_num = int(self.epoch_num) + int(self.cur_epoch_num)
+        self.scheduler = scheduler
 
         return self
 

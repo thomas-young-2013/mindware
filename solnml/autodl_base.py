@@ -334,11 +334,11 @@ class AutoDLBase(object):
             self.logger.info('Evaluate %d configurations with %d resource' % (len(C), r))
 
             if self.n_jobs > 1:
-                val_losses = executor.parallel_execute(C, resource_ratio=float(r / R))
+                val_losses = executor.parallel_execute(C, resource_ratio=float(r / R), eta=eta, first_iter=(r == 1))
             else:
                 val_losses = list()
                 for _config in C:
-                    _result = self.nas_evaluator(_config, resource_ratio=float(r / R))
+                    _result = self.nas_evaluator(_config, resource_ratio=float(r / R), eta=eta, first_iter=(r == 1))
                     val_losses.append(_result)
 
             for _id, _val_loss in enumerate(val_losses):

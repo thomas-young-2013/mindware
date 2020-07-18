@@ -42,7 +42,7 @@ class BaseEnsembleModel(object):
         for algo_id in self.stats['include_algorithms']:
             for config in self.stats[algo_id]:
                 config_dict = config.get_dictionary().copy()
-                model_path = self.output_dir + TopKModelSaver.get_configuration_id(config_dict) + '.pt'
+                model_path = self.output_dir + TopKModelSaver.get_configuration_id(config) + '.pt'
                 # Remove the old models.
                 if os.path.exists(model_path):
                     os.remove(model_path)

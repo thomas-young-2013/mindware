@@ -70,9 +70,9 @@ def get_estimator(task_type, config, max_epoch, device='cpu'):
 def get_estimator_with_parameters(task_type, config, max_epoch, dataset, device='cpu', model_dir='data/dl_models/'):
     config_dict = config.get_dictionary().copy()
     _, model = get_estimator(task_type, config_dict, max_epoch, device=device)
-    model_path = model_dir + TopKModelSaver.get_configuration_id(config_dict) + '.pt'
+    model_path = model_dir + TopKModelSaver.get_configuration_id(config) + '.pt'
     model.set_empty_model(dataset)
-    model.model.load_state_dict(torch.load(model_path))
+    model.model.load_state_dict(torch.load(model_path)['model'])
     model.model.eval()
     return model
 
@@ -84,7 +84,8 @@ class TopKModelSaver(object):
         self.sorted_list_path = os.path.join(model_dir, '%s_topk_config.pkl' % identifier)
 
     @staticmethod
-    def get_configuration_id(data_dict):
+    def get_configuration_id(config):
+        data_dict = config.get_dictionary()
         data_list = []
         for key, value in sorted(data_dict.items(), key=lambda t: t[0]):
             if isinstance(value, float):
@@ -107,9 +108,9 @@ class TopKModelSaver(object):
         with open(config_path, 'wb') as f:
             pkl.dump(configs, f)
 
-    def add(self, config: dict, perf: float):
+    def add(self, config, perf: float):
         """
-            perf is larger, the better.
+            perf: the larger, the better.
         :param config:
         :param perf:
         :return:
@@ -119,6 +120,23 @@ class TopKModelSaver(object):
         model_path_removed = None
         save_flag, delete_flag = False, False
         sorted_list = self.get_topk_config(self.sorted_list_path)
+
+        # Update existed configs
+        for sorted_element in sorted_list:
+            if config == sorted_element[0]:
+                if perf > sorted_element[1]:
+                    sorted_list.remove(sorted_element)
+                    for idx, item in enumerate(sorted_list):
+                        if perf > item[1]:
+                            sorted_list.insert(idx, (config, perf, model_path_id))
+                            break
+                        if idx == len(sorted_list) - 1:
+                            sorted_list.append((config, perf, model_path_id))
+                            break
+                    self.save_topk_config(self.sorted_list_path, sorted_list)
+                    return True, model_path_id, False, model_path_removed
+                else:
+                    return False, model_path_id, False, model_path_removed
 
         if len(sorted_list) == 0:
             sorted_list.append((config, perf, model_path_id))

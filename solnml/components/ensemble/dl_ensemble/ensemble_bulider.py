@@ -59,7 +59,7 @@ class EnsembleBuilder:
         for algo_id in self.model.stats['include_algorithms']:
             for model_config in self.model.stats[algo_id]:
                 config_dict = model_config.get_dictionary().copy()
-                model_path = self.model.output_dir + TopKModelSaver.get_configuration_id(config_dict) + '.pt'
+                model_path = self.model.output_dir + TopKModelSaver.get_configuration_id(model_config) + '.pt'
                 # Remove the old models.
                 if os.path.exists(model_path):
                     os.remove(model_path)

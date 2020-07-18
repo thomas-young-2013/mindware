@@ -94,7 +94,9 @@ class BohbBase(object):
                 self.logger.info("BOHB: %d configurations x size %d / %d each" %
                                  (int(n_configs), n_resource, self.R))
 
-                val_losses = executor.parallel_execute(T, resource_ratio=float(n_resource / self.R))
+                val_losses = executor.parallel_execute(T, resource_ratio=float(n_resource / self.R),
+                                                       eta=self.eta,
+                                                       first_iter=(i == 0))
                 for _id, _val_loss in enumerate(val_losses):
                     if np.isfinite(_val_loss):
                         self.target_x[int(n_resource)].append(T[_id])
