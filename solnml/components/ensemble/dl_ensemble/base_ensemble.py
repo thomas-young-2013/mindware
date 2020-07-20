@@ -16,6 +16,7 @@ class BaseEnsembleModel(object):
                  task_type: int,
                  max_epoch: int,
                  metric: _BaseScorer,
+                 timestamp: float,
                  output_dir=None,
                  device='cpu'):
         self.stats = stats
@@ -28,7 +29,7 @@ class BaseEnsembleModel(object):
         self.device = device
 
         self.seed = 1
-        self.timestamp = str(time.time())
+        self.timestamp = str(timestamp)
         logger_name = 'EnsembleBuilder'
         self.logger = get_logger(logger_name)
 

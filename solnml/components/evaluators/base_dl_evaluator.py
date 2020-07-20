@@ -67,10 +67,11 @@ def get_estimator(task_type, config, max_epoch, device='cpu'):
     return classifier_type, estimator
 
 
-def get_estimator_with_parameters(task_type, config, max_epoch, dataset, device='cpu', model_dir='data/dl_models/'):
+def get_estimator_with_parameters(task_type, config, max_epoch, dataset, timestamp, device='cpu',
+                                  model_dir='data/dl_models/'):
     config_dict = config.get_dictionary().copy()
     _, model = get_estimator(task_type, config_dict, max_epoch, device=device)
-    model_path = model_dir + TopKModelSaver.get_configuration_id(config) + '.pt'
+    model_path = os.path.join(model_dir, TopKModelSaver.get_path_by_config(config, timestamp))
     model.set_empty_model(dataset)
     model.model.load_state_dict(torch.load(model_path)['model'])
     model.model.eval()
@@ -81,6 +82,7 @@ class TopKModelSaver(object):
     def __init__(self, k, model_dir, identifier):
         self.k = k
         self.model_dir = model_dir
+        self.identifier = identifier
         self.sorted_list_path = os.path.join(model_dir, '%s_topk_config.pkl' % identifier)
 
     @staticmethod
@@ -94,6 +96,10 @@ class TopKModelSaver(object):
         data_id = '_'.join(data_list)
         sha = hashlib.sha1(data_id.encode('utf8'))
         return sha.hexdigest()
+
+    @staticmethod
+    def get_path_by_config(config, identifier):
+        return '%s_%s.pt' % (identifier, TopKModelSaver.get_configuration_id(config))
 
     @staticmethod
     def get_topk_config(config_path):
@@ -116,7 +122,7 @@ class TopKModelSaver(object):
         :return:
         """
 
-        model_path_id = self.model_dir + self.get_configuration_id(config) + '.pt'
+        model_path_id = os.path.join(self.model_dir, '%s_%s.pt' % (self.identifier, self.get_configuration_id(config)))
         model_path_removed = None
         save_flag, delete_flag = False, False
         sorted_list = self.get_topk_config(self.sorted_list_path)

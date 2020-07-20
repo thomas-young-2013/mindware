@@ -15,6 +15,7 @@ class Blending(BaseEnsembleModel):
                  task_type: int,
                  max_epoch: int,
                  metric: _BaseScorer,
+                 timestamp: float,
                  output_dir=None,
                  device='cpu',
                  meta_learner='lightgbm', **kwargs):
@@ -24,6 +25,7 @@ class Blending(BaseEnsembleModel):
                          task_type=task_type,
                          max_epoch=max_epoch,
                          metric=metric,
+                         timestamp=timestamp,
                          output_dir=output_dir,
                          device=device)
         try:
@@ -70,7 +72,7 @@ class Blending(BaseEnsembleModel):
                 else:
                     train_data.load_data()
                 estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
-                                                          train_data.train_dataset, device=self.device)
+                                                          train_data.train_dataset, self.timestamp, device=self.device)
 
                 if not train_data.subset_sampler_used:
                     loader = DataLoader(train_data.val_dataset)
@@ -145,7 +147,7 @@ class Blending(BaseEnsembleModel):
                             num_samples = len(loader)
 
                 estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
-                                                          dataset, device=self.device)
+                                                          dataset, self.timestamp, device=self.device)
                 if self.task_type in CLS_TASKS:
                     if mode == 'test':
                         pred = estimator.predict_proba(test_data.test_dataset)

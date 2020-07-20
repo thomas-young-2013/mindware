@@ -19,6 +19,7 @@ class EnsembleSelection(BaseEnsembleModel):
             task_type: int,
             max_epoch: int,
             metric: _BaseScorer,
+            timestamp: float,
             output_dir=None,
             device='cpu',
             sorted_initialization: bool = False,
@@ -31,6 +32,7 @@ class EnsembleSelection(BaseEnsembleModel):
                          task_type=task_type,
                          max_epoch=max_epoch,
                          metric=metric,
+                         timestamp=timestamp,
                          output_dir=output_dir,
                          device=device)
         self.model_idx = list()
@@ -79,7 +81,7 @@ class EnsembleSelection(BaseEnsembleModel):
                     train_data.load_data()
 
                 estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
-                                                          train_data.train_dataset, device=self.device)
+                                                          train_data.train_dataset, self.timestamp, device=self.device)
                 if self.task_type in CLS_TASKS:
                     if not train_data.subset_sampler_used:
                         pred = estimator.predict_proba(train_data.val_dataset)
@@ -289,7 +291,7 @@ class EnsembleSelection(BaseEnsembleModel):
                             num_samples = len(loader)
 
                 estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
-                                                          dataset, device=self.device)
+                                                          dataset, self.timestamp, device=self.device)
                 if cur_idx in self.model_idx:
                     if self.task_type in CLS_TASKS:
                         if mode == 'test':

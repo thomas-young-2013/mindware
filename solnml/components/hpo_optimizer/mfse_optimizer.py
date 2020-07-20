@@ -8,7 +8,7 @@ from solnml.components.utils.mfse_utils.mfsebase import MfseBase
 class MfseOptimizer(BaseHPOptimizer, MfseBase):
     def __init__(self, evaluator, config_space, time_limit=None, evaluation_limit=None,
                  per_run_time_limit=600, per_run_mem_limit=1024, output_dir='./', trials_per_iter=1, seed=1,
-                 R=81, eta=3, n_jobs=1):
+                 R=27, eta=3, n_jobs=1):
         BaseHPOptimizer.__init__(self, evaluator, config_space, seed)
         MfseBase.__init__(self, eval_func=self.evaluator, config_space=self.config_space,
                           seed=seed, R=R, eta=eta, n_jobs=n_jobs)

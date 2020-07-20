@@ -174,6 +174,7 @@ class AutoDL(AutoDLBase):
                                       task_type=self.task_type,
                                       max_epoch=self.max_epoch,
                                       metric=self.metric,
+                                      timestamp=self.timestamp,
                                       device=self.device,
                                       output_dir=self.output_dir, **kwargs)
             self.es.fit(data=train_data)
@@ -259,7 +260,7 @@ class AutoDL(AutoDLBase):
         if self.es is None:
             self.load_predict_data(test_data)
             model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, self.max_epoch,
-                                                   test_data.test_dataset, device=self.device)
+                                                   test_data.test_dataset, self.timestamp, device=self.device)
             if mode == 'test':
                 return model_.predict_proba(test_data.test_dataset, batch_size=batch_size)
             else:
@@ -275,7 +276,7 @@ class AutoDL(AutoDLBase):
         if self.es is None:
             self.load_predict_data(test_data)
             model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, self.max_epoch,
-                                                   test_data.test_dataset, device=self.device)
+                                                   test_data.test_dataset, self.timestamp, device=self.device)
             if mode == 'test':
                 return model_.predict(test_data.test_dataset, batch_size=batch_size)
             else:

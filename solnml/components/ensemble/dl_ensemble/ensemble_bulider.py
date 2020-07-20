@@ -16,6 +16,7 @@ class EnsembleBuilder:
                  task_type: int,
                  max_epoch: int,
                  metric: _BaseScorer,
+                 timestamp: float,
                  output_dir=None,
                  device='cpu', **kwargs):
         self.model = None
@@ -28,6 +29,7 @@ class EnsembleBuilder:
                                  task_type=task_type,
                                  max_epoch=max_epoch,
                                  metric=metric,
+                                 timestamp=timestamp,
                                  output_dir=output_dir,
                                  device=device, **kwargs)
         elif ensemble_method == 'blending':
@@ -36,6 +38,7 @@ class EnsembleBuilder:
                                   task_type=task_type,
                                   max_epoch=max_epoch,
                                   metric=metric,
+                                  timestamp=timestamp,
                                   output_dir=output_dir,
                                   device=device, **kwargs)
         elif ensemble_method == 'ensemble_selection':
@@ -44,6 +47,7 @@ class EnsembleBuilder:
                                            task_type=task_type,
                                            max_epoch=max_epoch,
                                            metric=metric,
+                                           timestamp=timestamp,
                                            output_dir=output_dir,
                                            device=device, **kwargs)
         else:

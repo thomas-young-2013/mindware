@@ -16,6 +16,7 @@ class Bagging(BaseEnsembleModel):
                  task_type: int,
                  max_epoch: int,
                  metric: _BaseScorer,
+                 timestamp: float,
                  output_dir=None,
                  device='cpu', **kwargs):
         super().__init__(stats=stats,
@@ -24,6 +25,7 @@ class Bagging(BaseEnsembleModel):
                          task_type=task_type,
                          max_epoch=max_epoch,
                          metric=metric,
+                         timestamp=timestamp,
                          output_dir=output_dir,
                          device=device)
 
@@ -58,7 +60,7 @@ class Bagging(BaseEnsembleModel):
                     else:
                         dataset = test_data.val_dataset
                 estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
-                                                          dataset, device=self.device)
+                                                          dataset, self.timestamp, device=self.device)
                 if self.task_type in CLS_TASKS:
                     if mode == 'test':
                         model_pred_list.append(estimator.predict_proba(test_data.test_dataset))

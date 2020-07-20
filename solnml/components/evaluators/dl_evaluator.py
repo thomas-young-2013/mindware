@@ -52,7 +52,7 @@ class DLEvaluator(_BaseEvaluator):
         first_iter = kwargs.get('first_iter', False)
 
         config_model_path = os.path.join(self.model_dir,
-                                         'tmp_' + str(TopKModelSaver.get_configuration_id(config)) + '.pt')
+                                         'tmp_' + TopKModelSaver.get_path_by_config(config, self.timestamp) + '.pt')
         if self.continue_training:
             # Continue training
             if not first_iter:
@@ -98,7 +98,7 @@ class DLEvaluator(_BaseEvaluator):
         if self.continue_training and epoch_ratio == 1.0:
             for filename in os.listdir(self.model_dir):
                 # Temporary model
-                if 'tmp' in filename:
+                if 'tmp_%s' % self.timestamp in filename:
                     try:
                         filepath = os.path.join(self.model_dir, filename)
                         os.remove(filepath)
