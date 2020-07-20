@@ -171,6 +171,9 @@ class BaseEstimator(object):
         df.index = ['step' + str(i) for i in range(1, 7)]
         return df
 
+    def get_val_stats(self):
+        return self._ml_engine.get_val_stats()
+
     def get_ens_model_info(self):
         return self._ml_engine.get_ens_model_info()
 

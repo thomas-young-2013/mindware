@@ -148,3 +148,6 @@ class AutoML(object):
             return self.solver.es.get_ens_model_info()
         else:
             return None
+
+    def get_val_stats(self):
+        return self.solver.get_stats()
