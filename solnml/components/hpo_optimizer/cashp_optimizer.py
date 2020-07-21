@@ -81,7 +81,8 @@ class CashpOptimizer(object):
                 cs.add_hyperparameter(default_cs.get_hyperparameter(hp_name))
         return cs
 
-    def sample_configs_for_archs(self, include_architectures, N):
+    def sample_configs_for_archs(self, include_architectures, N,
+                                 sampling_strategy='uniform'):
         configs = list()
         for _arch in include_architectures:
             _cs = self.get_model_config_space(_arch)
@@ -105,7 +106,8 @@ class CashpOptimizer(object):
         self.evaluation_stats['val_scores'] = list()
 
         with ParallelProcessEvaluator(dl_evaluator, n_worker=self.n_jobs) as executor:
-            while True:
+            terminate_proc = False
+            while not terminate_proc:
                 r = 1
                 C = self.sample_configs_for_archs(architecture_candidates, self.N)
                 while r < self.R:
@@ -117,6 +119,7 @@ class CashpOptimizer(object):
                     self.logger.info('Start to evaluate %d configurations with %d resource' % (len(C), r))
                     _start_time = time.time()
                     if _start_time >= start_time + self.time_limit:
+                        terminate_proc = True
                         break
 
                     if self.n_jobs > 1:
@@ -158,10 +161,11 @@ class CashpOptimizer(object):
                             previous_inc_loss = np.min(val_losses_previous_iter)
                             indices = np.argsort(val_losses)
                             C = [C[idx] for idx in indices if val_losses[idx] < previous_inc_loss]
-                    r *= self.eta
+
                     if inc_perf > val_losses[indices[0]]:
                         inc_perf = val_losses[indices[0]]
                         inc_config = C[0]
+                    r *= self.eta
 
                 archs, reduced_archs = [config['estimator'] for config in C], list()
                 # Preserve the partial-relationship order.
