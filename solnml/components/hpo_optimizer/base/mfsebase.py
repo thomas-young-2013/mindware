@@ -75,7 +75,6 @@ class MfseBase(object):
         if self.weight_update_id > self.s_max:
             self.update_weight()
         self.weight_update_id += 1
-
         # Set initial number of configurations
         n = int(ceil(self.B / self.R / (s + 1) * self.eta ** s))
         # initial number of iterations per config
@@ -89,7 +88,7 @@ class MfseBase(object):
 
         with ParallelProcessEvaluator(self.eval_func, n_worker=self.n_workers) as executor:
             for i in range((s + 1) - int(skip_last)):  # changed from s + 1
-                if start_time + budget >= time.time():
+                if time.time() >= budget + start_time:
                     break
 
                 # Run each of the n configs for <iterations>

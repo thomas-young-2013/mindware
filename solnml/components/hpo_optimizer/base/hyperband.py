@@ -2,6 +2,7 @@ import time
 import numpy as np
 from math import log, ceil
 
+from solnml.utils.constant import MAX_INT
 from solnml.utils.logging_utils import get_logger
 from solnml.components.hpo_optimizer.base.config_space_utils import sample_configurations
 from solnml.components.computation.parallel_process import ParallelProcessEvaluator
@@ -45,11 +46,9 @@ class HyperbandBase(object):
             self.target_x[r] = list()
             self.target_y[r] = list()
 
-        # self.executor = ParallelEvaluator(self.eval_func, n_worker=n_jobs)
-        # self.executor = ParallelProcessEvaluator(self.eval_func, n_worker=n_jobs)
         self.eval_dict = dict()
 
-    def _iterate(self, s, skip_last=0):
+    def _iterate(self, s, budget=MAX_INT, skip_last=0):
 
         # Set initial number of configurations
         n = int(ceil(self.B / self.R / (s + 1) * self.eta ** s))
@@ -64,6 +63,8 @@ class HyperbandBase(object):
 
         with ParallelProcessEvaluator(self.eval_func, n_worker=self.n_workers) as executor:
             for i in range((s + 1) - int(skip_last)):  # changed from s + 1
+                if time.time() >= budget + start_time:
+                    break
 
                 # Run each of the n configs for <iterations>
                 # and keep best (n_configs / eta) configurations

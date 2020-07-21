@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 import numpy as np
 import pandas as pd
 
@@ -240,6 +241,9 @@ class BaseDLEstimator(object):
             self._ml_engine.fit(data, **kwargs)
         except Exception as e:
             print(e)
+            print("-" * 60)
+            traceback.print_exc(file=sys.stdout)
+            print("-" * 60)
         return self
 
     def predict(self, X: DLDataset, mode='test', batch_size=1, n_jobs=1):
