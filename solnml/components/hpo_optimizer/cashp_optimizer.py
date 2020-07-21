@@ -1,48 +1,163 @@
 import time
 import numpy as np
-from solnml.components.hpo_optimizer.base_optimizer import BaseHPOptimizer, MAX_INT
-from solnml.components.hpo_optimizer.base.bohbbase import BohbBase
+from ConfigSpace import ConfigurationSpace
+from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
+
+from solnml.utils.logging_utils import get_logger
+from solnml.components.utils.constants import IMG_CLS, TEXT_CLS, OBJECT_DET
+from solnml.components.hpo_optimizer.base.config_space_utils import sample_configurations
+from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space
+from solnml.components.computation.parallel_process import ParallelProcessEvaluator
 
 
-class CashpOptimizer(BaseHPOptimizer, BohbBase):
-    def __init__(self, evaluator, config_space, time_limit=None, evaluation_limit=None,
-                 per_run_time_limit=600, per_run_mem_limit=1024, output_dir='./',
-                 inner_iter_num_per_iter=1, seed=1,
-                 R=27, eta=3, mode='smac', n_jobs=1):
-        BaseHPOptimizer.__init__(self, evaluator, config_space, seed)
-        BohbBase.__init__(self, eval_func=self.evaluator, config_generator=mode, config_space=self.config_space,
-                          seed=seed, R=R, eta=eta, n_jobs=n_jobs)
+class CashpOptimizer(object):
+    def __init__(self, task_type, architectures, time_limit,
+                 R=27, eta=3, N=9, n_jobs=1):
+        self.architectures = architectures
         self.time_limit = time_limit
-        self.evaluation_num_limit = evaluation_limit
-        self.inner_iter_num_per_iter = inner_iter_num_per_iter
-        self.per_run_time_limit = per_run_time_limit
-        self.per_run_mem_limit = per_run_mem_limit
+        self.task_type = task_type
+        self.n_jobs = n_jobs
+        self.R = R
+        self.eta = eta
+        self.N = N
+        self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
 
-    def iterate(self, budget=MAX_INT):
-        '''
-            Iterate a SH procedure (inner loop) in Hyperband.
-        :return:
-        '''
-        _start_time = time.time()
-        for _ in range(self.inner_iter_num_per_iter):
-            _time_elapsed = time.time() - _start_time
-            if _time_elapsed >= budget:
-                break
-            budget_left = budget - _time_elapsed
-            self._iterate(self.s_values[self.inner_iter_id], budget=budget_left)
-            self.inner_iter_id = (self.inner_iter_id + 1) % (self.s_max + 1)
+        from solnml.components.models.img_classification import _classifiers as _img_estimators, _addons as _img_addons
+        from solnml.components.models.text_classification import _classifiers as _text_estimators, \
+            _addons as _text_addons
+        from solnml.components.models.object_detection import _classifiers as _od_estimators, _addons as _od_addons
 
-        inc_idx = np.argmin(np.array(self.incumbent_perfs))
-        for idx in range(len(self.incumbent_perfs)):
-            self.eval_dict[(None, self.incumbent_configs[idx])] = -self.incumbent_perfs[idx]
+        self.time_limit = time_limit
+        self.elimination_strategy = 'bandit'
 
-        self.perfs = self.incumbent_perfs
-        self.configs = self.incumbent_configs
-        self.incumbent_perf = -self.incumbent_perfs[inc_idx]
-        self.incumbent_config = self.incumbent_configs[inc_idx]
-        # Incumbent performance: the large, the better
-        iteration_cost = time.time() - _start_time
-        return self.incumbent_perf, iteration_cost, self.incumbent_config
+        self.update_cs = dict()
 
-    def get_runtime_history(self):
-        return self.incumbent_perfs, self.time_ticks, self.incumbent_perf
+        if task_type == IMG_CLS:
+            self._estimators = _img_estimators
+            self._addons = _img_addons
+        elif task_type == TEXT_CLS:
+            self._estimators = _text_estimators
+            self._addons = _text_addons
+        elif task_type == OBJECT_DET:
+            self._estimators = _od_estimators
+            self._addons = _od_addons
+        else:
+            raise ValueError("Unknown task type %s" % task_type)
+        self.eval_hist_configs = dict()
+        self.eval_hist_perfs = dict()
+
+    def get_model_config_space(self, estimator_id, include_estimator=True, include_aug=True):
+        if estimator_id in self._estimators:
+            clf_class = self._estimators[estimator_id]
+        elif estimator_id in self._addons.components:
+            clf_class = self._addons.components[estimator_id]
+        else:
+            raise ValueError("Algorithm %s not supported!" % estimator_id)
+
+        default_cs = clf_class.get_hyperparameter_search_space()
+        model = UnParametrizedHyperparameter("estimator", estimator_id)
+        if include_estimator:
+            default_cs.add_hyperparameter(model)
+        if self.task_type == IMG_CLS and include_aug is True:
+            aug_space = get_aug_hyperparameter_space()
+            default_cs.add_hyperparameters(aug_space.get_hyperparameters())
+            default_cs.add_conditions(aug_space.get_conditions())
+
+        # Update configuration space according to config file
+        all_cs = self.update_cs.get('all', ConfigurationSpace())
+        all_hp_names = all_cs.get_hyperparameter_names()
+        estimator_cs = self.update_cs.get(estimator_id, ConfigurationSpace())
+        estimator_hp_names = estimator_cs.get_hyperparameter_names()
+
+        cs = ConfigurationSpace()
+        for hp_name in default_cs.get_hyperparameter_names():
+            if hp_name in estimator_hp_names:
+                cs.add_hyperparameter(estimator_cs.get_hyperparameter(hp_name))
+            elif hp_name in all_hp_names:
+                cs.add_hyperparameter(all_cs.get_hyperparameter(hp_name))
+            else:
+                cs.add_hyperparameter(default_cs.get_hyperparameter(hp_name))
+        return cs
+
+    def sample_configs_for_archs(self, include_architectures, N):
+        configs = list()
+        for _arch in include_architectures:
+            _cs = self.get_model_config_space(_arch)
+            configs.extend(sample_configurations(_cs, N))
+        return configs
+
+    """
+        iteration procedure.
+        iter_1: r=1, n=5*9
+        iter_2: r=3, n=5*3
+        iter_3: r=9, n=5
+    """
+    def run(self, dl_evaluator):
+        start_time = time.time()
+        inc_config, inc_perf = None, np.inf
+        architecture_candidates = self.architectures.copy()
+        for _arch in architecture_candidates:
+            self.eval_hist_configs[_arch] = dict()
+            self.eval_hist_perfs[_arch] = dict()
+
+        with ParallelProcessEvaluator(dl_evaluator, n_worker=self.n_jobs) as executor:
+            while time.time() <= start_time + self.time_limit:
+                r = 1
+                C = self.sample_configs_for_archs(architecture_candidates, self.N)
+                while r < self.R:
+                    for _arch in architecture_candidates:
+                        if r not in self.eval_hist_configs[_arch]:
+                            self.eval_hist_configs[_arch][r] = list()
+                            self.eval_hist_perfs[_arch][r] = list()
+
+                    _start_time = time.time()
+                    self.logger.info('Evaluate %d configurations with %d resource' % (len(C), r))
+
+                    val_losses = executor.parallel_execute(C, resource_ratio=float(r / self.R),
+                                                           eta=self.eta,
+                                                           first_iter=(r == 1))
+
+                    for _id, _val_loss in enumerate(val_losses):
+                        if np.isfinite(_val_loss):
+                            _arch = C[_id]['estimator']
+                            self.eval_hist_configs[_arch][r].append(C[_id])
+                            self.eval_hist_perfs[_arch][r].append(_val_loss)
+                    self.logger.info('Evaluation took %.2f seconds' % (time.time() - _start_time))
+
+                    if self.elimination_strategy == 'bandit':
+                        indices = np.argsort(val_losses)
+                        if len(C) >= self.eta:
+                            C = [C[i] for i in indices]
+                            reduced_num = int(len(C) / self.eta)
+                            C = C[0:reduced_num]
+                        else:
+                            C = [C[indices[0]]]
+
+                    else:
+                        if r > 1:
+                            val_losses_previous_iter = self.query_performance(C, r//self.eta)
+                            previous_inc_loss = np.min(val_losses_previous_iter)
+                            indices = np.argsort(val_losses)
+                            C = [C[idx] for idx in indices if val_losses[idx] < previous_inc_loss]
+                    r *= self.eta
+                    if inc_perf > val_losses[indices[0]]:
+                        inc_perf = val_losses[indices[0]]
+                        inc_config = C[0]
+
+                archs, reduced_archs = [config['estimator'] for config in C], list()
+                # Preserve the partial-relationship order.
+                for _arch in archs:
+                    if _arch not in reduced_archs:
+                        reduced_archs.append(_arch)
+
+                architecture_candidates = reduced_archs
+                print('Reduced architectures:', architecture_candidates)
+        return inc_config, inc_perf
+
+    def query_performance(self, C, r):
+        perfs = list()
+        for config in C:
+            arch = config['estimator']
+            idx = self.eval_hist_configs[arch][r].index(config)
+            perfs.append(self.eval_hist_perfs[arch][r][idx])
+        return perfs

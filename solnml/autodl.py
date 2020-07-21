@@ -106,6 +106,13 @@ class AutoDL(AutoDLBase):
                                    seed=self.seed,
                                    timestamp=self.timestamp,
                                    **kwargs)
+        if 'opt_method' in kwargs and kwargs['opt_method'] == 'see':
+            from solnml.components.hpo_optimizer.cashp_optimizer import CashpOptimizer
+            optimizer = CashpOptimizer(self.task_type, algorithm_candidates, self.time_limit, n_jobs=self.n_jobs)
+            inc_config, inc_perf = optimizer.run(dl_evaluator)
+            self.best_algo_config = inc_config
+            self.best_algo_id = inc_config['estimator']
+            return
 
         algorithm_candidates = self.select_network_architectures(algorithm_candidates, dl_evaluator, num_arch=1,
                                                                  **kwargs)
