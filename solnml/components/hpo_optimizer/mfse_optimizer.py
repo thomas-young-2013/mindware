@@ -40,21 +40,24 @@ class MfseOptimizer(BaseHPOptimizer, MfseBase):
                         try:
                             filepath = os.path.join(self.evaluator.model_dir, filename)
                             os.remove(filepath)
-                        except:
+                        except Exception:
                             pass
 
-        inc_idx = np.argmin(np.array(self.incumbent_perfs))
+        if len(self.incumbent_perfs) > 0:
+            inc_idx = np.argmin(np.array(self.incumbent_perfs))
 
-        for idx in range(len(self.incumbent_perfs)):
-            self.eval_dict[(None, self.incumbent_configs[idx])] = -self.incumbent_perfs[idx]
+            for idx in range(len(self.incumbent_perfs)):
+                self.eval_dict[(None, self.incumbent_configs[idx])] = -self.incumbent_perfs[idx]
+
+            self.incumbent_perf = -self.incumbent_perfs[inc_idx]
+            self.incumbent_config = self.incumbent_configs[inc_idx]
 
         self.perfs = self.incumbent_perfs
         self.configs = self.incumbent_configs
-        self.incumbent_perf = -self.incumbent_perfs[inc_idx]
-        self.incumbent_config = self.incumbent_configs[inc_idx]
+
         # Incumbent performance: the large, the better.
         iteration_cost = time.time() - _start_time
         return self.incumbent_perf, iteration_cost, self.incumbent_config
 
-    def get_runtime_history(self):
-        return self.incumbent_perfs, self.time_ticks, self.incumbent_perf
+    def get_evaluation_stats(self):
+        return self.evaluation_stats

@@ -29,6 +29,8 @@ class CashpOptimizer(object):
 
         self.time_limit = time_limit
         self.elimination_strategy = 'bandit'
+        # Runtime stats.
+        self.evaluation_stats = dict()
 
         self.update_cs = dict()
 
@@ -99,9 +101,11 @@ class CashpOptimizer(object):
         for _arch in architecture_candidates:
             self.eval_hist_configs[_arch] = dict()
             self.eval_hist_perfs[_arch] = dict()
+        self.evaluation_stats['timestamps'] = list()
+        self.evaluation_stats['val_scores'] = list()
 
         with ParallelProcessEvaluator(dl_evaluator, n_worker=self.n_jobs) as executor:
-            while time.time() <= start_time + self.time_limit:
+            while True:
                 r = 1
                 C = self.sample_configs_for_archs(architecture_candidates, self.N)
                 while r < self.R:
@@ -110,18 +114,33 @@ class CashpOptimizer(object):
                             self.eval_hist_configs[_arch][r] = list()
                             self.eval_hist_perfs[_arch][r] = list()
 
+                    self.logger.info('Start to evaluate %d configurations with %d resource' % (len(C), r))
                     _start_time = time.time()
-                    self.logger.info('Evaluate %d configurations with %d resource' % (len(C), r))
+                    if _start_time >= start_time + self.time_limit:
+                        break
 
-                    val_losses = executor.parallel_execute(C, resource_ratio=float(r / self.R),
-                                                           eta=self.eta,
-                                                           first_iter=(r == 1))
-
-                    for _id, _val_loss in enumerate(val_losses):
-                        if np.isfinite(_val_loss):
-                            _arch = C[_id]['estimator']
-                            self.eval_hist_configs[_arch][r].append(C[_id])
-                            self.eval_hist_perfs[_arch][r].append(_val_loss)
+                    if self.n_jobs > 1:
+                        val_losses = executor.parallel_execute(C, resource_ratio=float(r / self.R),
+                                                               eta=self.eta, first_iter=(r == 1))
+                        for _id, val_loss in enumerate(val_losses):
+                            if np.isfinite(val_loss):
+                                _arch = C[_id]['estimator']
+                                self.eval_hist_configs[_arch][r].append(C[_id])
+                                self.eval_hist_perfs[_arch][r].append(val_loss)
+                                self.evaluation_stats['timestamps'].append(time.time() - start_time)
+                                self.evaluation_stats['val_scores'].append(val_loss)
+                    else:
+                        val_losses = list()
+                        for config in C:
+                            val_loss = dl_evaluator(config, resource_ratio=float(r / self.R),
+                                                    eta=self.eta, first_iter=(r == 1))
+                            val_losses.append(val_loss)
+                            if np.isfinite(val_loss):
+                                _arch = config['estimator']
+                                self.eval_hist_configs[_arch][r].append(config)
+                                self.eval_hist_perfs[_arch][r].append(val_loss)
+                                self.evaluation_stats['timestamps'].append(time.time() - start_time)
+                                self.evaluation_stats['val_scores'].append(val_loss)
                     self.logger.info('Evaluation took %.2f seconds' % (time.time() - _start_time))
 
                     if self.elimination_strategy == 'bandit':
@@ -161,3 +180,6 @@ class CashpOptimizer(object):
             idx = self.eval_hist_configs[arch][r].index(config)
             perfs.append(self.eval_hist_perfs[arch][r][idx])
         return perfs
+
+    def get_evaluation_stats(self):
+        return self.evaluation_stats

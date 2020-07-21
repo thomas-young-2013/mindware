@@ -46,10 +46,18 @@ class AutoDL(AutoDLBase):
                          random_state=random_state, n_jobs=n_jobs)
         self.skip_profile = skip_profile
         self.timestamp = time.time()
+        
+        # SEE algorithm parameters.
+        self.optalgo = None
+        self.see_optimizer = None
 
     def fit(self, train_data: DLDataset, **kwargs):
         _start_time = time.time()
-
+        if 'opt_method' in kwargs:
+            self.optalgo = kwargs['opt_method']
+        else:
+            self.optalgo = 'see'
+          
         if self.task_type == IMG_CLS:
             self.image_size = kwargs['image_size']
 
@@ -60,7 +68,7 @@ class AutoDL(AutoDLBase):
         # TODO: For first-time user, download pretrained params here!
         algorithm_candidates = self.include_algorithms.copy()
         num_train_samples = train_data.get_train_samples_num()
-        if 'opt_method' in kwargs and kwargs['opt_method'] == 'hpo':
+        if self.optalgo == 'hpo':
             self._fit_in_hpo_way(algorithm_candidates, train_data, **kwargs)
             return
 
@@ -96,7 +104,7 @@ class AutoDL(AutoDLBase):
 
         # Execute neural architecture selection.
         self.logger.info('Before NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
-
+        
         dl_evaluator = DLEvaluator(None,
                                    self.task_type,
                                    max_epoch=self.max_epoch,
@@ -106,10 +114,10 @@ class AutoDL(AutoDLBase):
                                    seed=self.seed,
                                    timestamp=self.timestamp,
                                    **kwargs)
-        if 'opt_method' in kwargs and kwargs['opt_method'] == 'see':
+        if self.optalgo == 'see':
             from solnml.components.hpo_optimizer.cashp_optimizer import CashpOptimizer
-            optimizer = CashpOptimizer(self.task_type, algorithm_candidates, self.time_limit, n_jobs=self.n_jobs)
-            inc_config, inc_perf = optimizer.run(dl_evaluator)
+            self.see_optimizer = CashpOptimizer(self.task_type, algorithm_candidates, self.time_limit, n_jobs=self.n_jobs)
+            inc_config, inc_perf = self.see_optimizer.run(dl_evaluator)
             self.best_algo_config = inc_config
             self.best_algo_id = inc_config['estimator']
             return
@@ -339,8 +347,8 @@ class AutoDL(AutoDLBase):
                                         output_dir=self.output_dir,
                                         per_run_time_limit=100000,
                                         seed=self.seed, n_jobs=self.n_jobs)
-        self.solvers['hpo_estimator'] = optimizer
-        self.evaluators['hpo_estimator'] = hpo_evaluator
+        self.solvers['hpo_solver'] = optimizer
+        self.evaluators['hpo_solver'] = hpo_evaluator
 
         # Control flow via round robin.
         _start_time = time.time()
@@ -350,13 +358,13 @@ class AutoDL(AutoDLBase):
                 if _time_elapsed >= self.time_limit:
                     break
                 _budget_left = self.time_limit - _time_elapsed
-                self.solvers['hpo_estimator'].iterate(budget=_budget_left)
+                self.solvers['hpo_solver'].iterate(budget=_budget_left)
         else:
             for _ in self.trial_num:
-                self.solvers['hpo_estimator'].iterate()
+                self.solvers['hpo_solver'].iterate()
 
         # Best model id.
-        self.best_algo_id = 'hpo_estimator'
+        self.best_algo_id = 'hpo_solver'
         # Best model configuration.
         solver_ = self.solvers[self.best_algo_id]
         inc_idx = np.argmax(solver_.perfs)
@@ -381,11 +389,11 @@ class AutoDL(AutoDLBase):
             self.es.fit(data=train_data)
 
     def _get_runtime_info(self):
-        runtime_info = list()
-        for _solver in self.solvers.keys():
-            runtime_info.append(self.solvers[_solver].get_runtime_history())
-        return runtime_info
-
+        if self.optalgo == 'see':
+            return self.see_optimizer.get_evaluation_stats()
+        else:
+            return self.solvers['hpo_solver'].get_evaluation_stats()
+    
     # def recycle(self):
     #     for _solver in self.solvers.keys():
     #         self.solvers[_solver].gc()

@@ -24,7 +24,7 @@ class BaseHPOptimizer(object):
     def iterate(self, budget=MAX_INT):
         pass
 
-    def get_runtime_history(self):
+    def get_evaluation_stats(self):
         return
 
     def gc(self):

@@ -29,7 +29,9 @@ class MfseBase(object):
         self.incumbent_config = self.config_space.get_default_configuration()
         self.incumbent_configs = list()
         self.incumbent_perfs = list()
-        self.time_ticks = list()
+        self.evaluation_stats = dict()
+        self.evaluation_stats['timestamps'] = list()
+        self.evaluation_stats['val_scores'] = list()
         self.global_start_time = time.time()
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
 
@@ -99,20 +101,33 @@ class MfseBase(object):
                 self.logger.info("MFSE: %d configurations x size %d / %d each" %
                                  (int(n_configs), n_resource, self.R))
 
-                val_losses = executor.parallel_execute(T, resource_ratio=float(n_resource / self.R),
-                                                       eta=self.eta,
-                                                       first_iter=(i == 0))
-                for _id, _val_loss in enumerate(val_losses):
-                    if np.isfinite(_val_loss):
-                        self.target_x[int(n_resource)].append(T[_id])
-                        self.target_y[int(n_resource)].append(_val_loss)
+                if self.n_workers > 1:
+                    val_losses = executor.parallel_execute(T, resource_ratio=float(n_resource / self.R),
+                                                           eta=self.eta,
+                                                           first_iter=(i == 0))
+                    for _id, _val_loss in enumerate(val_losses):
+                        if np.isfinite(_val_loss):
+                            self.target_x[int(n_resource)].append(T[_id])
+                            self.target_y[int(n_resource)].append(_val_loss)
+                            self.evaluation_stats['timestamps'].append(time.time() - self.global_start_time)
+                            self.evaluation_stats['val_scores'].append(_val_loss)
+                else:
+                    val_losses = list()
+                    for config in T:
+                        val_loss = self.eval_func(config, resource_ratio=float(n_resource / self.R),
+                                                  eta=self.eta, first_iter=(i == 0))
+                        val_losses.append(val_loss)
+                        if np.isfinite(val_loss):
+                            self.target_x[int(n_resource)].append(config)
+                            self.target_y[int(n_resource)].append(val_loss)
+                            self.evaluation_stats['timestamps'].append(time.time() - self.global_start_time)
+                            self.evaluation_stats['val_scores'].append(val_loss)
 
                 self.exp_output[time.time()] = (int(n_resource), T, val_losses)
 
                 if int(n_resource) == self.R:
                     self.incumbent_configs.extend(T)
                     self.incumbent_perfs.extend(val_losses)
-                    self.time_ticks.extend([time.time() - self.global_start_time] * len(T))
 
                 # Select a number of best configurations for the next loop.
                 # Filter out early stops, if any.
