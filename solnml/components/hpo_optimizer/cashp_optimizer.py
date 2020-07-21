@@ -110,7 +110,7 @@ class CashpOptimizer(object):
             while not terminate_proc:
                 r = 1
                 C = self.sample_configs_for_archs(architecture_candidates, self.N)
-                while r < self.R:
+                while r < self.R or (r == self.R and len(architecture_candidates) == 1):
                     for _arch in architecture_candidates:
                         if r not in self.eval_hist_configs[_arch]:
                             self.eval_hist_configs[_arch][r] = list()
