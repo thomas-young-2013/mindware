@@ -3,6 +3,7 @@ import time
 import copy
 import torch
 import numpy as np
+from multiprocessing import Lock
 from math import ceil
 from sklearn.metrics.scorer import accuracy_scorer
 
@@ -94,18 +95,11 @@ class DLEvaluator(_BaseEvaluator):
                      'epoch_num': estimator.epoch_num}
             torch.save(state, config_model_path)
 
-        # Delete temporary models when resource ratio is 1
-        if self.continue_training and epoch_ratio == 1.0:
-            for filename in os.listdir(self.model_dir):
-                # Temporary model
-                if 'tmp_%s' % self.timestamp in filename:
-                    try:
-                        filepath = os.path.join(self.model_dir, filename)
-                        os.remove(filepath)
-                    except:
-                        pass
-
         # Save top K models with the largest validation scores.
+        if 'rw_lock' not in kwargs and kwargs['rw_lock'] is None:
+            self.logger.info('rw_lock not defined! Possible read-write conflicts may happen!')
+        lock = kwargs.get('rw_lock', Lock())
+        lock.acquire()
         if np.isfinite(score):
             save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config, score)
             if save_flag is True:
@@ -123,6 +117,7 @@ class DLEvaluator(_BaseEvaluator):
                     self.logger.info("Model deleted from %s" % model_path)
             except:
                 pass
+        lock.release()
 
         # Turn it into a minimization problem.
         return -score
