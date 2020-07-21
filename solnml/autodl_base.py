@@ -10,7 +10,7 @@ from solnml.components.metrics.metric import get_metric
 from solnml.utils.logging_utils import setup_logger, get_logger
 from solnml.components.ensemble.dl_ensemble.ensemble_bulider import ensemble_list
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space
-from solnml.components.utils.mfse_utils.config_space_utils import sample_configurations
+from solnml.components.hpo_optimizer.base.config_space_utils import sample_configurations
 from solnml.components.computation.parallel_process import ParallelProcessEvaluator
 
 profile_image_size = [32, 128, 256]

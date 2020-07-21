@@ -4,7 +4,7 @@ import logging
 import numpy as np
 from scipy.stats import norm
 
-from solnml.components.utils.mfse_utils.base_epm import AbstractEPM
+from solnml.components.hpo_optimizer.base.base_epm import AbstractEPM
 
 
 class AbstractAcquisitionFunction(object, metaclass=abc.ABCMeta):

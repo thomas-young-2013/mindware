@@ -3,12 +3,12 @@ import numpy as np
 import random as rd
 from math import log, ceil
 from solnml.utils.constant import MAX_INT
-from solnml.components.utils.mfse_utils.acquisition import EI
+from solnml.components.hpo_optimizer.base import EI
 from solnml.components.transfer_learning.tlbo.models.kde import TPE
-from solnml.components.utils.mfse_utils.acq_optimizer import RandomSampling
-from solnml.components.utils.mfse_utils.funcs import get_types, std_normalization
-from solnml.components.utils.mfse_utils.config_space_utils import sample_configurations
-from solnml.components.utils.mfse_utils.config_space_utils import convert_configurations_to_array
+from solnml.components.hpo_optimizer.base.acq_optimizer import RandomSampling
+from solnml.components.hpo_optimizer.base.funcs import get_types, std_normalization
+from solnml.components.hpo_optimizer.base.config_space_utils import sample_configurations
+from solnml.components.hpo_optimizer.base.config_space_utils import convert_configurations_to_array
 from solnml.components.computation.parallel_process import ParallelProcessEvaluator
 from solnml.utils.logging_utils import get_logger
 from .prob_rf import RandomForestWithInstances

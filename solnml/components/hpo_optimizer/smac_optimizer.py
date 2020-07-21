@@ -8,11 +8,11 @@ from solnml.components.hpo_optimizer.base_optimizer import BaseHPOptimizer, MAX_
 class SMACOptimizer(BaseHPOptimizer):
     def __init__(self, evaluator, config_space, time_limit=None, evaluation_limit=None,
                  per_run_time_limit=300, per_run_mem_limit=1024, output_dir='./',
-                 trials_per_iter=1, seed=1, n_jobs=1):
+                 inner_iter_num_per_iter=1, seed=1, n_jobs=1):
         super().__init__(evaluator, config_space, seed)
         self.time_limit = time_limit
         self.evaluation_num_limit = evaluation_limit
-        self.trials_per_iter = trials_per_iter
+        self.inner_iter_num_per_iter = inner_iter_num_per_iter
         self.per_run_time_limit = per_run_time_limit
         self.per_run_mem_limit = per_run_mem_limit
         self.output_dir = output_dir
@@ -54,7 +54,7 @@ class SMACOptimizer(BaseHPOptimizer):
 
     def iterate(self, budget=MAX_INT):
         _start_time = time.time()
-        for _ in range(self.trials_per_iter):
+        for _ in range(self.inner_iter_num_per_iter):
             if len(self.configs) >= self.maximum_config_num:
                 self.early_stopped_flag = True
                 self.logger.warning('Already explored 70 percentage of the '

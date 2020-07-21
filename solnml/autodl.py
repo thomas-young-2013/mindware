@@ -82,7 +82,6 @@ class AutoDL(AutoDLBase):
             optimizer = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs,
                                             output_dir=self.output_dir,
                                             per_run_time_limit=100000,
-                                            trials_per_iter=1,
                                             seed=self.seed, n_jobs=self.n_jobs)
             self.solvers[estimator_id] = optimizer
             self.evaluators[estimator_id] = hpo_evaluator
@@ -331,7 +330,6 @@ class AutoDL(AutoDLBase):
         optimizer = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs,
                                         output_dir=self.output_dir,
                                         per_run_time_limit=100000,
-                                        trials_per_iter=1,
                                         seed=self.seed, n_jobs=self.n_jobs)
         self.solvers['hpo_estimator'] = optimizer
         self.evaluators['hpo_estimator'] = hpo_evaluator

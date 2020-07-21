@@ -3,7 +3,7 @@ import numpy as np
 
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
-from solnml.components.utils.mfse_utils.mfsebase import MfseBase
+from solnml.components.hpo_optimizer.base.mfsebase import MfseBase
 from solnml.components.fe_optimizers.bo_optimizer import BayesianOptimizationOptimizer
 
 

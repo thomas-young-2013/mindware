@@ -136,7 +136,7 @@ class SecondLayerBandit(object):
 
         self.optimizer['hpo'] = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs, output_dir=output_dir,
                                                     per_run_time_limit=per_run_time_limit,
-                                                    trials_per_iter=trials_per_iter,
+                                                    inner_iter_num_per_iter=trials_per_iter,
                                                     seed=self.seed, n_jobs=n_jobs)
 
         self.inc['hpo'], self.local_inc['hpo'] = self.default_config, self.default_config
@@ -361,7 +361,7 @@ class SecondLayerBandit(object):
             self.optimizer[_arm] = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, self.config_space,
                                                        output_dir=self.output_dir,
                                                        per_run_time_limit=self.per_run_time_limit,
-                                                       trials_per_iter=trials_per_iter, seed=self.seed)
+                                                       inner_iter_num_per_iter=trials_per_iter, seed=self.seed)
 
         self.logger.debug('=' * 30)
         self.logger.debug('UPDATE OPTIMIZER: %s' % _arm)

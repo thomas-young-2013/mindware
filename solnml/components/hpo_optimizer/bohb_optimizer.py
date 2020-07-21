@@ -1,7 +1,7 @@
 import time
 import numpy as np
 from solnml.components.hpo_optimizer.base_optimizer import BaseHPOptimizer, MAX_INT
-from solnml.components.utils.mfse_utils.bohbbase import BohbBase
+from solnml.components.hpo_optimizer.base.bohbbase import BohbBase
 
 
 class BohbOptimizer(BaseHPOptimizer, BohbBase):
