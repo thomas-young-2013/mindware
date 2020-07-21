@@ -116,7 +116,9 @@ class CashpOptimizer(object):
                             self.eval_hist_configs[_arch][r] = list()
                             self.eval_hist_perfs[_arch][r] = list()
 
+                    self.logger.info('Evalutions [r=%d]' % r)
                     self.logger.info('Start to evaluate %d configurations with %d resource' % (len(C), r))
+                    self.logger.info('=' * 20)
                     _start_time = time.time()
                     if _start_time >= start_time + self.time_limit:
                         terminate_proc = True
@@ -144,7 +146,7 @@ class CashpOptimizer(object):
                                 self.eval_hist_perfs[_arch][r].append(val_loss)
                                 self.evaluation_stats['timestamps'].append(time.time() - start_time)
                                 self.evaluation_stats['val_scores'].append(val_loss)
-                    self.logger.info('Evaluation took %.2f seconds' % (time.time() - _start_time))
+                    self.logger.info('Evaluations [R=%d] took %.2f seconds' % (r, time.time() - _start_time))
 
                     if self.elimination_strategy == 'bandit':
                         indices = np.argsort(val_losses)
@@ -174,7 +176,9 @@ class CashpOptimizer(object):
                         reduced_archs.append(_arch)
 
                 architecture_candidates = reduced_archs
+                print('=' * 20)
                 print('Reduced architectures:', architecture_candidates)
+                print('=' * 20)
         return inc_config, inc_perf
 
     def query_performance(self, C, r):
