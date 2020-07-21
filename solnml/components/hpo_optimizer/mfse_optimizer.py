@@ -1,4 +1,5 @@
 import time
+import os
 import numpy as np
 from solnml.components.hpo_optimizer.base_optimizer import BaseHPOptimizer, MAX_INT
 from solnml.components.hpo_optimizer.base.mfsebase import MfseBase
@@ -30,6 +31,17 @@ class MfseOptimizer(BaseHPOptimizer, MfseBase):
             budget_left = budget - _time_elapsed
             self._iterate(self.s_values[self.inner_iter_id], budget=budget_left)
             self.inner_iter_id = (self.inner_iter_id + 1) % (self.s_max + 1)
+
+            # Remove tmp model
+            if self.evaluator.continue_training:
+                for filename in os.listdir(self.evaluator.model_dir):
+                    # Temporary model
+                    if 'tmp_%s' % self.evaluator.timestamp in filename:
+                        try:
+                            filepath = os.path.join(self.evaluator.model_dir, filename)
+                            os.remove(filepath)
+                        except:
+                            pass
 
         inc_idx = np.argmin(np.array(self.incumbent_perfs))
 

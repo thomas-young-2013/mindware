@@ -12,6 +12,9 @@ NUM_WORKERS = 10
 
 
 class BaseNeuralNetwork:
+    def __init__(self):
+        self.early_stop_flag = False
+
     @staticmethod
     def get_properties():
         """
@@ -207,6 +210,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
                     # Early stop
                     early_stop.update(val_avg_loss)
                     if early_stop.if_early_stop:
+                        self.early_stop_flag = True
                         print("Early stop!")
                         break
 
@@ -433,6 +437,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
                     # Early stop
                     early_stop.update(val_avg_loss)
                     if early_stop.if_early_stop:
+                        self.early_stop_flag = True
                         print("Early stop!")
                         break
 
@@ -639,6 +644,7 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
                 # Early stop
                 early_stop.update(val_avg_loss)
                 if early_stop.if_early_stop:
+                    self.early_stop_flag = True
                     print("Early stop!")
                     break
 

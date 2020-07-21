@@ -94,17 +94,6 @@ class DLEvaluator(_BaseEvaluator):
                      'epoch_num': estimator.epoch_num}
             torch.save(state, config_model_path)
 
-        # Delete temporary models when resource ratio is 1
-        if self.continue_training and epoch_ratio == 1.0:
-            for filename in os.listdir(self.model_dir):
-                # Temporary model
-                if 'tmp_%s' % self.timestamp in filename:
-                    try:
-                        filepath = os.path.join(self.model_dir, filename)
-                        os.remove(filepath)
-                    except:
-                        pass
-
         # Save top K models with the largest validation scores.
         if np.isfinite(score):
             save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config, score)
