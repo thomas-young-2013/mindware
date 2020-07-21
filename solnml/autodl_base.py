@@ -126,6 +126,7 @@ class AutoDLBase(object):
 
         self.dataset_name = dataset_name
         self.time_limit = time_limit
+        self.termination_time = time.time() + self.time_limit
         self.trial_num = trial_num
         self.seed = random_state
         self.output_dir = output_dir
@@ -359,6 +360,7 @@ class AutoDLBase(object):
                 C = [C[indices[0]]]
             r *= eta
         archs, reduced_archs = [config['estimator'] for config in C], list()
+        # Preserve the partial-relationship order.
         for _arch in archs:
             if _arch not in reduced_archs:
                 reduced_archs.append(_arch)

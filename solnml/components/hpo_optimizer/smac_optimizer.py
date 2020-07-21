@@ -2,7 +2,7 @@ import time
 import numpy as np
 from litebo.facade.bo_facade import BayesianOptimization as BO
 from litebo.utils.constants import SUCCESS
-from solnml.components.hpo_optimizer.base_optimizer import BaseHPOptimizer
+from solnml.components.hpo_optimizer.base_optimizer import BaseHPOptimizer, MAX_INT
 
 
 class SMACOptimizer(BaseHPOptimizer):
@@ -52,7 +52,7 @@ class SMACOptimizer(BaseHPOptimizer):
             self.iterate()
         return np.max(self.perfs)
 
-    def iterate(self):
+    def iterate(self, budget=MAX_INT):
         _start_time = time.time()
         for _ in range(self.trials_per_iter):
             if len(self.configs) >= self.maximum_config_num:

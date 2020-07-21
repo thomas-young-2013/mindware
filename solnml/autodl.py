@@ -115,8 +115,12 @@ class AutoDL(AutoDLBase):
         n_algorithm = len(algorithm_candidates)
         if self.trial_num is None:
             algo_id = 0
-            while time.time() <= _start_time + self.time_limit:
-                self.solvers[algorithm_candidates[algo_id]].iterate()
+            while True:
+                _time_elapsed = time.time() - _start_time
+                if _time_elapsed >= self.time_limit:
+                    break
+                _budget_left = self.time_limit - _time_elapsed
+                self.solvers[algorithm_candidates[algo_id]].iterate(budget=_budget_left)
                 algo_id = (algo_id + 1) % n_algorithm
         else:
             for id in self.trial_num:
@@ -335,8 +339,12 @@ class AutoDL(AutoDLBase):
         # Control flow via round robin.
         _start_time = time.time()
         if self.trial_num is None:
-            while time.time() <= _start_time + self.time_limit:
-                self.solvers['hpo_estimator'].iterate()
+            while True:
+                _time_elapsed = time.time() - _start_time
+                if _time_elapsed >= self.time_limit:
+                    break
+                _budget_left = self.time_limit - _time_elapsed
+                self.solvers['hpo_estimator'].iterate(budget=_budget_left)
         else:
             for _ in self.trial_num:
                 self.solvers['hpo_estimator'].iterate()

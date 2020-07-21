@@ -3,6 +3,7 @@ import numpy as np
 import random as rd
 from math import log, ceil
 
+from solnml.utils.constant import MAX_INT
 from solnml.utils.logging_utils import get_logger
 from solnml.components.utils.mfse_utils.prob_rf import RandomForestWithInstances
 from solnml.components.utils.mfse_utils.config_space_utils import sample_configurations
@@ -63,8 +64,6 @@ class MfseBase(object):
         self.weight_changed_cnt = 0
         self.hist_weights = list()
 
-        # self.executor = ParallelEvaluator(self.eval_func, n_worker=n_jobs)
-        # self.executor = ParallelProcessEvaluator(self.eval_func, n_worker=n_jobs)
         self.weighted_acquisition_func = EI(model=self.weighted_surrogate)
         self.weighted_acq_optimizer = RandomSampling(self.weighted_acquisition_func,
                                                      self.config_space,
@@ -72,7 +71,7 @@ class MfseBase(object):
                                                      rng=np.random.RandomState(seed))
         self.eval_dict = dict()
 
-    def _iterate(self, s, skip_last=0):
+    def _iterate(self, s, budget=MAX_INT, skip_last=0):
         if self.weight_update_id > self.s_max:
             self.update_weight()
         self.weight_update_id += 1
@@ -90,10 +89,11 @@ class MfseBase(object):
 
         with ParallelProcessEvaluator(self.eval_func, n_worker=self.n_workers) as executor:
             for i in range((s + 1) - int(skip_last)):  # changed from s + 1
+                if start_time + budget >= time.time():
+                    break
 
                 # Run each of the n configs for <iterations>
                 # and keep best (n_configs / eta) configurations
-
                 n_configs = n * self.eta ** (-i)
                 n_resource = r * self.eta ** i
 
@@ -138,7 +138,7 @@ class MfseBase(object):
 
         incumbent = dict()
         max_r = self.iterate_r[-1]
-        # LOWER, THE BETTER.
+        # The lower, the better.
         best_index = np.argmin(self.target_y[max_r])
         incumbent['config'] = self.target_x[max_r][best_index]
         approximate_obj = self.weighted_surrogate.predict(convert_configurations_to_array([incumbent['config']]))[0]

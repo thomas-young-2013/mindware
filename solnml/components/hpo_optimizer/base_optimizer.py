@@ -21,7 +21,7 @@ class BaseHPOptimizer(object):
         pass
 
     @abc.abstractmethod
-    def iterate(self):
+    def iterate(self, budget=MAX_INT):
         pass
 
     def get_runtime_history(self):

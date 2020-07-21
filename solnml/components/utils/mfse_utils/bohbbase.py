@@ -2,11 +2,12 @@ import time
 import numpy as np
 import random as rd
 from math import log, ceil
-from solnml.components.utils.mfse_utils.config_space_utils import sample_configurations
-from solnml.components.transfer_learning.tlbo.models.kde import TPE
+from solnml.utils.constant import MAX_INT
 from solnml.components.utils.mfse_utils.acquisition import EI
+from solnml.components.transfer_learning.tlbo.models.kde import TPE
 from solnml.components.utils.mfse_utils.acq_optimizer import RandomSampling
 from solnml.components.utils.mfse_utils.funcs import get_types, std_normalization
+from solnml.components.utils.mfse_utils.config_space_utils import sample_configurations
 from solnml.components.utils.mfse_utils.config_space_utils import convert_configurations_to_array
 from solnml.components.computation.parallel_process import ParallelProcessEvaluator
 from solnml.utils.logging_utils import get_logger
@@ -14,11 +15,11 @@ from .prob_rf import RandomForestWithInstances
 
 
 class BohbBase(object):
-    def __init__(self, eval_func, config_space, mode='smac',
-                 seed=1, R=81, eta=3, n_jobs=1):
+    def __init__(self, eval_func, config_space, config_generator='tpe',
+                 seed=1, R=27, eta=3, n_jobs=1):
         self.eval_func = eval_func
         self.config_space = config_space
-        self.mode = mode
+        self.config_generator = config_generator
         self.n_workers = n_jobs
 
         self.trial_cnt = 0
@@ -70,7 +71,7 @@ class BohbBase(object):
 
         self.eval_dict = dict()
 
-    def _iterate(self, s, skip_last=0):
+    def _iterate(self, s, budget=MAX_INT, skip_last=0):
         # Set initial number of configurations
         n = int(ceil(self.B / self.R / (s + 1) * self.eta ** s))
         # initial number of iterations per config
@@ -84,7 +85,9 @@ class BohbBase(object):
 
         with ParallelProcessEvaluator(self.eval_func, n_worker=self.n_workers) as executor:
             for i in range((s + 1) - int(skip_last)):  # changed from s + 1
-
+                if start_time + budget >= time.time():
+                    break
+                
                 # Run each of the n configs for <iterations>
                 # and keep best (n_configs / eta) configurations
 
@@ -110,7 +113,7 @@ class BohbBase(object):
                     self.time_ticks.extend([time.time() - self.global_start_time] * len(T))
 
                     # Only update results using maximal resources
-                    if self.mode != 'smac':
+                    if self.config_generator != 'smac':
                         for _id, _val_loss in enumerate(val_losses):
                             if np.isfinite(_val_loss):
                                 self.config_gen.new_result(T[_id], _val_loss)
@@ -128,7 +131,7 @@ class BohbBase(object):
         # Refit the surrogate model.
         resource_val = self.iterate_r[-1]
         if len(self.target_y[resource_val]) > 1:
-            if self.mode == 'smac':
+            if self.config_generator == 'smac':
                 normalized_y = std_normalization(self.target_y[resource_val])
                 self.surrogate.train(convert_configurations_to_array(self.target_x[resource_val]),
                                      np.array(normalized_y, dtype=np.float64))
@@ -179,7 +182,7 @@ class BohbBase(object):
         return candidates
 
     def get_candidate_configurations(self, num_config):
-        if self.mode == 'smac':
+        if self.config_generator == 'smac':
             return self.smac_get_candidate_configurations(num_config)
         else:
             return self.baseline_get_candidate_configurations(num_config)
