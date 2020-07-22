@@ -11,7 +11,7 @@ from sklearn.metrics import balanced_accuracy_score
 sys.path.append(os.getcwd())
 from solnml.estimators import Classifier
 from solnml.datasets.utils import load_train_test_data
-from solnml.components.utils.constants import CATEGORICAL
+from solnml.components.utils.constants import CATEGORICAL, MULTICLASS_CLS
 
 parser = argparse.ArgumentParser()
 dataset_set = 'dna,pollen,abalone,splice,madelon,spambase,wind,page-blocks(1),pc2,segment'
@@ -58,7 +58,7 @@ def evaluate_hmab(algorithms, run_id,
                   enable_ens=True):
     task_id = '[hmab][%s-%d-%d-%d]' % (dataset, len(algorithms), trial_num, time_limit)
     _start_time = time.time()
-    train_data, test_data = load_train_test_data(dataset)
+    train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
     if enable_ens is True:
         ensemble_method = 'ensemble_selection'
     else:
@@ -135,7 +135,7 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=200,
         )
 
     print(automl)
-    raw_data, test_raw_data = load_train_test_data(dataset)
+    raw_data, test_raw_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
     X, y = raw_data.data
     X_test, y_test = test_raw_data.data
     feat_type = ['Categorical' if _type == CATEGORICAL else 'Numerical'
@@ -146,6 +146,8 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=200,
     str_stats = automl.sprint_statistics()
     valid_results = automl.cv_results_['mean_test_score']
     time_records = automl.cv_results_['mean_fit_time']
+    plot_x = convert_ausk_to_plot(time_records, time_limit)
+
     validation_score = np.max(valid_results)
 
     # Test performance.
@@ -162,14 +164,30 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=200,
 
     save_path = save_dir + '%s-%d.pkl' % (task_id, rep_id)
     with open(save_path, 'wb') as f:
-        stats = [model_desc, str_stats, valid_results, time_records, time_limit]
+        stats = [plot_x, valid_results]
         pickle.dump([validation_score, test_score, stats], f)
+
+
+def convert_ausk_to_plot(time_array, total_cost):
+    total_fit_time = sum(time_array)
+    per_other_time = (total_cost - total_fit_time) / (len(time_array) - 1)
+    convert_x = list()
+    prev_t = 0
+    for i, t in enumerate(time_array):
+        if i == 0:
+            cur_t = t
+            prev_t = cur_t
+        else:
+            cur_t = t + prev_t + per_other_time
+            prev_t = cur_t
+        convert_x.append(cur_t)
+    return convert_x
 
 
 def check_datasets(datasets):
     for _dataset in datasets:
         try:
-            _, _ = load_train_test_data(_dataset, random_state=1)
+            _, _ = load_train_test_data(_dataset, random_state=1, task_type=MULTICLASS_CLS)
         except Exception as e:
             raise ValueError('Dataset - %s does not exist!' % _dataset)
 
@@ -189,6 +207,8 @@ if __name__ == "__main__":
                       'lda', 'qda',
                       'multinomial_nb', 'gaussian_nb', 'bernoulli_nb'
                       ]
+    elif algo_num == 1:
+        algorithms = ['libsvm_svc']
     else:
         raise ValueError('Invalid algorithm num - %d!' % algo_num)
 
