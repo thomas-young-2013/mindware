@@ -20,7 +20,7 @@ from solnml.components.hpo_optimizer.base.config_space_utils import convert_conf
 
 
 class CashpOptimizer(object):
-    def __init__(self, task_type, architectures, time_limit, sampling_strategy='mfse',
+    def __init__(self, task_type, architectures, time_limit, sampling_strategy='uniform',
                  R=27, eta=3, N=9, n_jobs=1):
         self.architectures = architectures
         self.time_limit = time_limit
