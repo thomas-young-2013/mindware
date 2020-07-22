@@ -87,7 +87,7 @@ class BohbBase(object):
             for i in range((s + 1) - int(skip_last)):  # changed from s + 1
                 if time.time() >= budget + start_time:
                     break
-                
+
                 # Run each of the n configs for <iterations>
                 # and keep best (n_configs / eta) configurations
 
@@ -162,12 +162,14 @@ class BohbBase(object):
 
     def baseline_get_candidate_configurations(self, num_config):
         config_candidates = list()
-        while num_config:
-            config = self.config_gen.get_config(None)[0]
+
+        config_left = num_config
+        while config_left:
+            config = self.config_gen.get_config()[0]
             if config in config_candidates:
                 continue
             config_candidates.append(config)
-            num_config -= 1
+            config_left -= 1
 
         p_threshold = 0.3
         candidates = list()

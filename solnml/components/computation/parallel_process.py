@@ -45,6 +45,9 @@ class ParallelProcessEvaluator(object):
             perf = res.get()[0]
             evaluation_result.append(perf)
 
+            # return_dict=res.get()[0]
+            # evaluation_result.append(return_dict)
+
         return evaluation_result
 
     # def shutdown(self):

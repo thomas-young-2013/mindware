@@ -37,6 +37,8 @@ class RegressionEvaluator(_BaseEvaluator):
 
     def __call__(self, config, **kwargs):
         start_time = time.time()
+        return_dict = dict()
+
         if self.name is None:
             raise ValueError('This evaluator has no name/type!')
         assert self.name in ['hpo', 'fe']
@@ -101,4 +103,5 @@ class RegressionEvaluator(_BaseEvaluator):
         self.eval_id += 1
 
         # Turn it into a minimization problem.
+        return_dict['score'] = -score
         return -score

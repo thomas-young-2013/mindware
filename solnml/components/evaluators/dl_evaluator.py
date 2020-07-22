@@ -43,6 +43,7 @@ class DLEvaluator(_BaseEvaluator):
         else:
             self.dataset.load_data()
         start_time = time.time()
+        return_dict = dict()
 
         config_dict = config.get_dictionary().copy()
 
@@ -96,7 +97,7 @@ class DLEvaluator(_BaseEvaluator):
             torch.save(state, config_model_path)
 
         # Save top K models with the largest validation scores.
-        if 'rw_lock' not in kwargs and kwargs['rw_lock'] is None:
+        if 'rw_lock' not in kwargs or kwargs['rw_lock'] is None:
             self.logger.info('rw_lock not defined! Possible read-write conflicts may happen!')
         lock = kwargs.get('rw_lock', Lock())
         lock.acquire()
@@ -120,4 +121,6 @@ class DLEvaluator(_BaseEvaluator):
         lock.release()
 
         # Turn it into a minimization problem.
+        return_dict['score'] = -score
+        return_dict['early_stop'] = estimator.early_stop_flag
         return -score
