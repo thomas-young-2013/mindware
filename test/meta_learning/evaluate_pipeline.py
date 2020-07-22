@@ -53,12 +53,7 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
         if algo in algorithms and len(include_models) < n_algo:
             include_models.append(algo)
     print('After algorithm recommendation', include_models)
-    # if dataset in ['page-blocks(1)', 'pc2']:
-    #     include_models = ['libsvm_svc']
-    # elif dataset == 'winequality_white':
-    #     include_models = ['liblinear_svc']
-    # else:
-    #     pass
+
     _start_time = time.time()
     train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
     cls_task_type = BINARY_CLS if len(set(train_data.data[1])) == 2 else MULTICLASS_CLS

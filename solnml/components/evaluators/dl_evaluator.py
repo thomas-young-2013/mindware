@@ -96,7 +96,7 @@ class DLEvaluator(_BaseEvaluator):
             torch.save(state, config_model_path)
 
         # Save top K models with the largest validation scores.
-        if 'rw_lock' not in kwargs and kwargs['rw_lock'] is None:
+        if 'rw_lock' not in kwargs or kwargs['rw_lock'] is None:
             self.logger.info('rw_lock not defined! Possible read-write conflicts may happen!')
         lock = kwargs.get('rw_lock', Lock())
         lock.acquire()

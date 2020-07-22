@@ -68,10 +68,10 @@ class BaseEstimator(object):
         )
         return engine
 
-    def fit(self, data: DataNode):
+    def fit(self, data: DataNode, **kwargs):
         assert data is not None and isinstance(data, DataNode)
         self._ml_engine = self.build_engine()
-        self._ml_engine.fit(data)
+        self._ml_engine.fit(data, **kwargs)
         return self
 
     def predict(self, X: DataNode, batch_size=None, n_jobs=1):

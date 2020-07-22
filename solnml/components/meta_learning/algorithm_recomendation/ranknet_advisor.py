@@ -1,8 +1,10 @@
+import os
 import numpy as np
+import pickle as pk
 from keras import backend as K
 from keras.models import Model
 from keras.layers import Activation, Dense, Input, Subtract
-from keras.layers import InputLayer, Dropout, BatchNormalization
+from keras.layers import BatchNormalization
 from solnml.utils.logging_utils import get_logger
 from solnml.components.meta_learning.algorithm_recomendation.base_advisor import BaseAdvisor
 
@@ -82,6 +84,18 @@ class RankNetAdvisor(BaseAdvisor):
         self.model.fit([X1, X2], y, epochs=200, batch_size=64)
 
     def predict(self, dataset_meta_feat):
+        meta_learner_filename = self.meta_dir + 'ranknet_model_%s_%s_%s.pkl' % (
+            self.meta_algo, self.metric, self.hash_id)
+        if os.path.exists(meta_learner_filename):
+            print('Load model from file: %s.' % meta_learner_filename)
+            with open(meta_learner_filename, 'rb') as f:
+                self.model = pk.load(f)
+        else:
+            self.fit()
+            with open(meta_learner_filename, 'wb') as f:
+                pk.dump(self.model, f)
+            print('Dump model to file: %s.' % meta_learner_filename)
+
         X = self.load_test_data(dataset_meta_feat)
         ranker_output = K.function([self.model.layers[0].input], [self.model.layers[-3].get_output_at(0)])
         return ranker_output([X])[0].ravel()

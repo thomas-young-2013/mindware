@@ -11,7 +11,7 @@ from solnml.datasets.od_dataset import ODDataset
 class Classifier(BaseEstimator):
     """This class implements the classification task. """
 
-    def fit(self, data: DataNode):
+    def fit(self, data: DataNode, **kwargs):
         """
         Fit the classifier to given training data.
         :param data: instance of DataNode
@@ -27,7 +27,7 @@ class Classifier(BaseEstimator):
         else:
             raise ValueError("Invalid Task Type: %s!" % task_type)
         self.task_type = task_type
-        super().fit(data)
+        super().fit(data, **kwargs)
 
         return self
 

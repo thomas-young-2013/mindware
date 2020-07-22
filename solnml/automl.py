@@ -1,20 +1,20 @@
 import os
+import sys
+import traceback
 from solnml.utils.logging_utils import setup_logger, get_logger
 from solnml.components.metrics.metric import get_metric
-from solnml.components.utils.constants import CLS_TASKS, REG_TASKS, IMG_CLS
+from solnml.components.utils.constants import CLS_TASKS, REG_TASKS, IMG_CLS, TEXT_CLS
 from solnml.components.ensemble import ensemble_list
 from solnml.components.feature_engineering.transformation_graph import DataNode
-from solnml.components.models.classification import _classifiers
 from solnml.components.models.regression import _regressors
+from solnml.components.models.classification import _classifiers
 from solnml.components.models.imbalanced_classification import _imb_classifiers
-from solnml.components.models.img_classification import _classifiers as _img_classifiers
-from solnml.components.meta_learning.algorithm_recomendation.algorithm_advisor import AlgorithmAdvisor
+from solnml.components.meta_learning.algorithm_recomendation.ranknet_advisor import RankNetAdvisor
 from solnml.bandits.first_layer_bandit import FirstLayerBandit
 
 classification_algorithms = _classifiers.keys()
 imb_classication_algorithms = _imb_classifiers.keys()
 regression_algorithms = _regressors.keys()
-img_classification_algorithms = _img_classifiers.keys()
 
 
 class AutoML(object):
@@ -61,8 +61,8 @@ class AutoML(object):
             self.include_algorithms = include_algorithms
         else:
             if task_type in CLS_TASKS:
-                if task_type == IMG_CLS:
-                    self.include_algorithms = list(img_classification_algorithms)
+                if task_type in [IMG_CLS, TEXT_CLS]:
+                    raise ValueError('Please use AutoDL module, instead of AutoML.')
                 else:
                     self.include_algorithms = list(classification_algorithms)
             elif task_type in REG_TASKS:
@@ -79,35 +79,34 @@ class AutoML(object):
                      )
         return get_logger(logger_name)
 
-    def fit(self, train_data: DataNode, dataset_id=None):
+    def fit(self, train_data: DataNode, **kwargs):
         """
-        this function includes this following two procedures.
+        This function includes this following two procedures.
             1. tune each algorithm's hyperparameters.
             2. engineer each algorithm's features automatically.
         :param train_data:
         :return:
         """
+        dataset_id = kwargs.get('dataset_id', None)
         if self.enable_meta_algorithm_selection:
             try:
-                alad = AlgorithmAdvisor(task_type=self.task_type, n_algorithm=9,
-                                        metric=self.metric_id)
-                n_algo = 5
+                n_algo_recommended = 5
+                meta_datasets = kwargs.get('meta_datasets', None)
+                self.logger.info('Executing Meta-Learning based Algorithm Recommendation.')
+                alad = RankNetAdvisor(task_type=self.task_type, n_algorithm=9,
+                                      exclude_datasets=meta_datasets,
+                                      metric=self.metric_id)
                 model_candidates = alad.fetch_algorithm_set(train_data, dataset_id=dataset_id)
                 include_models = list()
                 for algo in model_candidates:
-                    if algo in self.include_algorithms and len(include_models) < n_algo:
+                    if algo in self.include_algorithms and len(include_models) < n_algo_recommended:
                         include_models.append(algo)
                 self.include_algorithms = include_models
-                self.logger.info('Executing meta-learning based algorithm recommendation!')
-                self.logger.info('Algorithms recommended: %s' % ','.join(self.include_algorithms))
+                self.logger.info('Final Algorithms Recommended: [%s]' % ','.join(self.include_algorithms))
             except Exception as e:
-                self.logger.error("Meta-learning failed!")
+                self.logger.error("Meta-Learning based Algorithm Recommendation FAILED: %s." % str(e))
+                traceback.print_exc(file=sys.stdout)
 
-        # Check whether this dataset is balanced or not.
-        # if self.task_type in CLS_TASKS and is_unbalanced_dataset(train_data):
-        #     # self.include_algorithms = imb_classication_algorithms
-        #     self.logger.info('Input dataset is imbalanced!')
-        #     train_data = DataBalancer().operate(train_data)
         if self.amount_of_resource is None:
             trial_num = len(self.include_algorithms) * 30
         else:

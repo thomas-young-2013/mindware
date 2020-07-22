@@ -6,13 +6,12 @@ import argparse
 import tabulate
 import numpy as np
 import autosklearn.classification
+from sklearn.metrics import balanced_accuracy_score
 
 sys.path.append(os.getcwd())
-from solnml.bandits.first_layer_bandit import FirstLayerBandit
+from solnml.estimators import Classifier
 from solnml.datasets.utils import load_train_test_data
 from solnml.components.utils.constants import CATEGORICAL
-from solnml.components.ensemble.ensemble_builder import EnsembleBuilder
-from solnml.components.metrics.cls_metrics import balanced_accuracy
 
 parser = argparse.ArgumentParser()
 dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \
@@ -23,7 +22,7 @@ parser.add_argument('--algo_num', type=int, default=15)
 parser.add_argument('--trial_num', type=int, default=200)
 parser.add_argument('--rep_num', type=int, default=10)
 parser.add_argument('--start_id', type=int, default=0)
-parser.add_argument('--time_costs', type=str, default='1200')
+parser.add_argument('--time_limit', type=int, default=1200)
 parser.add_argument('--ensemble', type=int, choices=[0, 1], default=0)
 parser.add_argument('--eval_type', type=str, choices=['cv', 'holdout'], default='holdout')
 parser.add_argument('--seed', type=int, default=1)
@@ -35,54 +34,45 @@ if not os.path.exists(save_dir):
 per_run_time_limit = 300
 
 
-def evaluate_hmab(algorithms, run_id, dataset='credit', trial_num=200, seed=1, eval_type='holdout', enable_ens=False):
+def evaluate_hmab(algorithms, run_id, time_limit=600,
+                  dataset='credit', trial_num=200, seed=1,
+                  eval_type='holdout', enable_ens=True):
     task_id = '%s-hmab-%d-%d' % (dataset, len(algorithms), trial_num)
     _start_time = time.time()
-    raw_data, test_raw_data = load_train_test_data(dataset)
-    bandit = FirstLayerBandit(trial_num, algorithms, raw_data,
-                              output_dir='logs/%s/' % task_id,
-                              per_run_time_limit=per_run_time_limit,
-                              dataset_name='%s-%d' % (dataset, run_id),
-                              seed=seed,
-                              eval_type=eval_type)
-    bandit.optimize()
-    time_cost = int(time.time() - _start_time)
-    print(bandit.final_rewards)
-    print(bandit.action_sequence)
+    train_data, test_data = load_train_test_data(dataset)
+    if enable_ens is True:
+        ensemble_method = 'ensemble_selection'
+    else:
+        ensemble_method = None
 
-    validation_accuracy = np.max(bandit.final_rewards)
-    test_accuracy = bandit.score(test_raw_data, metric_func=balanced_accuracy)
-    test_accuracy_with_ens = EnsembleBuilder(bandit).score(test_raw_data, metric_func=balanced_accuracy)
+    clf = Classifier(time_limit=time_limit,
+                     amount_of_resource=None,
+                     output_dir=save_dir,
+                     ensemble_method=ensemble_method,
+                     evaluation=eval_type,
+                     metric='bal_acc',
+                     n_jobs=1)
+    clf.fit(train_data, meta_datasets=['credit'])
+    pred = clf.predict(test_data)
+    test_score = balanced_accuracy_score(test_data.data[1], pred)
 
-    print('Dataset          : %s' % dataset)
-    print('Validation/Test score : %f - %f' % (validation_accuracy, test_accuracy))
-    print('Test score with ensem : %f' % test_accuracy_with_ens)
+    # print('Dataset          : %s' % dataset)
+    # print('Validation/Test score : %f - %f' % (validation_accuracy, test_accuracy))
+    # print('Test score with ensem : %f' % test_accuracy_with_ens)
 
-    save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
-    with open(save_path, 'wb') as f:
-        stats = [time_cost, test_accuracy_with_ens, bandit.time_records, bandit.final_rewards]
-        pickle.dump([validation_accuracy, test_accuracy, stats], f)
+    # save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
+    # with open(save_path, 'wb') as f:
+    #     stats = [time_cost, test_accuracy_with_ens, bandit.time_records, bandit.final_rewards]
+    #     pickle.dump([validation_accuracy, test_accuracy, stats], f)
     return time_cost
 
 
-def load_hmab_time_costs(start_id, rep, dataset, n_algo, trial_num):
-    task_id = '%s-hmab-%d-%d' % (dataset, n_algo, trial_num)
-    time_costs = list()
-    for run_id in range(start_id, start_id + rep):
-        save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
-        with open(save_path, 'rb') as f:
-            time_cost = pickle.load(f)[2][0]
-            time_costs.append(time_cost)
-    assert len(time_costs) == rep
-    return time_costs
-
-
-def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
+def evaluate_autosklearn(algorithms, rep_id, trial_num=200,
                          dataset='credit', time_limit=1200, seed=1,
-                         enable_ens=False, enable_meta_learning=False,
+                         enable_ens=True, enable_meta_learning=True,
                          eval_type='holdout'):
     print('%s\nDataset: %s, Run_id: %d, Budget: %d.\n%s' % ('=' * 50, dataset, rep_id, time_limit, '=' * 50))
-    mth_id = 'ausk-ens%d' % enable_ens
+    mth_id = 'ausk_ens%d' % enable_ens
     task_id = '%s-%s-%d-%d' % (dataset, mth_id, len(algorithms), trial_num)
     if enable_ens:
         ensemble_size, ensemble_nbest = 50, 50
@@ -93,7 +83,7 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
     else:
         init_config_via_metalearning = 0
 
-    include_models = algorithms
+    include_models = None
 
     if eval_type == 'holdout':
         automl = autosklearn.classification.AutoSklearnClassifier(
@@ -143,7 +133,7 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=100,
     # Test performance.
     automl.refit(X.copy(), y.copy())
     predictions = automl.predict(X_test)
-    test_accuracy = balanced_accuracy(y_test, predictions)
+    test_accuracy = balanced_accuracy_score(y_test, predictions)
 
     # Print statistics about the auto-sklearn run such as number of
     # iterations, number of models failed with a time out.
@@ -174,7 +164,7 @@ if __name__ == "__main__":
     start_id = args.start_id
     rep = args.rep_num
     methods = args.methods.split(',')
-    time_costs = [int(item) for item in args.time_costs.split(',')]
+    time_limit = args.time_limit
     eval_type = args.eval_type
     enable_ensemble = bool(args.ensemble)
 
@@ -207,26 +197,18 @@ if __name__ == "__main__":
             if mth == 'plot':
                 break
 
-            if mth.startswith('ausk'):
-                time_costs = load_hmab_time_costs(start_id, rep, dataset, len(algorithms), trial_num)
-                print(time_costs)
-                median = np.median(time_costs)
-                time_costs = [median] * rep
-                print(median, time_costs)
-
             for run_id in range(start_id, start_id + rep):
                 seed = int(seeds[run_id])
                 if mth == 'hmab':
-                    time_cost = evaluate_hmab(algorithms, run_id, dataset,
+                    time_cost = evaluate_hmab(algorithms, run_id, dataset=dataset,
                                               trial_num=trial_num, seed=seed,
                                               eval_type=eval_type,
+                                              time_limit=time_limit,
                                               enable_ens=enable_ensemble)
                 elif mth == 'ausk':
-                    time_cost = time_costs[run_id - start_id]
-                    evaluate_autosklearn(algorithms, run_id, trial_num,
-                                         dataset, time_cost, seed=seed,
+                    evaluate_autosklearn(algorithms, run_id, trial_num=trial_num,
+                                         dataset=dataset, time_limit=time_limit, seed=seed,
                                          enable_ens=enable_ensemble,
-                                         enable_meta_learning=False,
                                          eval_type=eval_type)
                 else:
                     raise ValueError('Invalid method name: %s.' % mth)
@@ -254,6 +236,7 @@ if __name__ == "__main__":
                     if enable_ensemble and mth == 'hmab':
                         test_acc = _tmp[1]
                     results.append([val_acc, test_acc])
+
                 if len(results) == rep:
                     results = np.array(results)
                     stats_ = zip(np.mean(results, axis=0), np.std(results, axis=0))
