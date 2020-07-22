@@ -388,7 +388,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
                             break
             return self
 
-        early_stop = EarlyStop(patience=15, mode='min')
+        early_stop = EarlyStop(patience=5, mode='min')
 
         for epoch in range(int(self.cur_epoch_num), int(self.cur_epoch_num) + int(self.epoch_num)):
             epoch_avg_loss = 0
@@ -612,7 +612,7 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
                             break
             return self
 
-        early_stop = EarlyStop(patience=15, mode='min')
+        early_stop = EarlyStop(patience=5, mode='min')
 
         for epoch in range(int(self.cur_epoch_num), int(self.cur_epoch_num) + int(self.epoch_num)):
             epoch_avg_loss = 0

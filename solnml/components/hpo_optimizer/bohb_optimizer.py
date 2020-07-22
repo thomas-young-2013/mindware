@@ -11,7 +11,7 @@ class BohbOptimizer(BaseHPOptimizer, BohbBase):
                  inner_iter_num_per_iter=1, seed=1,
                  R=27, eta=3, mode='smac', n_jobs=1):
         BaseHPOptimizer.__init__(self, evaluator, config_space, seed)
-        BohbBase.__init__(self, eval_func=self.evaluator, mode=mode, config_space=self.config_space,
+        BohbBase.__init__(self, eval_func=self.evaluator, config_generator=mode, config_space=self.config_space,
                           seed=seed, R=R, eta=eta, n_jobs=n_jobs)
         self.time_limit = time_limit
         self.evaluation_num_limit = evaluation_limit

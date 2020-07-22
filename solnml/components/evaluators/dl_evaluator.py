@@ -43,6 +43,7 @@ class DLEvaluator(_BaseEvaluator):
         else:
             self.dataset.load_data()
         start_time = time.time()
+        return_dict = dict()
 
         config_dict = config.get_dictionary().copy()
 
@@ -120,4 +121,6 @@ class DLEvaluator(_BaseEvaluator):
         lock.release()
 
         # Turn it into a minimization problem.
+        return_dict['score'] = -score
+        return_dict['early_stop'] = estimator.early_stop_flag
         return -score
