@@ -22,7 +22,7 @@ parser.add_argument('--trial_num', type=int, default=200)
 parser.add_argument('--time_limit', type=int, default=1200)
 parser.add_argument('--rep_num', type=int, default=10)
 parser.add_argument('--start_id', type=int, default=0)
-parser.add_argument('--ensemble', type=int, choices=[0, 1], default=0)
+parser.add_argument('--ensemble', type=int, choices=[0, 1], default=1)
 parser.add_argument('--eval_type', type=str, choices=['cv', 'holdout'], default='holdout')
 parser.add_argument('--seed', type=int, default=1)
 
@@ -50,10 +50,13 @@ per_run_time_limit = 300
 holdout_datasets = dataset_set.split(',')
 
 
-def evaluate_hmab(algorithms, run_id, time_limit=600,
-                  dataset='credit', trial_num=200, seed=1,
-                  eval_type='holdout', enable_ens=True):
-    task_id = '%s-hmab-%d-%d' % (dataset, len(algorithms), trial_num)
+def evaluate_hmab(algorithms, run_id,
+                  time_limit=600,
+                  dataset='credit',
+                  trial_num=200, seed=1,
+                  eval_type='holdout',
+                  enable_ens=True):
+    task_id = '[hmab][%s-%d-%d-%d]' % (dataset, len(algorithms), trial_num, time_limit)
     _start_time = time.time()
     train_data, test_data = load_train_test_data(dataset)
     if enable_ens is True:
@@ -69,6 +72,7 @@ def evaluate_hmab(algorithms, run_id, time_limit=600,
                      metric='bal_acc',
                      n_jobs=1)
     clf.fit(train_data, meta_datasets=holdout_datasets)
+    clf.refit()
     pred = clf.predict(test_data)
     test_score = balanced_accuracy_score(test_data.data[1], pred)
     timestamps, perfs = clf.get_val_stats()
@@ -87,8 +91,7 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=200,
                          enable_ens=True, enable_meta_learning=True,
                          eval_type='holdout'):
     print('%s\nDataset: %s, Run_id: %d, Budget: %d.\n%s' % ('=' * 50, dataset, rep_id, time_limit, '=' * 50))
-    mth_id = 'ausk_ens%d' % enable_ens
-    task_id = '%s-%s-%d-%d' % (dataset, mth_id, len(algorithms), trial_num)
+    task_id = '[ausk%d][%s-%d-%d-%d]' % (enable_ens, dataset, len(algorithms), trial_num, time_limit)
     if enable_ens:
         ensemble_size, ensemble_nbest = 50, 50
     else:
@@ -143,24 +146,24 @@ def evaluate_autosklearn(algorithms, rep_id, trial_num=200,
     str_stats = automl.sprint_statistics()
     valid_results = automl.cv_results_['mean_test_score']
     time_records = automl.cv_results_['mean_fit_time']
-    validation_accuracy = np.max(valid_results)
+    validation_score = np.max(valid_results)
 
     # Test performance.
     automl.refit(X.copy(), y.copy())
     predictions = automl.predict(X_test)
-    test_accuracy = balanced_accuracy_score(y_test, predictions)
+    test_score = balanced_accuracy_score(y_test, predictions)
 
     # Print statistics about the auto-sklearn run such as number of
     # iterations, number of models failed with a time out.
     print(str_stats)
     print(model_desc)
-    print('Validation Accuracy:', validation_accuracy)
-    print("Test Accuracy      :", test_accuracy)
+    print('Validation Accuracy:', validation_score)
+    print("Test Accuracy      :", test_score)
 
     save_path = save_dir + '%s-%d.pkl' % (task_id, rep_id)
     with open(save_path, 'wb') as f:
         stats = [model_desc, str_stats, valid_results, time_records, time_limit]
-        pickle.dump([validation_accuracy, test_accuracy, stats], f)
+        pickle.dump([validation_score, test_score, stats], f)
 
 
 def check_datasets(datasets):
