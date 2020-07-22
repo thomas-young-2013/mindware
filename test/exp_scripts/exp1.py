@@ -18,7 +18,7 @@ dataset_set = 'dna,pollen,abalone,splice,madelon,spambase,wind,page-blocks(1),pc
 parser.add_argument('--datasets', type=str, default=dataset_set)
 parser.add_argument('--methods', type=str, default='hmab,ausk')
 parser.add_argument('--algo_num', type=int, default=15)
-parser.add_argument('--time_limit', type=int, default=0)
+parser.add_argument('--time_limit', type=int, default=120)
 parser.add_argument('--rep_num', type=int, default=10)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--ensemble', type=int, choices=[0, 1], default=1)
@@ -234,7 +234,7 @@ if __name__ == "__main__":
 
     if methods[-1] == 'plot':
         headers = ['dataset']
-        ausk_id = 'ausk-ens%d' % enable_ensemble
+        ausk_id = 'ausk%d' % enable_ensemble
         method_ids = ['hmab', ausk_id]
         for mth in method_ids:
             headers.extend(['val-%s' % mth, 'test-%s' % mth])
@@ -245,15 +245,13 @@ if __name__ == "__main__":
             for mth in method_ids:
                 results = list()
                 for run_id in range(rep):
-                    task_id = '%s-%s-%d-%d' % (dataset, mth, len(algorithms), trial_num)
+                    task_id = '[%s][%s-%d-%d]' % (mth, dataset, len(algorithms), time_limit)
                     file_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
                     if not os.path.exists(file_path):
                         continue
                     with open(file_path, 'rb') as f:
                         data = pickle.load(f)
                     val_acc, test_acc, _tmp = data
-                    if enable_ensemble and mth == 'hmab':
-                        test_acc = _tmp[1]
                     results.append([val_acc, test_acc])
 
                 if len(results) == rep:
