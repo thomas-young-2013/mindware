@@ -107,12 +107,7 @@ class AutoML(object):
                 self.logger.error("Meta-Learning based Algorithm Recommendation FAILED: %s." % str(e))
                 traceback.print_exc(file=sys.stdout)
 
-        if self.amount_of_resource is None:
-            trial_num = len(self.include_algorithms) * 30
-        else:
-            trial_num = self.amount_of_resource
-
-        self.solver = FirstLayerBandit(self.task_type, trial_num,
+        self.solver = FirstLayerBandit(self.task_type, self.amount_of_resource,
                                        self.include_algorithms, train_data,
                                        per_run_time_limit=self.per_run_time_limit,
                                        dataset_name=self.dataset_name,

@@ -18,8 +18,7 @@ dataset_set = 'dna,pollen,abalone,splice,madelon,spambase,wind,page-blocks(1),pc
 parser.add_argument('--datasets', type=str, default=dataset_set)
 parser.add_argument('--methods', type=str, default='hmab,ausk')
 parser.add_argument('--algo_num', type=int, default=15)
-parser.add_argument('--trial_num', type=int, default=200)
-parser.add_argument('--time_limit', type=int, default=1200)
+parser.add_argument('--time_limit', type=int, default=0)
 parser.add_argument('--rep_num', type=int, default=10)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--ensemble', type=int, choices=[0, 1], default=1)
@@ -33,7 +32,6 @@ if not os.path.exists(save_dir):
 args = parser.parse_args()
 dataset_str = args.datasets
 algo_num = args.algo_num
-trial_num = args.trial_num
 start_id = args.start_id
 rep = args.rep_num
 methods = args.methods.split(',')
@@ -53,10 +51,9 @@ holdout_datasets = dataset_set.split(',')
 def evaluate_hmab(algorithms, run_id,
                   time_limit=600,
                   dataset='credit',
-                  trial_num=200, seed=1,
                   eval_type='holdout',
-                  enable_ens=True):
-    task_id = '[hmab][%s-%d-%d-%d]' % (dataset, len(algorithms), trial_num, time_limit)
+                  enable_ens=True, seed=1):
+    task_id = '[hmab][%s-%d-%d]' % (dataset, len(algorithms), time_limit)
     _start_time = time.time()
     train_data, test_data = load_train_test_data(dataset)
     if enable_ens is True:
@@ -86,12 +83,12 @@ def evaluate_hmab(algorithms, run_id,
         pickle.dump([validation_score, test_score, stats], f)
 
 
-def evaluate_autosklearn(algorithms, rep_id, trial_num=200,
+def evaluate_autosklearn(algorithms, rep_id,
                          dataset='credit', time_limit=1200, seed=1,
                          enable_ens=True, enable_meta_learning=True,
                          eval_type='holdout'):
     print('%s\nDataset: %s, Run_id: %d, Budget: %d.\n%s' % ('=' * 50, dataset, rep_id, time_limit, '=' * 50))
-    task_id = '[ausk%d][%s-%d-%d-%d]' % (enable_ens, dataset, len(algorithms), trial_num, time_limit)
+    task_id = '[ausk%d][%s-%d-%d]' % (enable_ens, dataset, len(algorithms), time_limit)
     if enable_ens:
         ensemble_size, ensemble_nbest = 50, 50
     else:
@@ -203,13 +200,12 @@ if __name__ == "__main__":
             for run_id in range(start_id, start_id + rep):
                 seed = int(seeds[run_id])
                 if mth == 'hmab':
-                    evaluate_hmab(algorithms, run_id, dataset=dataset,
-                                  trial_num=trial_num, seed=seed,
+                    evaluate_hmab(algorithms, run_id, dataset=dataset, seed=seed,
                                   eval_type=eval_type,
                                   time_limit=time_limit,
                                   enable_ens=enable_ensemble)
                 elif mth == 'ausk':
-                    evaluate_autosklearn(algorithms, run_id, trial_num=trial_num,
+                    evaluate_autosklearn(algorithms, run_id,
                                          dataset=dataset, time_limit=time_limit, seed=seed,
                                          enable_ens=enable_ensemble,
                                          eval_type=eval_type)
