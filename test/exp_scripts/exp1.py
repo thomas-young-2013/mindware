@@ -14,15 +14,14 @@ from solnml.datasets.utils import load_train_test_data
 from solnml.components.utils.constants import CATEGORICAL
 
 parser = argparse.ArgumentParser()
-dataset_set = 'yeast,vehicle,diabetes,spectf,credit,' \
-              'ionosphere,lymphography,messidor_features,winequality_red,fri_c1'
+dataset_set = 'dna,pollen,abalone,splice,madelon,spambase,wind,page-blocks(1),pc2,segment'
 parser.add_argument('--datasets', type=str, default=dataset_set)
 parser.add_argument('--methods', type=str, default='hmab,ausk')
 parser.add_argument('--algo_num', type=int, default=15)
 parser.add_argument('--trial_num', type=int, default=200)
+parser.add_argument('--time_limit', type=int, default=1200)
 parser.add_argument('--rep_num', type=int, default=10)
 parser.add_argument('--start_id', type=int, default=0)
-parser.add_argument('--time_limit', type=int, default=1200)
 parser.add_argument('--ensemble', type=int, choices=[0, 1], default=0)
 parser.add_argument('--eval_type', type=str, choices=['cv', 'holdout'], default='holdout')
 parser.add_argument('--seed', type=int, default=1)
@@ -31,7 +30,24 @@ save_dir = './data/exp_results/exp1/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
+args = parser.parse_args()
+dataset_str = args.datasets
+algo_num = args.algo_num
+trial_num = args.trial_num
+start_id = args.start_id
+rep = args.rep_num
+methods = args.methods.split(',')
+time_limit = args.time_limit
+eval_type = args.eval_type
+enable_ensemble = bool(args.ensemble)
+rep_num = args.rep_num
+
+# Prepare random seeds.
+np.random.seed(args.seed)
+seeds = np.random.randint(low=1, high=10000, size=start_id + rep_num)
+
 per_run_time_limit = 300
+holdout_datasets = dataset_set.split(',')
 
 
 def evaluate_hmab(algorithms, run_id, time_limit=600,
@@ -52,19 +68,18 @@ def evaluate_hmab(algorithms, run_id, time_limit=600,
                      evaluation=eval_type,
                      metric='bal_acc',
                      n_jobs=1)
-    clf.fit(train_data, meta_datasets=['credit'])
+    clf.fit(train_data, meta_datasets=holdout_datasets)
     pred = clf.predict(test_data)
     test_score = balanced_accuracy_score(test_data.data[1], pred)
+    timestamps, perfs = clf.get_val_stats()
+    validation_score = np.max(perfs)
+    print('Dataset          : %s' % dataset)
+    print('Validation/Test score : %f - %f' % (validation_score, test_score))
 
-    # print('Dataset          : %s' % dataset)
-    # print('Validation/Test score : %f - %f' % (validation_accuracy, test_accuracy))
-    # print('Test score with ensem : %f' % test_accuracy_with_ens)
-
-    # save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
-    # with open(save_path, 'wb') as f:
-    #     stats = [time_cost, test_accuracy_with_ens, bandit.time_records, bandit.final_rewards]
-    #     pickle.dump([validation_accuracy, test_accuracy, stats], f)
-    return time_cost
+    save_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
+    with open(save_path, 'wb') as f:
+        stats = [timestamps, perfs]
+        pickle.dump([validation_score, test_score, stats], f)
 
 
 def evaluate_autosklearn(algorithms, rep_id, trial_num=200,
@@ -157,21 +172,6 @@ def check_datasets(datasets):
 
 
 if __name__ == "__main__":
-    args = parser.parse_args()
-    dataset_str = args.datasets
-    algo_num = args.algo_num
-    trial_num = args.trial_num
-    start_id = args.start_id
-    rep = args.rep_num
-    methods = args.methods.split(',')
-    time_limit = args.time_limit
-    eval_type = args.eval_type
-    enable_ensemble = bool(args.ensemble)
-
-    # Prepare random seeds.
-    np.random.seed(args.seed)
-    seeds = np.random.randint(low=1, high=10000, size=start_id + args.rep_num)
-
     if algo_num == 4:
         algorithms = ['k_nearest_neighbors', 'libsvm_svc', 'random_forest', 'adaboost']
     elif algo_num == 8:
@@ -200,11 +200,11 @@ if __name__ == "__main__":
             for run_id in range(start_id, start_id + rep):
                 seed = int(seeds[run_id])
                 if mth == 'hmab':
-                    time_cost = evaluate_hmab(algorithms, run_id, dataset=dataset,
-                                              trial_num=trial_num, seed=seed,
-                                              eval_type=eval_type,
-                                              time_limit=time_limit,
-                                              enable_ens=enable_ensemble)
+                    evaluate_hmab(algorithms, run_id, dataset=dataset,
+                                  trial_num=trial_num, seed=seed,
+                                  eval_type=eval_type,
+                                  time_limit=time_limit,
+                                  enable_ens=enable_ensemble)
                 elif mth == 'ausk':
                     evaluate_autosklearn(algorithms, run_id, trial_num=trial_num,
                                          dataset=dataset, time_limit=time_limit, seed=seed,

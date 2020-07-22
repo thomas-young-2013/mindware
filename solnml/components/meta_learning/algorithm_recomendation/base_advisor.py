@@ -40,7 +40,7 @@ class BaseAdvisor(object):
         self.meta_learner = None
         buildin_loc = os.path.dirname(__file__) + '/../meta_resource/'
         self.meta_dir = meta_dir if meta_dir is not None else buildin_loc
-        self.exclude_datasets = exclude_datasets
+        self.exclude_datasets = list(set(exclude_datasets))
         if self.exclude_datasets is None:
             self.hash_id = 'none'
         else:
