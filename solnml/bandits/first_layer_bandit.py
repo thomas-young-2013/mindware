@@ -5,6 +5,7 @@ import pickle as pkl
 from typing import List
 from sklearn.metrics import accuracy_score
 from solnml.components.metrics.metric import get_metric
+from solnml.utils.constant import MAX_INT
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.bandits.second_layer_bandit import SecondLayerBandit
 from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
@@ -16,6 +17,7 @@ from solnml.components.ensemble import EnsembleBuilder
 class FirstLayerBandit(object):
     def __init__(self, task_type, trial_num,
                  classifier_ids: List[str], data: DataNode,
+                 time_limit=None,
                  metric='acc',
                  ensemble_method='ensemble_selection',
                  ensemble_size=10,
@@ -23,11 +25,9 @@ class FirstLayerBandit(object):
                  output_dir="logs",
                  dataset_name='default_dataset',
                  eval_type='holdout',
-                 share_feature=False,
                  inner_opt_algorithm='rb',
                  enable_fe=True,
                  fe_algo='bo',
-                 time_limit=None,
                  n_jobs=1,
                  seed=1):
         """
@@ -46,7 +46,6 @@ class FirstLayerBandit(object):
         self.alpha = 4
         self.B = 0.01
         self.seed = seed
-        self.shared_mode = share_feature
         self.output_dir = output_dir
         np.random.seed(self.seed)
 
@@ -74,6 +73,15 @@ class FirstLayerBandit(object):
         self.enable_fe = enable_fe
         self.fe_algo = fe_algo
         self.inner_opt_algorithm = inner_opt_algorithm
+
+        # Record the execution cost for each arm.
+        if not (self.time_limit is None) ^ (self.trial_num is None):
+            raise ValueError('Please set one of time_limit or trial_num.')
+
+        self.arm_cost_stats = dict()
+        for _arm in self.arms:
+            self.arm_cost_stats[_arm] = list()
+
         for arm in self.arms:
             self.rewards[arm] = list()
             self.evaluation_cost[arm] = list()
@@ -83,7 +91,6 @@ class FirstLayerBandit(object):
                 metric=self.metric,
                 output_dir=output_dir,
                 per_run_time_limit=per_run_time_limit,
-                share_fe=self.shared_mode,
                 seed=self.seed,
                 eval_type=eval_type,
                 dataset_id=dataset_name,
@@ -224,13 +231,19 @@ class FirstLayerBandit(object):
         arm_candidate = self.arms.copy()
         self.best_lower_bounds = np.zeros(arm_num)
         _iter_id = 0
-        assert arm_num * self.alpha <= self.trial_num
+        if self.time_limit is None:
+            if arm_num * self.alpha <= self.trial_num:
+                raise ValueError('Trial number should be larger than %d.' % (arm_num * self.alpha))
+        else:
+            self.trial_num = MAX_INT
 
         while _iter_id < self.trial_num:
             if _iter_id < arm_num * self.alpha:
                 _arm = self.arms[_iter_id % arm_num]
                 self.logger.info('Optimize %s in the %d-th iteration' % (_arm, _iter_id))
+                _start_time = time.time()
                 reward = self.sub_bandits[_arm].play_once()
+                self.arm_cost_stats[_arm].append(time.time() - _start_time)
 
                 self.rewards[_arm].append(reward)
                 self.action_sequence.append(_arm)
@@ -245,7 +258,10 @@ class FirstLayerBandit(object):
                 # Pull each arm in the candidate once.
                 for _arm in arm_candidate:
                     self.logger.info('Optimize %s in the %d-th iteration' % (_arm, _iter_id))
+                    _start_time = time.time()
                     reward = self.sub_bandits[_arm].play_once()
+                    self.arm_cost_stats[_arm].append(time.time() - _start_time)
+
                     self.rewards[_arm].append(reward)
                     self.action_sequence.append(_arm)
                     self.final_rewards.append(reward)
@@ -260,7 +276,13 @@ class FirstLayerBandit(object):
                 for _arm in arm_candidate:
                     rewards = self.rewards[_arm]
                     slope = (rewards[-1] - rewards[-self.alpha]) / self.alpha
-                    upper_bound = np.min([1.0, rewards[-1] + slope * (self.trial_num - _iter_id)])
+                    if self.time_limit is None:
+                        steps = self.trial_num - _iter_id
+                    else:
+                        budget_left = max(self.time_limit - (time.time() - self.start_time), 0)
+                        steps = int(budget_left/np.mean(self.arm_cost_stats[_arm]))
+
+                    upper_bound = np.min([1.0, rewards[-1] + slope * steps])
                     upper_bounds.append(upper_bound)
                     lower_bounds.append(rewards[-1])
                     self.best_lower_bounds[self.arms.index(_arm)] = rewards[-1]
