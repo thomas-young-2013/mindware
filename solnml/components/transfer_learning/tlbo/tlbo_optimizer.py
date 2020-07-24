@@ -1,3 +1,4 @@
+import os
 import typing
 import numpy as np
 
@@ -10,6 +11,71 @@ from .utils.limit import time_limit, TimeoutException
 from .config_space.util import convert_configurations_to_array
 from .bo_optimizer import BaseFacade
 from .models.gp_ensemble import GaussianProcessEnsemble
+
+
+def get_datasets(runhistory_dir, estimator_id, metric, task_id='hpo'):
+    _datasets = list()
+    pattern = r'(.*)-%s-%s-%s.pkl' % (estimator_id, metric, task_id)
+    for filename in os.listdir(runhistory_dir):
+        result = re.search(pattern, filename, re.M | re.I)
+        if result is not None:
+            _datasets.append(result.group(1))
+    print(_datasets)
+    return _datasets
+
+
+def load_runhistory(runhistory_dir, dataset_names, estimator_id, metric, task_id):
+    runhistory = list()
+    for dataset in dataset_names:
+        _filename = '%s-%s-%s-%s.pkl' % (dataset, estimator_id, metric, task_id)
+        with open(runhistory_dir + _filename, 'rb') as f:
+            data = pk.load(f)
+        runhistory.append((metafeature_dict[dataset], list(data.items())))
+    return runhistory
+
+
+def has_runhistory(config_space, task_id='hpo'):
+    estimator_id = config_space['estimator']
+    cur_dir = os.path.dirname(__file__)
+    runhistory_dir = '%s/runhistory/%s_%s/' % (cur_dir, task_id, estimator_id)
+    datasets = get_datasets(runhistory_dir, estimator_id, metric, task_id)
+    return len(datasets) > 0
+
+
+def get_pretrain_surrogate_models(config_space, task_id='hpo'):
+    estimator_id = config_space['estimator']
+    cur_dir = os.path.dirname(__file__)
+    surrogate_models_file = '%s/surrogate_models_%s_%s.pk' % (cur_dir, estimator_id, task_id)
+    if os.path.exists(surrogate_models_file):
+        with open(surrogate_models_file, 'rb') as f:
+            return pickle.load(f)
+    else:
+        runhistory_dir = '%s/runhistory/%s_%s/' % (cur_dir, task_id, estimator_id)
+        datasets = get_datasets(runhistory_dir, estimator_id, metric, task_id)
+        if len(datasets) == 0:
+            print('No related knowledge transferred: [%s][%s][%s]' % (estimator_id, metric, task_id))
+            return None
+        else:
+            runhistory = load_runhistory(runhistory_dir, dataset_names, estimator_id, metric, task_id)
+            surrogate_models = list()
+            for dataset, hist in zip(datasets, runhistory):
+                _, rng = get_rng(1)
+                _model = RandomForestWithInstances(config_space, seed=rng.randint(MAXINT), normalize_y=True)
+                X = list()
+                for row in hist[1]:
+                    conf_vector = convert_configurations_to_array([row[0]])[0]
+                    X.append(conf_vector)
+                X = np.array(X)
+                # Turning it to a minimization problem.
+                y = -np.array([row[1] for row in hist[1]]).reshape(-1, 1)
+                X, y = X[:max_runs], y[:max_runs]
+                _model.train(X, y)
+                surrogate_models.append(_model)
+                print('%s: training basic surrogate model finished.' % dataset)
+
+            with open(surrogate_models_file, 'wb') as f:
+                pickle.dump(surrogate_models, f)
+            return gp_models
 
 
 class TLBO(BaseFacade):
@@ -51,6 +117,9 @@ class TLBO(BaseFacade):
         # Initialize the basic component in BO.
         self.objective_function = objective_function
         seed = rng.randint(MAXINT)
+
+        gp_models = get_pretrain_surrogate_models(self.config_space)
+
         self.model = GaussianProcessEnsemble(config_space, past_runhistory,
                                              gp_fusion=gp_fusion,
                                              gp_models=gp_models,
