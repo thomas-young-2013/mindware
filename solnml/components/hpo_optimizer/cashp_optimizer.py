@@ -270,16 +270,16 @@ class CashpOptimizer(object):
                         inc_config = C[0]
                     r *= self.eta
 
-                    # Remove tmp model
-                    if dl_evaluator.continue_training:
-                        for filename in os.listdir(dl_evaluator.model_dir):
-                            # Temporary model
-                            if 'tmp_%s' % dl_evaluator.timestamp in filename:
-                                try:
-                                    filepath = os.path.join(dl_evaluator.model_dir, filename)
-                                    os.remove(filepath)
-                                except Exception:
-                                    pass
+                # Remove tmp model
+                if dl_evaluator.continue_training:
+                    for filename in os.listdir(dl_evaluator.model_dir):
+                        # Temporary model
+                        if 'tmp_%s' % dl_evaluator.timestamp in filename:
+                            try:
+                                filepath = os.path.join(dl_evaluator.model_dir, filename)
+                                os.remove(filepath)
+                            except Exception:
+                                pass
 
                 archs, reduced_archs = [config['estimator'] for config in C], list()
                 # Preserve the partial-relationship order.

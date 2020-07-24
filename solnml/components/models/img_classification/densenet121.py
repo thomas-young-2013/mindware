@@ -78,7 +78,7 @@ class DenseNet121Classifier(BaseImgClassificationNeuralNetwork):
                                                                                       np.log(1e-5), np.log(1e-3)),
                                                   'beta1': hp.uniform('densenet121_beta1', 0.5, 0.999)})]),
                      'epoch_num': 100,
-                     'lr_decay': 10,
+                     'lr_decay': 0.8,
                      'step_decay': 10
                      }
             return space
