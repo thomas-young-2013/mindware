@@ -11,6 +11,8 @@ from solnml.components.models.classification import _classifiers
 from solnml.components.models.imbalanced_classification import _imb_classifiers
 from solnml.components.meta_learning.algorithm_recomendation.ranknet_advisor import RankNetAdvisor
 from solnml.bandits.first_layer_bandit import FirstLayerBandit
+from solnml.utils.functions import is_unbalanced_dataset
+from solnml.components.feature_engineering.transformations.preprocessor.data_balancer import DataBalancer
 
 classification_algorithms = _classifiers.keys()
 imb_classication_algorithms = _imb_classifiers.keys()
@@ -87,6 +89,11 @@ class AutoML(object):
         :param train_data:
         :return:
         """
+        # Check whether this dataset is balanced or not.
+        if self.task_type in CLS_TASKS and is_unbalanced_dataset(train_data):
+            self.logger.info('Input dataset is imbalanced!')
+            train_data = DataBalancer().operate(train_data)
+
         dataset_id = kwargs.get('dataset_id', None)
         if self.enable_meta_algorithm_selection:
             try:
