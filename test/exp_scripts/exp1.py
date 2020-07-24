@@ -251,7 +251,7 @@ if __name__ == "__main__":
                         continue
                     with open(file_path, 'rb') as f:
                         data = pickle.load(f)
-                    val_acc, test_acc, _tmp = data
+                    val_acc, test_acc, _ = data
                     results.append([val_acc, test_acc])
 
                 if len(results) == rep:
