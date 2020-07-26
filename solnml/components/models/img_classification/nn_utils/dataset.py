@@ -20,7 +20,4 @@ def get_array_dataset(X, y):
 
 
 def get_folder_dataset(folder_path, udf_transforms=None, grayscale=False):
-    basic_transforms = transforms.Compose([
-        transforms.Grayscale(num_output_channels=1 if grayscale else 3),
-        transforms.ToTensor()])
-    return datasets.ImageFolder(folder_path, transform=basic_transforms if udf_transforms is None else udf_transforms)
+    return datasets.ImageFolder(folder_path, transform=udf_transforms)

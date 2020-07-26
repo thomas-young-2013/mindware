@@ -4,9 +4,15 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 from torch.optim import Adam, SGD
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import MultiStepLR
+from ConfigSpace.configuration_space import ConfigurationSpace
+from ConfigSpace.conditions import EqualsCondition
+from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
+    UniformIntegerHyperparameter, CategoricalHyperparameter, UnParametrizedHyperparameter
+
 from solnml.datasets.base_dl_dataset import DLDataset
 from solnml.components.utils.dl_util import EarlyStop
+from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import parse_bool
 
 NUM_WORKERS = 10
 
@@ -20,15 +26,6 @@ class BaseNeuralNetwork:
         """
         Get the properties of the underlying algorithm.
         :return: algorithm_properties : dict, optional (default=None)
-        """
-        raise NotImplementedError()
-
-    @staticmethod
-    def get_hyperparameter_search_space():
-        """
-        Get the configuration space of this classification algorithm.
-        :return: Configspace.configuration_space.ConfigurationSpace
-            The configuration space of this classification algorithm.
         """
         raise NotImplementedError()
 
@@ -65,19 +62,54 @@ class BaseNeuralNetwork:
     def set_empty_model(self, dataset):
         raise NotImplementedError
 
+    @staticmethod
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
+        if optimizer == 'smac':
+            cs = ConfigurationSpace()
+            optimizer = CategoricalHyperparameter('optimizer', ['SGD', 'Adam'], default_value='SGD')
+            sgd_learning_rate = UniformFloatHyperparameter(
+                "sgd_learning_rate", lower=1e-4, upper=1e-1, default_value=5e-2, log=True)
+            sgd_momentum = UniformFloatHyperparameter(
+                "sgd_momentum", lower=0.5, upper=0.99, default_value=0.9, log=False)
+            nesterov = CategoricalHyperparameter('nesterov', ['True', 'False'], default_value='True')
+            adam_learning_rate = UniformFloatHyperparameter(
+                "adam_learning_rate", lower=1e-4, upper=1e-2, default_value=2e-3, log=True)
+            beta1 = UniformFloatHyperparameter(
+                "beta1", lower=0.5, upper=0.999, default_value=0.9, log=False)
+            batch_size = CategoricalHyperparameter(
+                "batch_size", [16, 32, 64, 128], default_value=32)
+            lr_decay = UniformFloatHyperparameter("lr_decay", lower=0.01, upper=0.2, default_value=0.1, log=True)
+            weight_decay = UniformFloatHyperparameter("weight_decay", lower=1e-5, upper=1e-2, default_value=1e-4,
+                                                      log=True)
+            epoch_num = UnParametrizedHyperparameter("epoch_num", 150)
+            cs.add_hyperparameters(
+                [optimizer, sgd_learning_rate, adam_learning_rate, sgd_momentum, beta1, batch_size, epoch_num,
+                 lr_decay, weight_decay, nesterov])
+            sgd_lr_depends_on_sgd = EqualsCondition(sgd_learning_rate, optimizer, "SGD")
+            adam_lr_depends_on_adam = EqualsCondition(adam_learning_rate, optimizer, "Adam")
+            beta_depends_on_adam = EqualsCondition(beta1, optimizer, "Adam")
+            sgd_momentum_depends_on_sgd = EqualsCondition(sgd_momentum, optimizer, "SGD")
+            nesterov_depends_on_sgd = EqualsCondition(nesterov, optimizer, 'SGD')
+            cs.add_conditions(
+                [sgd_lr_depends_on_sgd, adam_lr_depends_on_adam, sgd_momentum_depends_on_sgd, beta_depends_on_adam,
+                 nesterov_depends_on_sgd])
+            return cs
+
 
 class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
-    def __init__(self, optimizer, batch_size, epoch_num, lr_decay, step_decay,
-                 sgd_learning_rate=None, sgd_momentum=None, adam_learning_rate=None, beta1=None,
-                 random_state=None, grayscale=False, device='cpu', **kwargs):
+    def __init__(self, optimizer, batch_size, epoch_num, lr_decay, weight_decay,
+                 sgd_learning_rate=None, sgd_momentum=None, nesterov=None,
+                 adam_learning_rate=None, beta1=None, random_state=None,
+                 grayscale=False, device='cpu', **kwargs):
         super(BaseImgClassificationNeuralNetwork, self).__init__()
         self.optimizer = optimizer
         self.batch_size = batch_size
         self.epoch_num = epoch_num
         self.lr_decay = lr_decay
-        self.step_decay = step_decay
+        self.weight_decay = weight_decay
         self.sgd_learning_rate = sgd_learning_rate
         self.sgd_momentum = sgd_momentum
+        self.nesterov = parse_bool(nesterov)
         self.adam_learning_rate = adam_learning_rate
         self.beta1 = beta1
         self.random_state = random_state
@@ -114,11 +146,16 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
                                         sampler=dataset.val_sampler, num_workers=NUM_WORKERS)
 
         if self.optimizer == 'SGD':
-            optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
+            optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum,
+                            weight_decay=self.weight_decay, nesterov=self.nesterov)
         elif self.optimizer == 'Adam':
-            optimizer = Adam(params=params, lr=self.adam_learning_rate, betas=(self.beta1, 0.999))
+            optimizer = Adam(params=params, lr=self.adam_learning_rate, betas=(self.beta1, 0.999),
+                             weight_decay=self.weight_decay)
+        else:
+            return ValueError("Optimizer %s not supported!" % self.optimizer)
 
-        scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
+        scheduler = MultiStepLR(optimizer, milestones=[int(self.epoch_num * 0.5), int(self.epoch_num * 0.75)],
+                                gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
 
         if self.load_path:
@@ -128,13 +165,12 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             scheduler.load_state_dict(checkpoint['scheduler'])
             self.cur_epoch_num = checkpoint['epoch_num']
 
-        self.model.train()
-
         profile_iter = kwargs.get('profile_iter', None)
         profile_epoch = kwargs.get('profile_epoch', None)
         assert not (profile_iter and profile_epoch)
 
         if profile_epoch or profile_iter:  # Profile mode
+            self.model.train()
             if profile_epoch:
                 for epoch in range(int(profile_epoch)):
                     for i, data in enumerate(train_loader):
@@ -163,9 +199,11 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
                             break
             return self
 
-        early_stop = EarlyStop(patience=5, mode='min')
+        early_stop = EarlyStop(patience=15, mode='min')
 
         for epoch in range(int(self.cur_epoch_num), int(self.cur_epoch_num) + int(self.epoch_num)):
+            self.model.train()
+            # print('Current learning rate: %.5f' % optimizer.state_dict()['param_groups'][0]['lr'])
             epoch_avg_loss = 0
             epoch_avg_acc = 0
             val_avg_loss = 0
@@ -174,14 +212,14 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             num_val_samples = 0
             for i, data in enumerate(train_loader):
                 batch_x, batch_y = data[0], data[1]
-                logits = self.model(batch_x.float().to(self.device))
-                optimizer.zero_grad()
-                loss = loss_func(logits, batch_y.to(self.device))
                 num_train_samples += len(batch_x)
+                logits = self.model(batch_x.float().to(self.device))
+                loss = loss_func(logits, batch_y.to(self.device))
+                optimizer.zero_grad()
                 loss.backward()
-                epoch_avg_loss += loss.to('cpu').detach() * len(batch_x)
                 optimizer.step()
 
+                epoch_avg_loss += loss.to('cpu').detach() * len(batch_x)
                 prediction = np.argmax(logits.to('cpu').detach().numpy(), axis=-1)
                 epoch_avg_acc += accuracy_score(prediction, batch_y.to('cpu').detach().numpy()) * len(batch_x)
 
@@ -207,12 +245,13 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
                     val_avg_acc /= num_val_samples
                     print('Epoch %d: Val loss %.4f, val acc %.4f' % (epoch, val_avg_loss, val_avg_acc))
 
+                    # TODO: if needed
                     # Early stop
-                    early_stop.update(val_avg_loss)
-                    if early_stop.if_early_stop:
-                        self.early_stop_flag = True
-                        print("Early stop!")
-                        break
+                    # early_stop.update(val_avg_loss)
+                    # if early_stop.if_early_stop:
+                    #     self.early_stop_flag = True
+                    #     print("Early stop!")
+                    #     break
 
             scheduler.step()
 
@@ -289,25 +328,27 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             score /= total_len
         return score
 
-    @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
-        raise NotImplementedError()
-
 
 class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
-    def __init__(self):
+    def __init__(self, optimizer, batch_size, epoch_num, lr_decay, step_decay, weight_decay,
+                 sgd_learning_rate=None, sgd_momentum=None, nesterov=None, adam_learning_rate=None,
+                 beta1=None, random_state=None, device='cpu',
+                 config='./solnml/components/models/text_classification/nn_utils/bert-base-uncased'):
         super(BaseTextClassificationNeuralNetwork, self).__init__()
+        self.optimizer = optimizer
+        self.batch_size = batch_size
+        self.epoch_num = epoch_num
+        self.lr_decay = lr_decay
+        self.step_decay = step_decay
+        self.sgd_learning_rate = sgd_learning_rate
+        self.sgd_momentum = sgd_momentum
+        self.adam_learning_rate = adam_learning_rate
+        self.beta1 = beta1
+        self.random_state = random_state
         self.model = None
-        self.optimizer = None
-        self.sgd_learning_rate = None
-        self.sgd_momentum = None
-        self.adam_learning_rate = None
-        self.beta1 = None
-        self.batch_size = None
-        self.epoch_num = None
-        self.lr_decay = None
-        self.step_decay = None
-        self.device = None
+        self.device = torch.device(device)
+        self.time_limit = None
+        self.config = config
         self.load_path = None
 
         self.optimizer_ = None
@@ -340,8 +381,11 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
             optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
         elif self.optimizer == 'Adam':
             optimizer = Adam(params=params, lr=self.adam_learning_rate, betas=(self.beta1, 0.999))
+        else:
+            return ValueError("Optimizer %s not supported!" % self.optimizer)
 
-        scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
+        scheduler = MultiStepLR(optimizer, milestones=[int(self.epoch_num * 0.5), int(self.epoch_num * 0.75)],
+                                gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
 
         if self.load_path:
@@ -351,13 +395,12 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
             scheduler.load_state_dict(checkpoint['scheduler'])
             self.cur_epoch_num = checkpoint['epoch_num']
 
-        self.model.train()
-
         profile_iter = kwargs.get('profile_iter', None)
         profile_epoch = kwargs.get('profile_epoch', None)
         assert not (profile_iter and profile_epoch)
 
         if profile_epoch or profile_iter:  # Profile mode
+            self.model.train()
             if profile_epoch:
                 for epoch in range(int(profile_epoch)):
                     for i, data in enumerate(train_loader):
@@ -391,6 +434,8 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         early_stop = EarlyStop(patience=5, mode='min')
 
         for epoch in range(int(self.cur_epoch_num), int(self.cur_epoch_num) + int(self.epoch_num)):
+            self.model.train()
+            # print('Current learning rate: %.5f' % optimizer.state_dict()['param_groups'][0]['lr'])
             epoch_avg_loss = 0
             epoch_avg_acc = 0
             val_avg_loss = 0
@@ -399,15 +444,16 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
             num_val_samples = 0
             for i, data in enumerate(train_loader):
                 batch_x, batch_y = data[0], data[1]
+                num_train_samples += len(batch_x)
                 masks = torch.Tensor(np.array([[float(i != 0) for i in sample] for sample in batch_x]))
                 logits = self.model(batch_x.long().to(self.device), masks.to(self.device))
-                optimizer.zero_grad()
                 loss = loss_func(logits, batch_y.to(self.device))
-                num_train_samples += len(batch_x)
+
+                optimizer.zero_grad()
                 loss.backward()
-                epoch_avg_loss += loss.to('cpu').detach() * len(batch_x)
                 optimizer.step()
 
+                epoch_avg_loss += loss.to('cpu').detach() * len(batch_x)
                 prediction = np.argmax(logits.to('cpu').detach().numpy(), axis=-1)
                 epoch_avg_acc += accuracy_score(prediction, batch_y.to('cpu').detach().numpy()) * len(batch_x)
 
@@ -517,25 +563,28 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         score /= total_len
         return score
 
-    @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
-        raise NotImplementedError()
-
 
 class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
-    def __init__(self):
+    def __init__(self, optimizer, batch_size, epoch_num, lr_decay, weight_decay,
+                 sgd_learning_rate=None, sgd_momentum=None, nesterov=None,
+                 adam_learning_rate=None, beta1=None, random_state=None,
+                 grayscale=False, device='cpu', **kwargs):
         super(BaseODClassificationNeuralNetwork, self).__init__()
+        self.optimizer = optimizer
+        self.batch_size = batch_size
+        self.epoch_num = epoch_num
+        self.lr_decay = lr_decay
+        self.weight_decay = weight_decay
+        self.sgd_learning_rate = sgd_learning_rate
+        self.sgd_momentum = sgd_momentum
+        self.nesterov = parse_bool(nesterov)
+        self.adam_learning_rate = adam_learning_rate
+        self.beta1 = beta1
+        self.random_state = random_state
+        self.grayscale = grayscale
         self.model = None
-        self.optimizer = None
-        self.sgd_learning_rate = None
-        self.sgd_momentum = None
-        self.adam_learning_rate = None
-        self.beta1 = None
-        self.batch_size = None
-        self.epoch_num = None
-        self.lr_decay = None
-        self.step_decay = None
-        self.device = None
+        self.device = torch.device(device)
+        self.time_limit = None
         self.load_path = None
 
         self.optimizer_ = None
@@ -571,8 +620,11 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
             optimizer = SGD(params=params, lr=self.sgd_learning_rate, momentum=self.sgd_momentum)
         elif self.optimizer == 'Adam':
             optimizer = Adam(params=params, lr=self.adam_learning_rate, betas=(self.beta1, 0.999))
+        else:
+            return ValueError("Optimizer %s not supported!" % self.optimizer)
 
-        scheduler = StepLR(optimizer, step_size=self.step_decay, gamma=self.lr_decay)
+        scheduler = MultiStepLR(optimizer, milestones=[int(self.epoch_num * 0.5), int(self.epoch_num * 0.75)],
+                                gamma=self.lr_decay)
 
         if self.load_path:
             checkpoint = torch.load(self.load_path)
@@ -581,13 +633,12 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
             scheduler.load_state_dict(checkpoint['scheduler'])
             self.cur_epoch_num = checkpoint['epoch_num']
 
-        self.model.train()
-
         profile_iter = kwargs.get('profile_iter', None)
         profile_epoch = kwargs.get('profile_epoch', None)
         assert not (profile_iter and profile_epoch)
 
         if profile_epoch or profile_iter:  # Profile mode
+            self.model.train()
             if profile_epoch:
                 for epoch in range(int(profile_epoch)):
                     for i, (_, batch_x, batch_y) in enumerate(train_loader):
@@ -615,6 +666,8 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
         early_stop = EarlyStop(patience=5, mode='min')
 
         for epoch in range(int(self.cur_epoch_num), int(self.cur_epoch_num) + int(self.epoch_num)):
+            self.model.train()
+            # print('Current learning rate: %.5f' % optimizer.state_dict()['param_groups'][0]['lr'])
             epoch_avg_loss = 0
             val_avg_loss = 0
             num_train_samples = 0
@@ -677,7 +730,3 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
     # TODO: UDF metric
     def score(self, dataset, metric, batch_size=None):
         raise NotImplementedError
-
-    @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
-        raise NotImplementedError()

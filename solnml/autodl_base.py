@@ -226,6 +226,10 @@ class AutoDLBase(object):
                 cs.add_hyperparameter(all_cs.get_hyperparameter(hp_name))
             else:
                 cs.add_hyperparameter(default_cs.get_hyperparameter(hp_name))
+
+        cond = default_cs.get_conditions()
+        cs.add_conditions(cond)
+
         return cs
 
     def profile_models(self, num_samples):
