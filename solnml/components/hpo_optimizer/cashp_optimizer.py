@@ -101,7 +101,8 @@ class CashpOptimizer(object):
         for _arch in include_architectures:
             _cs = self.get_model_config_space(_arch)
             if sampling_strategy == 'uniform':
-                configs.extend(sample_configurations(_cs, N))
+                configs.append(_cs.get_default_configuration())
+                configs.extend(sample_configurations(_cs, N - 1))
 
             elif sampling_strategy == 'bohb':
                 if _arch not in self.tpe_config_gen:
