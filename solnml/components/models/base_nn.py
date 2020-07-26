@@ -68,7 +68,7 @@ class BaseNeuralNetwork:
             cs = ConfigurationSpace()
             optimizer = CategoricalHyperparameter('optimizer', ['SGD', 'Adam'], default_value='SGD')
             sgd_learning_rate = UniformFloatHyperparameter(
-                "sgd_learning_rate", lower=1e-4, upper=1e-1, default_value=5e-2, log=True)
+                "sgd_learning_rate", lower=1e-4, upper=1e-1, default_value=1e-1, log=True)
             sgd_momentum = UniformFloatHyperparameter(
                 "sgd_momentum", lower=0.5, upper=0.99, default_value=0.9, log=False)
             nesterov = CategoricalHyperparameter('nesterov', ['True', 'False'], default_value='True')
