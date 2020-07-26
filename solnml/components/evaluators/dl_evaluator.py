@@ -86,6 +86,7 @@ class DLEvaluator(_BaseEvaluator):
                          (self.eval_id, classifier_id,
                           self.scorer._sign * score,
                           time.time() - start_time))
+        self.logger.info(str(config))
         self.eval_id += 1
 
         # Save low-resource models

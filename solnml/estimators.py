@@ -191,7 +191,6 @@ class ImageClassifier(BaseDLEstimator):
                  skip_profile=False,
                  ensemble_size=50,
                  config_file_path=None,
-                 image_size=None,
                  max_epoch=150,
                  random_state=1,
                  n_jobs=1,
@@ -210,7 +209,7 @@ class ImageClassifier(BaseDLEstimator):
                          n_jobs=n_jobs,
                          evaluation=evaluation,
                          output_dir=output_dir)
-        self.image_size = image_size
+        self.image_size = None
 
     def fit(self, data: ImageDataset, **kwargs):
         """
@@ -219,6 +218,7 @@ class ImageClassifier(BaseDLEstimator):
         :return: self
         """
         self.metric = 'acc' if self.metric is None else self.metric
+        self.image_size = data.image_size
         # Set task type to image classification.
         self.task_type = IMG_CLS
         super().fit(data, image_size=self.image_size, **kwargs)
