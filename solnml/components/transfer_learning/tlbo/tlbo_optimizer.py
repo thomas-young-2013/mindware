@@ -12,6 +12,10 @@ from .config_space.util import convert_configurations_to_array
 from .bo_optimizer import BaseFacade
 from .models.gp_ensemble import GaussianProcessEnsemble
 
+def get_metafeature_vector(metafeature_dict):
+    sorted_keys = sorted(metafeature_dict.keys())
+    return np.array([metafeature_dict[key] for key in sorted_keys])
+
 
 def get_datasets(runhistory_dir, estimator_id, metric, task_id='hpo'):
     _datasets = list()
@@ -20,37 +24,51 @@ def get_datasets(runhistory_dir, estimator_id, metric, task_id='hpo'):
         result = re.search(pattern, filename, re.M | re.I)
         if result is not None:
             _datasets.append(result.group(1))
-    print(_datasets)
     return _datasets
 
 
 def load_runhistory(runhistory_dir, dataset_names, estimator_id, metric, task_id):
+    cur_dir = os.path.dirname(__file__)
+    metafeature_file = '%s/runhistory/metafeature.pkl' % cur_dir
+    with open(metafeature_file, 'rb') as f:
+        metafeature_dict = pk.load(f)
+
+    for dataset in metafeature_dict.keys():
+        vec = get_metafeature_vector(metafeature_dict[dataset])
+        metafeature_dict[dataset] = vec
+
     runhistory = list()
     for dataset in dataset_names:
         _filename = '%s-%s-%s-%s.pkl' % (dataset, estimator_id, metric, task_id)
         with open(runhistory_dir + _filename, 'rb') as f:
             data = pk.load(f)
-        runhistory.append((metafeature_dict[dataset], list(data.items())))
+        if dataset not in metafeature_dict:
+            meta_vec = None
+        else:
+            meta_vec = metafeature_dict[dataset]
+        runhistory.append((meta_vec, list(data.items())))
     return runhistory
 
 
 def has_runhistory(config_space, task_id='hpo'):
     estimator_id = config_space['estimator']
     cur_dir = os.path.dirname(__file__)
-    runhistory_dir = '%s/runhistory/%s_%s/' % (cur_dir, task_id, estimator_id)
+    runhistory_dir = '%s/runhistory/hpo/hpo_%s_%s/' % (cur_dir, task_id, estimator_id)
     datasets = get_datasets(runhistory_dir, estimator_id, metric, task_id)
-    return len(datasets) > 0
+    return True if len(datasets) > 0 else False
 
 
 def get_pretrain_surrogate_models(config_space, task_id='hpo'):
     estimator_id = config_space['estimator']
     cur_dir = os.path.dirname(__file__)
-    surrogate_models_file = '%s/surrogate_models_%s_%s.pk' % (cur_dir, estimator_id, task_id)
+    file_id = 'surrogate_models_%s_%s.pk' % (estimator_id, task_id)
+    surrogate_models_file = os.path.join(cur_dir, file_id)
+
     if os.path.exists(surrogate_models_file):
         with open(surrogate_models_file, 'rb') as f:
             return pickle.load(f)
     else:
-        runhistory_dir = '%s/runhistory/%s_%s/' % (cur_dir, task_id, estimator_id)
+        runhistory_dir = '%s/runhistory/hpo/hpo_%s_%s/' % (cur_dir, task_id, estimator_id)
         datasets = get_datasets(runhistory_dir, estimator_id, metric, task_id)
         if len(datasets) == 0:
             print('No related knowledge transferred: [%s][%s][%s]' % (estimator_id, metric, task_id))
