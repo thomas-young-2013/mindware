@@ -98,8 +98,7 @@ class GaussianProcessEnsemble(BaseModel):
     def __init__(
             self,
             configspace: ConfigurationSpace,
-            past_runhistory: typing.List,
-            gp_models: typing.List = None,
+            gp_models: typing.List,
             gp_fusion: str = 'indp-aspt',
             surrogate_model: str = 'prob_rf',
             n_steps_update: int = 2,
@@ -108,7 +107,6 @@ class GaussianProcessEnsemble(BaseModel):
     ):
         _, rng = get_rng(seed)
         types, bounds = get_types(configspace, instance_features=None)
-        self.past_runhistory = past_runhistory
         self.surrogate_model = surrogate_model
         self.gp_fusion = gp_fusion
         self.n_steps_update = n_steps_update
@@ -120,6 +118,7 @@ class GaussianProcessEnsemble(BaseModel):
         self.model_weights = None
         self.ignore_flag = None
         self.gp_models = gp_models
+        assert self.gp_models is not None
         self.weight_update_id = 0
         self._init()
 
@@ -133,24 +132,7 @@ class GaussianProcessEnsemble(BaseModel):
         return _model
 
     def _init(self):
-        if self.gp_models is None:
-            self.gp_models = list()
-            for _runhistory in self.past_runhistory:
-                _model = self.create_basic_model()
-                X = list()
-                for row in _runhistory[1]:
-                    conf_vector = convert_configurations_to_array([row[0]])[0]
-                    X.append(conf_vector)
-                X = np.array(X)
-                y = np.array([row[1] for row in _runhistory[1]]).reshape(-1, 1)
-
-                _model.train(X, y)
-                self.gp_models.append(_model)
-                print('Training basic GP model finished.')
-            self.n_runhistory = len(self.past_runhistory)
-        else:
-            self.n_runhistory = len(self.gp_models)
-
+        self.n_runhistory = len(self.gp_models)
         self.ignore_flag = [False] * self.n_runhistory
         # Set initial weights.
         self.model_weights = np.array([1]*self.n_runhistory + [0]) / self.n_runhistory

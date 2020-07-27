@@ -10,9 +10,10 @@ from solnml.datasets.image_dataset import ImageDataset
 from solnml.estimators import ImageClassifier
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--n_jobs', type=int, default=3)
+parser.add_argument('--n_jobs', type=int, default=1)
 parser.add_argument('--time_limit', type=int, default=36000)
 parser.add_argument('--max_epoch', type=int, default=81)
+parser.add_argument('--img_size', type=int, default=32)
 parser.add_argument('--dataset', type=str, default='cifar10')
 parser.add_argument('--opt_method', type=str, default='ours')
 parser.add_argument('--eval', type=str, default='partial')
@@ -27,15 +28,15 @@ time_limit = args.time_limit
 opt_method = args.opt_method
 evaluation = args.eval
 max_epoch = args.max_epoch
+img_size = args.img_size
 print('n_jobs is set to %d.' % n_jobs)
 print('networks included', networks)
 
 data_dir = 'data/img_datasets/%s/' % dataset
-image_data = ImageDataset(data_path=data_dir, train_val_split=True)
+image_data = ImageDataset(data_path=data_dir, train_val_split=True, image_size=img_size, val_split_size=0.1)
 clf = ImageClassifier(time_limit=time_limit,
                       include_algorithms=networks,
                       evaluation=evaluation,
-                      image_size=32,
                       ensemble_method=None,
                       skip_profile=True,
                       max_epoch=max_epoch,

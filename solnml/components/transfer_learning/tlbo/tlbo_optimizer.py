@@ -1,6 +1,8 @@
 import os
+import re
 import typing
 import numpy as np
+import pickle as pk
 
 from .acquisition_function.acquisition import EI
 from .optimizer.ei_optimization import InterleavedLocalAndRandomSearch, RandomSearch
@@ -10,7 +12,10 @@ from .utils.constants import MAXINT, SUCCESS, FAILDED, TIMEOUT
 from .utils.limit import time_limit, TimeoutException
 from .config_space.util import convert_configurations_to_array
 from .bo_optimizer import BaseFacade
+from .models.rf_with_instances import RandomForestWithInstances
 from .models.gp_ensemble import GaussianProcessEnsemble
+os_sep = os.sep
+
 
 def get_metafeature_vector(metafeature_dict):
     sorted_keys = sorted(metafeature_dict.keys())
@@ -29,7 +34,7 @@ def get_datasets(runhistory_dir, estimator_id, metric, task_id='hpo'):
 
 def load_runhistory(runhistory_dir, dataset_names, estimator_id, metric, task_id):
     cur_dir = os.path.dirname(__file__)
-    metafeature_file = '%s/runhistory/metafeature.pkl' % cur_dir
+    metafeature_file = '%s%srunhistory%smetafeature.pkl' % (cur_dir, os_sep, os_sep)
     with open(metafeature_file, 'rb') as f:
         metafeature_dict = pk.load(f)
 
@@ -51,32 +56,35 @@ def load_runhistory(runhistory_dir, dataset_names, estimator_id, metric, task_id
 
 
 def has_runhistory(config_space, task_id='hpo'):
-    estimator_id = config_space['estimator']
+    estimator_id = config_space.get_default_configuration()['estimator']
     cur_dir = os.path.dirname(__file__)
-    runhistory_dir = '%s/runhistory/hpo/hpo_%s_%s/' % (cur_dir, task_id, estimator_id)
+    dir_template = '%s' + os_sep + 'runhistory' + os_sep + 'hpo' + os_sep + '%s_%s' + os_sep
+    runhistory_dir = dir_template % (cur_dir, task_id, estimator_id)
     datasets = get_datasets(runhistory_dir, estimator_id, metric, task_id)
     return True if len(datasets) > 0 else False
 
 
-def get_pretrain_surrogate_models(config_space, task_id='hpo'):
-    estimator_id = config_space['estimator']
+def get_pretrain_surrogate_models(config_space, metric, task_id='hpo'):
+    max_runs = None
+    estimator_id = config_space.get_default_configuration()['estimator']
     cur_dir = os.path.dirname(__file__)
-    file_id = 'surrogate_models_%s_%s.pk' % (estimator_id, task_id)
+    file_id = 'surrogate_models_%s_%s_%s.pk' % (estimator_id, metric, task_id)
     surrogate_models_file = os.path.join(cur_dir, file_id)
 
     if os.path.exists(surrogate_models_file):
         with open(surrogate_models_file, 'rb') as f:
-            return pickle.load(f)
+            return pk.load(f)
     else:
-        runhistory_dir = '%s/runhistory/hpo/hpo_%s_%s/' % (cur_dir, task_id, estimator_id)
-        datasets = get_datasets(runhistory_dir, estimator_id, metric, task_id)
-        if len(datasets) == 0:
+        dir_template = '%s' + os_sep + 'runhistory' + os_sep + 'hpo' + os_sep + '%s_%s_%s' + os_sep
+        runhistory_dir = dir_template % (cur_dir, task_id, metric, estimator_id)
+        dataset_names = get_datasets(runhistory_dir, estimator_id, metric, task_id)
+        if len(dataset_names) == 0:
             print('No related knowledge transferred: [%s][%s][%s]' % (estimator_id, metric, task_id))
             return None
         else:
             runhistory = load_runhistory(runhistory_dir, dataset_names, estimator_id, metric, task_id)
             surrogate_models = list()
-            for dataset, hist in zip(datasets, runhistory):
+            for dataset, hist in zip(dataset_names, runhistory):
                 _, rng = get_rng(1)
                 _model = RandomForestWithInstances(config_space, seed=rng.randint(MAXINT), normalize_y=True)
                 X = list()
@@ -90,18 +98,17 @@ def get_pretrain_surrogate_models(config_space, task_id='hpo'):
                 _model.train(X, y)
                 surrogate_models.append(_model)
                 print('%s: training basic surrogate model finished.' % dataset)
-
-            with open(surrogate_models_file, 'wb') as f:
-                pickle.dump(surrogate_models, f)
-            return gp_models
+            # TODO: bugs reported, TypeError: can't pickle SwigPyObject objects.
+            # with open(surrogate_models_file, 'wb') as f:
+            #     pk.dump(surrogate_models, f)
+            return surrogate_models
 
 
 class TLBO(BaseFacade):
     def __init__(self, objective_function,
                  config_space,
-                 past_runhistory,
+                 metric: str,
                  gp_fusion: str = 'gpoe',
-                 gp_models: typing.List=None,
                  dataset_metafeature=None,
                  meta_warmstart: bool = False,
                  time_limit_per_trial=180,
@@ -112,7 +119,6 @@ class TLBO(BaseFacade):
         super().__init__(config_space, task_id)
         self.gp_fusion = gp_fusion
         self.meta_warmstart = meta_warmstart
-        self.past_runhistory = past_runhistory
         self.meta_feature_scaler = None
         self.dataset_metafeature = dataset_metafeature
         self.init_num = initial_runs
@@ -136,12 +142,14 @@ class TLBO(BaseFacade):
         self.objective_function = objective_function
         seed = rng.randint(MAXINT)
 
-        gp_models = get_pretrain_surrogate_models(self.config_space)
-
-        self.model = GaussianProcessEnsemble(config_space, past_runhistory,
-                                             gp_fusion=gp_fusion,
-                                             gp_models=gp_models,
-                                             seed=seed)
+        gp_models = get_pretrain_surrogate_models(self.config_space, metric)
+        if gp_models is None:
+            self.model = RandomForestWithInstances(config_space, seed=seed, normalize_y=True)
+        else:
+            self.model = GaussianProcessEnsemble(config_space,
+                                                 gp_models,
+                                                 gp_fusion=gp_fusion,
+                                                 seed=seed)
         self.acquisition_function = EI(self.model)
         self.optimizer = InterleavedLocalAndRandomSearch(
                 acquisition_function=self.acquisition_function,

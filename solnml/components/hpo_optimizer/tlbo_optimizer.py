@@ -1,8 +1,9 @@
 import time
 import numpy as np
-from litebo.facade.bo_facade import BayesianOptimization as BO
+
 from litebo.utils.constants import SUCCESS
 from solnml.components.hpo_optimizer.base_optimizer import BaseHPOptimizer, MAX_INT
+from solnml.components.transfer_learning.tlbo.tlbo_optimizer import TLBO
 
 
 class TlboOptimizer(BaseHPOptimizer):
@@ -17,8 +18,9 @@ class TlboOptimizer(BaseHPOptimizer):
         self.per_run_mem_limit = per_run_mem_limit
         self.output_dir = output_dir
 
-        self.optimizer = BO(objective_function=self.evaluator,
+        self.optimizer = TLBO(objective_function=self.evaluator,
                             config_space=config_space,
+                            metric='bal_acc',
                             max_runs=int(1e10),
                             task_id=None,
                             time_limit_per_trial=self.per_run_time_limit,
