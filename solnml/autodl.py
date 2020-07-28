@@ -13,10 +13,9 @@ from solnml.components.hpo_optimizer import build_hpo_optimizer
 from solnml.components.evaluators.dl_evaluator import DLEvaluator
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters, TopKModelSaver, get_estimator
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space, \
-    get_test_transforms
+    get_test_transforms, get_transforms
 from solnml.components.utils.config_parser import ConfigParser
 from .autodl_base import AutoDLBase
-from .utils.proc_thread.proc_func import kill_proc_tree
 
 rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (10240, rlimit[1]))
@@ -46,7 +45,7 @@ class AutoDL(AutoDLBase):
                          random_state=random_state, n_jobs=n_jobs)
         self.skip_profile = skip_profile
         self.timestamp = time.time()
-        
+
         # SEE algorithm parameters.
         self.optalgo = None
         self.see_optimizer = None
@@ -57,7 +56,7 @@ class AutoDL(AutoDLBase):
             self.optalgo = kwargs['opt_method']
         else:
             self.optalgo = 'see'
-          
+
         if self.task_type == IMG_CLS:
             self.image_size = kwargs['image_size']
 
@@ -104,7 +103,7 @@ class AutoDL(AutoDLBase):
 
         # Execute neural architecture selection.
         self.logger.info('Before NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
-        
+
         dl_evaluator = DLEvaluator(None,
                                    self.task_type,
                                    max_epoch=self.max_epoch,
@@ -116,7 +115,8 @@ class AutoDL(AutoDLBase):
                                    **kwargs)
         if self.optalgo == 'see':
             from solnml.components.hpo_optimizer.cashp_optimizer import CashpOptimizer
-            self.see_optimizer = CashpOptimizer(self.task_type, algorithm_candidates, self.time_limit, n_jobs=self.n_jobs)
+            self.see_optimizer = CashpOptimizer(self.task_type, algorithm_candidates, self.time_limit,
+                                                n_jobs=self.n_jobs)
             inc_config, inc_perf = self.see_optimizer.run(dl_evaluator)
             self.best_algo_config = inc_config
             self.best_algo_id = inc_config['estimator']
@@ -256,12 +256,30 @@ class AutoDL(AutoDLBase):
             if os.path.exists(model_path):
                 os.remove(model_path)
 
+            mode = 'refit'
+            if self.task_type == IMG_CLS:
+                train_transforms = get_transforms(self.best_algo_config, image_size=self.image_size)
+                dataset.load_data(train_transforms['train'], train_transforms['val'])
+                if dataset.test_data_path is not None:
+                    test_transforms = get_test_transforms(self.best_algo_config, image_size=self.image_size)
+                    dataset.load_test_data(test_transforms)
+                    mode = 'refit_test'
+
+            else:
+                dataset.load_data()
+                if dataset.test_data_path is not None:
+                    dataset.load_test_data()
+                    mode = 'refit_test'
+
             # Refit the models.
-            _, clf = get_estimator(self.task_type, config_dict, self.max_epoch, device=self.device)
-            # TODO: if train ans val are two parts, we need to merge it into one dataset.
-            clf.fit(dataset.train_dataset)
+            _, estimator = get_estimator(self.task_type, config_dict, self.max_epoch, device=self.device)
+            estimator.fit(dataset, mode=mode)
             # Save to the disk.
-            torch.save(clf.model.state_dict(), model_path)
+            state = {'model': estimator.model.state_dict(),
+                     'optimizer': estimator.optimizer_.state_dict(),
+                     'scheduler': estimator.scheduler.state_dict(),
+                     'epoch_num': estimator.epoch_num}
+            torch.save(state, model_path)
         else:
             self.es.refit(dataset)
 
@@ -393,7 +411,7 @@ class AutoDL(AutoDLBase):
             return self.see_optimizer.get_evaluation_stats()
         else:
             return self.solvers['hpo_solver'].get_evaluation_stats()
-    
+
     # def recycle(self):
     #     for _solver in self.solvers.keys():
     #         self.solvers[_solver].gc()

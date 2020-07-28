@@ -252,8 +252,8 @@ class BaseDLEstimator(object):
     def score(self, data: DLDataset, mode='test'):
         return self._ml_engine.score(data, mode=mode)
 
-    def refit(self):
-        return self._ml_engine.refit()
+    def refit(self, data: DLDataset):
+        return self._ml_engine.refit(data)
 
     def predict_proba(self, X: DLDataset, mode='test', batch_size=1, n_jobs=1):
         return self._ml_engine.predict_proba(X, mode=mode, batch_size=batch_size, n_jobs=n_jobs)
