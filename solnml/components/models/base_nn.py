@@ -123,16 +123,19 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         self.scheduler = None
         self.cur_epoch_num = 0
 
-    def fit(self, dataset: DLDataset or Dataset, **kwargs):
+    def fit(self, dataset: DLDataset, mode='fit', **kwargs):
         from sklearn.metrics import accuracy_score
 
         assert self.model is not None
 
         params = self.model.parameters()
         val_loader = None
-        if isinstance(dataset, Dataset):
-            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True,
+        if 'refit' in mode:
+            train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
                                       num_workers=NUM_WORKERS)
+            if mode == 'refit_test':
+                val_loader = DataLoader(dataset=dataset.test_dataset, batch_size=self.batch_size, shuffle=False,
+                                        num_workers=NUM_WORKERS)
         else:
             if not dataset.subset_sampler_used:
                 train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
@@ -355,16 +358,19 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         self.scheduler = None
         self.cur_epoch_num = 0
 
-    def fit(self, dataset, **kwargs):
+    def fit(self, dataset, mode='fit', **kwargs):
         from sklearn.metrics import accuracy_score
 
         assert self.model is not None
 
         params = self.model.parameters()
         val_loader = None
-        if isinstance(dataset, Dataset):
-            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True,
+        if 'refit' in mode:
+            train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
                                       num_workers=NUM_WORKERS)
+            if mode == 'refit_test':
+                val_loader = DataLoader(dataset=dataset.test_dataset, batch_size=self.batch_size, shuffle=False,
+                                        num_workers=NUM_WORKERS)
         else:
             if not dataset.subset_sampler_used:
                 train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
@@ -591,7 +597,7 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
         self.scheduler = None
         self.cur_epoch_num = 0
 
-    def fit(self, dataset: DLDataset or Dataset, **kwargs):
+    def fit(self, dataset: DLDataset, mode='fit', **kwargs):
         assert self.model is not None
 
         if self.load_path:
@@ -600,9 +606,12 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
         params = self.model.parameters()
 
         val_loader = None
-        if isinstance(dataset, Dataset):
-            train_loader = DataLoader(dataset=dataset, batch_size=self.batch_size, shuffle=True,
-                                      num_workers=NUM_WORKERS)
+        if 'refit' in mode:
+            train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
+                                      num_workers=NUM_WORKERS, collate_fn=dataset.train_dataset.collate_fn)
+            if mode == 'refit_test':
+                val_loader = DataLoader(dataset=dataset.test_dataset, batch_size=self.batch_size, shuffle=False,
+                                        num_workers=NUM_WORKERS, collate_fn=dataset.test_dataset.collate_fn)
         else:
             train_loader = DataLoader(dataset=dataset.train_dataset, batch_size=self.batch_size, shuffle=True,
                                       num_workers=NUM_WORKERS, collate_fn=dataset.train_dataset.collate_fn)

@@ -228,9 +228,6 @@ class ImageClassifier(BaseDLEstimator):
     def predict(self, dataset, mode='test', batch_size=None, n_jobs=1):
         return super().predict(dataset, mode=mode, batch_size=batch_size, n_jobs=n_jobs)
 
-    def refit(self):
-        return super().refit()
-
     def predict_proba(self, dataset, mode='test', batch_size=None, n_jobs=1):
         """
         Predict probabilities of classes for all samples X.
@@ -263,7 +260,7 @@ class ImageClassifier(BaseDLEstimator):
 class TextClassifier(BaseDLEstimator):
     """This class implements the text classification task. """
 
-    def fit(self, data: TextDataset):
+    def fit(self, data: TextDataset, **kwargs):
         """
         Fit the classifier to given training data.
         :param data: instance of Image Dataset
@@ -278,9 +275,6 @@ class TextClassifier(BaseDLEstimator):
 
     def predict(self, dataset, mode='test', batch_size=None, n_jobs=1):
         return super().predict(dataset, batch_size=batch_size, n_jobs=n_jobs)
-
-    def refit(self):
-        return super().refit()
 
     def predict_proba(self, dataset, mode='test', batch_size=None, n_jobs=1):
         """
@@ -314,7 +308,7 @@ class TextClassifier(BaseDLEstimator):
 class ObjectionDetecter(BaseDLEstimator):
     """This class implements the text classification task. """
 
-    def fit(self, data: ODDataset):
+    def fit(self, data: ODDataset, **kwargs):
         """
         Fit the classifier to given training data.
         :param data: instance of Image Dataset
@@ -328,6 +322,3 @@ class ObjectionDetecter(BaseDLEstimator):
 
     def predict(self, dataset, mode='test', batch_size=1, n_jobs=1):
         return super().predict(dataset, mode='test', batch_size=batch_size, n_jobs=n_jobs)
-
-    def refit(self):
-        return super().refit()

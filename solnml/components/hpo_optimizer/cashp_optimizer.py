@@ -94,6 +94,10 @@ class CashpOptimizer(object):
                 cs.add_hyperparameter(all_cs.get_hyperparameter(hp_name))
             else:
                 cs.add_hyperparameter(default_cs.get_hyperparameter(hp_name))
+
+        cond = default_cs.get_conditions()
+        cs.add_conditions(cond)
+
         return cs
 
     def sample_configs_for_archs(self, include_architectures, N, sampling_strategy='uniform'):
