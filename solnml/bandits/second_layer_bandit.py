@@ -190,7 +190,7 @@ class SecondLayerBandit(object):
                     self.prepare_optimizer(arm_id)
                     self.init_config = config
                     if config != self.default_config:
-                        self.logger.debug('Initial hp_config for FE has changed!')
+                        self.logger.info('Initial hp_config for FE has changed!')
 
             if self.mth in ['alter_p', 'fixed']:
                 self.prepare_optimizer(arm_id)
@@ -225,8 +225,8 @@ class SecondLayerBandit(object):
                 return
 
         self.action_sequence.append(arm_picked)
-        self.logger.debug(','.join(self.action_sequence))
-        self.logger.debug('Pulling arm: %s for %s at %d-th round' % (arm_picked, self.estimator_id, self.pull_cnt))
+        self.logger.info(','.join(self.action_sequence))
+        self.logger.info('Pulling arm: %s for %s at %d-th round' % (arm_picked, self.estimator_id, self.pull_cnt))
         results = self.optimizer[arm_picked].iterate()
         self.collect_iter_stats(arm_picked, results)
         self.pull_cnt += 1

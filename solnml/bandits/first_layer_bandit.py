@@ -44,7 +44,6 @@ class FirstLayerBandit(object):
         self.trial_num = trial_num
         self.n_jobs = n_jobs
         self.alpha = 4
-        self.B = 0.01
         self.seed = seed
         self.output_dir = output_dir
         np.random.seed(self.seed)
@@ -281,6 +280,7 @@ class FirstLayerBandit(object):
                     else:
                         budget_left = max(self.time_limit - (time.time() - self.start_time), 0)
                         steps = int(budget_left/np.mean(self.arm_cost_stats[_arm]))
+                        steps = min(steps, 100)
 
                     upper_bound = np.min([1.0, rewards[-1] + slope * steps])
                     upper_bounds.append(upper_bound)
