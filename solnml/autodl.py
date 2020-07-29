@@ -248,10 +248,13 @@ class AutoDL(AutoDLBase):
         return stats
 
     def refit(self, dataset: DLDataset):
-        # TODO: Bottom API changes
         if self.es is None:
             config_dict = self.best_algo_config.get_dictionary().copy()
-            model_path = self.output_dir + TopKModelSaver.get_configuration_id(self.best_algo_config) + '.pt'
+            # TODO:Specify model dir
+            model_dir = './data/dl_models'
+            model_path = os.path.join(model_dir,
+                                      '%s_%s.pt' % (
+                                          self.timestamp, TopKModelSaver.get_configuration_id(self.best_algo_config)))
             # Remove the old models.
             if os.path.exists(model_path):
                 os.remove(model_path)
