@@ -59,7 +59,7 @@ def get_transforms(config, image_size=None):
     if image_size is not None:
         image_size = image_size
     elif config['estimator'] not in resize_size_dict:
-        image_size = 224
+        image_size = 32
     else:
         image_size = resize_size_dict[config['estimator']]
 
@@ -70,12 +70,12 @@ def get_transforms(config, image_size=None):
     ])
     if parse_bool(config['aug']):
         if parse_bool(config['auto_aug']):
-            from .transforms import AutoAugment
+            # from .transforms import AutoAugment
             data_transforms = {
                 'train': transforms.Compose([
-                    AutoAugment(),
-                    transforms.RandomResizedCrop(image_size),
-                    transforms.RandomCrop(image_size, padding=4),
+                    # AutoAugment(),
+                    transforms.Resize(image_size),
+                    transforms.RandomCrop(image_size, padding=int(image_size / 8)),
                     transforms.RandomHorizontalFlip(),
                     transforms.ToTensor(),
                 ]),
