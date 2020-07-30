@@ -121,6 +121,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
 
         self.optimizer_ = None
         self.scheduler = None
+        self.early_stop = None
         self.cur_epoch_num = 0
 
     def fit(self, dataset: DLDataset, mode='fit', **kwargs):
@@ -160,6 +161,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         scheduler = MultiStepLR(optimizer, milestones=[int(self.epoch_num * 0.5), int(self.epoch_num * 0.75)],
                                 gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
+        early_stop = EarlyStop(patience=10, mode='min')
 
         if self.load_path:
             checkpoint = torch.load(self.load_path)
@@ -167,6 +169,14 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
             optimizer.load_state_dict(checkpoint['optimizer'])
             scheduler.load_state_dict(checkpoint['scheduler'])
             self.cur_epoch_num = checkpoint['epoch_num']
+            early_stop = checkpoint['early_stop']
+            if early_stop.if_early_stop:
+                print("Early stop!")
+                self.optimizer_ = optimizer
+                self.epoch_num = int(self.epoch_num) + int(self.cur_epoch_num)
+                self.scheduler = scheduler
+                self.early_stop = early_stop
+                return self
 
         profile_iter = kwargs.get('profile_iter', None)
         profile_epoch = kwargs.get('profile_epoch', None)
@@ -201,8 +211,6 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
                             stop_flag = True
                             break
             return self
-
-        early_stop = EarlyStop(patience=15, mode='min')
 
         for epoch in range(int(self.cur_epoch_num), int(self.cur_epoch_num) + int(self.epoch_num)):
             self.model.train()
@@ -248,19 +256,20 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
                     val_avg_acc /= num_val_samples
                     print('Epoch %d: Val loss %.4f, val acc %.4f' % (epoch, val_avg_loss, val_avg_acc))
 
-                    # TODO: if needed
                     # Early stop
-                    # early_stop.update(val_avg_loss)
-                    # if early_stop.if_early_stop:
-                    #     self.early_stop_flag = True
-                    #     print("Early stop!")
-                    #     break
+                    if 'refit' not in mode:
+                        early_stop.update(val_avg_loss)
+                        if early_stop.if_early_stop:
+                            self.early_stop_flag = True
+                            print("Early stop!")
+                            break
 
             scheduler.step()
 
         self.optimizer_ = optimizer
         self.epoch_num = int(self.epoch_num) + int(self.cur_epoch_num)
         self.scheduler = scheduler
+        self.early_stop = early_stop
 
         return self
 
@@ -356,6 +365,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
 
         self.optimizer_ = None
         self.scheduler = None
+        self.early_stop = None
         self.cur_epoch_num = 0
 
     def fit(self, dataset, mode='fit', **kwargs):
@@ -393,6 +403,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         scheduler = MultiStepLR(optimizer, milestones=[int(self.epoch_num * 0.5), int(self.epoch_num * 0.75)],
                                 gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
+        early_stop = EarlyStop(patience=5, mode='min')
 
         if self.load_path:
             checkpoint = torch.load(self.load_path)
@@ -400,6 +411,14 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
             optimizer.load_state_dict(checkpoint['optimizer'])
             scheduler.load_state_dict(checkpoint['scheduler'])
             self.cur_epoch_num = checkpoint['epoch_num']
+            early_stop = checkpoint['early_stop']
+            if early_stop.if_early_stop:
+                print("Early stop!")
+                self.optimizer_ = optimizer
+                self.epoch_num = int(self.epoch_num) + int(self.cur_epoch_num)
+                self.scheduler = scheduler
+                self.early_stop = early_stop
+                return self
 
         profile_iter = kwargs.get('profile_iter', None)
         profile_epoch = kwargs.get('profile_epoch', None)
@@ -436,8 +455,6 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
                             stop_flag = True
                             break
             return self
-
-        early_stop = EarlyStop(patience=5, mode='min')
 
         for epoch in range(int(self.cur_epoch_num), int(self.cur_epoch_num) + int(self.epoch_num)):
             self.model.train()
@@ -487,13 +504,14 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
                     print('Epoch %d: Val loss %.4f, val acc %.4f' % (epoch, val_avg_loss, val_avg_acc))
 
                     # Early stop
-                    early_stop.update(val_avg_loss)
-                    if early_stop.if_early_stop:
-                        self.early_stop_flag = True
-                        print("Early stop!")
-                        break
+                    if 'refit' not in mode:
+                        early_stop.update(val_avg_loss)
+                        if early_stop.if_early_stop:
+                            self.early_stop_flag = True
+                            print("Early stop!")
+                            break
 
-            scheduler.step()
+        scheduler.step()
 
         self.optimizer_ = optimizer
         self.epoch_num = int(self.epoch_num) + int(self.cur_epoch_num)
@@ -595,6 +613,7 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
 
         self.optimizer_ = None
         self.scheduler = None
+        self.early_stop = None
         self.cur_epoch_num = 0
 
     def fit(self, dataset: DLDataset, mode='fit', **kwargs):
@@ -634,6 +653,7 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
 
         scheduler = MultiStepLR(optimizer, milestones=[int(self.epoch_num * 0.5), int(self.epoch_num * 0.75)],
                                 gamma=self.lr_decay)
+        early_stop = EarlyStop(patience=5, mode='min')
 
         if self.load_path:
             checkpoint = torch.load(self.load_path)
@@ -641,6 +661,14 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
             optimizer.load_state_dict(checkpoint['optimizer'])
             scheduler.load_state_dict(checkpoint['scheduler'])
             self.cur_epoch_num = checkpoint['epoch_num']
+            early_stop = checkpoint['early_stop']
+            if early_stop.if_early_stop:
+                print("Early stop!")
+                self.optimizer_ = optimizer
+                self.epoch_num = int(self.epoch_num) + int(self.cur_epoch_num)
+                self.scheduler = scheduler
+                self.early_stop = early_stop
+                return self
 
         profile_iter = kwargs.get('profile_iter', None)
         profile_epoch = kwargs.get('profile_epoch', None)
@@ -672,8 +700,6 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
                             break
             return self
 
-        early_stop = EarlyStop(patience=5, mode='min')
-
         for epoch in range(int(self.cur_epoch_num), int(self.cur_epoch_num) + int(self.epoch_num)):
             self.model.train()
             # print('Current learning rate: %.5f' % optimizer.state_dict()['param_groups'][0]['lr'])
@@ -703,12 +729,13 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
                     val_avg_loss /= num_val_samples
                     print('Epoch %d: Val loss %.4f' % (epoch, val_avg_loss))
 
-                # Early stop
-                early_stop.update(val_avg_loss)
-                if early_stop.if_early_stop:
-                    self.early_stop_flag = True
-                    print("Early stop!")
-                    break
+                    # Early stop
+                    if 'refit' not in mode:
+                        early_stop.update(val_avg_loss)
+                        if early_stop.if_early_stop:
+                            self.early_stop_flag = True
+                            print("Early stop!")
+                            break
 
         self.optimizer_ = optimizer
         self.epoch_num = int(self.epoch_num) + int(self.cur_epoch_num)

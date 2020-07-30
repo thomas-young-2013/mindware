@@ -94,7 +94,8 @@ class DLEvaluator(_BaseEvaluator):
             state = {'model': estimator.model.state_dict(),
                      'optimizer': estimator.optimizer_.state_dict(),
                      'scheduler': estimator.scheduler.state_dict(),
-                     'epoch_num': estimator.epoch_num}
+                     'epoch_num': estimator.epoch_num,
+                     'early_stop': estimator.early_stop}
             torch.save(state, config_model_path)
 
         # Save top K models with the largest validation scores.
@@ -108,7 +109,8 @@ class DLEvaluator(_BaseEvaluator):
                 state = {'model': estimator.model.state_dict(),
                          'optimizer': estimator.optimizer_.state_dict(),
                          'scheduler': estimator.scheduler.state_dict(),
-                         'epoch_num': estimator.epoch_num}
+                         'epoch_num': estimator.epoch_num,
+                         'early_stop': estimator.early_stop}
                 torch.save(state, model_path)
                 self.logger.info("Model saved to %s" % model_path)
 
