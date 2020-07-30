@@ -37,13 +37,15 @@ class BaseAdvisor(object):
         self.metric = metric
         self.rep = rep
         self.total_resource = total_resource
+        self.exclude_datasets = exclude_datasets
         self.meta_learner = None
         buildin_loc = os.path.dirname(__file__) + '/../meta_resource/'
         self.meta_dir = meta_dir if meta_dir is not None else buildin_loc
-        self.exclude_datasets = list(set(exclude_datasets))
+
         if self.exclude_datasets is None:
             self.hash_id = 'none'
         else:
+            self.exclude_datasets = list(set(exclude_datasets))
             exclude_str = ','.join(sorted(self.exclude_datasets))
             md5 = hashlib.md5()
             md5.update(exclude_str.encode('utf-8'))
