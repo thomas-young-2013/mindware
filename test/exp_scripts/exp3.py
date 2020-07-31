@@ -21,7 +21,7 @@ parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,vehicle,yeast,' \
               'messidor_features,winequality_red,winequality_white,splice,spambase,amazon_employee'
 parser.add_argument('--datasets', type=str, default=dataset_set)
-parser.add_argument('--mode', type=str, choices=['rb', 'alter_hpo', 'fixed', 'plot', 'all'], default='rb')
+parser.add_argument('--mode', type=str, choices=['rb', 'alter_hpo', 'fixed', 'plot', 'all', 'ausk'], default='rb')
 parser.add_argument('--cv', type=str, choices=['cv', 'holdout'], default='holdout')
 parser.add_argument('--algo', type=str, default='random_forest')
 parser.add_argument('--time_cost', type=int, default=600)
@@ -138,7 +138,7 @@ if __name__ == "__main__":
 
     else:
         headers = ['dataset']
-        method_ids = ['fixed', 'alter_hpo', 'rb']
+        method_ids = ['fixed', 'alter_hpo', 'rb', 'ausk']
         for mth in method_ids:
             headers.extend(['val-%s' % mth])
         algo = args.algo
