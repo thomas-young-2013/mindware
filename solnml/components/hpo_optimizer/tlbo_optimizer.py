@@ -19,12 +19,12 @@ class TlboOptimizer(BaseHPOptimizer):
         self.output_dir = output_dir
 
         self.optimizer = TLBO(objective_function=self.evaluator,
-                            config_space=config_space,
-                            metric='bal_acc',
-                            max_runs=int(1e10),
-                            task_id=None,
-                            time_limit_per_trial=self.per_run_time_limit,
-                            rng=np.random.RandomState(self.seed))
+                              config_space=config_space,
+                              metric='bal_acc',
+                              max_runs=int(1e10),
+                              task_id=None,
+                              time_limit_per_trial=self.per_run_time_limit,
+                              rng=np.random.RandomState(self.seed))
 
         self.trial_cnt = 0
         self.configs = list()
@@ -69,7 +69,11 @@ class TlboOptimizer(BaseHPOptimizer):
                 self.perfs.append(-_perf)
 
         runhistory = self.optimizer.get_history()
-        self.eval_dict = {(None, hpo_config): -score for hpo_config, score in
+        if hasattr(self.evaluator, 'data_node'):
+            fe_config = self.evaluator.data_node.config
+        else:
+            fe_config = None
+        self.eval_dict = {(fe_config, hpo_config): -score for hpo_config, score in
                           runhistory.data.items()}
         self.incumbent_config, self.incumbent_perf = runhistory.get_incumbents()[0]
         self.incumbent_perf = -self.incumbent_perf

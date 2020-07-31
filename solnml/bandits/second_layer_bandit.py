@@ -58,6 +58,7 @@ class SecondLayerBandit(object):
         self.local_inc = dict()
         self.local_hist = {'fe': [], 'hpo': []}
         self.exp_output = dict()
+        self.eval_dict = {'fe': dict(), 'hpo': dict()}
         for arm in self.arms:
             self.rewards[arm] = list()
             self.update_flag[arm] = False
@@ -153,6 +154,8 @@ class SecondLayerBandit(object):
             self.final_rewards.append(self.incumbent_perf)
 
         self.logger.debug('After %d-th pulling, results: %s' % (self.pull_cnt, results))
+
+        self.eval_dict[_arm].update(self.optimizer[_arm].eval_dict)
 
         score, iter_cost, config = results
         if score is None:

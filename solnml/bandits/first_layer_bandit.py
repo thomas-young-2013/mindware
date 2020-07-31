@@ -279,7 +279,7 @@ class FirstLayerBandit(object):
                         steps = self.trial_num - _iter_id
                     else:
                         budget_left = max(self.time_limit - (time.time() - self.start_time), 0)
-                        steps = int(budget_left/np.mean(self.arm_cost_stats[_arm]))
+                        steps = int(budget_left / np.mean(self.arm_cost_stats[_arm]))
                         steps = min(steps, 100)
 
                     upper_bound = np.min([1.0, rewards[-1] + slope * steps])

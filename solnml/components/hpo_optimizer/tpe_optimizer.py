@@ -68,7 +68,11 @@ class TPEOptimizer(BaseHPOptimizer):
                 self.configs.append(_config)
                 self.perfs.append(-_perf)
 
-        self.eval_dict = {(None, self.configs[i]): -self.perfs[i] for i in range(len(self.perfs))}
+        if hasattr(self.evaluator, 'data_node'):
+            fe_config = self.evaluator.data_node.config
+        else:
+            fe_config = None
+        self.eval_dict = {(fe_config, self.configs[i]): -self.perfs[i] for i in range(len(self.perfs))}
         incumbent_idx = np.argsort(self.perfs)[-1]
         self.incumbent_config = self.configs[incumbent_idx]
         self.incumbent_perf = self.perfs[incumbent_idx]

@@ -177,6 +177,7 @@ class BayesianOptimizationOptimizer(Optimizer):
         # Selector
         _node, sel_tran = tran_operate(sel_id, _selector, config_dict, _node)
 
+        _node.config = config
         if record:
             return _node, [pre1_tran, pre2_tran, bal_tran, res_tran, gen_tran, sel_tran]
         return _node

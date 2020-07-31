@@ -44,6 +44,7 @@ class DataNode(object):
         new_node.depth = self.depth
         new_node.enable_balance = self.enable_balance
         new_node.data_balance = self.data_balance
+        new_node.config = self.config
         return new_node
 
     def set_values(self, node):

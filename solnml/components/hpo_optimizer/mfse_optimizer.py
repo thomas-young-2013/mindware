@@ -47,7 +47,11 @@ class MfseOptimizer(BaseHPOptimizer, MfseBase):
             inc_idx = np.argmin(np.array(self.incumbent_perfs))
 
             for idx in range(len(self.incumbent_perfs)):
-                self.eval_dict[(None, self.incumbent_configs[idx])] = -self.incumbent_perfs[idx]
+                if hasattr(self.evaluator, 'data_node'):
+                    fe_config = self.evaluator.data_node.config
+                else:
+                    fe_config = None
+                self.eval_dict[(fe_config, self.incumbent_configs[idx])] = -self.incumbent_perfs[idx]
 
             self.incumbent_perf = -self.incumbent_perfs[inc_idx]
             self.incumbent_config = self.incumbent_configs[inc_idx]
