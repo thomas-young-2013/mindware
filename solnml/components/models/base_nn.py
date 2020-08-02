@@ -104,6 +104,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         super(BaseImgClassificationNeuralNetwork, self).__init__()
         self.optimizer = optimizer
         self.batch_size = batch_size
+        self.max_epoch = epoch_num
         self.epoch_num = epoch_num
         self.lr_decay = lr_decay
         self.weight_decay = weight_decay
@@ -158,7 +159,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         else:
             return ValueError("Optimizer %s not supported!" % self.optimizer)
 
-        scheduler = MultiStepLR(optimizer, milestones=[int(self.epoch_num * 0.5), int(self.epoch_num * 0.75)],
+        scheduler = MultiStepLR(optimizer, milestones=[int(self.max_epoch * 0.5), int(self.max_epoch * 0.75)],
                                 gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
         early_stop = EarlyStop(patience=10, mode='min')
@@ -349,6 +350,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         super(BaseTextClassificationNeuralNetwork, self).__init__()
         self.optimizer = optimizer
         self.batch_size = batch_size
+        self.max_epoch = epoch_num
         self.epoch_num = epoch_num
         self.lr_decay = lr_decay
         self.step_decay = step_decay
@@ -400,7 +402,7 @@ class BaseTextClassificationNeuralNetwork(BaseNeuralNetwork):
         else:
             return ValueError("Optimizer %s not supported!" % self.optimizer)
 
-        scheduler = MultiStepLR(optimizer, milestones=[int(self.epoch_num * 0.5), int(self.epoch_num * 0.75)],
+        scheduler = MultiStepLR(optimizer, milestones=[int(self.max_epoch * 0.5), int(self.max_epoch * 0.75)],
                                 gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
         early_stop = EarlyStop(patience=5, mode='min')
@@ -596,6 +598,7 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
         super(BaseODClassificationNeuralNetwork, self).__init__()
         self.optimizer = optimizer
         self.batch_size = batch_size
+        self.max_epoch = epoch_num
         self.epoch_num = epoch_num
         self.lr_decay = lr_decay
         self.weight_decay = weight_decay
@@ -651,7 +654,7 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
         else:
             return ValueError("Optimizer %s not supported!" % self.optimizer)
 
-        scheduler = MultiStepLR(optimizer, milestones=[int(self.epoch_num * 0.5), int(self.epoch_num * 0.75)],
+        scheduler = MultiStepLR(optimizer, milestones=[int(self.max_epoch * 0.5), int(self.max_epoch * 0.75)],
                                 gamma=self.lr_decay)
         early_stop = EarlyStop(patience=5, mode='min')
 
