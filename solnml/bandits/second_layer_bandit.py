@@ -70,6 +70,7 @@ class SecondLayerBandit(object):
         self.incumbent_perf = float("-INF")
         self.early_stopped_flag = False
         self.enable_intersection = enable_intersection
+        self.first_start = True
 
         # Fetch hyperparameter space.
         if self.task_type in CLS_TASKS:
@@ -238,6 +239,12 @@ class SecondLayerBandit(object):
         # First choose one arm.
         _arm = self.arms[self.pull_cnt % 2]
         self.logger.debug('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
+        if self.first_start is True and _arm == 'hpo':
+            if hasattr(self.optimizer[_arm], 'init_hpo_iter_num'):
+                self.optimizer[_arm].init_hpo_iter_num = 20
+            else:
+                raise ValueError('Optimizer does not have property - init_hpo_iter_num.')
+            self.first_start = False
 
         # Execute one iteration.
         results = self.optimizer[_arm].iterate()

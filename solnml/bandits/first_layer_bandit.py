@@ -25,7 +25,7 @@ class FirstLayerBandit(object):
                  output_dir="logs",
                  dataset_name='default_dataset',
                  eval_type='holdout',
-                 inner_opt_algorithm='rb',
+                 inner_opt_algorithm='fixed',
                  enable_fe=True,
                  fe_algo='bo',
                  n_jobs=1,
@@ -95,7 +95,7 @@ class FirstLayerBandit(object):
                 dataset_id=dataset_name,
                 n_jobs=self.n_jobs,
                 fe_algo=fe_algo,
-                mth=inner_opt_algorithm,
+                mth=self.inner_opt_algorithm,
             )
 
         self.action_sequence = list()
@@ -107,7 +107,7 @@ class FirstLayerBandit(object):
         return self.time_records, self.final_rewards
 
     def optimize(self):
-        if self.inner_opt_algorithm in ['rb_hpo', 'fixed']:
+        if self.inner_opt_algorithm in ['rb_hpo', 'fixed', 'alter_hpo']:
             self.optimize_explore_first()
         elif self.inner_opt_algorithm == 'equal':
             self.optimize_equal_resource()

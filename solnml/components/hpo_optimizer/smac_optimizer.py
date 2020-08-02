@@ -54,7 +54,14 @@ class SMACOptimizer(BaseHPOptimizer):
 
     def iterate(self, budget=MAX_INT):
         _start_time = time.time()
-        for _ in range(self.inner_iter_num_per_iter):
+
+        if len(self.configs) == 0 and self.init_hpo_iter_num is not None:
+            inner_iter_num = self.init_hpo_iter_num
+            print('initial hpo trial num is set to %d' % inner_iter_num)
+        else:
+            inner_iter_num = self.inner_iter_num_per_iter
+
+        for _ in range(inner_iter_num):
             if len(self.configs) >= self.maximum_config_num:
                 self.early_stopped_flag = True
                 self.logger.warning('Already explored 70 percentage of the '
