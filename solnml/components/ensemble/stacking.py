@@ -108,7 +108,7 @@ class Stacking(BaseEnsembleModel):
         self.meta_learner.fit(feature_p2, y)
         return self
 
-    def get_feature(self, data, solvers):
+    def get_feature(self, data, record_op):
         # Predict the labels via stacking
         feature_p2 = None
         model_cnt = 0
@@ -116,7 +116,7 @@ class Stacking(BaseEnsembleModel):
         for algo_id in self.stats["include_algorithms"]:
             model_to_eval = self.stats[algo_id]['model_to_eval']
             for idx, (node, config) in enumerate(model_to_eval):
-                test_node = solvers[algo_id].optimizer['fe'].apply(data, node)
+                test_node = record_op.apply(data, node)
                 if self.base_model_mask[model_cnt] == 1:
                     for j in range(self.kfold):
                         with open(
@@ -153,8 +153,8 @@ class Stacking(BaseEnsembleModel):
                 model_cnt += 1
         return feature_p2
 
-    def predict(self, data, solvers):
-        feature_p2 = self.get_feature(data, solvers)
+    def predict(self, data, record_op):
+        feature_p2 = self.get_feature(data, record_op)
         # Get predictions from meta-learner
         if self.task_type in CLS_TASKS:
             final_pred = self.meta_learner.predict_proba(feature_p2)

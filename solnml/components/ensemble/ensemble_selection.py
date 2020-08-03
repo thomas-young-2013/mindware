@@ -207,13 +207,13 @@ class EnsembleSelection(BaseEnsembleModel):
         indices = np.argsort(perf)[perf.shape[0] - n_best:]
         return indices
 
-    def predict(self, data, solvers):
+    def predict(self, data, record_op):
         predictions = []
         cur_idx = 0
         for algo_id in self.stats["include_algorithms"]:
             model_to_eval = self.stats[algo_id]['model_to_eval']
             for idx, (node, config) in enumerate(model_to_eval):
-                test_node = solvers[algo_id].optimizer['fe'].apply(data, node)
+                test_node = record_op.apply(data, node)
                 X_test, _ = test_node.data
                 if cur_idx in self.model_idx:
                     with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, cur_idx)), 'rb') as f:

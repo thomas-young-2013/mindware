@@ -46,8 +46,8 @@ class EnsembleBuilder:
     def fit(self, data):
         return self.model.fit(data)
 
-    def predict(self, data, solvers):
-        return self.model.predict(data, solvers)
+    def predict(self, data, record_op):
+        return self.model.predict(data, record_op)
 
     def refit(self):
         return self.model.refit()

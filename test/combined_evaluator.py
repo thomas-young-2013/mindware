@@ -14,7 +14,8 @@ from solnml.components.evaluators.evaluate_func import holdout_validation, cross
 from solnml.components.fe_optimizers.bo_optimizer import BayesianOptimizationOptimizer
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
 from solnml.components.hpo_optimizer.smac_optimizer import SMACOptimizer
-from solnml.datasets.utils import load_data
+from solnml.datasets.utils import load_train_test_data, load_data
+from solnml.components.ensemble import EnsembleBuilder
 from solnml.components.models.classification import _classifiers, _addons
 
 
@@ -184,11 +185,75 @@ class CombinedEvaluator(_BaseEvaluator):
         return -score
 
 
+def fetch_ensemble_members(nbest_algo_ids, seed, eval_dict, record_op):
+    stats = dict()
+    stats['include_algorithms'] = nbest_algo_ids
+    stats['split_seed'] = seed
+
+    for algo_id in nbest_algo_ids:
+        data = dict()
+        leap = 2
+        model_num, min_model_num = 20, 20
+
+        # combined_dict = fe_eval_dict.copy()
+        # for key in hpo_eval_dict:
+        #     if key not in fe_eval_dict:
+        #         combined_dict[key] = hpo_eval_dict[key]
+        #
+        # max_list = sorted(combined_dict.items(), key=lambda item: item[1], reverse=True)
+        # model_items = max_list[:model_num]
+
+        _eval_list = sorted(eval_dict[algo_id].items(), key=lambda item: item[1], reverse=True)
+        model_items = list()
+
+        if len(_eval_list) > 40:
+            idxs = np.arange(min_model_num) * leap
+            for idx in idxs:
+                model_items.append(_eval_list[idx])
+        else:
+            model_items.extend(_eval_list[:min_model_num])
+
+        configs = [item[0][1] for item in model_items]
+
+        node_list = record_op.fetch_nodes_by_config(configs)
+        model_to_eval = []
+        for idx, node in enumerate(node_list):
+            if node is not None:
+                model_to_eval.append((node_list[idx], configs[idx]))
+        data['model_to_eval'] = model_to_eval
+        stats[algo_id] = data
+    return stats
+
+
 if __name__ == '__main__':
-    tmp_node = load_data('abalone', task_type=0, datanode_returned=True)
-    evaluator = CombinedEvaluator(data_node=tmp_node)
-    cs = get_combined_cs('libsvm_svc')
-    op = SMACOptimizer(evaluator, cs, inner_iter_num_per_iter=10)
-    for i in range(2):
-        op.iterate()
-    print(op.eval_dict)
+    train_node, test_node = load_train_test_data('abalone', task_type=0)
+    seed = 1
+    evaluator = CombinedEvaluator(data_node=train_node, seed=seed, scorer=balanced_accuracy_scorer)
+    estimator_ids = ['libsvm_svc', 'random_forest']
+    op = dict()
+
+    # Get combined space and initialize optimizer
+    for estimator_id in estimator_ids:
+        cs = get_combined_cs(estimator_id)
+        op[estimator_id] = SMACOptimizer(evaluator, cs, inner_iter_num_per_iter=10)
+
+    # Iterate (modify search strategy here)
+    for estimator_id in estimator_ids:
+        op[estimator_id].iterate()
+
+    # Fetch ensemble members
+    eval_dict = dict()
+    for estimator_id in estimator_ids:
+        eval_dict[estimator_id] = op[estimator_id].eval_dict
+    # Important: Specify n_best ids according to search strategy
+    nbest_ids = estimator_ids
+    tmp_evaluator = ClassificationEvaluator(None)
+    tmp_bo = BayesianOptimizationOptimizer(0, train_node, tmp_evaluator, 'adaboost', 1, 1,
+                                           1)  # A tmp optimizer for recording fe transformations
+    stats = fetch_ensemble_members(nbest_ids, seed, eval_dict, record_op=tmp_bo)
+
+    es = EnsembleBuilder(stats, 'ensemble_selection', 50, task_type=0, metric=balanced_accuracy_scorer,
+                         output_dir='logs/')
+    es.fit(train_node)
+    pred = es.predict(test_node, record_op=tmp_bo)
+    print(pred)

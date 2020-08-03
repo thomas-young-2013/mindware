@@ -97,7 +97,7 @@ class BaseEnsembleModel(object):
     def fit(self, data):
         raise NotImplementedError
 
-    def predict(self, data, solvers):
+    def predict(self, data, record_op):
         raise NotImplementedError
 
     def get_ens_model_info(self):
@@ -105,4 +105,3 @@ class BaseEnsembleModel(object):
 
     def refit(self):
         pass
-

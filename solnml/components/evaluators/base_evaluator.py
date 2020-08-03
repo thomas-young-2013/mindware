@@ -45,7 +45,7 @@ def fetch_predict_estimator(task_type, config, X_train, y_train, weight_balance=
     if data_balance == 1:
         X_train, y_train = smote(X_train, y_train)
     if task_type in CLS_TASKS:
-        from solnml.components.evaluators.cls_evaluator import get_estimator
+        from test.combined_evaluator import get_estimator
     else:
         from solnml.components.evaluators.reg_evaluator import get_estimator
     _, estimator = get_estimator(config_dict)

@@ -38,7 +38,7 @@ class Bagging(BaseEnsembleModel):
                 model_cnt += 1
         return self
 
-    def predict(self, data, solvers):
+    def predict(self, data, record_op):
         model_pred_list = []
         final_pred = []
         # Get predictions from each model
@@ -46,7 +46,7 @@ class Bagging(BaseEnsembleModel):
         for algo_id in self.stats["include_algorithms"]:
             model_to_eval = self.stats[algo_id]['model_to_eval']
             for idx, (node, config) in enumerate(model_to_eval):
-                test_node = solvers[algo_id].optimizer['fe'].apply(data, node)
+                test_node = record_op.apply(data, node)
                 if self.base_model_mask[model_cnt] == 1:
                     with open(os.path.join(self.output_dir, '%s-bagging-model%d' % (self.timestamp, model_cnt)),
                               'rb') as f:
