@@ -2,6 +2,8 @@ import time
 import numpy as np
 from litebo.facade.bo_facade import BayesianOptimization as BO
 from litebo.utils.constants import SUCCESS
+from smac.scenario.scenario import Scenario
+from smac.facade.smac_facade import SMAC
 from solnml.components.hpo_optimizer.base_optimizer import BaseHPOptimizer, MAX_INT
 
 
@@ -23,6 +25,19 @@ class SMACOptimizer(BaseHPOptimizer):
                             task_id=None,
                             time_limit_per_trial=self.per_run_time_limit,
                             rng=np.random.RandomState(self.seed))
+        # self.scenario_dict = {
+        #     'abort_on_first_run_crash': False,
+        #     "run_obj": "quality",
+        #     "cs": self.config_space,
+        #     "deterministic": "true",
+        #     "cutoff_time": self.per_run_time_limit,
+        #     'output_dir': output_dir,
+        #     "runcount-limit": 20
+        # }
+        #
+        # self.optimizer = SMAC(scenario=Scenario(self.scenario_dict),
+        #                       rng=np.random.RandomState(self.seed),
+        #                       tae_runner=self.evaluator)
 
         self.trial_cnt = 0
         self.configs = list()
@@ -60,7 +75,10 @@ class SMACOptimizer(BaseHPOptimizer):
                 self.logger.warning('Already explored 70 percentage of the '
                                     'hyperspace or maximum configuration number met: %d!' % self.maximum_config_num)
                 break
+            start_time = time.time()
             _config, _status, _perf, _ = self.optimizer.iterate()
+            # self.optimizer.optimize()
+            print('Iteration cost: %f' % (time.time() - start_time))
             if _status == SUCCESS:
                 self.exp_output[time.time()] = (_config, _perf)
                 self.configs.append(_config)

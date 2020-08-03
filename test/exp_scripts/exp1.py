@@ -55,7 +55,7 @@ def evaluate_hmab(algorithms, run_id,
                   enable_ens=True, seed=1):
     task_id = '[combined][%s-%d-%d]' % (dataset, len(algorithms), time_limit)
     _start_time = time.time()
-    train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
+    train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS, test_size=0.05)
     if enable_ens is True:
         ensemble_method = 'ensemble_selection'
     else:
@@ -206,7 +206,7 @@ if __name__ == "__main__":
                       'multinomial_nb', 'gaussian_nb', 'bernoulli_nb'
                       ]
     elif algo_num == 1:
-        algorithms = ['libsvm_svc']
+        algorithms = ['random_forest']
     else:
         raise ValueError('Invalid algorithm num - %d!' % algo_num)
 
