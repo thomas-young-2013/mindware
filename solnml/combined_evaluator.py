@@ -202,8 +202,8 @@ def fetch_ensemble_members(nbest_algo_ids, seed, eval_dict, record_op):
         #
         # max_list = sorted(combined_dict.items(), key=lambda item: item[1], reverse=True)
         # model_items = max_list[:model_num]
-
         _eval_list = sorted(eval_dict[algo_id].items(), key=lambda item: item[1], reverse=True)
+        _eval_list = list(filter(lambda item: np.isfinite(item[1]), _eval_list))
         model_items = list()
 
         if len(_eval_list) > 40:

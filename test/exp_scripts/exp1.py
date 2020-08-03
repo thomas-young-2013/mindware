@@ -53,7 +53,7 @@ def evaluate_hmab(algorithms, run_id,
                   dataset='credit',
                   eval_type='holdout',
                   enable_ens=True, seed=1):
-    task_id = '[hmab][%s-%d-%d]' % (dataset, len(algorithms), time_limit)
+    task_id = '[combined][%s-%d-%d]' % (dataset, len(algorithms), time_limit)
     _start_time = time.time()
     train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
     if enable_ens is True:
@@ -65,6 +65,7 @@ def evaluate_hmab(algorithms, run_id,
                      amount_of_resource=None,
                      output_dir=save_dir,
                      ensemble_method=ensemble_method,
+                     include_algorithms=algorithms,
                      evaluation=eval_type,
                      metric='bal_acc',
                      n_jobs=1)
@@ -191,7 +192,7 @@ def check_datasets(datasets):
 
 if __name__ == "__main__":
     if algo_num == 4:
-        algorithms = ['k_nearest_neighbors', 'libsvm_svc', 'random_forest', 'adaboost']
+        algorithms = ['k_nearest_neighbors', 'liblinear_svc', 'random_forest', 'adaboost']
     elif algo_num == 8:
         algorithms = ['passive_aggressive', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
                       'adaboost', 'random_forest', 'extra_trees', 'decision_tree']

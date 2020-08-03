@@ -87,19 +87,20 @@ def evaluate_ausk(run_id, mth, dataset, algo,
     )
 
     print(automl)
-    train_data, _ = load_train_test_data(dataset, test_size=0.05)
+    train_data, _ = load_train_test_data(dataset, task_type=0, test_size=0.05)
     X, y = train_data.data
     feat_type = ['Categorical' if _type == CATEGORICAL else 'Numerical'
                  for _type in train_data.feature_types]
     from autosklearn.metrics import balanced_accuracy as balanced_acc
     automl.fit(X.copy(), y.copy(), feat_type=feat_type, metric=balanced_acc)
     valid_results = automl.cv_results_['mean_test_score']
+    time_records = automl.cv_results_['mean_fit_time']
     validation_score = np.max(valid_results)
     print('Validation score', validation_score)
 
     save_path = save_folder + '%s_%s_%d_%d_%s.pkl' % (mth, dataset, time_limit, run_id, algo)
     with open(save_path, 'wb') as f:
-        pickle.dump([dataset, validation_score], f)
+        pickle.dump([dataset, valid_results, time_records], f)
 
 
 if __name__ == "__main__":
@@ -111,7 +112,7 @@ if __name__ == "__main__":
     np.random.seed(1)
     rep = args.rep_num
     start_id = args.start_id
-    seeds = np.random.randint(low=1, high=10000, size=start_id+rep)
+    seeds = np.random.randint(low=1, high=10000, size=start_id + rep)
     dataset_list = dataset_str.split(',')
 
     if mode != 'plot':
@@ -124,7 +125,7 @@ if __name__ == "__main__":
         for dataset in dataset_list:
             for algo in algos:
                 for method in methods:
-                    for _id in range(start_id, start_id+rep):
+                    for _id in range(start_id, start_id + rep):
                         seed = seeds[_id]
                         print('Running %s with %d-th seed' % (dataset, _id + 1))
                         if method in ['rb', 'fixed', 'alter_hpo']:

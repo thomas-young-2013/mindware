@@ -1,7 +1,6 @@
 import warnings
 import numpy as np
 from abc import ABCMeta
-from collections.abc import Iterable
 from sklearn.utils.testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import KFold, train_test_split
@@ -45,7 +44,7 @@ def fetch_predict_estimator(task_type, config, X_train, y_train, weight_balance=
     if data_balance == 1:
         X_train, y_train = smote(X_train, y_train)
     if task_type in CLS_TASKS:
-        from test.combined_evaluator import get_estimator
+        from solnml.combined_evaluator import get_estimator
     else:
         from solnml.components.evaluators.reg_evaluator import get_estimator
     _, estimator = get_estimator(config_dict)

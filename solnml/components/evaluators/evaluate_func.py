@@ -39,7 +39,7 @@ def cross_validation(estimator, scorer, X, y, n_fold=5, shuffle=True, fit_params
         return np.mean(scores)
 
 
-@ignore_warnings(category=ConvergenceWarning)
+@ignore_warnings(category=[ConvergenceWarning, UserWarning, RuntimeWarning])
 def holdout_validation(estimator, scorer, X, y, test_size=0.33, fit_params=None, if_stratify=True, onehot=None,
                        random_state=1):
     with warnings.catch_warnings():
@@ -82,7 +82,8 @@ def partial_validation(estimator, scorer, X, y, data_subsample_ratio, test_size=
                 _X_train, _y_train = X_train, y_train
             else:
                 if if_stratify:
-                    down_ss = StratifiedShuffleSplit(n_splits=1, test_size=data_subsample_ratio, random_state=random_state)
+                    down_ss = StratifiedShuffleSplit(n_splits=1, test_size=data_subsample_ratio,
+                                                     random_state=random_state)
                 else:
                     down_ss = ShuffleSplit(n_splits=1, test_size=data_subsample_ratio, random_state=random_state)
                 for _, _test_index in down_ss.split(X_train, y_train):

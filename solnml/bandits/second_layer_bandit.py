@@ -10,6 +10,7 @@ from solnml.components.hpo_optimizer import build_hpo_optimizer
 from solnml.components.utils.constants import CLS_TASKS, REG_TASKS
 from solnml.utils.decorators import time_limit
 from solnml.utils.functions import get_increasing_sequence
+from solnml.combined_evaluator import get_combined_cs, CombinedEvaluator
 
 
 class SecondLayerBandit(object):
@@ -19,7 +20,7 @@ class SecondLayerBandit(object):
                  per_run_mem_limit=5120,
                  dataset_id='default',
                  eval_type='holdout',
-                 mth='rb', sw_size=3,
+                 mth='combined', sw_size=3,
                  n_jobs=1, seed=1,
                  enable_fe=True, fe_algo='tree_based',
                  enable_intersection=True,
@@ -49,25 +50,21 @@ class SecondLayerBandit(object):
         # Bandit settings.
         # self.arms = ['fe', 'hpo']
         self.arms = ['hpo', 'fe']
-        self.rewards = dict()
+        self.rewards = list()
         self.optimizer = dict()
-        self.evaluation_cost = dict()
+        self.evaluation_cost = list()
         self.update_flag = dict()
         # Global incumbent.
         self.inc = dict()
         self.local_inc = dict()
         self.local_hist = {'fe': [], 'hpo': []}
         self.exp_output = dict()
-        self.eval_dict = {'fe': dict(), 'hpo': dict()}
-        for arm in self.arms:
-            self.rewards[arm] = list()
-            self.update_flag[arm] = False
-            self.evaluation_cost[arm] = list()
-            self.exp_output[arm] = dict()
+        self.eval_dict = {}
         self.pull_cnt = 0
         self.action_sequence = list()
         self.final_rewards = list()
         self.incumbent_perf = float("-INF")
+        self.incumbent_config = None
         self.early_stopped_flag = False
         self.enable_intersection = enable_intersection
 
@@ -144,6 +141,16 @@ class SecondLayerBandit(object):
         self.init_config = cs.get_default_configuration()
         self.local_hist['fe'].append(self.original_data)
         self.local_hist['hpo'].append(self.default_config)
+
+        self.evaluator = CombinedEvaluator(
+            scorer=self.metric,
+            data_node=self.original_data,
+            resampling_strategy=self.evaluation_type)
+        cs = get_combined_cs(self.estimator_id)
+        self.optimizer = build_hpo_optimizer(self.evaluation_type, self.evaluator, cs, output_dir=self.output_dir,
+                                             per_run_time_limit=self.per_run_time_limit,
+                                             inner_iter_num_per_iter=10,
+                                             seed=self.seed, n_jobs=self.n_jobs)
 
     def collect_iter_stats(self, _arm, results):
         for arm_id in self.arms:
@@ -270,6 +277,15 @@ class SecondLayerBandit(object):
             self.action_sequence.append(_arm)
             self.pull_cnt += 1
 
+    def optimize_combined(self):
+        score, iter_cost, config = self.optimizer.iterate()
+        self.eval_dict.update(self.optimizer.eval_dict)
+        self.rewards.append(score)
+        if max(self.rewards) == score:
+            self.incumbent_perf = score
+            self.incumbent_config = config
+        self.evaluation_cost.append(iter_cost)
+
     def optimize_one_component(self, mth):
         _arm = 'hpo' if mth == 'hpo_only' else 'fe'
         self.logger.debug('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
@@ -315,6 +331,8 @@ class SecondLayerBandit(object):
             self.evaluate_joint_solution()
         elif self.mth in ['fe_only', 'hpo_only']:
             self.optimize_one_component(self.mth)
+        elif self.mth in ['combined']:
+            self.optimize_combined()
         elif self.mth in ['fixed']:
             self._optimize_fixed_pipeline()
         else:
