@@ -255,5 +255,7 @@ if __name__ == '__main__':
     es = EnsembleBuilder(stats, 'ensemble_selection', 50, task_type=0, metric=balanced_accuracy_scorer,
                          output_dir='logs/')
     es.fit(train_node)
-    pred = es.predict(test_node, record_op=tmp_bo)
-    print(pred)
+    pred = es.predict(test_node, record_op=tmp_bo)  # Proba output
+    cls_pred = np.argmax(pred, axis=-1)
+
+    print(cls_pred)
