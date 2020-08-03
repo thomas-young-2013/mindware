@@ -66,7 +66,7 @@ class BaseAdvisor(object):
         meta_dataset_filename = self.meta_dir + 'ranker_%s_dataset_%s_%s.pkl' % (
             self.meta_algo, self.metric, self.hash_id)
         if os.path.exists(meta_dataset_filename):
-            self.logger.info('Meta dataset file exists:', meta_dataset_filename)
+            self.logger.info('Meta dataset file exists: %s' % meta_dataset_filename)
             with open(meta_dataset_filename, 'rb') as f:
                 meta_X, meta_y, meta_infos = pk.load(f)
         else:

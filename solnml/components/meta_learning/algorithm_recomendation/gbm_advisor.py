@@ -53,11 +53,10 @@ class GBMAdvisor(BaseAdvisor):
 
         return np.asarray(X1), np.asarray(labels)
 
-    def fit(self):
+    def fit(self, **meta_learner_config):
         _X, _y = self.load_train_data()
         X, y = self.create_pairwise_data(_X, _y, n_algo_candidates=self.n_algo_candidates)
 
-        meta_learner_config = dict()
         # meta_learner_config_filename = self.meta_dir + 'meta_learner_%s_%s_%s_config.pkl' % (
         #     self.meta_algo, self.metric, 'none')
         # if os.path.exists(meta_learner_config_filename):

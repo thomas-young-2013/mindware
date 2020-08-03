@@ -5,6 +5,7 @@ from keras import backend as K
 from keras.models import Model
 from keras.layers import Activation, Dense, Input, Subtract
 from keras.layers import BatchNormalization
+from keras.optimizers import SGD
 from solnml.utils.logging_utils import get_logger
 from solnml.components.meta_learning.algorithm_recomendation.base_advisor import BaseAdvisor
 
@@ -38,7 +39,10 @@ class RankNetAdvisor(BaseAdvisor):
                     _label = 1 if _y[i] > _y[j] else 0
                     labels.append(_label)
                     labels.append(1 - _label)
-        return np.asarray(X1), np.asarray(X2), np.asarray(labels)
+        X1, X2, labels = np.asarray(X1), np.asarray(X2), np.asarray(labels)
+        # perm = np.random.permutation(X1.shape[0])
+        # return X1[perm], X2[perm], labels[perm]
+        return X1, X2, labels
 
     @staticmethod
     def create_model(input_shape, hidden_layer_sizes, activation, solver):
@@ -70,31 +74,39 @@ class RankNetAdvisor(BaseAdvisor):
         model = Model(inputs=[input1, input2], outputs=out)
 
         # categorical_hinge, binary_crossentropy
-        model.compile(optimizer=solver, loss="categorical_hinge", metrics=['acc'])
+        # sgd = SGD(lr=0.3, momentum=0.9, decay=0.001, nesterov=False)
+        model.compile(optimizer=solver, loss="categorical_hinge", metrics=['accuracy'])
         return model
 
-    def fit(self):
+    def fit(self, **kwargs):
         _X, _y = self.load_train_data()
         X1, X2, y = self.create_pairwise_data(_X, _y)
 
-        self.model = self.create_model(X1.shape[1], hidden_layer_sizes=(64, 32,),
-                                       activation=('relu', 'relu',),
+        l1_size = kwargs.get('layer1_size', 64)
+        l2_size = kwargs.get('layer2_size', 32)
+        act_func = kwargs.get('activation', 'relu')
+        batch_size = kwargs.get('batch_size', 32)
+
+        self.model = self.create_model(X1.shape[1], hidden_layer_sizes=(l1_size, l2_size,),
+                                       activation=(act_func, act_func,),
                                        solver='adam')
 
-        self.model.fit([X1, X2], y, epochs=200, batch_size=64)
+        self.model.fit([X1, X2], y, epochs=200, batch_size=batch_size)
 
     def predict(self, dataset_meta_feat):
         meta_learner_filename = self.meta_dir + 'ranknet_model_%s_%s_%s.pkl' % (
             self.meta_algo, self.metric, self.hash_id)
-        if os.path.exists(meta_learner_filename):
-            print('Load model from file: %s.' % meta_learner_filename)
-            with open(meta_learner_filename, 'rb') as f:
-                self.model = pk.load(f)
-        else:
-            self.fit()
-            with open(meta_learner_filename, 'wb') as f:
-                pk.dump(self.model, f)
-            print('Dump model to file: %s.' % meta_learner_filename)
+
+        if self.model is None:
+            if os.path.exists(meta_learner_filename):
+                print('Load model from file: %s.' % meta_learner_filename)
+                with open(meta_learner_filename, 'rb') as f:
+                    self.model = pk.load(f)
+            else:
+                self.fit()
+                with open(meta_learner_filename, 'wb') as f:
+                    pk.dump(self.model, f)
+                print('Dump model to file: %s.' % meta_learner_filename)
 
         X = self.load_test_data(dataset_meta_feat)
         ranker_output = K.function([self.model.layers[0].input], [self.model.layers[-3].get_output_at(0)])

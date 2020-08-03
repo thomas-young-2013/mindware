@@ -80,7 +80,8 @@ if __name__ == "__main__":
                 results = np.array(results)
                 means, stds = np.mean(results, axis=0), np.std(results, axis=0)
                 max_val = np.max(means)
-                plt.plot(x, means, label=mth)
+                label_name = 'auto-sklearn' if mth.startswith('ausk') else 'ours'
+                plt.plot(x, means, label=label_name)
 
         pmin, pmax = max_val*0.8, max_val+0.03
         if pmax > 1.0:

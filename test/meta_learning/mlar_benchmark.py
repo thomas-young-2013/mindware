@@ -32,10 +32,17 @@ if __name__ == "__main__":
     fold_size = len(total_datasets) // n_fold
     aps, top1 = list(), list()
 
+    # configs = {
+    #     'activation': 'relu',
+    #     'batch_size': 16,
+    #     'layer1_size': 56,
+    #     'layer2_size': 93
+    # }
+
     for i in range(n_fold):
         test_datasets = total_datasets[i * fold_size: (i+1) * fold_size]
-        ranker = RankNetAdvisor(task_type=MULTICLASS_CLS, exclude_datasets=test_datasets, metric='bal_acc')
-        # ranker = GBMAdvisor(task_type=MULTICLASS_CLS, exclude_datasets=test_datasets, metric='bal_acc')
+        # ranker = RankNetAdvisor(task_type=MULTICLASS_CLS, exclude_datasets=test_datasets, metric='bal_acc')
+        ranker = GBMAdvisor(task_type=MULTICLASS_CLS, exclude_datasets=test_datasets, metric='bal_acc')
         ranker.fit()
 
         for test_dataset in test_datasets:

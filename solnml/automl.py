@@ -120,7 +120,7 @@ class AutoML(object):
                                        dataset_name=self.dataset_name,
                                        ensemble_method=self.ensemble_method,
                                        ensemble_size=self.ensemble_size,
-                                       inner_opt_algorithm='rb_hpo',
+                                       inner_opt_algorithm='fixed',
                                        metric=self.metric,
                                        enable_fe=self.enable_fe,
                                        fe_algo='bo',
