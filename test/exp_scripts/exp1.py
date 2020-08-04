@@ -68,7 +68,8 @@ def evaluate_hmab(algorithms, run_id,
                      evaluation=eval_type,
                      metric='bal_acc',
                      n_jobs=1)
-    clf.fit(train_data, meta_datasets=holdout_datasets)
+    # clf.fit(train_data, meta_datasets=holdout_datasets)
+    clf.fit(train_data)
     clf.refit()
     pred = clf.predict(test_data)
     test_score = balanced_accuracy_score(test_data.data[1], pred)
