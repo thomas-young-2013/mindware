@@ -64,36 +64,40 @@ class BaseNeuralNetwork:
 
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
-        if optimizer == 'smac':
-            cs = ConfigurationSpace()
-            optimizer = CategoricalHyperparameter('optimizer', ['SGD', 'Adam'], default_value='SGD')
-            sgd_learning_rate = UniformFloatHyperparameter(
-                "sgd_learning_rate", lower=1e-4, upper=1e-1, default_value=1e-1, log=True)
-            sgd_momentum = UniformFloatHyperparameter(
-                "sgd_momentum", lower=0.5, upper=0.99, default_value=0.9, log=False)
-            nesterov = CategoricalHyperparameter('nesterov', ['True', 'False'], default_value='True')
-            adam_learning_rate = UniformFloatHyperparameter(
-                "adam_learning_rate", lower=1e-4, upper=1e-2, default_value=2e-3, log=True)
-            beta1 = UniformFloatHyperparameter(
-                "beta1", lower=0.5, upper=0.999, default_value=0.9, log=False)
-            batch_size = CategoricalHyperparameter(
-                "batch_size", [16, 32, 64, 128], default_value=32)
-            lr_decay = UniformFloatHyperparameter("lr_decay", lower=0.01, upper=0.2, default_value=0.1, log=True)
-            weight_decay = UniformFloatHyperparameter("weight_decay", lower=1e-5, upper=1e-2, default_value=1e-4,
-                                                      log=True)
-            epoch_num = UnParametrizedHyperparameter("epoch_num", 150)
-            cs.add_hyperparameters(
-                [optimizer, sgd_learning_rate, adam_learning_rate, sgd_momentum, beta1, batch_size, epoch_num,
-                 lr_decay, weight_decay, nesterov])
-            sgd_lr_depends_on_sgd = EqualsCondition(sgd_learning_rate, optimizer, "SGD")
-            adam_lr_depends_on_adam = EqualsCondition(adam_learning_rate, optimizer, "Adam")
-            beta_depends_on_adam = EqualsCondition(beta1, optimizer, "Adam")
-            sgd_momentum_depends_on_sgd = EqualsCondition(sgd_momentum, optimizer, "SGD")
-            nesterov_depends_on_sgd = EqualsCondition(nesterov, optimizer, 'SGD')
-            cs.add_conditions(
-                [sgd_lr_depends_on_sgd, adam_lr_depends_on_adam, sgd_momentum_depends_on_sgd, beta_depends_on_adam,
-                 nesterov_depends_on_sgd])
-            return cs
+        cs = ConfigurationSpace()
+        optimizer = CategoricalHyperparameter('optimizer', ['SGD'], default_value='SGD')
+        sgd_learning_rate = CategoricalHyperparameter(
+            "sgd_learning_rate", [1e-3, 3e-3, 7e-3, 1e-2, 3e-2, 7e-2, 1e-1],
+            default_value=1e-1)
+        sgd_momentum = UniformFloatHyperparameter(
+            "sgd_momentum", lower=0.5, upper=0.99, default_value=0.9, log=False)
+        nesterov = CategoricalHyperparameter('nesterov', ['True', 'False'], default_value='True')
+
+        batch_size = CategoricalHyperparameter(
+            "batch_size", [32, 64, 128], default_value=32)
+        lr_decay = CategoricalHyperparameter("lr_decay", [1e-2, 5e-2, 1e-1, 2e-1], default_value=1e-1)
+        weight_decay = CategoricalHyperparameter("weight_decay", [1e-5, 3e-5, 1e-4, 3e-4, 1e-3, 3e-3],
+                                                 default_value=1e-4)
+        epoch_num = UnParametrizedHyperparameter("epoch_num", 150)
+        cs.add_hyperparameters(
+            [optimizer, sgd_learning_rate, sgd_momentum, batch_size, epoch_num,
+             lr_decay, weight_decay, nesterov])
+        # optimizer = CategoricalHyperparameter('optimizer', ['SGD', 'Adam'], default_value='SGD')
+        # adam_learning_rate = UniformFloatHyperparameter(
+        #     "adam_learning_rate", lower=1e-4, upper=1e-2, default_value=2e-3, log=True)
+        # beta1 = UniformFloatHyperparameter(
+        #     "beta1", lower=0.5, upper=0.999, default_value=0.9, log=False)
+        # batch_size = CategoricalHyperparameter(
+        #     "batch_size", [16, 32, 64, 128], default_value=32)
+        # sgd_lr_depends_on_sgd = EqualsCondition(sgd_learning_rate, optimizer, "SGD")
+        # adam_lr_depends_on_adam = EqualsCondition(adam_learning_rate, optimizer, "Adam")
+        # beta_depends_on_adam = EqualsCondition(beta1, optimizer, "Adam")
+        # sgd_momentum_depends_on_sgd = EqualsCondition(sgd_momentum, optimizer, "SGD")
+        # nesterov_depends_on_sgd = EqualsCondition(nesterov, optimizer, 'SGD')
+        # cs.add_conditions(
+        #     [sgd_lr_depends_on_sgd, sgd_momentum_depends_on_sgd,
+        #      nesterov_depends_on_sgd])
+        return cs
 
 
 class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
