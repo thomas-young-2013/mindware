@@ -40,13 +40,8 @@ class CrossFeatureTransformation(Transformer):
         return _X
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
-        if optimizer == 'smac':
-            cs = ConfigurationSpace()
-            random_state = UniformIntegerHyperparameter("random_state", 1, 100000, default_value=1)
-            cs.add_hyperparameter(random_state)
-            return cs
-        elif optimizer == 'tpe':
-            from hyperopt import hp
-            space = {'random_state': hp.randint('cross_random_state', 100000) + 1}
-            return space
+    def get_hyperparameter_search_space(dataset_properties=None):
+        cs = ConfigurationSpace()
+        random_state = UniformIntegerHyperparameter("random_state", 1, 100000, default_value=1)
+        cs.add_hyperparameter(random_state)
+        return cs
