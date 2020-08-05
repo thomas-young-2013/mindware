@@ -32,7 +32,7 @@ class KitchenSinks(Transformer):
         return _X
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
         gamma = UniformFloatHyperparameter(
             "gamma", 3.0517578125e-05, 8, default_value=1.0, log=True)
         n_components = UniformIntegerHyperparameter(

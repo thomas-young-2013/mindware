@@ -3,6 +3,7 @@ from solnml.components.fe_optimizers.multithread_evaluation_based_optimizer impo
     MultiThreadEvaluationBasedOptimizer
 from solnml.components.fe_optimizers.hyperband_evaluation_based_optimizer import HyperbandOptimizer
 from solnml.components.fe_optimizers.bo_optimizer import BayesianOptimizationOptimizer
+from solnml.components.fe_optimizers.ano_bo_optimizer import AnotherBayesianOptimizationOptimizer
 from solnml.components.fe_optimizers.mfse_optimizer import MfseOptimizer
 
 

@@ -76,7 +76,7 @@ class KernelPCA(Transformer):
         return X_new
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
         n_components = UniformIntegerHyperparameter(
             "n_components", 10, 2000, default_value=100)
         kernel = CategoricalHyperparameter('kernel',

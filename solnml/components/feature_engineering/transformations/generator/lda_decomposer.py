@@ -36,7 +36,7 @@ class LdaDecomposer(Transformer):
         return X_new
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
         cs = ConfigurationSpace()
         shrinkage = CategoricalHyperparameter(
             "shrinkage", ["None", "auto"], default_value="None")

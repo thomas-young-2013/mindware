@@ -56,7 +56,7 @@ class PolynomialTransformation(Transformer):
         return _X
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None):
+    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
         degree = UniformIntegerHyperparameter("degree", lower=2, upper=3, default_value=2)
         interaction_only = CategoricalHyperparameter("interaction_only",
                                                      ["False", "True"], default_value="False")

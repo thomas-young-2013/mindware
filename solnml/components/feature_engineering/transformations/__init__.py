@@ -28,3 +28,10 @@ _type_infos, _params_infos = collect_infos(_transformers, FEATURE_TYPES)
 
 _preprocessor1 = {'continous_discretizer': KBinsDiscretizer}
 _preprocessor2 = {'discrete_categorizer': DiscreteCategorizer}
+_preprocessor = {}
+for key in _generator:
+    if key not in ['arithmetic_transformer', 'binary_transformer', 'lda_decomposer', 'pca_decomposer', 'kitchen_sinks']:
+        _preprocessor[key] = _generator[key]
+for key in _selector:
+    if key not in ['rfe_selector', 'variance_selector', 'percentile_selector', 'percentile_selector_regression']:
+        _preprocessor[key] = _selector[key]
