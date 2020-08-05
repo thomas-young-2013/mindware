@@ -11,7 +11,7 @@ from solnml.components.utils.constants import DENSE, UNSIGNED_DATA, PREDICTIONS
 
 
 class GradientBoostingClassifier(IterativeComponentWithSampleWeight, BaseClassificationModel):
-    def __init__(self, loss, learning_rate, max_iter, min_samples_leaf, max_depth,
+    def __init__(self, loss, learning_rate, min_samples_leaf, max_depth,
                  max_leaf_nodes, max_bins, l2_regularization, early_stop, tol, scoring,
                  n_iter_no_change=0, validation_fraction=None, random_state=None,
                  verbose=0):
@@ -115,7 +115,8 @@ class GradientBoostingClassifier(IterativeComponentWithSampleWeight, BaseClassif
         self.estimator.fit(X, y)
 
         if self.estimator.max_iter >= self.max_iter \
-                or self.estimator.max_iter > self.estimator.n_iter_:
+           or self.estimator.max_iter > self.estimator.n_iter_:
+
             self.fully_fit_ = True
 
         return self
@@ -152,7 +153,7 @@ class GradientBoostingClassifier(IterativeComponentWithSampleWeight, BaseClassif
                 'output': (PREDICTIONS,)}
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
+    def get_hyperparameter_search_space(dataset_properties=None):
         cs = ConfigurationSpace()
         loss = Constant("loss", "auto")
         learning_rate = UniformFloatHyperparameter(
