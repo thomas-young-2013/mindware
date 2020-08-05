@@ -28,7 +28,7 @@ def build_fe_optimizer(algo, eval_type, task_type, input_data, evaluator,
         if eval_type == 'partial':
             optimizer_class = MfseOptimizer
         else:
-            optimizer_class = BayesianOptimizationOptimizer
+            optimizer_class = AnotherBayesianOptimizationOptimizer
         return optimizer_class(task_type=task_type, input_data=input_data,
                                evaluator=evaluator, model_id=model_id,
                                time_limit_per_trans=time_limit_per_trans,
