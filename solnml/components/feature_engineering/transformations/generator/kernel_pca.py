@@ -41,13 +41,13 @@ class KernelPCA(Transformer):
         X, y = input_datanode.data
 
         # Skip large matrix computation in obtaining the kernel matrix.
-        if X.shape[0] > 10000:
-            if not self.pre_trained:
-                self.skip_flag = True
-
-        self.pre_trained = True
-        if self.skip_flag:
-            return X.copy()
+        # if X.shape[0] > 10000:
+        #     if not self.pre_trained:
+        #         self.skip_flag = True
+        #
+        # self.pre_trained = True
+        # if self.skip_flag:
+        #     return X.copy()
 
         if self.model is None:
             import scipy.sparse
@@ -76,35 +76,20 @@ class KernelPCA(Transformer):
         return X_new
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
-        if optimizer == 'smac':
-            n_components = UniformIntegerHyperparameter(
-                "n_components", 10, 2000, default_value=100)
-            kernel = CategoricalHyperparameter('kernel',
-                                               ['poly', 'rbf', 'sigmoid', 'cosine'], 'rbf')
-            gamma = UniformFloatHyperparameter("gamma", 3.0517578125e-05, 8,
-                                               log=True, default_value=1.0)
-            degree = UniformIntegerHyperparameter('degree', 2, 5, 3)
-            coef0 = UniformFloatHyperparameter("coef0", -1, 1, default_value=0)
-            cs = ConfigurationSpace()
-            cs.add_hyperparameters([n_components, kernel, degree, gamma, coef0])
+    def get_hyperparameter_search_space(dataset_properties=None):
+        n_components = UniformIntegerHyperparameter(
+            "n_components", 10, 2000, default_value=100)
+        kernel = CategoricalHyperparameter('kernel',
+                                           ['poly', 'rbf', 'sigmoid', 'cosine'], 'rbf')
+        gamma = UniformFloatHyperparameter("gamma", 3.0517578125e-05, 8,
+                                           log=True, default_value=1.0)
+        degree = UniformIntegerHyperparameter('degree', 2, 5, 3)
+        coef0 = UniformFloatHyperparameter("coef0", -1, 1, default_value=0)
+        cs = ConfigurationSpace()
+        cs.add_hyperparameters([n_components, kernel, degree, gamma, coef0])
 
-            degree_depends_on_poly = EqualsCondition(degree, kernel, "poly")
-            coef0_condition = InCondition(coef0, kernel, ["poly", "sigmoid"])
-            gamma_condition = InCondition(gamma, kernel, ["poly", "rbf"])
-            cs.add_conditions([degree_depends_on_poly, coef0_condition, gamma_condition])
-            return cs
-        elif optimizer == 'tpe':
-            from hyperopt import hp
-            coef0 = hp.uniform("kernel_pca_coef0", -1, 1)
-            gamma = hp.loguniform('kernel_pca_gamma', np.log(3e-5), np.log(8))
-            space = {'n_components': hp.randint('kernel_pca_n_components', 1990) + 10,
-                     'kernel': hp.choice('kernel_pca',
-                                         [('poly', {'coef0': coef0, 'gamma': gamma,
-                                                    'degree': hp.randint('kernel_pca_degree', 3) + 2, }),
-                                          ('sigmoid', {'coef': coef0}),
-                                          ('rbf', {'gamma': gamma}),
-                                          ('cosine', {})])
-
-                     }
-            return space
+        degree_depends_on_poly = EqualsCondition(degree, kernel, "poly")
+        coef0_condition = InCondition(coef0, kernel, ["poly", "sigmoid"])
+        gamma_condition = InCondition(gamma, kernel, ["poly", "rbf"])
+        cs.add_conditions([degree_depends_on_poly, coef0_condition, gamma_condition])
+        return cs

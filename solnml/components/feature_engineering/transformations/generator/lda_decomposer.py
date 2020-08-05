@@ -36,16 +36,11 @@ class LdaDecomposer(Transformer):
         return X_new
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
-        if optimizer == 'smac':
-            cs = ConfigurationSpace()
-            shrinkage = CategoricalHyperparameter(
-                "shrinkage", ["None", "auto"], default_value="None")
-            # n_components = UniformIntegerHyperparameter('n_components', 1, 250, default_value=10)
-            # cs.add_hyperparameters([shrinkage, n_components])
-            cs.add_hyperparameter(shrinkage)
-            return cs
-        elif optimizer == 'tpe':
-            from hyperopt import hp
-            space = {'shrinkage': hp.choice('lda_shrinkage', ['None', 'Auto']) + 10}
-            return space
+    def get_hyperparameter_search_space(dataset_properties=None):
+        cs = ConfigurationSpace()
+        shrinkage = CategoricalHyperparameter(
+            "shrinkage", ["None", "auto"], default_value="None")
+        # n_components = UniformIntegerHyperparameter('n_components', 1, 250, default_value=10)
+        # cs.add_hyperparameters([shrinkage, n_components])
+        cs.add_hyperparameter(shrinkage)
+        return cs

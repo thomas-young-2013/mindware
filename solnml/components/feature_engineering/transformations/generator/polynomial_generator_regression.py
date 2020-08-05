@@ -56,20 +56,12 @@ class PolynomialTransformation(Transformer):
         return _X
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
-        if optimizer == 'smac':
-            degree = UniformIntegerHyperparameter("degree", lower=2, upper=4, default_value=2)
-            interaction_only = CategoricalHyperparameter("interaction_only",
-                                                         ["False", "True"], default_value="False")
-            include_bias = UnParametrizedHyperparameter("include_bias", "False")
+    def get_hyperparameter_search_space(dataset_properties=None):
+        degree = UniformIntegerHyperparameter("degree", lower=2, upper=3, default_value=2)
+        interaction_only = CategoricalHyperparameter("interaction_only",
+                                                     ["False", "True"], default_value="False")
+        include_bias = UnParametrizedHyperparameter("include_bias", "False")
 
-            cs = ConfigurationSpace()
-            cs.add_hyperparameters([degree, interaction_only, include_bias])
-
-            return cs
-        elif optimizer == 'tpe':
-            from hyperopt import hp
-            space = {'degree': hp.randint('polyreg_degree', 3) + 2,
-                     'interaction_only': hp.choice('polyreg_inter', ['False', 'True']),
-                     'include_bias': 'False'}
-            return space
+        cs = ConfigurationSpace()
+        cs.add_hyperparameters([degree, interaction_only, include_bias])
+        return cs

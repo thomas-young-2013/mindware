@@ -45,28 +45,20 @@ class FeatureAgglomerationDecomposer(Transformer):
         return X_new
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
-        if optimizer == 'smac':
-            cs = ConfigurationSpace()
-            n_clusters = UniformIntegerHyperparameter("n_clusters", 2, 400, default_value=25)
-            affinity = CategoricalHyperparameter(
-                "affinity", ["euclidean", "manhattan", "cosine"], default_value="euclidean")
-            linkage = CategoricalHyperparameter(
-                "linkage", ["ward", "complete", "average"], default_value="ward")
-            pooling_func = CategoricalHyperparameter(
-                "pooling_func", ["mean", "median", "max"], default_value="mean")
+    def get_hyperparameter_search_space(dataset_properties=None):
+        cs = ConfigurationSpace()
+        n_clusters = UniformIntegerHyperparameter("n_clusters", 2, 400, default_value=25)
+        affinity = CategoricalHyperparameter(
+            "affinity", ["euclidean", "manhattan", "cosine"], default_value="euclidean")
+        linkage = CategoricalHyperparameter(
+            "linkage", ["ward", "complete", "average"], default_value="ward")
+        pooling_func = CategoricalHyperparameter(
+            "pooling_func", ["mean", "median", "max"], default_value="mean")
 
-            cs.add_hyperparameters([n_clusters, affinity, linkage, pooling_func])
+        cs.add_hyperparameters([n_clusters, affinity, linkage, pooling_func])
 
-            affinity_and_linkage = ForbiddenAndConjunction(
-                ForbiddenInClause(affinity, ["manhattan", "cosine"]),
-                ForbiddenEqualsClause(linkage, "ward"))
-            cs.add_forbidden_clause(affinity_and_linkage)
-            return cs
-        elif optimizer == 'tpe':
-            from hyperopt import hp
-            space = {'n_clusters': hp.randint('fa_n_clusters', 398) + 2,
-                     'affinity': hp.choice('fa_affinity', ['euclidean', 'manhattan', 'cosine']),
-                     'linkage': hp.choice('fa_linkage', ['complete', 'average']),
-                     'pooling_func': hp.choice('fa_pooling', ['mean', 'median', 'max'])}
-            return space
+        affinity_and_linkage = ForbiddenAndConjunction(
+            ForbiddenInClause(affinity, ["manhattan", "cosine"]),
+            ForbiddenEqualsClause(linkage, "ward"))
+        cs.add_forbidden_clause(affinity_and_linkage)
+        return cs

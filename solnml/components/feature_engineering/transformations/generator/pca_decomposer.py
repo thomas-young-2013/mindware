@@ -37,17 +37,11 @@ class PcaDecomposer(Transformer):
         return X_new
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
-        if optimizer == 'smac':
-            keep_variance = UniformFloatHyperparameter(
-                "keep_variance", 0.5, 0.9999, default_value=0.9999)
-            whiten = CategoricalHyperparameter(
-                "whiten", ["False", "True"], default_value="False")
-            cs = ConfigurationSpace()
-            cs.add_hyperparameters([keep_variance, whiten])
-            return cs
-        elif optimizer == 'tpe':
-            from hyperopt import hp
-            space = {'keep_variance': hp.uniform('pca_keep_varience', 0.5, 0.9999),
-                     'whiten': hp.choice('pca_whiten', ['False', 'True'])}
-            return space
+    def get_hyperparameter_search_space(dataset_properties=None):
+        keep_variance = UniformFloatHyperparameter(
+            "keep_variance", 0.5, 0.9999, default_value=0.9999)
+        whiten = CategoricalHyperparameter(
+            "whiten", ["False", "True"], default_value="False")
+        cs = ConfigurationSpace()
+        cs.add_hyperparameters([keep_variance, whiten])
+        return cs
