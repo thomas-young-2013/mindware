@@ -109,37 +109,42 @@ class IterativeComponentWithSampleWeight(BaseModel):
             X, y, n_iter=2, refit=True, sample_weight=sample_weight
         )
         iteration = 2
-        while not self.configuration_fully_fitted() and not self.time_limit_exceeded():
+        while not self.configuration_fully_fitted():
             n_iter = int(2 ** iteration / 2)
             self.iterative_fit(X, y, n_iter=n_iter, sample_weight=sample_weight)
             iteration += 1
         return self
 
-    def time_limit_exceeded(self):
-        if self.time_limit is None:
-            return False
-        current_time = time.time()
-        if current_time - self.start_time > self.time_limit:
-            return True
-        else:
-            return False
+    @staticmethod
+    def get_max_iter():
+        raise NotImplementedError()
+
+    def get_current_iter(self):
+        raise NotImplementedError()
+
+    # def time_limit_exceeded(self):
+    #     if self.time_limit is None:
+    #         return False
+    #     current_time = time.time()
+    #     if current_time - self.start_time > self.time_limit:
+    #         return True
+    #     else:
+    #         return False
 
 
 class IterativeComponent(BaseModel):
     def fit(self, X, y, sample_weight=None):
         self.iterative_fit(X, y, n_iter=2, refit=True)
         iteration = 2
-        while not self.configuration_fully_fitted() and not self.time_limit_exceeded():
+        while not self.configuration_fully_fitted():
             n_iter = int(2 ** iteration / 2)
             self.iterative_fit(X, y, n_iter=n_iter, refit=False)
             iteration += 1
         return self
 
-    def time_limit_exceeded(self):
-        if self.time_limit is None:
-            return False
-        current_time = time.time()
-        if current_time - self.start_time > self.time_limit:
-            return True
-        else:
-            return False
+    @staticmethod
+    def get_max_iter():
+        raise NotImplementedError()
+
+    def get_current_iter(self):
+        raise NotImplementedError()

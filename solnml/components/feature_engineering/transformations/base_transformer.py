@@ -157,6 +157,7 @@ def ease_trans(func):
         else:
             assert _X.shape[1] == len(target_fields)
             new_X = X.copy()
+            new_X = new_X.astype('float')
             new_X[:, target_fields] = _X
             new_types = input.feature_types.copy()
 

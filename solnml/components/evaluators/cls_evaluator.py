@@ -1,4 +1,6 @@
+import sys
 import time
+import traceback
 import numpy as np
 from sklearn.metrics.scorer import balanced_accuracy_scorer, _ThresholdScorer
 from sklearn.preprocessing import OneHotEncoder
@@ -126,6 +128,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                 raise e
             self.logger.info('%s-evaluator: %s' % (self.name, str(e)))
             score = -np.inf
+            traceback.print_exc(file=sys.stdout)
 
         self.logger.debug('%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
                           (self.eval_id, classifier_id,

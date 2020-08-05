@@ -1,5 +1,3 @@
-import time
-
 from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
     UniformIntegerHyperparameter, CategoricalHyperparameter, \
@@ -15,12 +13,12 @@ class RandomForest(
     IterativeComponentWithSampleWeight,
     BaseClassificationModel,
 ):
-    def __init__(self, n_estimators, criterion, max_features,
+    def __init__(self, criterion, max_features,
                  max_depth, min_samples_split, min_samples_leaf,
                  min_weight_fraction_leaf, bootstrap, max_leaf_nodes,
-                 min_impurity_decrease, random_state=None, n_jobs=-1,
+                 min_impurity_decrease, random_state=None, n_jobs=1,
                  class_weight=None):
-        self.n_estimators = n_estimators
+        self.n_estimators = self.get_max_iter()
         self.criterion = criterion
         self.max_features = max_features
         self.max_depth = max_depth
@@ -34,8 +32,13 @@ class RandomForest(
         self.n_jobs = n_jobs
         self.class_weight = class_weight
         self.estimator = None
-        self.time_limit = None
-        self.start_time = time.time()
+
+    @staticmethod
+    def get_max_iter():
+        return 512
+
+    def get_current_iter(self):
+        return self.estimator.n_estimators
 
     def iterative_fit(self, X, y, sample_weight=None, n_iter=1, refit=False):
         from sklearn.ensemble import RandomForestClassifier
@@ -85,7 +88,6 @@ class RandomForest(
                 class_weight=self.class_weight,
                 warm_start=True)
         else:
-
             self.estimator.n_estimators += n_iter
             self.estimator.n_estimators = min(self.estimator.n_estimators,
                                               self.n_estimators)
@@ -119,62 +121,36 @@ class RandomForest(
                 'handles_classification': True,
                 'handles_multiclass': True,
                 'handles_multilabel': True,
+                'handles_multioutput': False,
                 'is_deterministic': True,
                 'input': (DENSE, SPARSE, UNSIGNED_DATA),
                 'output': (PREDICTIONS,)}
 
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
-        if optimizer == 'smac':
-            cs = ConfigurationSpace()
-            n_estimators = Constant("n_estimators", 100)
-            criterion = CategoricalHyperparameter(
-                "criterion", ["gini", "entropy"], default_value="gini")
+        cs = ConfigurationSpace()
+        criterion = CategoricalHyperparameter(
+            "criterion", ["gini", "entropy"], default_value="gini")
 
-            # The maximum number of features used in the forest is calculated as m^max_features, where
-            # m is the total number of features, and max_features is the hyperparameter specified below.
-            # The default is 0.5, which yields sqrt(m) features as max_features in the estimator. This
-            # corresponds with Geurts' heuristic.
-            max_features = UniformFloatHyperparameter(
-                "max_features", 0., 1., default_value=0.5)
+        # The maximum number of features used in the forest is calculated as m^max_features, where
+        # m is the total number of features, and max_features is the hyperparameter specified below.
+        # The default is 0.5, which yields sqrt(m) features as max_features in the estimator. This
+        # corresponds with Geurts' heuristic.
+        max_features = UniformFloatHyperparameter(
+            "max_features", 0., 1., default_value=0.5)
 
-            max_depth = UnParametrizedHyperparameter("max_depth", "None")
-            min_samples_split = UniformIntegerHyperparameter(
-                "min_samples_split", 2, 20, default_value=2)
-            min_samples_leaf = UniformIntegerHyperparameter(
-                "min_samples_leaf", 1, 20, default_value=1)
-            min_weight_fraction_leaf = UnParametrizedHyperparameter("min_weight_fraction_leaf", 0.)
-            max_leaf_nodes = UnParametrizedHyperparameter("max_leaf_nodes", "None")
-            min_impurity_decrease = UnParametrizedHyperparameter('min_impurity_decrease', 0.0)
-            bootstrap = CategoricalHyperparameter(
-                "bootstrap", ["True", "False"], default_value="True")
-            cs.add_hyperparameters([n_estimators, criterion, max_features,
-                                    max_depth, min_samples_split, min_samples_leaf,
-                                    min_weight_fraction_leaf, max_leaf_nodes,
-                                    bootstrap, min_impurity_decrease])
-            return cs
-        elif optimizer == 'tpe':
-            from hyperopt import hp
-            space = {'n_estimators': hp.choice('rf_n_estimators', [100]),
-                     'criterion': hp.choice('rf_criterion', ["gini", "entropy"]),
-                     'max_features': hp.uniform('rf_max_features', 0, 1),
-                     'max_depth': hp.choice('rf_max_depth', [None]),
-                     'min_samples_split': hp.randint('rf_min_samples_split', 19) + 2,
-                     'min_samples_leaf': hp.randint('rf_min_samples_leaf', 20) + 1,
-                     'min_weight_fraction_leaf': hp.choice('rf_min_weight_fraction_leaf', [0]),
-                     'max_leaf_nodes': hp.choice('rf_max_leaf_nodes', [None]),
-                     'min_impurity_decrease': hp.choice('rf_min_impurity_decrease', [0]),
-                     'bootstrap': hp.choice('rf_bootstrap', ["True", "False"])}
-
-            init_trial = {'n_estimators': 100,
-                          'criterion': "gini",
-                          'max_features': 0.5,
-                          'max_depth': None,
-                          'min_samples_split': 2,
-                          'min_samples_leaf': 1,
-                          'min_weight_fraction_leaf': 0,
-                          'max_leaf_nodes': None,
-                          'min_impurity_decrease': 0,
-                          'bootstrap': "False"}
-
-            return space
+        max_depth = UnParametrizedHyperparameter("max_depth", "None")
+        min_samples_split = UniformIntegerHyperparameter(
+            "min_samples_split", 2, 20, default_value=2)
+        min_samples_leaf = UniformIntegerHyperparameter(
+            "min_samples_leaf", 1, 20, default_value=1)
+        min_weight_fraction_leaf = UnParametrizedHyperparameter("min_weight_fraction_leaf", 0.)
+        max_leaf_nodes = UnParametrizedHyperparameter("max_leaf_nodes", "None")
+        min_impurity_decrease = UnParametrizedHyperparameter('min_impurity_decrease', 0.0)
+        bootstrap = CategoricalHyperparameter(
+            "bootstrap", ["True", "False"], default_value="True")
+        cs.add_hyperparameters([criterion, max_features,
+                                max_depth, min_samples_split, min_samples_leaf,
+                                min_weight_fraction_leaf, max_leaf_nodes,
+                                bootstrap, min_impurity_decrease])
+        return cs
