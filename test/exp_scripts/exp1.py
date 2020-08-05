@@ -53,6 +53,7 @@ def evaluate_hmab(algorithms, run_id,
                   dataset='credit',
                   eval_type='holdout',
                   enable_ens=True, seed=1):
+    print('%s\nDataset: %s, Run_id: %d, Budget: %d.\n%s' % ('=' * 50, dataset, run_id, time_limit, '=' * 50))
     task_id = '[hmab][%s-%d-%d]' % (dataset, len(algorithms), time_limit)
     _start_time = time.time()
     train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
@@ -162,7 +163,7 @@ def evaluate_autosklearn(algorithms, rep_id,
 
     save_path = save_dir + '%s-%d.pkl' % (task_id, rep_id)
     with open(save_path, 'wb') as f:
-        stats = [plot_x, valid_results]
+        stats = [plot_x, valid_results, str_stats]
         pickle.dump([validation_score, test_score, stats], f)
 
 
