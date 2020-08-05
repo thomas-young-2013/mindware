@@ -50,9 +50,9 @@ class BaseEnsembleModel(object):
                 test_size = 0.33
 
                 if self.task_type in CLS_TASKS:
-                    ss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=self.seed)
+                    ss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=1)
                 else:
-                    ss = ShuffleSplit(n_splits=1, test_size=test_size, random_state=self.seed)
+                    ss = ShuffleSplit(n_splits=1, test_size=test_size, random_state=1)
 
                 for train_index, test_index in ss.split(X, y):
                     X_train, X_valid = X[train_index], X[test_index]

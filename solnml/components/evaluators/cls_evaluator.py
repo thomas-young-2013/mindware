@@ -90,7 +90,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                     folds = self.resampling_params['folds']
                 score = cross_validation(clf, self.scorer, X_train, y_train,
                                          n_fold=folds,
-                                         random_state=1,
+                                         random_state=self.seed,
                                          if_stratify=True,
                                          onehot=self.onehot_encoder if isinstance(self.scorer,
                                                                                   _ThresholdScorer) else None,
@@ -114,7 +114,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                     test_size = self.resampling_params['test_size']
                 score = partial_validation(clf, self.scorer, X_train, y_train, downsample_ratio,
                                            test_size=test_size,
-                                           random_state=1,
+                                           random_state=self.seed,
                                            if_stratify=True,
                                            onehot=self.onehot_encoder if isinstance(self.scorer,
                                                                                     _ThresholdScorer) else None,

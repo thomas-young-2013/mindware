@@ -48,7 +48,7 @@ class FeatureAgglomerationDecomposer(Transformer):
     def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
         if optimizer == 'smac':
             cs = ConfigurationSpace()
-            n_clusters = UniformIntegerHyperparameter("n_clusters", 2, 400, default_value=2)
+            n_clusters = UniformIntegerHyperparameter("n_clusters", 2, 400, default_value=25)
             affinity = CategoricalHyperparameter(
                 "affinity", ["euclidean", "manhattan", "cosine"], default_value="euclidean")
             linkage = CategoricalHyperparameter(
