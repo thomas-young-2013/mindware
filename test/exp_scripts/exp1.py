@@ -5,10 +5,10 @@ import pickle
 import argparse
 import tabulate
 import numpy as np
-import autosklearn.classification
 from sklearn.metrics import balanced_accuracy_score
 
 sys.path.append(os.getcwd())
+from autosklearn.classification import AutoSklearnClassifier
 from solnml.estimators import Classifier
 from solnml.datasets.utils import load_train_test_data
 from solnml.components.utils.constants import CATEGORICAL, MULTICLASS_CLS
@@ -17,11 +17,11 @@ parser = argparse.ArgumentParser()
 dataset_set = 'dna,pollen,abalone,splice,madelon,spambase,wind,page-blocks(1),pc2,segment'
 parser.add_argument('--datasets', type=str, default=dataset_set)
 parser.add_argument('--methods', type=str, default='hmab,ausk')
-parser.add_argument('--algo_num', type=int, default=15)
+parser.add_argument('--algo', type=str, default='random_forest')
 parser.add_argument('--time_limit', type=int, default=120)
 parser.add_argument('--rep_num', type=int, default=10)
 parser.add_argument('--start_id', type=int, default=0)
-parser.add_argument('--ensemble', type=int, choices=[0, 1], default=1)
+parser.add_argument('--ensemble', type=int, choices=[0, 1], default=0)
 parser.add_argument('--eval_type', type=str, choices=['cv', 'holdout'], default='holdout')
 parser.add_argument('--seed', type=int, default=1)
 
@@ -31,7 +31,7 @@ if not os.path.exists(save_dir):
 
 args = parser.parse_args()
 dataset_str = args.datasets
-algo_num = args.algo_num
+algorithms = args.algo.split(',')
 start_id = args.start_id
 rep = args.rep_num
 methods = args.methods.split(',')
@@ -53,7 +53,7 @@ def evaluate_hmab(algorithms, run_id,
                   dataset='credit',
                   eval_type='holdout',
                   enable_ens=True, seed=1):
-    task_id = '[combined][%s-%d-%d]' % (dataset, len(algorithms), time_limit)
+    task_id = '[combined][%s-%s-%d]' % (dataset, algorithms[0], time_limit)
     _start_time = time.time()
     train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS, test_size=0.05)
     if enable_ens is True:
@@ -86,60 +86,33 @@ def evaluate_hmab(algorithms, run_id,
 
 def evaluate_autosklearn(algorithms, rep_id,
                          dataset='credit', time_limit=1200, seed=1,
-                         enable_ens=True, enable_meta_learning=True,
+                         enable_ens=True, enable_meta_learning=False,
                          eval_type='holdout'):
     print('%s\nDataset: %s, Run_id: %d, Budget: %d.\n%s' % ('=' * 50, dataset, rep_id, time_limit, '=' * 50))
-    task_id = '[ausk%d][%s-%d-%d]' % (enable_ens, dataset, len(algorithms), time_limit)
-    if enable_ens:
-        ensemble_size, ensemble_nbest = 50, 50
-    else:
-        ensemble_size, ensemble_nbest = 1, 1
-    if enable_meta_learning:
-        init_config_via_metalearning = 25
-    else:
-        init_config_via_metalearning = 0
-
-    include_models = None
-
-    if eval_type == 'holdout':
-        automl = autosklearn.classification.AutoSklearnClassifier(
-            time_left_for_this_task=int(time_limit),
-            per_run_time_limit=per_run_time_limit,
-            n_jobs=1,
-            include_estimators=include_models,
-            ensemble_memory_limit=16384,
-            ml_memory_limit=16384,
-            ensemble_size=ensemble_size,
-            ensemble_nbest=ensemble_nbest,
-            initial_configurations_via_metalearning=init_config_via_metalearning,
-            seed=int(seed),
-            resampling_strategy='holdout',
-            resampling_strategy_arguments={'train_size': 0.67}
-        )
-    else:
-        automl = autosklearn.classification.AutoSklearnClassifier(
-            time_left_for_this_task=int(time_limit),
-            per_run_time_limit=per_run_time_limit,
-            n_jobs=1,
-            include_estimators=include_models,
-            ensemble_memory_limit=16384,
-            ml_memory_limit=16384,
-            ensemble_size=ensemble_size,
-            ensemble_nbest=ensemble_nbest,
-            initial_configurations_via_metalearning=init_config_via_metalearning,
-            seed=seed,
-            resampling_strategy='cv',
-            resampling_strategy_arguments={'folds': 5}
-        )
+    task_id = '[ausk%d][%s-%s-%d]' % (enable_ens, dataset, algorithms[0], time_limit)
+    automl = AutoSklearnClassifier(
+        time_left_for_this_task=int(time_limit),
+        per_run_time_limit=per_run_time_limit,
+        n_jobs=1,
+        include_estimators=algorithms,
+        ensemble_memory_limit=16384,
+        ml_memory_limit=16384,
+        ensemble_size=1,
+        initial_configurations_via_metalearning=0,
+        seed=1,
+        delete_tmp_folder_after_terminate=False,
+        resampling_strategy='holdout',
+        resampling_strategy_arguments={'train_size': 0.67})
 
     print(automl)
-    raw_data, test_raw_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
+    raw_data, test_raw_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS, test_size=0.05)
     X, y = raw_data.data
     X_test, y_test = test_raw_data.data
     feat_type = ['Categorical' if _type == CATEGORICAL else 'Numerical'
                  for _type in raw_data.feature_types]
     from autosklearn.metrics import balanced_accuracy as balanced_acc
     automl.fit(X.copy(), y.copy(), feat_type=feat_type, metric=balanced_acc)
+
     model_desc = automl.show_models()
     str_stats = automl.sprint_statistics()
     valid_results = automl.cv_results_['mean_test_score']
@@ -191,25 +164,6 @@ def check_datasets(datasets):
 
 
 if __name__ == "__main__":
-    if algo_num == 4:
-        algorithms = ['k_nearest_neighbors', 'liblinear_svc', 'random_forest', 'adaboost']
-    elif algo_num == 8:
-        algorithms = ['passive_aggressive', 'k_nearest_neighbors', 'libsvm_svc', 'sgd',
-                      'adaboost', 'random_forest', 'extra_trees', 'decision_tree']
-    elif algo_num == 15:
-        algorithms = ['adaboost', 'random_forest',
-                      'libsvm_svc', 'sgd',
-                      'extra_trees', 'decision_tree',
-                      'liblinear_svc', 'k_nearest_neighbors',
-                      'passive_aggressive', 'xgradient_boosting',
-                      'lda', 'qda',
-                      'multinomial_nb', 'gaussian_nb', 'bernoulli_nb'
-                      ]
-    elif algo_num == 1:
-        algorithms = ['random_forest']
-    else:
-        raise ValueError('Invalid algorithm num - %d!' % algo_num)
-
     dataset_list = dataset_str.split(',')
     check_datasets(dataset_list)
 
@@ -217,7 +171,6 @@ if __name__ == "__main__":
         for mth in methods:
             if mth == 'plot':
                 break
-
             for run_id in range(start_id, start_id + rep):
                 seed = int(seeds[run_id])
                 if mth == 'hmab':
@@ -236,7 +189,7 @@ if __name__ == "__main__":
     if methods[-1] == 'plot':
         headers = ['dataset']
         ausk_id = 'ausk%d' % enable_ensemble
-        method_ids = ['hmab', ausk_id]
+        method_ids = ['combined', ausk_id]
         for mth in method_ids:
             headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
@@ -246,7 +199,7 @@ if __name__ == "__main__":
             for mth in method_ids:
                 results = list()
                 for run_id in range(rep):
-                    task_id = '[%s][%s-%d-%d]' % (mth, dataset, len(algorithms), time_limit)
+                    task_id = '[%s][%s-%s-%d]' % (mth, dataset, algorithms[0], time_limit)
                     file_path = save_dir + '%s-%d.pkl' % (task_id, run_id)
                     if not os.path.exists(file_path):
                         continue

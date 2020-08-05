@@ -19,25 +19,24 @@ class SMACOptimizer(BaseHPOptimizer):
         self.per_run_mem_limit = per_run_mem_limit
         self.output_dir = output_dir
 
-        self.optimizer = BO(objective_function=self.evaluator,
-                            config_space=config_space,
-                            max_runs=int(1e10),
-                            task_id=None,
-                            time_limit_per_trial=self.per_run_time_limit,
-                            rng=np.random.RandomState(self.seed))
-        # self.scenario_dict = {
-        #     'abort_on_first_run_crash': False,
-        #     "run_obj": "quality",
-        #     "cs": self.config_space,
-        #     "deterministic": "true",
-        #     "cutoff_time": self.per_run_time_limit,
-        #     'output_dir': output_dir,
-        #     "runcount-limit": 20
-        # }
-        #
-        # self.optimizer = SMAC(scenario=Scenario(self.scenario_dict),
-        #                       rng=np.random.RandomState(self.seed),
-        #                       tae_runner=self.evaluator)
+        # self.optimizer = BO(objective_function=self.evaluator,
+        #                     config_space=config_space,
+        #                     max_runs=int(1e10),
+        #                     task_id=None,
+        #                     time_limit_per_trial=self.per_run_time_limit,
+        #                     rng=np.random.RandomState(self.seed))
+        self.scenario_dict = {
+            'abort_on_first_run_crash': False,
+            "run_obj": "quality",
+            "cs": self.config_space,
+            "deterministic": "true",
+            "cutoff_time": self.per_run_time_limit,
+            'output_dir': "smac3_output_%s" % time.time(),
+            'wallclock_limit': 600,
+        }
+        self.optimizer = SMAC(scenario=Scenario(self.scenario_dict),
+                              rng=np.random.RandomState(self.seed),
+                              tae_runner=self.evaluator)
 
         self.trial_cnt = 0
         self.configs = list()
@@ -75,24 +74,37 @@ class SMACOptimizer(BaseHPOptimizer):
                 self.logger.warning('Already explored 70 percentage of the '
                                     'hyperspace or maximum configuration number met: %d!' % self.maximum_config_num)
                 break
-            start_time = time.time()
-            _config, _status, _perf, _ = self.optimizer.iterate()
-            # self.optimizer.optimize()
-            print('Iteration cost: %f' % (time.time() - start_time))
-            if _status == SUCCESS:
-                self.exp_output[time.time()] = (_config, _perf)
-                self.configs.append(_config)
-                self.perfs.append(-_perf)
+            # _config, _status, _perf, _ = self.optimizer.iterate()
+            self.optimizer.optimize()
+            # if _status == SUCCESS:
+            #     self.exp_output[time.time()] = (_config, _perf)
+            #     self.configs.append(_config)
+            #     self.perfs.append(-_perf)
 
-        runhistory = self.optimizer.get_history()
-        if hasattr(self.evaluator, 'data_node'):
-            fe_config = self.evaluator.data_node.config
-        else:
-            fe_config = None
-        self.eval_dict = {(fe_config, hpo_config): -score for hpo_config, score in
-                          runhistory.data.items()}
-        self.incumbent_config, self.incumbent_perf = runhistory.get_incumbents()[0]
-        self.incumbent_perf = -self.incumbent_perf
-        iteration_cost = time.time() - _start_time
-        # incumbent_perf: the large the better
-        return self.incumbent_perf, iteration_cost, self.incumbent_config
+        # runhistory = self.optimizer.get_history()
+        # if hasattr(self.evaluator, 'data_node'):
+        #     fe_config = self.evaluator.data_node.config
+        # else:
+        #     fe_config = None
+        # self.eval_dict = {(fe_config, hpo_config): -score for hpo_config, score in
+        #                   runhistory.data.items()}
+        # self.incumbent_config, self.incumbent_perf = runhistory.get_incumbents()[0]
+        # self.incumbent_perf = -self.incumbent_perf
+        # iteration_cost = time.time() - _start_time
+        # # incumbent_perf: the large the better
+        # return self.incumbent_perf, iteration_cost, self.incumbent_config
+
+        runhistory = self.optimizer.solver.runhistory
+        runkeys = list(runhistory.data.keys())
+        print(len(runkeys))
+        for key in runkeys:
+            _reward = runhistory.data[key][0]
+            _config = runhistory.ids_config[key[0]]
+            print(_reward)
+            self.eval_dict[(None, _config)] = -_reward
+            self.perfs.append(_reward)
+            self.configs.append(_config)
+            if -_reward > self.incumbent_perf:
+                self.incumbent_perf = -_reward
+                self.incumbent_config = _config
+        return self.incumbent_perf, time.time() - _start_time, self.incumbent_config

@@ -39,8 +39,8 @@ class RandomTreesEmbeddingTransformation(Transformer):
                 self.max_depth = None
             else:
                 self.max_depth = int(self.max_depth)
-            if X.shape[0] > 5000:
-                self.max_depth = min(4, self.max_depth)
+            # if X.shape[0] > 5000:
+            #     self.max_depth = min(4, self.max_depth)
             self.min_samples_split = int(self.min_samples_split)
             self.min_samples_leaf = int(self.min_samples_leaf)
             if check_none(self.max_leaf_nodes):
@@ -74,7 +74,7 @@ class RandomTreesEmbeddingTransformation(Transformer):
                                                         lower=10, upper=100,
                                                         default_value=10)
             max_depth = UniformIntegerHyperparameter(name="max_depth",
-                                                     lower=2, upper=5,
+                                                     lower=2, upper=10,
                                                      default_value=5)
             min_samples_split = UniformIntegerHyperparameter(name="min_samples_split",
                                                              lower=2, upper=20,
