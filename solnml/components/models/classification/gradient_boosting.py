@@ -5,12 +5,12 @@ from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
     UniformIntegerHyperparameter, UnParametrizedHyperparameter, Constant, \
     CategoricalHyperparameter
 
-from solnml.components.models.base_model import BaseClassificationModel, IterativeComponentWithSampleWeight
+from solnml.components.models.base_model import BaseClassificationModel, IterativeComponent
 from solnml.components.utils.configspace_utils import check_none
 from solnml.components.utils.constants import DENSE, UNSIGNED_DATA, PREDICTIONS
 
 
-class GradientBoostingClassifier(IterativeComponentWithSampleWeight, BaseClassificationModel):
+class GradientBoostingClassifier(IterativeComponent, BaseClassificationModel):
     def __init__(self, loss, learning_rate, min_samples_leaf, max_depth,
                  max_leaf_nodes, max_bins, l2_regularization, early_stop, tol, scoring,
                  n_iter_no_change=0, validation_fraction=None, random_state=None,
@@ -104,7 +104,6 @@ class GradientBoostingClassifier(IterativeComponentWithSampleWeight, BaseClassif
                 n_iter_no_change=self.n_iter_no_change,
                 validation_fraction=self.validation_fraction_,
                 verbose=self.verbose,
-                warm_start=True,
                 random_state=self.random_state,
             )
         else:
