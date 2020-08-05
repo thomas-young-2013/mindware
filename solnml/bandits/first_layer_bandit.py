@@ -157,7 +157,7 @@ class FirstLayerBandit(object):
 
         if self.ensemble_method is not None:
             # stats = self.fetch_ensemble_members()
-            stats = self.fetch_ensemble_members_ano()
+            stats = self.fetch_ensemble_members()
 
             # Ensembling all intermediate/ultimate models found in above optimization process.
             self.es = EnsembleBuilder(stats=stats,
@@ -350,66 +350,45 @@ class FirstLayerBandit(object):
         stats['candidate_algorithms'] = self.include_algorithms
         stats['include_algorithms'] = self.nbest_algo_ids
         stats['split_seed'] = self.seed
-        best_perf = self.incumbent_perf
 
         self.logger.info('Prepare basic models for ensemble stage.')
-        self.logger.info('algorithm_id, #features, #configs')
+        self.logger.info('algorithm_id, #models')
         for algo_id in self.nbest_algo_ids:
             data = dict()
-            fe_optimizer = self.sub_bandits[algo_id].optimizer['fe']
-            hpo_optimizer = self.sub_bandits[algo_id].optimizer['hpo']
-            hpo_config_num = 5
-            fe_node_num = 5
+            model_num = 50
 
-            if self.fe_algo == 'bo':
-                data_candidates = fe_optimizer.fetch_nodes(fe_node_num)
-                train_data_candidates = list()
-                # Check the dimensions.
-                labels = self.original_data.data[1]
-                for tmp_data in data_candidates:
-                    equal_flag = (tmp_data.data[1] == labels)
-                    assert not isinstance(equal_flag, bool)
-                    assert equal_flag.all()
-                    train_data_candidates.append(tmp_data)
-                assert len(train_data_candidates) != 0
-            else:
-                train_data_candidates = self.sub_bandits[algo_id].local_hist['fe']
+            fe_eval_dict = self.sub_bandits[algo_id].optimizer['fe'].eval_dict
+            hpo_eval_dict = self.sub_bandits[algo_id].optimizer['hpo'].eval_dict
 
-            # Remove duplicates.
-            train_data_list = list()
-            for item in train_data_candidates:
-                if item not in train_data_list:
-                    train_data_list.append(item)
+            # combined_dict = fe_eval_dict.copy()
+            # for key in hpo_eval_dict:
+            #     if key not in fe_eval_dict:
+            #         combined_dict[key] = hpo_eval_dict[key]
+            #
+            # max_list = sorted(combined_dict.items(), key=lambda item: item[1], reverse=True)
+            # model_items = max_list[:model_num]
 
-            # Build hyperparameter configuration candidates.
-            configs = hpo_optimizer.configs
-            perfs = hpo_optimizer.perfs
+            fe_eval_list = sorted(fe_eval_dict.items(), key=lambda item: item[1], reverse=True)
+            hpo_eval_list = sorted(hpo_eval_dict.items(), key=lambda item: item[1], reverse=True)
+            combined_list = list()
 
-            if self.metric._sign > 0:
-                threshold = best_perf * threshold
-            else:
-                threshold = best_perf / threshold
+            combined_list.extend(fe_eval_list[:model_num])
+            combined_list.extend(hpo_eval_list[:model_num])
 
-            best_configs = list()
-            if len(perfs) > 0:
-                default_perf = perfs[0]
-                for idx in np.argsort(-np.array(perfs)):
-                    if perfs[idx] >= default_perf and configs[idx] not in best_configs:
-                        best_configs.append(configs[idx])
-            else:
-                best_configs.append(hpo_optimizer.config_space.get_default_configuration())
+            # Sort the combined configs.
+            combined_list = sorted(combined_list, key=lambda item: item[1], reverse=True)
+            model_items = combined_list[:model_num]
 
-            if len(best_configs) > 15:
-                idxs = np.arange(hpo_config_num) * 3
-                best_configs = [best_configs[idx] for idx in idxs]
-            else:
-                best_configs = best_configs[:hpo_config_num]
+            fe_configs = [item[0][0] for item in model_items]
+            hpo_configs = [item[0][1] for item in model_items]
+
+            node_list = self.sub_bandits[algo_id].optimizer['fe'].fetch_nodes_by_config(fe_configs)
             model_to_eval = []
-            for node in train_data_list:
-                for config in best_configs:
-                    model_to_eval.append((node, config))
+            for idx, node in enumerate(node_list):
+                if node is not None:
+                    model_to_eval.append((node_list[idx], hpo_configs[idx]))
             data['model_to_eval'] = model_to_eval
-            self.logger.info('%s, %d, %d' % (algo_id, len(train_data_list), len(best_configs)))
+            self.logger.info('%s, %d' % (algo_id, len(model_to_eval)))
             stats[algo_id] = data
         self.logger.info('Preparing basic models finished.')
         return stats

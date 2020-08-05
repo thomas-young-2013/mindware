@@ -32,7 +32,7 @@ class PolynomialTransformation(Transformer):
         X, y = input_datanode.data
 
         if not self.best_idxs:
-            lgb = LGBMClassifier(random_state=1, n_jobs=4)
+            lgb = LGBMClassifier(random_state=1, n_jobs=2)
             lgb.fit(X, y)
             _importance = lgb.feature_importances_
             idx_importance = np.argsort(-_importance)
