@@ -82,7 +82,7 @@ class NystronemSampler(Transformer):
             possible_kernels.append("chi2")
         kernel = CategoricalHyperparameter('kernel', possible_kernels, 'rbf')
         n_components = UniformIntegerHyperparameter(
-            "n_components", 50, 10000, default_value=100, log=True)
+            "n_components", 50, 5000, default_value=100, log=True)
         gamma = UniformFloatHyperparameter("gamma", 3.0517578125e-05, 8,
                                            log=True, default_value=0.1)
         degree = UniformIntegerHyperparameter('degree', 2, 5, 3)

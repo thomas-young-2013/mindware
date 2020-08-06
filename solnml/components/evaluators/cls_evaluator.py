@@ -77,6 +77,11 @@ class ClassificationEvaluator(_BaseEvaluator):
         if data_node.data_balance == 1:
             fit_params['data_balance'] = True
 
+        if data_node.shape[1] == 0:
+            score = -np.inf
+            self.eval_id += 1
+            return -score
+
         classifier_id, clf = get_estimator(config_dict)
 
         if self.onehot_encoder is None:
@@ -124,6 +129,9 @@ class ClassificationEvaluator(_BaseEvaluator):
             else:
                 raise ValueError('Invalid resampling strategy: %s!' % self.resampling_strategy)
         except Exception as e:
+            print(self.name)
+            print(config)
+            print(data_node.shape)
             if self.name == 'fe':
                 raise e
             self.logger.info('%s-evaluator: %s' % (self.name, str(e)))

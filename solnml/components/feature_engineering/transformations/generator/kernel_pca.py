@@ -41,13 +41,13 @@ class KernelPCA(Transformer):
         X, y = input_datanode.data
 
         # Skip large matrix computation in obtaining the kernel matrix.
-        # if X.shape[0] > 10000:
-        #     if not self.pre_trained:
-        #         self.skip_flag = True
-        #
-        # self.pre_trained = True
-        # if self.skip_flag:
-        #     return X.copy()
+        if X.shape[0] > 10000:
+            if not self.pre_trained:
+                self.skip_flag = True
+
+        self.pre_trained = True
+        if self.skip_flag:
+            return X.copy()
 
         if self.model is None:
             import scipy.sparse

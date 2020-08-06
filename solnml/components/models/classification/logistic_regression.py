@@ -63,7 +63,7 @@ class Logistic_Regression(BaseClassificationModel):
         tol = UniformFloatHyperparameter("tol", 1e-6, 1e-2, default_value=1e-4,
                                          log=True)
 
-        max_iter = UnParametrizedHyperparameter("max_iter", 10000)
+        max_iter = UnParametrizedHyperparameter("max_iter", 3000)
 
         penalty = CategoricalHyperparameter(name="penalty",
                                             choices=["l1", "l2"],

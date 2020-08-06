@@ -44,7 +44,7 @@ rep_num = args.rep_num
 np.random.seed(args.seed)
 seeds = np.random.randint(low=1, high=10000, size=start_id + rep_num)
 
-per_run_time_limit = 300
+per_run_time_limit = 150
 holdout_datasets = dataset_set.split(',')
 
 
@@ -63,6 +63,7 @@ def evaluate_hmab(algorithms, run_id,
         ensemble_method = None
 
     clf = Classifier(time_limit=time_limit,
+                     per_run_time_limit=per_run_time_limit,
                      amount_of_resource=None,
                      output_dir=save_dir,
                      ensemble_method=ensemble_method,

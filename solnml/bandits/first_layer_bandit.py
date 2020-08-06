@@ -156,8 +156,8 @@ class FirstLayerBandit(object):
             pkl.dump(best_estimator, f)
 
         if self.ensemble_method is not None:
-            stats = self.fetch_ensemble_members_ano()
-            # stats = self.fetch_ensemble_members()
+            # stats = self.fetch_ensemble_members_ano()
+            stats = self.fetch_ensemble_members()
 
             # Ensembling all intermediate/ultimate models found in above optimization process.
             self.es = EnsembleBuilder(stats=stats,
@@ -345,7 +345,7 @@ class FirstLayerBandit(object):
         for _arm in self.arms:
             del self.sub_bandits[_arm].optimizer
 
-    def fetch_ensemble_members(self, threshold=0.95):
+    def fetch_ensemble_members(self):
         stats = dict()
         stats['candidate_algorithms'] = self.include_algorithms
         stats['include_algorithms'] = self.nbest_algo_ids
