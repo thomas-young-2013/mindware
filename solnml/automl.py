@@ -108,6 +108,11 @@ class AutoML(object):
                 for algo in model_candidates:
                     if algo in self.include_algorithms and len(include_models) < n_algo_recommended:
                         include_models.append(algo)
+                if 'logistic_regression' in include_models:
+                    include_models.remove('logistic_regression')
+                if 'adaboost' not in include_models:
+                    include_models.append('adaboost')
+
                 self.include_algorithms = include_models
                 self.logger.info('Final Algorithms Recommended: [%s]' % ','.join(self.include_algorithms))
             except Exception as e:

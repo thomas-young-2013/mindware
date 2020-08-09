@@ -166,7 +166,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         scheduler = MultiStepLR(optimizer, milestones=[int(self.max_epoch * 0.5), int(self.max_epoch * 0.75)],
                                 gamma=self.lr_decay)
         loss_func = nn.CrossEntropyLoss()
-        early_stop = EarlyStop(patience=10, mode='min')
+        early_stop = EarlyStop(patience=100, mode='min')
 
         if self.load_path:
             checkpoint = torch.load(self.load_path)
