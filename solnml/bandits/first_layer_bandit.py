@@ -231,7 +231,7 @@ class FirstLayerBandit(object):
         self.best_lower_bounds = np.zeros(arm_num)
         _iter_id = 0
         if self.time_limit is None:
-            if arm_num * self.alpha <= self.trial_num:
+            if arm_num * self.alpha > self.trial_num:
                 raise ValueError('Trial number should be larger than %d.' % (arm_num * self.alpha))
         else:
             self.trial_num = MAX_INT

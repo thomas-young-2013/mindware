@@ -46,6 +46,7 @@ seeds = np.random.randint(low=1, high=10000, size=start_id + rep_num)
 
 per_run_time_limit = 150
 holdout_datasets = dataset_set.split(',')
+hmab_id = 'hmab'
 
 
 def evaluate_hmab(algorithms, run_id,
@@ -54,7 +55,7 @@ def evaluate_hmab(algorithms, run_id,
                   eval_type='holdout',
                   enable_ens=True, seed=1):
     print('%s\nDataset: %s, Run_id: %d, Budget: %d.\n%s' % ('=' * 50, dataset, run_id, time_limit, '=' * 50))
-    task_id = '[hmab][%s-%d-%d]' % (dataset, len(algorithms), time_limit)
+    task_id = '[%s][%s-%d-%d]' % (hmab_id, dataset, len(algorithms), time_limit)
     _start_time = time.time()
     train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
     if enable_ens is True:
@@ -238,7 +239,7 @@ if __name__ == "__main__":
     if methods[-1] == 'plot':
         headers = ['dataset']
         ausk_id = 'ausk%d' % enable_ensemble
-        method_ids = ['hmab', ausk_id]
+        method_ids = [hmab_id, ausk_id]
         for mth in method_ids:
             headers.extend(['val-%s' % mth, 'test-%s' % mth])
 
