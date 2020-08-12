@@ -260,6 +260,7 @@ if __name__ == "__main__":
 
                 if len(results) == rep:
                     results = np.array(results)
+                    print(mth, results)
                     stats_ = zip(np.mean(results, axis=0), np.std(results, axis=0))
                     string = ''
                     for mean_t, std_t in stats_:

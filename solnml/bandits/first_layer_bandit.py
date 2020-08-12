@@ -354,25 +354,18 @@ class FirstLayerBandit(object):
         self.logger.info('algorithm_id, #models')
         for algo_id in self.nbest_algo_ids:
             data = dict()
-            model_num = 50
+            model_num = 60
+            model_num_partial = int(model_num * 0.667)
 
             fe_eval_dict = self.sub_bandits[algo_id].optimizer['fe'].eval_dict
             hpo_eval_dict = self.sub_bandits[algo_id].optimizer['hpo'].eval_dict
 
-            # combined_dict = fe_eval_dict.copy()
-            # for key in hpo_eval_dict:
-            #     if key not in fe_eval_dict:
-            #         combined_dict[key] = hpo_eval_dict[key]
-            #
-            # max_list = sorted(combined_dict.items(), key=lambda item: item[1], reverse=True)
-            # model_items = max_list[:model_num]
-
             fe_eval_list = sorted(fe_eval_dict.items(), key=lambda item: item[1], reverse=True)
             hpo_eval_list = sorted(hpo_eval_dict.items(), key=lambda item: item[1], reverse=True)
-            combined_list = list()
 
-            combined_list.extend(fe_eval_list[:model_num])
-            combined_list.extend(hpo_eval_list[:model_num])
+            combined_list = list()
+            combined_list.extend(fe_eval_list[:model_num_partial])
+            combined_list.extend(hpo_eval_list[:model_num_partial])
 
             # Sort the combined configs.
             combined_list = sorted(combined_list, key=lambda item: item[1], reverse=True)
