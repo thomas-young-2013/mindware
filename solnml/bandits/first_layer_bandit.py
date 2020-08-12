@@ -271,17 +271,16 @@ class FirstLayerBandit(object):
 
             if _iter_id >= arm_num * self.alpha:
                 # Update the upper/lower bound estimation.
+                budget_left = max(self.time_limit - (time.time() - self.start_time), 0)
+                avg_cost = np.array([np.mean(self.arm_cost_stats[_arm]) for _arm in arm_candidate]).mean()
+                steps = int(budget_left / avg_cost)
                 upper_bounds, lower_bounds = list(), list()
+
                 for _arm in arm_candidate:
                     rewards = self.rewards[_arm]
                     slope = (rewards[-1] - rewards[-self.alpha]) / self.alpha
                     if self.time_limit is None:
                         steps = self.trial_num - _iter_id
-                    else:
-                        budget_left = max(self.time_limit - (time.time() - self.start_time), 0)
-                        steps = int(budget_left / np.mean(self.arm_cost_stats[_arm]))
-                        steps = min(steps, 100)
-
                     upper_bound = np.min([1.0, rewards[-1] + slope * steps])
                     upper_bounds.append(upper_bound)
                     lower_bounds.append(rewards[-1])
