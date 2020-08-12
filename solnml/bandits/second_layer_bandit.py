@@ -239,7 +239,8 @@ class SecondLayerBandit(object):
         self.logger.debug('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
         if self.first_start is True and _arm == 'hpo':
             if hasattr(self.optimizer[_arm], 'init_hpo_iter_num'):
-                self.optimizer[_arm].init_hpo_iter_num = 20
+                # self.optimizer[_arm].init_hpo_iter_num = 20
+                self.optimizer[_arm].init_hpo_iter_num = 10
             else:
                 raise ValueError('Optimizer does not have property - init_hpo_iter_num.')
             self.first_start = False
