@@ -356,8 +356,8 @@ class FirstLayerBandit(object):
             data = dict()
             model_num = 50
 
-            fe_eval_dict = self.sub_bandits[algo_id].optimizer['fe'].eval_dict
-            hpo_eval_dict = self.sub_bandits[algo_id].optimizer['hpo'].eval_dict
+            fe_eval_dict = self.sub_bandits[algo_id].eval_dict['fe']
+            hpo_eval_dict = self.sub_bandits[algo_id].eval_dict['hpo']
 
             # combined_dict = fe_eval_dict.copy()
             # for key in hpo_eval_dict:
