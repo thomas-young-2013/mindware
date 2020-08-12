@@ -30,7 +30,7 @@ class Logistic_Regression(AutoSklearnClassificationAlgorithm):
                                             C=self.C,
                                             tol=self.tol,
                                             max_iter=self.max_iter,
-                                            n_jobs=-1)
+                                            n_jobs=4)
         self.estimator.fit(X, Y)
         return self
 

@@ -18,6 +18,8 @@ class Logistic_Regression(BaseClassificationModel):
         self.estimator = None
         self.time_limit = None
 
+        self.n_jobs = 1
+
     def fit(self, X, Y):
         from sklearn.linear_model import LogisticRegression
 
@@ -30,7 +32,7 @@ class Logistic_Regression(BaseClassificationModel):
                                             C=self.C,
                                             tol=self.tol,
                                             max_iter=self.max_iter,
-                                            n_jobs=-1)
+                                            n_jobs=self.n_jobs)
         self.estimator.fit(X, Y)
         return self
 
