@@ -35,7 +35,7 @@ class RandomForest(
 
     @staticmethod
     def get_max_iter():
-        return 512
+        return 100
 
     def get_current_iter(self):
         return self.estimator.n_estimators

@@ -19,7 +19,6 @@ class AdaboostClassifier(BaseClassificationModel):
         self.estimator = None
 
     def fit(self, X, Y, sample_weight=None):
-        import sklearn.ensemble
         import sklearn.tree
 
         self.n_estimators = int(self.n_estimators)
