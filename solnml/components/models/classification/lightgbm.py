@@ -2,7 +2,7 @@ from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.conditions import EqualsCondition, InCondition
 from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
     UniformIntegerHyperparameter, CategoricalHyperparameter, \
-    UnParametrizedHyperparameter
+    UnParametrizedHyperparameter, Constant
 import numpy as np
 from lightgbm import LGBMClassifier
 
@@ -11,15 +11,14 @@ from solnml.components.models.base_model import BaseClassificationModel
 
 
 class LightGBM(BaseClassificationModel):
-    def __init__(self, n_estimators, learning_rate, num_leaves, min_child_weight,
-                 subsample, colsample_bytree, reg_alpha, reg_lambda, random_state):
-        self.n_estimators = n_estimators
+    def __init__(self, n_estimators, learning_rate, num_leaves, max_depth, min_child_samples,
+                 subsample, colsample_bytree, random_state):
+        self.n_estimators = int(n_estimators)
         self.learning_rate = learning_rate
         self.num_leaves = num_leaves
+        self.max_depth = max_depth
         self.subsample = subsample
-        self.reg_alpha = reg_alpha
-        self.reg_lambda = reg_lambda
-        self.min_child_weight = min_child_weight
+        self.min_child_samples = min_child_samples
         self.colsample_bytree = colsample_bytree
 
         self.n_jobs = -1
@@ -28,13 +27,12 @@ class LightGBM(BaseClassificationModel):
 
     def fit(self, X, y):
         self.estimator = LGBMClassifier(num_leaves=self.num_leaves,
+                                        max_depth=self.max_depth,
                                         learning_rate=self.learning_rate,
                                         n_estimators=self.n_estimators,
-                                        min_child_weight=self.min_child_weight,
+                                        min_child_samples=self.min_child_samples,
                                         subsample=self.subsample,
                                         colsample_bytree=self.colsample_bytree,
-                                        reg_alpha=self.reg_alpha,
-                                        reg_lambda=self.reg_lambda,
                                         random_state=self.random_state,
                                         n_jobs=self.n_jobs)
         self.estimator.fit(X, y)
@@ -65,14 +63,13 @@ class LightGBM(BaseClassificationModel):
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
         cs = ConfigurationSpace()
-        n_estimators = UniformIntegerHyperparameter("n_estimators", 100, 1000, default_value=500)
-        num_leaves = UniformIntegerHyperparameter("num_leaves", 31, 1023, default_value=31)
-        learning_rate = UniformFloatHyperparameter("learning_rate", 0.01, 0.3, default_value=0.1, log=True)
-        min_child_weight = UniformIntegerHyperparameter("min_child_weight", 1, 10, default_value=1)
-        subsample = UniformFloatHyperparameter("subsample", 0.5, 1, default_value=1)
-        colsample_bytree = UniformFloatHyperparameter("colsample_bytree", 0.5, 1, default_value=1)
-        reg_alpha = UniformFloatHyperparameter('reg_alpha', 1e-10, 10, log=True, default_value=1e-10)
-        reg_lambda = UniformFloatHyperparameter("reg_lambda", 1e-10, 10, log=True, default_value=1e-10)
-        cs.add_hyperparameters([n_estimators, num_leaves, learning_rate, min_child_weight, subsample,
-                                colsample_bytree, reg_alpha, reg_lambda])
+        n_estimators = UniformFloatHyperparameter("n_estimators", 100, 1000, default_value=500, q=50)
+        num_leaves = UniformIntegerHyperparameter("num_leaves", 31, 2047, default_value=128)
+        max_depth = Constant('max_depth', 15)
+        learning_rate = UniformFloatHyperparameter("learning_rate", 1e-3, 0.3, default_value=0.1, log=True)
+        min_child_samples = UniformIntegerHyperparameter("min_child_samples", 5, 30, default_value=20)
+        subsample = UniformFloatHyperparameter("subsample", 0.7, 1, default_value=1, q=0.1)
+        colsample_bytree = UniformFloatHyperparameter("colsample_bytree", 0.7, 1, default_value=1, q=0.1)
+        cs.add_hyperparameters([n_estimators, num_leaves, max_depth, learning_rate, min_child_samples, subsample,
+                                colsample_bytree])
         return cs
