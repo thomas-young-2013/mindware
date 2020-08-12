@@ -7,12 +7,12 @@ import numpy as np
 from lightgbm import LGBMClassifier
 
 from solnml.components.utils.constants import *
-from solnml.components.models.base_model import BaseClassificationModel
+from autosklearn.pipeline.components.base import AutoSklearnClassificationAlgorithm
 
 
-class LightGBM(BaseClassificationModel):
+class LightGBM(AutoSklearnClassificationAlgorithm):
     def __init__(self, n_estimators, learning_rate, num_leaves, max_depth, min_child_samples,
-                 subsample, colsample_bytree, random_state):
+                 subsample, colsample_bytree, random_state=None):
         self.n_estimators = int(n_estimators)
         self.learning_rate = learning_rate
         self.num_leaves = num_leaves
@@ -33,7 +33,6 @@ class LightGBM(BaseClassificationModel):
                                         min_child_samples=self.min_child_samples,
                                         subsample=self.subsample,
                                         colsample_bytree=self.colsample_bytree,
-                                        random_state=self.random_state,
                                         n_jobs=self.n_jobs)
         self.estimator.fit(X, y)
         return self
