@@ -27,7 +27,7 @@ class GradientBoostingClassifier(IterativeComponentWithSampleWeight,
         self.min_samples_leaf = min_samples_leaf
         self.min_weight_fraction_leaf = min_weight_fraction_leaf
         self.max_depth = max_depth
-        self.criterion=criterion
+        self.criterion = criterion
         self.max_features = max_features
         self.max_leaf_nodes = max_leaf_nodes
         self.min_impurity_decrease = min_impurity_decrease
@@ -126,10 +126,11 @@ class GradientBoostingClassifier(IterativeComponentWithSampleWeight,
         loss = Constant("loss", "deviance")
         learning_rate = UniformFloatHyperparameter(
             name="learning_rate", lower=0.01, upper=1, default_value=0.1, log=True)
-        n_estimators = UniformIntegerHyperparameter(
-            "n_estimators", 50, 500, default_value=100)
+        # n_estimators = UniformIntegerHyperparameter(
+        #     "n_estimators", 50, 500, default_value=100)
+        n_estimators = Constant("n_estimators", 100)
         max_depth = UniformIntegerHyperparameter(
-            name="max_depth", lower=1, upper=10, default_value=3)
+            name="max_depth", lower=1, upper=8, default_value=3)
         criterion = CategoricalHyperparameter(
             'criterion', ['friedman_mse', 'mse'],
             default_value='mse')
@@ -139,7 +140,7 @@ class GradientBoostingClassifier(IterativeComponentWithSampleWeight,
             name="min_samples_leaf", lower=1, upper=20, default_value=1)
         min_weight_fraction_leaf = UnParametrizedHyperparameter("min_weight_fraction_leaf", 0.)
         subsample = UniformFloatHyperparameter(
-                name="subsample", lower=0.01, upper=1.0, default_value=1.0)
+            name="subsample", lower=0.01, upper=1.0, default_value=1.0)
         max_features = UniformFloatHyperparameter(
             "max_features", 0.1, 1.0, default_value=1)
         max_leaf_nodes = UnParametrizedHyperparameter(
