@@ -357,8 +357,8 @@ class FirstLayerBandit(object):
             model_num = 60
             model_num_partial = int(model_num * 0.667)
 
-            fe_eval_dict = self.sub_bandits[algo_id].optimizer['fe'].eval_dict
-            hpo_eval_dict = self.sub_bandits[algo_id].optimizer['hpo'].eval_dict
+            fe_eval_dict = self.sub_bandits[algo_id].eval_dict['fe']
+            hpo_eval_dict = self.sub_bandits[algo_id].eval_dict['hpo']
 
             fe_eval_list = sorted(fe_eval_dict.items(), key=lambda item: item[1], reverse=True)
             hpo_eval_list = sorted(hpo_eval_dict.items(), key=lambda item: item[1], reverse=True)
