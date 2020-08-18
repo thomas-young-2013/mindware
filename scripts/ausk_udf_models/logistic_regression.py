@@ -3,11 +3,11 @@ from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
     CategoricalHyperparameter, UnParametrizedHyperparameter
 
-from solnml.components.models.base_model import BaseClassificationModel
 from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
+from autosklearn.pipeline.components.base import AutoSklearnClassificationAlgorithm
 
 
-class Logistic_Regression(BaseClassificationModel):
+class Logistic_Regression(AutoSklearnClassificationAlgorithm):
     def __init__(self, C, penalty, solver, tol, max_iter, random_state=None):
         self.C = C
         self.tol = tol
@@ -17,8 +17,6 @@ class Logistic_Regression(BaseClassificationModel):
         self.max_iter = max_iter
         self.estimator = None
         self.time_limit = None
-
-        self.n_jobs = 1
 
     def fit(self, X, Y):
         from sklearn.linear_model import LogisticRegression
@@ -32,7 +30,7 @@ class Logistic_Regression(BaseClassificationModel):
                                             C=self.C,
                                             tol=self.tol,
                                             max_iter=self.max_iter,
-                                            n_jobs=self.n_jobs)
+                                            n_jobs=4)
         self.estimator.fit(X, Y)
         return self
 

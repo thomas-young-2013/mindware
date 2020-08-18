@@ -16,7 +16,7 @@ def get_estimator(config):
     except:
         estimator = _addons.components[regressor_type](**config_)
     if hasattr(estimator, 'n_jobs'):
-        setattr(estimator, 'n_jobs', 4)
+        setattr(estimator, 'n_jobs', 1)
     return regressor_type, estimator
 
 
