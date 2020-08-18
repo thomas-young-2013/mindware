@@ -165,7 +165,7 @@ def evaluate_autosklearn(algorithms, rep_id,
 
     save_path = save_dir + '%s-%d.pkl' % (task_id, rep_id)
     with open(save_path, 'wb') as f:
-        stats = [plot_x, valid_results, str_stats]
+        stats = [plot_x, valid_results, model_desc]
         pickle.dump([validation_score, test_score, stats], f)
 
 
@@ -255,8 +255,12 @@ if __name__ == "__main__":
                         continue
                     with open(file_path, 'rb') as f:
                         data = pickle.load(f)
-                    val_acc, test_acc, _ = data
+                    val_acc, test_acc, stats = data
                     results.append([val_acc, test_acc])
+                    if mth.startswith('ausk'):
+                        print(stats[2])
+                        print('='*30)
+                        print('\n' * 10)
 
                 if len(results) == rep:
                     results = np.array(results)

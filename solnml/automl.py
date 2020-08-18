@@ -113,6 +113,8 @@ class AutoML(object):
                 if 'adaboost' not in include_models:
                     include_models.append('adaboost')
 
+                include_models = ['extra_trees', 'adaboost', 'liblinear_svc', 'random_forest',
+                                  'qda']
                 self.include_algorithms = include_models
                 self.logger.info('Final Algorithms Recommended: [%s]' % ','.join(self.include_algorithms))
             except Exception as e:

@@ -71,18 +71,10 @@ class QDA(BaseClassificationModel):
                 'output': (PREDICTIONS,)}
 
     @staticmethod
-    def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
-        if optimizer == 'smac':
-            reg_param = UniformFloatHyperparameter('reg_param', 0.0, 1.0,
-                                                   default_value=0.0)
+    def get_hyperparameter_search_space(dataset_properties=None):
+        reg_param = UniformFloatHyperparameter('reg_param', 0.0, 1.0,
+                                               default_value=0.0)
 
-            cs = ConfigurationSpace()
-            cs.add_hyperparameter(reg_param)
-            return cs
-        elif optimizer == 'tpe':
-            from hyperopt import hp
-            space = {'reg_param': hp.uniform('qda_reg_param', 0, 1)}
-
-            init_trial = {'reg_param': 0}
-
-            return space
+        cs = ConfigurationSpace()
+        cs.add_hyperparameter(reg_param)
+        return cs

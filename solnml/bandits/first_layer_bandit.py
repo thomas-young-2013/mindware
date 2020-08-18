@@ -20,7 +20,7 @@ class FirstLayerBandit(object):
                  time_limit=None,
                  metric='acc',
                  ensemble_method='ensemble_selection',
-                 ensemble_size=10,
+                 ensemble_size=50,
                  per_run_time_limit=300,
                  output_dir="logs",
                  dataset_name='default_dataset',

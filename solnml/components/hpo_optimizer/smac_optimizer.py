@@ -80,8 +80,9 @@ class SMACOptimizer(BaseHPOptimizer):
             fe_config = None
         self.eval_dict = {(fe_config, hpo_config): -score for hpo_config, score in
                           runhistory.data.items()}
-        self.incumbent_config, self.incumbent_perf = runhistory.get_incumbents()[0]
-        self.incumbent_perf = -self.incumbent_perf
+        if len(runhistory.get_incumbents()) > 0:
+            self.incumbent_config, self.incumbent_perf = runhistory.get_incumbents()[0]
+            self.incumbent_perf = -self.incumbent_perf
         iteration_cost = time.time() - _start_time
         # incumbent_perf: the large the better
         return self.incumbent_perf, iteration_cost, self.incumbent_config
