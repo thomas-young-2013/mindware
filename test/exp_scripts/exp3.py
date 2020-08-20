@@ -87,7 +87,8 @@ def evaluate_ausk(run_id, mth, dataset, algo,
     )
 
     print(automl)
-    train_data, _ = load_train_test_data(dataset, test_size=0.05)
+    task_type = MULTICLASS_CLS
+    train_data, _ = load_train_test_data(dataset, test_size=0.05, task_type=task_type)
     X, y = train_data.data
     feat_type = ['Categorical' if _type == CATEGORICAL else 'Numerical'
                  for _type in train_data.feature_types]
