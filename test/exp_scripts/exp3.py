@@ -36,9 +36,10 @@ if not os.path.exists(save_folder):
 
 def evaluate_2rd_hmab(run_id, mth, dataset, algo,
                       eval_type='holdout', time_limit=1200, seed=1):
-    train_data, _ = load_train_test_data(dataset, test_size=0.05)
-    metric = get_metric('bal_acc')
     task_type = MULTICLASS_CLS
+    train_data, _ = load_train_test_data(dataset, test_size=0.05, task_type=task_type)
+    metric = get_metric('bal_acc')
+
     bandit = SecondLayerBandit(task_type, algo, train_data, metric,
                                dataset_id=dataset, mth=mth,
                                seed=seed, eval_type=eval_type, fe_algo='bo')
