@@ -44,7 +44,7 @@ rep_num = args.rep_num
 np.random.seed(args.seed)
 seeds = np.random.randint(low=1, high=10000, size=start_id + rep_num)
 
-per_run_time_limit = 150
+per_run_time_limit = 300
 holdout_datasets = dataset_set.split(',')
 hmab_id = 'hmab'
 
@@ -257,10 +257,10 @@ if __name__ == "__main__":
                         data = pickle.load(f)
                     val_acc, test_acc, stats = data
                     results.append([val_acc, test_acc])
-                    if mth.startswith('ausk'):
-                        print(stats[2])
-                        print('='*30)
-                        print('\n' * 10)
+                    # if mth.startswith('ausk'):
+                    #     print(stats[2])
+                    #     print('='*30)
+                    #     print('\n' * 10)
 
                 if len(results) == rep:
                     results = np.array(results)

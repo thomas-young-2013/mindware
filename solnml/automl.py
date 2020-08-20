@@ -100,21 +100,21 @@ class AutoML(object):
                 n_algo_recommended = 5
                 meta_datasets = kwargs.get('meta_datasets', None)
                 self.logger.info('Executing Meta-Learning based Algorithm Recommendation.')
-                alad = RankNetAdvisor(task_type=self.task_type, n_algorithm=9,
-                                      exclude_datasets=meta_datasets,
-                                      metric=self.metric_id)
-                model_candidates = alad.fetch_algorithm_set(train_data, dataset_id=dataset_id)
-                include_models = list()
-                for algo in model_candidates:
-                    if algo in self.include_algorithms and len(include_models) < n_algo_recommended:
-                        include_models.append(algo)
-                if 'logistic_regression' in include_models:
-                    include_models.remove('logistic_regression')
-                if 'adaboost' not in include_models:
-                    include_models.append('adaboost')
+                # alad = RankNetAdvisor(task_type=self.task_type, n_algorithm=9,
+                #                       exclude_datasets=meta_datasets,
+                #                       metric=self.metric_id)
+                # model_candidates = alad.fetch_algorithm_set(train_data, dataset_id=dataset_id)
+                # include_models = list()
+                # for algo in model_candidates:
+                #     if algo in self.include_algorithms and len(include_models) < n_algo_recommended:
+                #         include_models.append(algo)
+                # if 'logistic_regression' in include_models:
+                #     include_models.remove('logistic_regression')
+                # if 'adaboost' not in include_models:
+                #     include_models.append('adaboost')
 
                 include_models = ['extra_trees', 'adaboost', 'liblinear_svc', 'random_forest',
-                                  'qda']
+                                  'libsvm_svc', 'lightgbm']
                 self.include_algorithms = include_models
                 self.logger.info('Final Algorithms Recommended: [%s]' % ','.join(self.include_algorithms))
             except Exception as e:

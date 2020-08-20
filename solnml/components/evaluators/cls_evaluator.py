@@ -21,7 +21,7 @@ def get_estimator(config):
     except:
         estimator = _addons.components[classifier_type](**config_)
     if hasattr(estimator, 'n_jobs'):
-        setattr(estimator, 'n_jobs', 1)
+        setattr(estimator, 'n_jobs', 4)
     return classifier_type, estimator
 
 

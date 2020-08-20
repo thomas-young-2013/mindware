@@ -107,7 +107,7 @@ class FirstLayerBandit(object):
         return self.time_records, self.final_rewards
 
     def optimize(self):
-        if self.inner_opt_algorithm in ['rb_hpo', 'fixed', 'alter_hpo']:
+        if self.inner_opt_algorithm in ['rb_hpo', 'fixed', 'alter_hpo', 'alter']:
             self.optimize_explore_first()
         elif self.inner_opt_algorithm == 'equal':
             self.optimize_equal_resource()

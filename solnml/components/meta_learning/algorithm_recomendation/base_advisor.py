@@ -8,7 +8,8 @@ from solnml.components.utils.constants import CLS_TASKS, REG_TASKS
 from solnml.utils.logging_utils import get_logger
 
 _buildin_algorithms = ['lightgbm', 'random_forest', 'libsvm_svc', 'extra_trees', 'liblinear_svc',
-                       'k_nearest_neighbors', 'logistic_regression', 'gradient_boosting', 'adaboost']
+                       'k_nearest_neighbors', 'gradient_boosting',
+                       'adaboost', 'lda', 'qda']
 
 
 class BaseAdvisor(object):
