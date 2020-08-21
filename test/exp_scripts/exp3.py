@@ -9,19 +9,19 @@ import pickle
 import argparse
 import numpy as np
 from tabulate import tabulate
+from sklearn.metrics import balanced_accuracy_score
 import autosklearn.classification
+
 
 sys.path.append(os.getcwd())
 from solnml.datasets.utils import load_train_test_data
-from solnml.bandits.second_layer_bandit import SecondLayerBandit
 from solnml.components.utils.constants import CATEGORICAL, MULTICLASS_CLS
-from solnml.components.metrics.metric import get_metric
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,vehicle,yeast,' \
               'messidor_features,winequality_red,winequality_white,splice,spambase,amazon_employee'
 parser.add_argument('--datasets', type=str, default=dataset_set)
-parser.add_argument('--mode', type=str, choices=['rb', 'alter_hpo', 'fixed', 'plot', 'all', 'ausk'], default='rb')
+parser.add_argument('--mode', type=str, choices=['rb', 'alter_hpo', 'fixed', 'plot', 'all', 'ausk', 'combined'], default='rb')
 parser.add_argument('--cv', type=str, choices=['cv', 'holdout'], default='holdout')
 parser.add_argument('--algo', type=str, default='random_forest')
 parser.add_argument('--time_cost', type=int, default=600)
@@ -37,32 +37,28 @@ if not os.path.exists(save_folder):
 def evaluate_2rd_hmab(run_id, mth, dataset, algo,
                       eval_type='holdout', time_limit=1200, seed=1):
     task_type = MULTICLASS_CLS
-    train_data, _ = load_train_test_data(dataset, test_size=0.05, task_type=task_type)
-    metric = get_metric('bal_acc')
+    train_data, test_data = load_train_test_data(dataset, task_type=task_type)
 
-    bandit = SecondLayerBandit(task_type, algo, train_data, metric,
-                               dataset_id=dataset, mth=mth,
-                               seed=seed, eval_type=eval_type, fe_algo='bo')
+    from solnml.estimators import Classifier
+    clf = Classifier(time_limit=time_limit,
+                     per_run_time_limit=180,
+                     output_dir=save_folder,
+                     ensemble_method=None,
+                     evaluation=eval_type,
+                     enable_meta_algorithm_selection=False,
+                     metric='bal_acc',
+                     include_algorithms=[algo],
+                     n_jobs=1)
 
-    start_time = time.time()
-    iter_id = 0
-    stats = list()
-
-    while True:
-        if time.time() > time_limit + start_time or bandit.early_stopped_flag:
-            break
-        res = bandit.play_once()
-        print('Iteration %d - %.4f' % (iter_id, res))
-        stats.append([iter_id, time.time() - start_time, res])
-        iter_id += 1
-
-    print(bandit.final_rewards)
-    print(bandit.action_sequence)
-    print(np.mean(bandit.evaluation_cost['fe']))
-    print(np.mean(bandit.evaluation_cost['hpo']))
-
-    validation_score = np.max(bandit.final_rewards)
-    print('Validation score', validation_score)
+    clf.fit(train_data, opt_strategy=mth)
+    pred = clf.predict(test_data)
+    test_score = balanced_accuracy_score(test_data.data[1], pred)
+    timestamps, perfs = clf.get_val_stats()
+    validation_score = np.max(perfs)
+    print('Evaluation Num : %d' % len(perfs))
+    print('Run ID         : %d' % run_id)
+    print('Dataset        : %s' % dataset)
+    print('Val/Test score : %f - %f' % (validation_score, test_score))
 
     save_path = save_folder + '%s_%s_%d_%d_%s.pkl' % (mth, dataset, time_limit, run_id, algo)
     with open(save_path, 'wb') as f:
@@ -129,7 +125,7 @@ if __name__ == "__main__":
                     for _id in range(start_id, start_id+rep):
                         seed = seeds[_id]
                         print('Running %s with %d-th seed' % (dataset, _id + 1))
-                        if method in ['rb', 'fixed', 'alter_hpo']:
+                        if method in ['rb', 'fixed', 'alter_hpo', 'combined']:
                             evaluate_2rd_hmab(_id, method, dataset, algo,
                                               eval_type=cv, time_limit=time_cost, seed=seed)
                         elif method in ['ausk']:

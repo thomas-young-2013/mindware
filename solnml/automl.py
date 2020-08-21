@@ -95,6 +95,9 @@ class AutoML(object):
             train_data = DataBalancer().operate(train_data)
 
         dataset_id = kwargs.get('dataset_id', None)
+        inner_opt_algorithm = kwargs.get('opt_strategy', 'alter_hpo')
+        self.logger.info('Optimization algorithm in 2rd bandit: %s' % inner_opt_algorithm)
+
         if self.enable_meta_algorithm_selection:
             try:
                 n_algo_recommended = 5
@@ -127,7 +130,7 @@ class AutoML(object):
                                        dataset_name=self.dataset_name,
                                        ensemble_method=self.ensemble_method,
                                        ensemble_size=self.ensemble_size,
-                                       inner_opt_algorithm='alter_hpo',
+                                       inner_opt_algorithm=inner_opt_algorithm,
                                        metric=self.metric,
                                        enable_fe=self.enable_fe,
                                        fe_algo='bo',
