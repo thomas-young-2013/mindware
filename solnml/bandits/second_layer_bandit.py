@@ -252,7 +252,7 @@ class SecondLayerBandit(object):
         self.pull_cnt += 1
 
     def optimize_fixed_pipeline(self):
-        if self.pull_cnt <= 2:
+        if self.pull_cnt <= 3:
             _arm = 'hpo'
         else:
             _arm = 'fe'
@@ -318,6 +318,7 @@ class SecondLayerBandit(object):
         return self.incumbent_perf
 
     def prepare_optimizer(self, _arm):
+        trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
         if _arm == 'fe':
             # Build the Feature Engineering component.
             self.original_data._node_id = -1
@@ -337,11 +338,11 @@ class SecondLayerBandit(object):
                                                       fe_evaluator, self.estimator_id, self.per_run_time_limit,
                                                       self.per_run_mem_limit, self.seed,
                                                       shared_mode=self.share_fe,
+                                                      number_of_unit_resource=self.number_of_unit_resource,
                                                       n_jobs=self.n_jobs)
         else:
             # trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
             # trials_per_iter = max(20, trials_per_iter)
-            trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
             if self.task_type in CLS_TASKS:
                 hpo_evaluator = ClassificationEvaluator(self.default_config, scorer=self.metric,
                                                         data_node=self.inc['fe'].copy_(), name='hpo',

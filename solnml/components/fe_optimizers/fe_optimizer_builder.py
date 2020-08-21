@@ -10,6 +10,7 @@ from solnml.components.fe_optimizers.mfse_optimizer import MfseOptimizer
 def build_fe_optimizer(algo, eval_type, task_type, input_data, evaluator,
                        model_id: str, time_limit_per_trans: int,
                        mem_limit_per_trans: int, seed: int,
+                       number_of_unit_resource: int = 1,
                        shared_mode: bool = False, n_jobs=4):
     if algo == 'tree_based':
         if eval_type == 'partial':
@@ -34,6 +35,7 @@ def build_fe_optimizer(algo, eval_type, task_type, input_data, evaluator,
                                evaluator=evaluator, model_id=model_id,
                                time_limit_per_trans=time_limit_per_trans,
                                mem_limit_per_trans=mem_limit_per_trans,
+                               number_of_unit_resource=number_of_unit_resource,
                                seed=seed, n_jobs=n_jobs)
     else:
         raise ValueError("Unsupported algo %s" % str(algo))

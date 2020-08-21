@@ -23,7 +23,7 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
                  time_budget=600, algo='smac'):
         super().__init__(str(__class__.__name__), task_type, input_data, seed)
         self.number_of_unit_resource = number_of_unit_resource
-        self.iter_num_per_unit_resource = 10
+        self.iter_num_per_unit_resource = 5
         self.time_limit_per_trans = time_limit_per_trans
         self.mem_limit_per_trans = mem_limit_per_trans
         self.time_budget = time_budget
