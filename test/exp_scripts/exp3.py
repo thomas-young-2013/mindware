@@ -62,7 +62,7 @@ def evaluate_2rd_hmab(run_id, mth, dataset, algo,
 
     save_path = save_folder + '%s_%s_%d_%d_%s.pkl' % (mth, dataset, time_limit, run_id, algo)
     with open(save_path, 'wb') as f:
-        pickle.dump([dataset, validation_score], f)
+        pickle.dump([dataset, validation_score, test_score], f)
 
 
 def evaluate_ausk(run_id, mth, dataset, algo,
@@ -85,19 +85,23 @@ def evaluate_ausk(run_id, mth, dataset, algo,
 
     print(automl)
     task_type = MULTICLASS_CLS
-    train_data, _ = load_train_test_data(dataset, test_size=0.05, task_type=task_type)
+    train_data, test_data = load_train_test_data(dataset, task_type=task_type)
     X, y = train_data.data
+    X_test, y_test = test_data.data
     feat_type = ['Categorical' if _type == CATEGORICAL else 'Numerical'
                  for _type in train_data.feature_types]
     from autosklearn.metrics import balanced_accuracy as balanced_acc
     automl.fit(X.copy(), y.copy(), feat_type=feat_type, metric=balanced_acc)
     valid_results = automl.cv_results_['mean_test_score']
     validation_score = np.max(valid_results)
-    print('Validation score', validation_score)
+    predictions = automl.predict(X_test)
+    test_score = balanced_accuracy_score(y_test, predictions)
 
+    print('Validation score', validation_score)
+    print('Test score', test_score)
     save_path = save_folder + '%s_%s_%d_%d_%s.pkl' % (mth, dataset, time_limit, run_id, algo)
     with open(save_path, 'wb') as f:
-        pickle.dump([dataset, validation_score], f)
+        pickle.dump([dataset, validation_score, test_score], f)
 
 
 if __name__ == "__main__":
