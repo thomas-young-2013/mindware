@@ -31,7 +31,7 @@ class ParallelFetcher(object):
             self.estimators.append(estimator)
         return self.estimators
 
-    def submit(self, task_type, config, X_train, y_train, weight_balance, data_balance):
+    def submit(self, task_type, config, X_train, y_train, weight_balance, data_balance, combined=False):
         self.execution_stats.append(self.thread_pool.submit(execute_func,
                                                             (task_type, config, X_train, y_train, weight_balance,
-                                                             data_balance)))
+                                                             data_balance, combined)))

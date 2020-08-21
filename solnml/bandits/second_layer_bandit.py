@@ -10,6 +10,7 @@ from solnml.components.hpo_optimizer import build_hpo_optimizer
 from solnml.components.utils.constants import CLS_TASKS, REG_TASKS
 from solnml.utils.decorators import time_limit
 from solnml.utils.functions import get_increasing_sequence
+from solnml.utils.combined_evaluator import get_combined_cs, CombinedEvaluator
 
 
 class SecondLayerBandit(object):
@@ -144,6 +145,21 @@ class SecondLayerBandit(object):
         self.local_hist['fe'].append(self.original_data)
         self.local_hist['hpo'].append(self.default_config)
 
+        if self.mth == 'combined':
+            self.rewards = list()
+            self.evaluation_cost = list()
+            self.eval_dict = {}
+            self.incumbent_config = None
+            self.evaluator = CombinedEvaluator(
+                scorer=self.metric,
+                data_node=self.original_data,
+                resampling_strategy=self.evaluation_type)
+            cs = get_combined_cs(self.estimator_id)
+            self.optimizer = build_hpo_optimizer(self.evaluation_type, self.evaluator, cs, output_dir=self.output_dir,
+                                                 per_run_time_limit=self.per_run_time_limit,
+                                                 inner_iter_num_per_iter=10,
+                                                 seed=self.seed, n_jobs=self.n_jobs)
+
     def collect_iter_stats(self, _arm, results):
         for arm_id in self.arms:
             self.update_flag[arm_id] = False
@@ -251,6 +267,15 @@ class SecondLayerBandit(object):
         self.action_sequence.append(_arm)
         self.pull_cnt += 1
 
+    def optimize_combined(self):
+        score, iter_cost, config = self.optimizer.iterate()
+        self.eval_dict.update(self.optimizer.eval_dict)
+        self.rewards.append(score)
+        if max(self.rewards) == score:
+            self.incumbent_perf = score
+            self.incumbent_config = config
+        self.evaluation_cost.append(iter_cost)
+
     def optimize_fixed_pipeline(self):
         if self.pull_cnt <= 2:
             _arm = 'hpo'
@@ -309,6 +334,8 @@ class SecondLayerBandit(object):
             self.evaluate_joint_solution()
         elif self.mth in ['fe_only', 'hpo_only']:
             self.optimize_one_component(self.mth)
+        elif self.mth in ['combined']:
+            self.optimize_combined()
         elif self.mth in ['fixed']:
             self.optimize_fixed_pipeline()
         else:
