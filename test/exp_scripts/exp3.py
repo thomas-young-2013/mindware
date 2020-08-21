@@ -4,7 +4,6 @@
 """
 import os
 import sys
-import time
 import pickle
 import argparse
 import numpy as np
@@ -41,7 +40,7 @@ def evaluate_2rd_hmab(run_id, mth, dataset, algo,
 
     from solnml.estimators import Classifier
     clf = Classifier(time_limit=time_limit,
-                     per_run_time_limit=180,
+                     per_run_time_limit=300,
                      output_dir=save_folder,
                      ensemble_method=None,
                      evaluation=eval_type,
