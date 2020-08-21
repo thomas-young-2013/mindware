@@ -32,7 +32,7 @@ def holdout_validation(estimator, scorer, X, y, train_size=0.3, random_state=1):
         return scorer(estimator, X_test, y_test)
 
 
-def fetch_predict_estimator(task_type, config, X_train, y_train, weight_balance=0, data_balance=0):
+def fetch_predict_estimator(task_type, config, X_train, y_train, weight_balance=0, data_balance=0, combined=False):
     # Build the ML estimator.
     from solnml.components.utils.balancing import get_weights, smote
     _fit_params = {}
@@ -45,7 +45,10 @@ def fetch_predict_estimator(task_type, config, X_train, y_train, weight_balance=
     if data_balance == 1:
         X_train, y_train = smote(X_train, y_train)
     if task_type in CLS_TASKS:
-        from solnml.components.evaluators.cls_evaluator import get_estimator
+        if combined:
+            from solnml.utils.combined_evaluator import get_estimator
+        else:
+            from solnml.components.evaluators.cls_evaluator import get_estimator
     else:
         from solnml.components.evaluators.reg_evaluator import get_estimator
     _, estimator = get_estimator(config_dict)
