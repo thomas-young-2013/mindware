@@ -12,6 +12,7 @@ from solnml.utils.logging_utils import get_logger
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
 from solnml.components.evaluators.evaluate_func import holdout_validation, cross_validation, partial_validation
 from solnml.components.fe_optimizers.ano_bo_optimizer import AnotherBayesianOptimizationOptimizer
+from solnml.components.fe_optimizers.bo_optimizer import BayesianOptimizationOptimizer
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
 from solnml.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from solnml.datasets.utils import load_train_test_data, load_data
