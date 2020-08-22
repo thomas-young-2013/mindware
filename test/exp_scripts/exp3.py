@@ -139,9 +139,10 @@ if __name__ == "__main__":
 
     else:
         headers = ['dataset']
-        method_ids = ['fixed', 'alter_hpo', 'rb', 'ausk']
+        # method_ids = ['fixed', 'alter_hpo', 'rb', 'ausk']
+        method_ids = ['combined', 'ausk']
         for mth in method_ids:
-            headers.extend(['val-%s' % mth])
+            headers.extend(['val-%s' % mth, 'test-%s' % mth])
         algo = args.algo
         tbl_data = list()
         for dataset in dataset_list:
@@ -154,11 +155,12 @@ if __name__ == "__main__":
                         continue
                     with open(file_path, 'rb') as f:
                         data = pickle.load(f)
-                    val_acc = data[1]
-                    results.append([val_acc])
+                    val_acc, test_acc = data[1], data[2]
+                    results.append([val_acc, test_acc])
                 print(mth, results)
                 if len(results) == rep:
                     results = np.array(results)
+                    print(mth, results)
                     stats_ = zip(np.mean(results, axis=0), np.std(results, axis=0))
                     string = ''
                     for mean_t, std_t in stats_:
@@ -175,7 +177,7 @@ if __name__ == "__main__":
                         else:
                             row_data.append(u'%.4f' % median)
                 else:
-                    row_data.extend(['-'])
+                    row_data.extend(['-'] * 2)
 
             tbl_data.append(row_data)
-        print(tabulate(tbl_data, headers, tablefmt='github'))
+            print(tabulate.tabulate(tbl_data, headers, tablefmt='github'))
