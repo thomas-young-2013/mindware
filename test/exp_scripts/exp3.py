@@ -160,7 +160,7 @@ if __name__ == "__main__":
                 print(mth, results)
                 if len(results) == rep:
                     results = np.array(results)
-                    print(mth, results)
+                    # print(mth, results)
                     stats_ = zip(np.mean(results, axis=0), np.std(results, axis=0))
                     string = ''
                     for mean_t, std_t in stats_:
@@ -180,4 +180,4 @@ if __name__ == "__main__":
                     row_data.extend(['-'] * 2)
 
             tbl_data.append(row_data)
-            print(tabulate.tabulate(tbl_data, headers, tablefmt='github'))
+        print(tabulate.tabulate(tbl_data, headers, tablefmt='github'))
