@@ -6,8 +6,8 @@ import os
 import sys
 import pickle
 import argparse
+import tabulate
 import numpy as np
-from tabulate import tabulate
 from sklearn.metrics import balanced_accuracy_score
 import autosklearn.classification
 
