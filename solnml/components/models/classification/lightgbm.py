@@ -12,7 +12,7 @@ from solnml.components.models.base_model import BaseClassificationModel
 
 class LightGBM(BaseClassificationModel):
     def __init__(self, n_estimators, learning_rate, num_leaves, max_depth, min_child_samples,
-                 subsample, colsample_bytree, random_state):
+                 subsample, colsample_bytree, random_state=None):
         self.n_estimators = int(n_estimators)
         self.learning_rate = learning_rate
         self.num_leaves = num_leaves
