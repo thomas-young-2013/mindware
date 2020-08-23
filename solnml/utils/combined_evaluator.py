@@ -24,7 +24,7 @@ def get_estimator(config):
     classifier_type = config['estimator']
     config_ = config.copy()
     config_.pop('estimator', None)
-    config_['random_state'] = 1
+    config_['placeholder:random_state'] = 1
     hpo_config = dict()
     for key in config_:
         if 'placeholder' in key:
