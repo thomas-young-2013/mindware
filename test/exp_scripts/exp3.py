@@ -95,6 +95,13 @@ def evaluate_ausk(run_id, mth, dataset, algo,
     validation_score = np.max(valid_results)
     predictions = automl.predict(X_test)
     test_score = balanced_accuracy_score(y_test, predictions)
+    model_desc = automl.show_models()
+    str_stats = automl.sprint_statistics()
+
+    print('='*10)
+    print(model_desc)
+    print(str_stats)
+    print('='*10)
 
     print('Validation score', validation_score)
     print('Test score', test_score)

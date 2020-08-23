@@ -48,7 +48,7 @@ class FirstLayerBandit(object):
         self.alpha = 4
         self.seed = seed
         self.output_dir = output_dir
-        np.random.seed(self.seed)
+        # np.random.seed(self.seed)
 
         # Best configuration.
         self.optimal_algo_id = None

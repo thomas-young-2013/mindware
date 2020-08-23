@@ -44,7 +44,6 @@ class SecondLayerBandit(object):
         self.sliding_window_size = sw_size
         task_id = '%s-%d-%s' % (dataset_id, seed, estimator_id)
         self.logger = get_logger(self.__class__.__name__ + '-' + task_id)
-        np.random.seed(self.seed)
 
         # Bandit settings.
         # self.arms = ['fe', 'hpo']
