@@ -70,7 +70,7 @@ class RandomForest(
                 self.max_leaf_nodes = int(self.max_leaf_nodes)
 
             self.min_impurity_decrease = float(self.min_impurity_decrease)
-
+            print(self.random_state)
             # initial fit of only increment trees
             self.estimator = RandomForestClassifier(
                 n_estimators=n_iter,

@@ -90,9 +90,9 @@ class AutoML(object):
         :return:
         """
         # Check whether this dataset is balanced or not.
-        if self.task_type in CLS_TASKS and is_unbalanced_dataset(train_data):
-            self.logger.info('Input dataset is imbalanced!')
-            train_data = DataBalancer().operate(train_data)
+        # if self.task_type in CLS_TASKS and is_unbalanced_dataset(train_data):
+        #     self.logger.info('Input dataset is imbalanced!')
+        #     train_data = DataBalancer().operate(train_data)
 
         dataset_id = kwargs.get('dataset_id', None)
         inner_opt_algorithm = kwargs.get('opt_strategy', 'alter_hpo')

@@ -6,7 +6,7 @@ from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter
 
 from solnml.components.fe_optimizers import Optimizer
-from solnml.components.feature_engineering.transformations import _balancer, _preprocessor, _rescaler
+from solnml.components.feature_engineering.transformations import _imb_balancer, _bal_balancer, _preprocessor, _rescaler
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
 from solnml.components.utils.constants import CLS_TASKS
@@ -154,6 +154,7 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
         _node = data_node.copy_()
 
         # Balancer
+        _balancer = _bal_balancer if self.if_bal else _imb_balancer
         _node, bal_tran = tran_operate(bal_id, _balancer, config_dict, _node)
 
         # Rescaler
@@ -199,6 +200,7 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
         preprocessor_dict = self._get_configuration_space(_preprocessor, self.trans_types, optimizer=optimizer)
         rescaler_dict = self._get_configuration_space(_rescaler, self.trans_types, optimizer=optimizer)
         if self.task_type in CLS_TASKS:
+            _balancer = _bal_balancer if self.if_bal else _imb_balancer
             balancer_dict = self._get_configuration_space(_balancer, optimizer=optimizer)
         else:
             balancer_dict = None

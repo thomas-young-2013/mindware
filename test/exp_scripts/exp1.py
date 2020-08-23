@@ -5,10 +5,11 @@ import pickle
 import argparse
 import tabulate
 import numpy as np
-import autosklearn.classification
 from sklearn.metrics import balanced_accuracy_score
 
 sys.path.append(os.getcwd())
+
+import autosklearn.classification
 from solnml.estimators import Classifier
 from solnml.datasets.utils import load_train_test_data
 from solnml.components.utils.constants import CATEGORICAL, MULTICLASS_CLS
@@ -65,6 +66,7 @@ def evaluate_hmab(algorithms, run_id,
 
     clf = Classifier(time_limit=time_limit,
                      per_run_time_limit=per_run_time_limit,
+                     include_algorithms=algorithms,
                      amount_of_resource=None,
                      output_dir=save_dir,
                      ensemble_method=ensemble_method,
@@ -102,7 +104,7 @@ def evaluate_autosklearn(algorithms, rep_id,
     else:
         init_config_via_metalearning = 0
 
-    include_models = None
+    include_models = algorithms
 
     if eval_type == 'holdout':
         automl = autosklearn.classification.AutoSklearnClassifier(
@@ -142,11 +144,19 @@ def evaluate_autosklearn(algorithms, rep_id,
     feat_type = ['Categorical' if _type == CATEGORICAL else 'Numerical'
                  for _type in raw_data.feature_types]
     from autosklearn.metrics import balanced_accuracy as balanced_acc
+    start_time = time.time()
     automl.fit(X.copy(), y.copy(), feat_type=feat_type, metric=balanced_acc)
     model_desc = automl.show_models()
     str_stats = automl.sprint_statistics()
     valid_results = automl.cv_results_['mean_test_score']
     time_records = automl.cv_results_['mean_fit_time']
+    print(time_records)
+    print('Eval num: %d' % (len(valid_results)))
+    end_time = time.time()
+    total_time = end_time - start_time
+    print('Total time: %.2f' % total_time)
+    print('Eval time: %.2f' % sum(time_records))
+    print('Eval/Total: %.2f' % (sum(time_records) / total_time))
     plot_x = convert_ausk_to_plot(time_records, time_limit)
 
     validation_score = np.max(valid_results)
@@ -158,8 +168,8 @@ def evaluate_autosklearn(algorithms, rep_id,
 
     # Print statistics about the auto-sklearn run such as number of
     # iterations, number of models failed with a time out.
-    print(str_stats)
-    print(model_desc)
+    # print(str_stats)
+    # print(model_desc)
     print('Validation Accuracy:', validation_score)
     print("Test Accuracy      :", test_score)
 
@@ -209,7 +219,7 @@ if __name__ == "__main__":
                       'multinomial_nb', 'gaussian_nb', 'bernoulli_nb'
                       ]
     elif algo_num == 1:
-        algorithms = ['libsvm_svc']
+        algorithms = ['adaboost']
     else:
         raise ValueError('Invalid algorithm num - %d!' % algo_num)
 

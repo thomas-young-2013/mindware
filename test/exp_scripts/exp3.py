@@ -9,10 +9,10 @@ import argparse
 import tabulate
 import numpy as np
 from sklearn.metrics import balanced_accuracy_score
-import autosklearn.classification
-
 
 sys.path.append(os.getcwd())
+import autosklearn.classification
+
 from solnml.datasets.utils import load_train_test_data
 from solnml.components.utils.constants import CATEGORICAL, MULTICLASS_CLS
 
@@ -66,7 +66,6 @@ def evaluate_2rd_hmab(run_id, mth, dataset, algo,
 
 def evaluate_ausk(run_id, mth, dataset, algo,
                   eval_type='holdout', time_limit=1200, seed=1):
-
     automl = autosklearn.classification.AutoSklearnClassifier(
         time_left_for_this_task=int(time_limit),
         per_run_time_limit=300,
@@ -77,6 +76,8 @@ def evaluate_ausk(run_id, mth, dataset, algo,
         ensemble_size=1,
         ensemble_nbest=1,
         initial_configurations_via_metalearning=0,
+        delete_tmp_folder_after_terminate=False,
+        delete_output_folder_after_terminate=False,
         seed=int(seed),
         resampling_strategy='holdout',
         resampling_strategy_arguments={'train_size': 0.67}
@@ -98,6 +99,7 @@ def evaluate_ausk(run_id, mth, dataset, algo,
 
     print('Validation score', validation_score)
     print('Test score', test_score)
+    print(automl.show_models())
     save_path = save_folder + '%s_%s_%d_%d_%s.pkl' % (mth, dataset, time_limit, run_id, algo)
     with open(save_path, 'wb') as f:
         pickle.dump([dataset, validation_score, test_score], f)
@@ -112,7 +114,7 @@ if __name__ == "__main__":
     np.random.seed(1)
     rep = args.rep_num
     start_id = args.start_id
-    seeds = np.random.randint(low=1, high=10000, size=start_id+rep)
+    seeds = np.random.randint(low=1, high=10000, size=start_id + rep)
     dataset_list = dataset_str.split(',')
 
     if not mode.startswith('plot'):
@@ -125,7 +127,7 @@ if __name__ == "__main__":
         for dataset in dataset_list:
             for algo in algos:
                 for method in methods:
-                    for _id in range(start_id, start_id+rep):
+                    for _id in range(start_id, start_id + rep):
                         seed = seeds[_id]
                         print('Running %s with %d-th seed' % (dataset, _id + 1))
                         if method in ['rb', 'fixed', 'alter_hpo', 'combined']:

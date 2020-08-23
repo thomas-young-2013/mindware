@@ -121,31 +121,32 @@ class SecondLayerBandit(object):
         else:
             raise ValueError('Invalid task type!')
 
-        self.enable_fe = enable_fe
-        self.fe_algo = fe_algo
-        self.optimizer['fe'] = build_fe_optimizer(self.fe_algo, self.evaluation_type,
-                                                  self.task_type, self.original_data,
-                                                  fe_evaluator, estimator_id, per_run_time_limit,
-                                                  per_run_mem_limit, self.seed,
-                                                  shared_mode=self.share_fe, n_jobs=n_jobs)
+        if self.mth != 'combined':
+            self.enable_fe = enable_fe
+            self.fe_algo = fe_algo
+            self.optimizer['fe'] = build_fe_optimizer(self.fe_algo, self.evaluation_type,
+                                                      self.task_type, self.original_data,
+                                                      fe_evaluator, estimator_id, per_run_time_limit,
+                                                      per_run_mem_limit, self.seed,
+                                                      shared_mode=self.share_fe, n_jobs=n_jobs)
 
-        self.inc['fe'], self.local_inc['fe'] = self.original_data, self.original_data
+            self.inc['fe'], self.local_inc['fe'] = self.original_data, self.original_data
 
-        # Build the HPO component.
-        # trials_per_iter = max(len(self.optimizer['fe'].trans_types), 20)
-        trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
+            # Build the HPO component.
+            # trials_per_iter = max(len(self.optimizer['fe'].trans_types), 20)
+            trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
 
-        self.optimizer['hpo'] = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs, output_dir=output_dir,
-                                                    per_run_time_limit=per_run_time_limit,
-                                                    inner_iter_num_per_iter=trials_per_iter,
-                                                    seed=self.seed, n_jobs=n_jobs)
+            self.optimizer['hpo'] = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs, output_dir=output_dir,
+                                                        per_run_time_limit=per_run_time_limit,
+                                                        inner_iter_num_per_iter=trials_per_iter,
+                                                        seed=self.seed, n_jobs=n_jobs)
 
-        self.inc['hpo'], self.local_inc['hpo'] = self.default_config, self.default_config
-        self.init_config = cs.get_default_configuration()
-        self.local_hist['fe'].append(self.original_data)
-        self.local_hist['hpo'].append(self.default_config)
+            self.inc['hpo'], self.local_inc['hpo'] = self.default_config, self.default_config
+            self.init_config = cs.get_default_configuration()
+            self.local_hist['fe'].append(self.original_data)
+            self.local_hist['hpo'].append(self.default_config)
 
-        if self.mth == 'combined':
+        else:
             self.rewards = list()
             self.evaluation_cost = list()
             self.eval_dict = {}
@@ -154,7 +155,8 @@ class SecondLayerBandit(object):
                 scorer=self.metric,
                 data_node=self.original_data,
                 resampling_strategy=self.evaluation_type)
-            cs = get_combined_cs(self.estimator_id)
+            cs = get_combined_cs(self.estimator_id, self.original_data, self.task_type)
+
             self.optimizer = build_hpo_optimizer(self.evaluation_type, self.evaluator, cs, output_dir=self.output_dir,
                                                  per_run_time_limit=self.per_run_time_limit,
                                                  inner_iter_num_per_iter=10,

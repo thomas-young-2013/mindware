@@ -145,8 +145,9 @@ class FirstLayerBandit(object):
 
         if self.inner_opt_algorithm == 'combined':
             tmp_evaluator = ClassificationEvaluator(None)
-            self.tmp_bo = AnotherBayesianOptimizationOptimizer(0, self.original_data, tmp_evaluator, 'adaboost', 1, 1,
-                                                               1)  # A tmp optimizer for recording fe transformations
+            # A tmp optimizer for recording fe transformations
+            self.tmp_bo = AnotherBayesianOptimizationOptimizer(0, self.original_data, tmp_evaluator, 'adaboost',
+                                                               1, 1, 1)
 
             # Fit the best mode
             best_config = self.sub_bandits[self.optimal_algo_id].incumbent_config

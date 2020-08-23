@@ -39,7 +39,7 @@ def get_estimator(config):
     return classifier_type, estimator
 
 
-def get_hpo_cs(estimator_id):
+def get_hpo_cs(estimator_id, task_type=0):
     if estimator_id in _classifiers:
         clf_class = _classifiers[estimator_id]
     elif estimator_id in _addons.components:
@@ -50,18 +50,17 @@ def get_hpo_cs(estimator_id):
     return cs
 
 
-def get_fe_cs(estimator_id):
-    tmp_node = load_data('balloon', task_type=0, datanode_returned=True)
+def get_fe_cs(estimator_id, node, task_type=0):
     tmp_evaluator = ClassificationEvaluator(None)
-    tmp_bo = AnotherBayesianOptimizationOptimizer(0, tmp_node, tmp_evaluator, estimator_id, 1, 1, 1)
+    tmp_bo = AnotherBayesianOptimizationOptimizer(task_type, node, tmp_evaluator, estimator_id, 1, 1, 1)
     cs = tmp_bo._get_task_hyperparameter_space('smac')
     return cs
 
 
-def get_combined_cs(estimator_id):
+def get_combined_cs(estimator_id, node, task_type=0):
     cs = ConfigurationSpace()
-    hpo_cs = get_hpo_cs(estimator_id)
-    fe_cs = get_fe_cs(estimator_id)
+    hpo_cs = get_hpo_cs(estimator_id, task_type)
+    fe_cs = get_fe_cs(estimator_id, node, task_type)
     config_cand = ['placeholder']
     config_option = CategoricalHyperparameter('hpo', config_cand)
     cs.add_hyperparameter(config_option)
@@ -83,7 +82,7 @@ def get_combined_cs(estimator_id):
 
 
 class CombinedEvaluator(_BaseEvaluator):
-    def __init__(self, scorer=None, data_node=None,
+    def __init__(self, scorer=None, data_node=None, task_type=0,
                  resampling_strategy='cv', resampling_params=None, seed=1):
         self.resampling_strategy = resampling_strategy
         self.resampling_params = resampling_params
@@ -94,9 +93,8 @@ class CombinedEvaluator(_BaseEvaluator):
         self.onehot_encoder = None
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
 
-        tmp_node = load_data('balloon', task_type=0, datanode_returned=True)
         tmp_evaluator = ClassificationEvaluator(None)
-        self.tmp_bo = AnotherBayesianOptimizationOptimizer(0, tmp_node, tmp_evaluator, 'adaboost', 1, 1, 1)
+        self.tmp_bo = AnotherBayesianOptimizationOptimizer(task_type, data_node, tmp_evaluator, 'adaboost', 1, 1, 1)
 
     def get_fit_params(self, y, estimator):
         from solnml.components.utils.balancing import get_weights
@@ -174,7 +172,7 @@ class CombinedEvaluator(_BaseEvaluator):
         except Exception as e:
             self.logger.info('evaluator: %s' % (str(e)))
             score = -np.inf
-        # print(config)
+        print(config)
         self.logger.info('%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
                          (self.eval_id, classifier_id,
                           self.scorer._sign * score,
