@@ -115,7 +115,7 @@ if __name__ == "__main__":
     seeds = np.random.randint(low=1, high=10000, size=start_id+rep)
     dataset_list = dataset_str.split(',')
 
-    if mode != 'plot':
+    if not mode.startswith('plot'):
         if mode == 'all':
             methods = ['rb', 'fixed', 'alter_hpo']
         else:
@@ -140,7 +140,9 @@ if __name__ == "__main__":
     else:
         headers = ['dataset']
         # method_ids = ['fixed', 'alter_hpo', 'rb', 'ausk']
-        method_ids = ['combined', 'ausk']
+        method_ids = mode.split(',')[1:]
+        if len(method_ids) == 0:
+            method_ids = ['combined', 'ausk']
         for mth in method_ids:
             headers.extend(['val-%s' % mth, 'test-%s' % mth])
         algo = args.algo
