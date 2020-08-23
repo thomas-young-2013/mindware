@@ -54,7 +54,8 @@ class ClassificationEvaluator(_BaseEvaluator):
         assert self.name in ['hpo', 'fe']
 
         # Prepare configuration.
-        np.random.seed(self.seed)
+        # Experimental setting, match auto-sklearn.
+        self.seed = 1
         config = config if config is not None else self.hpo_config
 
         downsample_ratio = kwargs.get('resource_ratio', 1.0)
