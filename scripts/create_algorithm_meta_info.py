@@ -107,11 +107,12 @@ if __name__ == "__main__":
     algorithms = ['random_forest',
                   'lda',
                   'liblinear_svc',
+                  'libsvm_svc'
                   'k_nearest_neighbors',
                   'adaboost',
                   'lightgbm',
                   'gradient_boosting',
-                  'lda', 'qda',
+                  'qda',
                   'extra_trees']
     task_type = MULTICLASS_CLS
     # if args.task == 'reg':
