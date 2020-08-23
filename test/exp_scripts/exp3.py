@@ -20,7 +20,7 @@ parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,vehicle,yeast,' \
               'messidor_features,winequality_red,winequality_white,splice,spambase,amazon_employee'
 parser.add_argument('--datasets', type=str, default=dataset_set)
-parser.add_argument('--mode', type=str, choices=['rb', 'alter_hpo', 'fixed', 'plot', 'all', 'ausk', 'combined'], default='rb')
+parser.add_argument('--mode', type=str, default='rb')
 parser.add_argument('--cv', type=str, choices=['cv', 'holdout'], default='holdout')
 parser.add_argument('--algo', type=str, default='random_forest')
 parser.add_argument('--time_cost', type=int, default=600)
