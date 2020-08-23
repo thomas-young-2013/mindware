@@ -21,7 +21,7 @@ class LightGBM(AutoSklearnClassificationAlgorithm):
         self.min_child_samples = min_child_samples
         self.colsample_bytree = colsample_bytree
 
-        self.n_jobs = 4
+        self.n_jobs = 1
         self.random_state = random_state
         self.estimator = None
 
