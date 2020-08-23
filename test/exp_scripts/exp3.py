@@ -26,7 +26,7 @@ parser.add_argument('--algo', type=str, default='random_forest')
 parser.add_argument('--time_cost', type=int, default=600)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--rep_num', type=int, default=5)
-
+# choices=['rb', 'alter_hpo', 'fixed', 'plot', 'all', 'ausk', 'combined']
 project_dir = './'
 save_folder = project_dir + 'data/exp2/'
 if not os.path.exists(save_folder):
