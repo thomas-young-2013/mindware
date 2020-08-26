@@ -94,6 +94,7 @@ def evaluate_ausk(run_id, mth, dataset, algo,
     automl.fit(X.copy(), y.copy(), feat_type=feat_type, metric=balanced_acc)
     valid_results = automl.cv_results_['mean_test_score']
     validation_score = np.max(valid_results)
+    # automl.refit(X.copy(), y.copy())
     predictions = automl.predict(X_test)
     test_score = balanced_accuracy_score(y_test, predictions)
     model_desc = automl.show_models()
@@ -137,7 +138,7 @@ if __name__ == "__main__":
                     for _id in range(start_id, start_id + rep):
                         seed = seeds[_id]
                         print('Running %s with %d-th seed' % (dataset, _id + 1))
-                        if method in ['rb', 'fixed', 'alter_hpo', 'combined']:
+                        if method in ['rb', 'fixed', 'alter_hpo', 'combined', 'rb_hpo']:
                             evaluate_2rd_hmab(_id, method, dataset, algo,
                                               eval_type=cv, time_limit=time_cost, seed=seed)
                         elif method in ['ausk']:

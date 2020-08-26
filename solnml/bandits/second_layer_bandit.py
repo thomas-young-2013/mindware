@@ -56,6 +56,7 @@ class SecondLayerBandit(object):
         self.inc = dict()
         self.local_inc = dict()
         self.local_hist = {'fe': [], 'hpo': []}
+        self.inc_record = {'fe': list(), 'hpo': list()}
         self.exp_output = dict()
         self.eval_dict = {'fe': dict(), 'hpo': dict()}
         for arm in self.arms:
@@ -162,6 +163,7 @@ class SecondLayerBandit(object):
                                                  seed=self.seed, n_jobs=self.n_jobs)
 
     def collect_iter_stats(self, _arm, results):
+        pre_inc_perf = self.incumbent_perf
         for arm_id in self.arms:
             self.update_flag[arm_id] = False
 
@@ -214,6 +216,12 @@ class SecondLayerBandit(object):
             if self.mth in ['alter_p', 'fixed']:
                 self.prepare_optimizer(arm_id)
 
+        post_inc_perf = self.incumbent_perf
+        if np.isfinite(pre_inc_perf) and np.isfinite(post_inc_perf):
+            self.inc_record[_arm].append(post_inc_perf - pre_inc_perf)
+        else:
+            self.inc_record[_arm].append(0.)
+
     def optimize_rb(self):
         # First pull each arm #sliding_window_size times.
         if self.pull_cnt < len(self.arms) * self.sliding_window_size:
@@ -221,12 +229,13 @@ class SecondLayerBandit(object):
         else:
             imp_values = list()
             for _arm in self.arms:
-                increasing_rewards = get_increasing_sequence(self.rewards[_arm])
-
-                impv = list()
-                for idx in range(1, len(increasing_rewards)):
-                    impv.append(increasing_rewards[idx] - increasing_rewards[idx - 1])
-                imp_values.append(np.mean(impv[-self.sliding_window_size:]))
+                # increasing_rewards = get_increasing_sequence(self.rewards[_arm])
+                # impv = list()
+                # for idx in range(1, len(increasing_rewards)):
+                #     impv.append(increasing_rewards[idx] - increasing_rewards[idx - 1])
+                # imp_values.append(np.mean(impv[-self.sliding_window_size:]))
+                imp_values.append(np.mean(self.inc_record[_arm][-self.sliding_window_size:]))
+                print(self.inc_record[_arm])
 
             self.logger.debug('Imp values: %s' % imp_values)
             if imp_values[0] == imp_values[1]:

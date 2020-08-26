@@ -172,11 +172,11 @@ class CombinedEvaluator(_BaseEvaluator):
         except Exception as e:
             self.logger.info('evaluator: %s' % (str(e)))
             score = -np.inf
-        print(config)
-        self.logger.info('%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
-                         (self.eval_id, classifier_id,
-                          self.scorer._sign * score,
-                          time.time() - start_time, X_train.shape))
+        # print(config)
+        # self.logger.info('%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
+        #                  (self.eval_id, classifier_id,
+        #                   self.scorer._sign * score,
+        #                   time.time() - start_time, X_train.shape))
         self.eval_id += 1
 
         # Turn it into a minimization problem.
