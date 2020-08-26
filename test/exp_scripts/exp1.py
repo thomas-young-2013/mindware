@@ -74,6 +74,7 @@ def evaluate_hmab(algorithms, run_id,
                      metric='bal_acc',
                      n_jobs=1)
     # clf.fit(train_data, meta_datasets=holdout_datasets)
+    # clf.fit(train_data, opt_strategy='combined')
     clf.fit(train_data)
     clf.refit()
     pred = clf.predict(test_data)

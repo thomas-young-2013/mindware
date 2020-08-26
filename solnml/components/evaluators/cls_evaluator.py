@@ -112,7 +112,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                     test_size = self.resampling_params['test_size']
                 score = holdout_validation(clf, self.scorer, X_train, y_train,
                                            test_size=test_size,
-                                           random_state=1,
+                                           random_state=self.seed,
                                            if_stratify=True,
                                            onehot=self.onehot_encoder if isinstance(self.scorer,
                                                                                     _ThresholdScorer) else None,
