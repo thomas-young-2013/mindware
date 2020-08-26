@@ -114,8 +114,11 @@ class MfseBase(object):
                 else:
                     val_losses = list()
                     for config in T:
-                        val_loss = self.eval_func(config, resource_ratio=float(n_resource / self.R),
-                                                  eta=self.eta, first_iter=(i == 0))
+                        try:
+                            val_loss = self.eval_func(config, resource_ratio=float(n_resource / self.R),
+                                                      eta=self.eta, first_iter=(i == 0))
+                        except Exception as e:
+                            val_loss = np.inf
                         val_losses.append(val_loss)
                         if np.isfinite(val_loss):
                             self.target_x[int(n_resource)].append(config)

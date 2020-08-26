@@ -39,6 +39,8 @@ class ClassificationEvaluator(_BaseEvaluator):
         self.onehot_encoder = None
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
 
+        self.continue_training = False
+
     def get_fit_params(self, y, estimator):
         from solnml.components.utils.balancing import get_weights
         _init_params, _fit_params = get_weights(

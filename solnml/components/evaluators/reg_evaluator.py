@@ -34,6 +34,7 @@ class RegressionEvaluator(_BaseEvaluator):
         self.seed = seed
         self.eval_id = 0
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
+        self.continue_training = False
 
     def __call__(self, config, **kwargs):
         start_time = time.time()

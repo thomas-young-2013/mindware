@@ -92,6 +92,7 @@ class CombinedEvaluator(_BaseEvaluator):
         self.eval_id = 0
         self.onehot_encoder = None
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
+        self.continue_training = False
 
         tmp_evaluator = ClassificationEvaluator(None)
         self.tmp_bo = AnotherBayesianOptimizationOptimizer(task_type, data_node, tmp_evaluator, 'adaboost', 1, 1, 1)
