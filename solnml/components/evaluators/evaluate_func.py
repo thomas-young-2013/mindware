@@ -78,11 +78,13 @@ def partial_validation(estimator, scorer, X, y, data_subsample_ratio, test_size=
             X_train, X_test = X[train_index], X[test_index]
             y_train, y_test = y[train_index], y[test_index]
             _fit_params = dict()
+            _test_index = train_index
             if data_subsample_ratio == 1:
                 _X_train, _y_train = X_train, y_train
             else:
                 if if_stratify:
-                    down_ss = StratifiedShuffleSplit(n_splits=1, test_size=data_subsample_ratio, random_state=random_state)
+                    down_ss = StratifiedShuffleSplit(n_splits=1, test_size=data_subsample_ratio,
+                                                     random_state=random_state)
                 else:
                     down_ss = ShuffleSplit(n_splits=1, test_size=data_subsample_ratio, random_state=random_state)
                 for _, _test_index in down_ss.split(X_train, y_train):
