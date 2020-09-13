@@ -1,6 +1,6 @@
 setuptools
 nose
-arff
+liac-arff
 pillow
 psutil
 
