@@ -18,7 +18,6 @@ class Transformer(object, metaclass=abc.ABCMeta):
         4: normalizer.
         5: quantile_transformer.
         6: generic_univariate_selector.
-        7: extra_trees_based_selector.
         7: liblinear_svc_based_selector.
         8: percentile_selector.
         9: variance_selector.
@@ -46,6 +45,7 @@ class Transformer(object, metaclass=abc.ABCMeta):
         32: cross_feature
         33: smote_balancer
         34: polynomial_regression
+        35: extra_trees_based_selector.
     """
 
     def __init__(self, name, type, random_state=1):

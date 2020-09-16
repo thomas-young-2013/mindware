@@ -24,10 +24,10 @@ def get_estimator(config):
     classifier_type = config['estimator']
     config_ = config.copy()
     config_.pop('estimator', None)
-    config_['placeholder:random_state'] = 1
+    config_['%s:random_state' % classifier_type] = 1
     hpo_config = dict()
     for key in config_:
-        if 'placeholder' in key:
+        if classifier_type in key:
             act_key = key.split(':')[1]
             hpo_config[act_key] = config_[key]
     try:
@@ -61,7 +61,7 @@ def get_combined_cs(estimator_id, node, task_type=0):
     cs = ConfigurationSpace()
     hpo_cs = get_hpo_cs(estimator_id, task_type)
     fe_cs = get_fe_cs(estimator_id, node, task_type)
-    config_cand = ['placeholder']
+    config_cand = [estimator_id]
     config_option = CategoricalHyperparameter('hpo', config_cand)
     cs.add_hyperparameter(config_option)
     for config_item in config_cand:
@@ -173,11 +173,11 @@ class CombinedEvaluator(_BaseEvaluator):
         except Exception as e:
             self.logger.info('evaluator: %s' % (str(e)))
             score = -np.inf
-        # print(config)
-        # self.logger.info('%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
-        #                  (self.eval_id, classifier_id,
-        #                   self.scorer._sign * score,
-        #                   time.time() - start_time, X_train.shape))
+        print(config)
+        self.logger.info('%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
+                         (self.eval_id, classifier_id,
+                          self.scorer._sign * score,
+                          time.time() - start_time, X_train.shape))
         self.eval_id += 1
 
         # Turn it into a minimization problem.

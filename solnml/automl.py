@@ -11,8 +11,6 @@ from solnml.components.models.classification import _classifiers
 from solnml.components.models.imbalanced_classification import _imb_classifiers
 from solnml.components.meta_learning.algorithm_recomendation.ranknet_advisor import RankNetAdvisor
 from solnml.bandits.first_layer_bandit import FirstLayerBandit
-from solnml.utils.functions import is_unbalanced_dataset
-from solnml.components.feature_engineering.transformations.preprocessor.data_balancer import DataBalancer
 
 classification_algorithms = _classifiers.keys()
 imb_classication_algorithms = _imb_classifiers.keys()

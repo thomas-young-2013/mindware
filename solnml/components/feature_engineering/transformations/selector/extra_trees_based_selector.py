@@ -12,7 +12,7 @@ class ExtraTreeBasedSelector(Transformer):
                  max_depth='None', min_weight_fraction_leaf=0., min_impurity_decrease=0.,
                  oob_score=False, n_jobs=-1, random_state=1, verbose=0,
                  class_weight=None):
-        super().__init__("extra_trees_based_selector", 7)
+        super().__init__("extra_trees_based_selector", 35)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
 
