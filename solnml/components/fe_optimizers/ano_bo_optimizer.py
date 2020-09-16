@@ -197,17 +197,17 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
                     if tran_id in self.trans_types:
                         self.trans_types.remove(tran_id)
 
-            if self.model_id == 'random_forest':
-                if 18 in self.trans_types:
-                    self.trans_types.remove(18)
-
-            if self.model_id == 'liblinear_svc':
-                if 7 in self.trans_types:
-                    self.trans_types.remove(7)
-
-            if self.model_id == 'extra_trees':
-                if 35 in self.trans_types:
-                    self.trans_types.remove(35)
+            # if self.model_id == 'random_forest':
+            #     if 18 in self.trans_types:
+            #         self.trans_types.remove(18)
+            #
+            # if self.model_id == 'liblinear_svc':
+            #     if 7 in self.trans_types:
+            #         self.trans_types.remove(7)
+            #
+            # if self.model_id == 'extra_trees':
+            #     if 35 in self.trans_types:
+            #         self.trans_types.remove(35)
 
         preprocessor_dict = self._get_configuration_space(_preprocessor, self.trans_types, optimizer=optimizer)
         rescaler_dict = self._get_configuration_space(_rescaler, self.trans_types, optimizer=optimizer)
