@@ -1,7 +1,5 @@
 import time
 import numpy as np
-from sklearn.utils.testing import ignore_warnings
-from sklearn.exceptions import ConvergenceWarning
 from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter
 
@@ -114,7 +112,6 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
         # incumbent_score: the large the better
         return self.incumbent_score, iteration_cost, self.incumbent
 
-    @ignore_warnings([ConvergenceWarning, UserWarning, RuntimeWarning])
     def _parse(self, data_node: DataNode, config, record=False, skip_balance=False):
         """
             Transform the data node based on the pipeline specified by configuration.

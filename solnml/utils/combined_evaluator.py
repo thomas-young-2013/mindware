@@ -1,6 +1,7 @@
 from ConfigSpace import ConfigurationSpace, UnParametrizedHyperparameter, CategoricalHyperparameter
 import os
 import sys
+import warnings
 import time
 import numpy as np
 from sklearn.metrics.scorer import balanced_accuracy_scorer, _ThresholdScorer
@@ -109,7 +110,9 @@ class CombinedEvaluator(_BaseEvaluator):
         self.seed = 1
         downsample_ratio = kwargs.get('resource_ratio', 1.0)
         # Prepare data node.
-        data_node = self.tmp_bo._parse(self.data_node, config)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            data_node = self.tmp_bo._parse(self.data_node, config)
 
         X_train, y_train = data_node.data
 
@@ -132,44 +135,46 @@ class CombinedEvaluator(_BaseEvaluator):
             self.onehot_encoder.fit(y)
 
         try:
-            if 'cv' in self.resampling_strategy:
-                if self.resampling_params is None or 'folds' not in self.resampling_params:
-                    folds = 5
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                if 'cv' in self.resampling_strategy:
+                    if self.resampling_params is None or 'folds' not in self.resampling_params:
+                        folds = 5
+                    else:
+                        folds = self.resampling_params['folds']
+                    score = cross_validation(clf, self.scorer, X_train, y_train,
+                                             n_fold=folds,
+                                             random_state=self.seed,
+                                             if_stratify=True,
+                                             onehot=self.onehot_encoder if isinstance(self.scorer,
+                                                                                      _ThresholdScorer) else None,
+                                             fit_params=fit_params)
+                elif 'holdout' in self.resampling_strategy:
+                    if self.resampling_params is None or 'test_size' not in self.resampling_params:
+                        test_size = 0.33
+                    else:
+                        test_size = self.resampling_params['test_size']
+                    score = holdout_validation(clf, self.scorer, X_train, y_train,
+                                               test_size=test_size,
+                                               random_state=self.seed,
+                                               if_stratify=True,
+                                               onehot=self.onehot_encoder if isinstance(self.scorer,
+                                                                                        _ThresholdScorer) else None,
+                                               fit_params=fit_params)
+                elif 'partial' in self.resampling_strategy:
+                    if self.resampling_params is None or 'test_size' not in self.resampling_params:
+                        test_size = 0.33
+                    else:
+                        test_size = self.resampling_params['test_size']
+                    score = partial_validation(clf, self.scorer, X_train, y_train, downsample_ratio,
+                                               test_size=test_size,
+                                               random_state=self.seed,
+                                               if_stratify=True,
+                                               onehot=self.onehot_encoder if isinstance(self.scorer,
+                                                                                        _ThresholdScorer) else None,
+                                               fit_params=fit_params)
                 else:
-                    folds = self.resampling_params['folds']
-                score = cross_validation(clf, self.scorer, X_train, y_train,
-                                         n_fold=folds,
-                                         random_state=self.seed,
-                                         if_stratify=True,
-                                         onehot=self.onehot_encoder if isinstance(self.scorer,
-                                                                                  _ThresholdScorer) else None,
-                                         fit_params=fit_params)
-            elif 'holdout' in self.resampling_strategy:
-                if self.resampling_params is None or 'test_size' not in self.resampling_params:
-                    test_size = 0.33
-                else:
-                    test_size = self.resampling_params['test_size']
-                score = holdout_validation(clf, self.scorer, X_train, y_train,
-                                           test_size=test_size,
-                                           random_state=self.seed,
-                                           if_stratify=True,
-                                           onehot=self.onehot_encoder if isinstance(self.scorer,
-                                                                                    _ThresholdScorer) else None,
-                                           fit_params=fit_params)
-            elif 'partial' in self.resampling_strategy:
-                if self.resampling_params is None or 'test_size' not in self.resampling_params:
-                    test_size = 0.33
-                else:
-                    test_size = self.resampling_params['test_size']
-                score = partial_validation(clf, self.scorer, X_train, y_train, downsample_ratio,
-                                           test_size=test_size,
-                                           random_state=self.seed,
-                                           if_stratify=True,
-                                           onehot=self.onehot_encoder if isinstance(self.scorer,
-                                                                                    _ThresholdScorer) else None,
-                                           fit_params=fit_params)
-            else:
-                raise ValueError('Invalid resampling strategy: %s!' % self.resampling_strategy)
+                    raise ValueError('Invalid resampling strategy: %s!' % self.resampling_strategy)
         except Exception as e:
             self.logger.info('evaluator: %s' % (str(e)))
             score = -np.inf

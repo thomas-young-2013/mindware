@@ -1,8 +1,6 @@
 import warnings
 import numpy as np
 from sklearn.model_selection import StratifiedKFold, KFold, StratifiedShuffleSplit, ShuffleSplit
-from sklearn.utils.testing import ignore_warnings
-from sklearn.exceptions import ConvergenceWarning
 
 from solnml.components.utils.balancing import smote
 
@@ -12,7 +10,6 @@ def get_onehot_y(encoder, y):
     return encoder.transform(y_).toarray()
 
 
-@ignore_warnings(category=ConvergenceWarning)
 def cross_validation(estimator, scorer, X, y, n_fold=5, shuffle=True, fit_params=None, if_stratify=True,
                      onehot=None, random_state=1):
     with warnings.catch_warnings():
@@ -39,7 +36,6 @@ def cross_validation(estimator, scorer, X, y, n_fold=5, shuffle=True, fit_params
         return np.mean(scores)
 
 
-@ignore_warnings(category=ConvergenceWarning)
 def holdout_validation(estimator, scorer, X, y, test_size=0.33, fit_params=None, if_stratify=True, onehot=None,
                        random_state=1):
     with warnings.catch_warnings():
@@ -64,7 +60,6 @@ def holdout_validation(estimator, scorer, X, y, test_size=0.33, fit_params=None,
             return scorer(estimator, X_test, y_test)
 
 
-@ignore_warnings(category=ConvergenceWarning)
 def partial_validation(estimator, scorer, X, y, data_subsample_ratio, test_size=0.33, fit_params=None, if_stratify=True,
                        onehot=None, random_state=1):
     with warnings.catch_warnings():
