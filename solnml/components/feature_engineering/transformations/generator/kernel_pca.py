@@ -8,7 +8,7 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class KernelPCA(Transformer):
-    def __init__(self, n_components=0.3, kernel='rbf', degree=3, gamma=0.25, coef0=0.0,
+    def __init__(self, n_components=100, kernel='rbf', degree=3, gamma=0.25, coef0=0.0,
                  random_state=1):
         super().__init__("kernel_pca", 12)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
@@ -43,7 +43,8 @@ class KernelPCA(Transformer):
         # Skip large matrix computation in obtaining the kernel matrix.
         if X.shape[0] > 10000:
             if not self.pre_trained:
-                self.skip_flag = True
+                pass
+                # self.skip_flag = True
 
         self.pre_trained = True
         if self.skip_flag:

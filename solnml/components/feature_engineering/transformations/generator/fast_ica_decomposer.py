@@ -31,7 +31,8 @@ class FastIcaDecomposer(Transformer):
         # Skip heavy computation in fast ica.
         if X.shape[0] > 10000 or X.shape[1] > 200:
             if not self.pre_trained:
-                self.skip_flag = True
+                pass
+                # self.skip_flag = True
         self.pre_trained = True
         if self.skip_flag:
             return X.copy()

@@ -30,8 +30,10 @@ _preprocessor1 = {'continous_discretizer': KBinsDiscretizer}
 _preprocessor2 = {'discrete_categorizer': DiscreteCategorizer}
 _preprocessor = {}
 for key in _generator:
-    if key not in ['arithmetic_transformer', 'binary_transformer', 'lda_decomposer', 'pca_decomposer', 'kitchen_sinks']:
+    # if key not in ['arithmetic_transformer', 'binary_transformer', 'lda_decomposer', 'pca_decomposer', 'kitchen_sinks']:
+    if key not in ['arithmetic_transformer', 'binary_transformer', 'lda_decomposer']:
         _preprocessor[key] = _generator[key]
 for key in _selector:
-    if key not in ['rfe_selector', 'variance_selector', 'percentile_selector', 'percentile_selector_regression']:
+    # if key not in ['rfe_selector', 'variance_selector', 'percentile_selector', 'percentile_selector_regression']:
+    if key not in ['rfe_selector', 'variance_selector']:
         _preprocessor[key] = _selector[key]

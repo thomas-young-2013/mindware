@@ -9,7 +9,9 @@ preprocessor_directory = os.path.split(__file__)[0]
 _preprocessor = find_components(__package__, preprocessor_directory, Transformer)
 
 _imb_balancer = {}
-for key in ['weight_balancer', 'smote_balancer']:
+# TODO:Verify the effect of smote_balancer
+# for key in ['weight_balancer', 'smote_balancer']:
+for key in ['weight_balancer']:
     if key in _preprocessor.keys():
         _imb_balancer[key] = _preprocessor[key]
 
