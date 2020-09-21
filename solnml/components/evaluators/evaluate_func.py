@@ -95,3 +95,20 @@ def partial_validation(estimator, scorer, X, y, data_subsample_ratio, test_size=
             if onehot is not None:
                 y_test = get_onehot_y(onehot, y_test)
             return scorer(estimator, X_test, y_test)
+
+
+def validation(estimator, scorer, X_train, y_train, X_val, y_val, fit_params=None, onehot=None,
+               random_state=1):
+    with warnings.catch_warnings():
+        # ignore all caught warnings
+        warnings.filterwarnings("ignore")
+        _fit_params = dict()
+        if fit_params:
+            if 'sample_weight' in fit_params:
+                _fit_params['sample_weight'] = fit_params['sample_weight']
+            elif 'data_balance' in fit_params:
+                X_train, y_train = smote(X_train, y_train)
+        estimator.fit(X_train, y_train, **_fit_params)
+        if onehot is not None:
+            y_val = get_onehot_y(onehot, y_val)
+        return scorer(estimator, X_val, y_val)

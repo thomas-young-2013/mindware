@@ -4,6 +4,8 @@ from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter
 
 from solnml.components.fe_optimizers import Optimizer
+from solnml.components.fe_optimizers.parse import parse_config
+
 from solnml.components.feature_engineering.transformations import _imb_balancer, _bal_balancer, _preprocessor, _rescaler
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
@@ -66,7 +68,7 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
         :return: the evaluation score.
         """
         input_node = self.root_node
-        output_node = self._parse(input_node, config)
+        output_node = parse_config(input_node, config)
         output_node.config = config
         return self.evaluator(self.hp_config, data_node=output_node, name='fe',
                               data_subsample_ratio=data_subsample_ratio)
@@ -107,63 +109,10 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
         iteration_cost = time.time() - _start_time
         if iter_incumbent_score > self.incumbent_score:
             self.incumbent_score = iter_incumbent_score
-            self.incumbent = self._parse(self.root_node, self.incumbent_config)
+            self.incumbent = parse_config(self.root_node, self.incumbent_config)
 
         # incumbent_score: the large the better
         return self.incumbent_score, iteration_cost, self.incumbent
-
-    def _parse(self, data_node: DataNode, config, record=False, skip_balance=False):
-        """
-            Transform the data node based on the pipeline specified by configuration.
-        :param data_node:
-        :param config:
-        :param record:
-        :return: the resulting data node.
-        """
-        # Remove the indicator in config_dict.
-        config_dict = config.get_dictionary().copy()
-
-        if skip_balance:
-            bal_id = 'empty'
-        else:
-            if 'balancer' in config_dict:
-                bal_id = config_dict['balancer']
-                config_dict.pop('balancer')
-            else:
-                bal_id = 'empty'
-        gen_id = config_dict['preprocessor']
-        config_dict.pop('preprocessor')
-        res_id = config_dict['rescaler']
-        config_dict.pop('rescaler')
-
-        def tran_operate(id, tran_set, config, node):
-            if id != "empty":
-                _config = {}
-                for key in config:
-                    if id in key:
-                        config_name = key.split(':')[1]
-                        _config[config_name] = config[key]
-                tran = tran_set[id](**_config)
-                output_node = tran.operate(node)
-                return output_node, tran
-            return node, None
-
-        _node = data_node.copy_()
-
-        # Balancer
-        _balancer = _bal_balancer if self.if_bal else _imb_balancer
-        _node, bal_tran = tran_operate(bal_id, _balancer, config_dict, _node)
-
-        # Rescaler
-        _node, res_tran = tran_operate(res_id, _rescaler, config_dict, _node)
-
-        # Generator
-        _node, gen_tran = tran_operate(gen_id, _preprocessor, config_dict, _node)
-
-        _node.config = config
-        if record:
-            return _node, [bal_tran, res_tran, gen_tran]
-        return _node
 
     def _get_task_hyperparameter_space(self, optimizer='tpe'):
         """
@@ -309,7 +258,7 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
                 continue
 
             try:
-                node, tran_list = self._parse(self.root_node, config[0], record=True)
+                node, tran_list = parse_config(self.root_node, config[0], record=True)
                 node.config = config[0]
                 if node.data[0].shape[1] == 0:
                     continue
@@ -333,7 +282,7 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
                     node_list.append(self.node_dict[config][0])
                     continue
 
-                node, tran_list = self._parse(self.root_node, config, record=True)
+                node, tran_list = parse_config(self.root_node, config, record=True)
                 node.config = config
                 if node.data[0].shape[1] == 0:
                     continue
