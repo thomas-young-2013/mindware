@@ -1,8 +1,10 @@
 import os
 import sys
 import traceback
+import time
 import numpy as np
 import pandas as pd
+import shutil
 
 from solnml.automl import AutoML
 from solnml.autodl import AutoDL
@@ -26,7 +28,8 @@ class BaseEstimator(object):
             random_state=1,
             n_jobs=1,
             evaluation='holdout',
-            output_dir="/tmp/"):
+            output_dir="/tmp/",
+            delete_output_dir_after_fit=False):
         self.dataset_name = dataset_name
         self.metric = metric
         self.task_type = None
@@ -41,11 +44,16 @@ class BaseEstimator(object):
         self.random_state = random_state
         self.n_jobs = n_jobs
         self.evaluation = evaluation
-        self.output_dir = output_dir
         self._ml_engine = None
         # Create output directory.
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
+        output_dir_postfix = "solnml-%s" % time.time()
+        self.output_dir = os.path.join(output_dir, output_dir_postfix)
+        # Create output directory.
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
+        self.delete_output_dir = delete_output_dir_after_fit
 
     def build_engine(self):
         """Build AutoML controller"""
@@ -72,6 +80,8 @@ class BaseEstimator(object):
         assert data is not None and isinstance(data, DataNode)
         self._ml_engine = self.build_engine()
         self._ml_engine.fit(data, **kwargs)
+        if self.delete_output_dir:
+            shutil.rmtree(self.output_dir)
         return self
 
     def predict(self, X: DataNode, batch_size=None, n_jobs=1):

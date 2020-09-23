@@ -24,7 +24,8 @@ class SecondLayerBandit(object):
                  n_jobs=1, seed=1,
                  enable_fe=True, fe_algo='bo',
                  number_of_unit_resource=2,
-                 total_resource=30):
+                 total_resource=30,
+                 timestamp=None):
         self.task_type = task_type
         self.metric = metric
         self.number_of_unit_resource = number_of_unit_resource
@@ -101,6 +102,7 @@ class SecondLayerBandit(object):
         self.default_config = cs.get_default_configuration()
         self.config_space.seed(self.seed)
 
+        self.timestamp = timestamp
         # Build the Feature Engineering component.
         if self.task_type in CLS_TASKS:
             fe_evaluator = ClassificationEvaluator(self.default_config, scorer=self.metric,
@@ -154,6 +156,8 @@ class SecondLayerBandit(object):
             self.evaluator = CombinedEvaluator(
                 scorer=self.metric,
                 data_node=self.original_data,
+                timestamp=self.timestamp,
+                output_dir=self.output_dir,
                 resampling_strategy=self.evaluation_type)
             cs = get_combined_cs(self.estimator_id, self.original_data, self.task_type)
 

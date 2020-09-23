@@ -43,8 +43,6 @@ class AutoML(object):
         self.per_run_time_limit = per_run_time_limit
         self.output_dir = output_dir
         self.logging_config = logging_config
-        if not os.path.exists(self.output_dir):
-            os.makedirs(self.output_dir)
         self.logger = self._get_logger(self.dataset_name)
 
         self.evaluation_type = evaluation

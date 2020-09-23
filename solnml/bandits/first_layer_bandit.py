@@ -8,12 +8,9 @@ from solnml.components.metrics.metric import get_metric
 from solnml.utils.constant import MAX_INT
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.bandits.second_layer_bandit import SecondLayerBandit
-from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
+from solnml.components.evaluators.base_evaluator import fetch_predict_estimator, load_transformer_estimator
 from solnml.utils.logging_utils import get_logger
 from solnml.components.utils.constants import CLS_TASKS
-from solnml.utils.combined_evaluator import fetch_ensemble_members
-from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
-from solnml.components.fe_optimizers.ano_bo_optimizer import AnotherBayesianOptimizationOptimizer
 
 
 class FirstLayerBandit(object):
@@ -98,6 +95,7 @@ class FirstLayerBandit(object):
                 n_jobs=self.n_jobs,
                 fe_algo=fe_algo,
                 mth=self.inner_opt_algorithm,
+                timestamp=self.timestamp
             )
 
         self.action_sequence = list()
@@ -144,19 +142,7 @@ class FirstLayerBandit(object):
         self.logger.info('=' * 50)
 
         if self.inner_opt_algorithm == 'combined':
-            tmp_evaluator = ClassificationEvaluator(None)
-            # A tmp optimizer for recording fe transformations
-            self.tmp_bo = AnotherBayesianOptimizationOptimizer(0, self.original_data, tmp_evaluator, 'adaboost',
-                                                               1, 1, 1)
-
-            # Fit the best mode
-            best_config = self.sub_bandits[self.optimal_algo_id].incumbent_config
-            self.best_node = self.tmp_bo.fetch_nodes_by_config([best_config])[0]
-            best_estimator = fetch_predict_estimator(self.task_type, best_config, self.best_node.data[0],
-                                                     self.best_node.data[1],
-                                                     weight_balance=self.best_node.enable_balance,
-                                                     data_balance=self.best_node.data_balance,
-                                                     combined=True)
+            self.best_config = self.sub_bandits[self.optimal_algo_id].incumbent_config
         else:
             # Fit the best model
             self.fe_optimizer = self.sub_bandits[self.optimal_algo_id].optimizer['fe']
@@ -169,13 +155,15 @@ class FirstLayerBandit(object):
                                                      weight_balance=self.best_data_node.enable_balance,
                                                      data_balance=self.best_data_node.data_balance)
 
-        with open(os.path.join(self.output_dir, '%s-best_model' % self.timestamp), 'wb') as f:
-            pkl.dump(best_estimator, f)
+            with open(os.path.join(self.output_dir, '%s-best_model' % self.timestamp), 'wb') as f:
+                pkl.dump(best_estimator, f)
 
         if self.ensemble_method is not None:
             if self.inner_opt_algorithm == 'combined':
-                eval_dict = {key: self.sub_bandits[key].eval_dict for key in self.include_algorithms}
-                stats = fetch_ensemble_members(self.nbest_algo_ids, self.seed, eval_dict, self.tmp_bo)
+                config_path = os.path.join(self.output_dir, '%s_topk_config.pkl' % self.timestamp)
+                with open(config_path, 'rb') as f:
+                    stats = pkl.load(f)
+
                 from solnml.components.ensemble.combined_ensemble.ensemble_bulider import EnsembleBuilder
             else:
                 # stats = self.fetch_ensemble_members_ano()
@@ -185,6 +173,7 @@ class FirstLayerBandit(object):
 
             # Ensembling all intermediate/ultimate models found in above optimization process.
             self.es = EnsembleBuilder(stats=stats,
+                                      data_node=self.original_data,
                                       ensemble_method=self.ensemble_method,
                                       ensemble_size=self.ensemble_size,
                                       task_type=self.task_type,
@@ -196,54 +185,30 @@ class FirstLayerBandit(object):
         if self.ensemble_method is not None:
             self.es.refit()
 
-    def _best_predict(self, test_data: DataNode):
-        # Check the validity of feature engineering.
-        if self.inner_opt_algorithm == 'combined':
-            fe_optimizer = self.tmp_bo
-            node = self.best_node
-        else:
-            fe_optimizer = self.fe_optimizer
-            node = self.best_data_node
-        _train_data = fe_optimizer.apply(self.original_data, node, phase='train')
-        # assert _train_data == self.best_data_node
-        test_data_node = fe_optimizer.apply(test_data, node)
-        with open(os.path.join(self.output_dir, '%s-best_model' % self.timestamp), 'rb') as f:
-            estimator = pkl.load(f)
-        return estimator.predict(test_data_node.data[0])
-
-    def _es_predict(self, test_data: DataNode):
-        if self.ensemble_method is not None:
-            if self.es is None:
-                raise AttributeError("AutoML is not fitted!")
-        if self.inner_opt_algorithm == 'combined':
-            args = self.tmp_bo
-        else:
-            args = self.sub_bandits
-        pred = self.es.predict(test_data, args)
-        if self.task_type in CLS_TASKS:
-            return np.argmax(pred, axis=-1)
-        else:
-            return pred
-
     def _predict(self, test_data: DataNode):
         if self.ensemble_method is not None:
             if self.es is None:
                 raise AttributeError("AutoML is not fitted!")
             if self.inner_opt_algorithm == 'combined':
-                args = self.tmp_bo
+                return self.es.predict(test_data)
             else:
                 args = self.sub_bandits
-            return self.es.predict(test_data, args)
+                return self.es.predict(test_data, args)
         else:
             if self.inner_opt_algorithm == 'combined':
-                fe_optimizer = self.tmp_bo
-                node = self.best_node
+                best_op_list, estimator = load_transformer_estimator(self.output_dir, self.best_config,
+                                                                     self.timestamp)
+                test_data_node = test_data.copy_()
+                if best_op_list[0] is not None:
+                    test_data_node = best_op_list[0].operate(test_data_node)
+                if best_op_list[2] is not None:
+                    test_data_node = best_op_list[2].operate(test_data_node)
             else:
                 fe_optimizer = self.fe_optimizer
                 node = self.best_data_node
-            test_data_node = fe_optimizer.apply(test_data, node)
-            with open(os.path.join(self.output_dir, '%s-best_model' % self.timestamp), 'rb') as f:
-                estimator = pkl.load(f)
+                test_data_node = fe_optimizer.apply(test_data, node)
+                with open(os.path.join(self.output_dir, '%s-best_model' % self.timestamp), 'rb') as f:
+                    estimator = pkl.load(f)
             if self.task_type in CLS_TASKS:
                 return estimator.predict_proba(test_data_node.data[0])
             else:

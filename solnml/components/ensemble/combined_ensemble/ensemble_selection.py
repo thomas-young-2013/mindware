@@ -12,29 +12,27 @@ from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
 
 class EnsembleSelection(BaseEnsembleModel):
     def __init__(
-            self, stats,
+            self, stats, data_node,
             ensemble_size: int,
             task_type: int,
             metric: _BaseScorer,
             output_dir=None,
             sorted_initialization: bool = False,
-            bagging: bool = False,
             mode: str = 'fast'
     ):
         super().__init__(stats=stats,
+                         data_node=data_node,
                          ensemble_method='ensemble_selection',
                          ensemble_size=ensemble_size,
                          task_type=task_type,
                          metric=metric,
-                         base_save=True,
                          output_dir=output_dir)
         self.model_idx = list()
         self.sorted_initialization = sorted_initialization
-        self.bagging = bagging
         self.mode = mode
         self.encoder = OneHotEncoder()
-        self.shape = self.train_predictions[0].shape
-        self.random_state = np.random.RandomState(self.seed)
+        self.shape = self.predictions[0].shape
+        self.random_state = np.random.RandomState(1)
 
     def calculate_score(self, pred, y_true):
         if isinstance(self.metric, _ThresholdScorer):
@@ -59,16 +57,13 @@ class EnsembleSelection(BaseEnsembleModel):
         if self.mode not in ('fast', 'slow'):
             raise ValueError('Unknown mode %s' % self.mode)
 
-        if self.bagging:
-            self._bagging(self.train_predictions, self.train_labels)
-        else:
-            self._fit(self.train_predictions, self.train_labels)
+        self._fit(self.predictions, self.train_labels)
         self._calculate_weights()
         self.identifiers_ = None
 
         model_cnt = 0
-        for algo_id in self.stats["include_algorithms"]:
-            model_to_eval = self.stats[algo_id]['model_to_eval']
+        for algo_id in self.stats.keys():
+            model_to_eval = self.stats[algo_id]
             for _, _ in enumerate(model_to_eval):
                 if self.weights_[model_cnt] != 0:
                     self.model_idx.append(model_cnt)
@@ -207,26 +202,32 @@ class EnsembleSelection(BaseEnsembleModel):
         indices = np.argsort(perf)[perf.shape[0] - n_best:]
         return indices
 
-    def predict(self, data, record_op):
+    def predict(self, data):
         predictions = []
         cur_idx = 0
-        for algo_id in self.stats["include_algorithms"]:
-            model_to_eval = self.stats[algo_id]['model_to_eval']
-            for idx, (node, config) in enumerate(model_to_eval):
-                test_node = record_op.apply(data, node)
-                X_test, _ = test_node.data
+        for algo_id in self.stats.keys():
+            model_to_eval = self.stats[algo_id]
+            for idx, (_, _, path) in enumerate(model_to_eval):
+                with open(path, 'rb')as f:
+                    op_list, estimator = pkl.load(f)
+                _node = data.copy_()
+
+                if op_list[0] is not None:
+                    _node = op_list[0].operate(_node)
+                if op_list[2] is not None:
+                    _node = op_list[2].operate(_node)
+
+                X_test = _node.data[0]
                 if cur_idx in self.model_idx:
-                    with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, cur_idx)), 'rb') as f:
-                        estimator = pkl.load(f)
-                        if self.task_type in CLS_TASKS:
-                            predictions.append(estimator.predict_proba(X_test))
-                        else:
-                            predictions.append(estimator.predict(X_test))
+                    if self.task_type in CLS_TASKS:
+                        predictions.append(estimator.predict_proba(X_test))
+                    else:
+                        predictions.append(estimator.predict(X_test))
                 else:
                     if len(self.shape) == 1:
-                        predictions.append(np.zeros(len(test_node.data[0])))
+                        predictions.append(np.zeros(len(_node.data[0])))
                     else:
-                        predictions.append(np.zeros((len(test_node.data[0]), self.shape[1])))
+                        predictions.append(np.zeros((len(_node.data[0]), self.shape[1])))
                 cur_idx += 1
         predictions = np.asarray(predictions)
 
@@ -258,22 +259,22 @@ class EnsembleSelection(BaseEnsembleModel):
 
     def refit(self):
         # Refit models on whole training data
-        model_cnt = 0
-        for algo_id in self.stats["include_algorithms"]:
-            model_to_eval = self.stats[algo_id]['model_to_eval']
-            for idx, (node, config) in enumerate(model_to_eval):
-                X, y = node.data
-                if self.weights_[model_cnt] != 0:
-                    self.logger.info("Refit model %d" % model_cnt)
-                    estimator = fetch_predict_estimator(self.task_type, config, X, y,
-                                                        weight_balance=node.enable_balance,
-                                                        data_balance=node.data_balance,
-                                                        combined=True,
-                                                        )
-                    with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, model_cnt)),
-                              'wb') as f:
-                        pkl.dump(estimator, f)
-                model_cnt += 1
+        # model_cnt = 0
+        # for algo_id in self.stats:
+        #     model_to_eval = self.stats[algo_id]
+        #     for idx, (config, _, model_path) in enumerate(model_to_eval):
+        #         X, y = node.data
+        #         if self.weights_[model_cnt] != 0:
+        #             self.logger.info("Refit model %d" % model_cnt)
+        #             estimator = fetch_predict_estimator(self.task_type, config, X, y,
+        #                                                 weight_balance=node.enable_balance,
+        #                                                 data_balance=node.data_balance,
+        #                                                 combined=True,
+        #                                                 )
+        #             with open(model_path, 'wb') as f:
+        #                 pkl.dump(estimator, f)
+        #         model_cnt += 1
+        raise NotImplementedError
 
     def get_models_with_weights(self, models):
         output = []
@@ -305,12 +306,11 @@ class EnsembleSelection(BaseEnsembleModel):
         model_cnt = 0
         ens_info = {}
         ens_config = []
-        for algo_id in self.stats["include_algorithms"]:
-            model_to_eval = self.stats[algo_id]['model_to_eval']
-            for idx, (node, config) in enumerate(model_to_eval):
+        for algo_id in self.stats:
+            model_to_eval = self.stats[algo_id]
+            for idx, (config, _, model_path) in enumerate(model_to_eval):
                 if not hasattr(self, 'base_model_mask') or self.base_model_mask[model_cnt] == 1:
-                    model_path = os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, model_cnt))
-                    ens_config.append((algo_id, node.config, config, model_path))
+                    ens_config.append((algo_id, config, model_path))
                 model_cnt += 1
         ens_info['ensemble_method'] = 'ensemble_selection'
         ens_info['config'] = ens_config

@@ -1,22 +1,21 @@
 from ConfigSpace import ConfigurationSpace, UnParametrizedHyperparameter, CategoricalHyperparameter
-import os
-import sys
 import warnings
+import os
 import time
 import numpy as np
+import pickle as pkl
+from multiprocessing import Lock
 from sklearn.metrics.scorer import balanced_accuracy_scorer, _ThresholdScorer
 from sklearn.preprocessing import OneHotEncoder
 
-sys.path.append(os.getcwd())
-
 from solnml.utils.logging_utils import get_logger
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
-from solnml.components.evaluators.evaluate_func import holdout_validation, cross_validation, partial_validation, \
-    validation
+from solnml.components.evaluators.evaluate_func import validation
 from solnml.components.fe_optimizers.ano_bo_optimizer import AnotherBayesianOptimizationOptimizer
 from solnml.components.fe_optimizers.parse import parse_config
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
-from solnml.datasets.utils import load_train_test_data, load_data
+from solnml.components.evaluators.base_evaluator import TopKModelSaver
+from solnml.datasets.utils import load_train_test_data
 from solnml.components.models.classification import _classifiers, _addons
 
 
@@ -82,21 +81,25 @@ def get_combined_cs(estimator_id, node, task_type=0):
 
 
 class CombinedEvaluator(_BaseEvaluator):
-    def __init__(self, scorer=None, data_node=None, task_type=0,
-                 resampling_strategy='cv', resampling_params=None, seed=1):
+    def __init__(self, scorer=None, data_node=None, task_type=0, resampling_strategy='cv',
+                 resampling_params=None, timestamp=None, output_dir=None, seed=1):
         self.resampling_strategy = resampling_strategy
         self.resampling_params = resampling_params
         self.scorer = scorer if scorer is not None else balanced_accuracy_scorer
         self.task_type = task_type
         self.data_node = data_node
+        self.output_dir = output_dir
         self.seed = seed
-        self.eval_id = 0
         self.onehot_encoder = None
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
         self.continue_training = False
 
         self.train_node = data_node.copy_()
         self.val_node = data_node.copy_()
+
+        self.timestamp = timestamp
+        # TODO: Top-k k?
+        self.topk_model_saver = TopKModelSaver(k=60, model_dir=self.output_dir, identifier=timestamp)
 
     def get_fit_params(self, y, estimator):
         from solnml.components.utils.balancing import get_weights
@@ -162,6 +165,27 @@ class CombinedEvaluator(_BaseEvaluator):
                                    onehot=self.onehot_encoder if isinstance(self.scorer,
                                                                             _ThresholdScorer) else None,
                                    fit_params=fit_params)
+
+                if 'rw_lock' not in kwargs or kwargs['rw_lock'] is None:
+                    self.logger.info('rw_lock not defined! Possible read-write conflicts may happen!')
+                lock = kwargs.get('rw_lock', Lock())
+                lock.acquire()
+                if np.isfinite(score):
+                    save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config, score,
+                                                                                                       classifier_id)
+                    if save_flag is True:
+                        with open(model_path, 'wb') as f:
+                            pkl.dump([op_list, clf], f)
+                        self.logger.info("Model saved to %s" % model_path)
+
+                    try:
+                        if delete_flag and os.path.exists(model_path_deleted):
+                            os.remove(model_path_deleted)
+                            self.logger.info("Model deleted from %s" % model_path)
+                    except:
+                        pass
+                lock.release()
+
             except Exception as e:
                 import traceback
                 traceback.print_exc()
@@ -225,6 +249,15 @@ class CombinedEvaluator(_BaseEvaluator):
                                             fit_params=fit_params)
                         scores.append(_score)
                     score = np.mean(scores)
+
+                # TODO: Don't save models for cv
+                if 'rw_lock' not in kwargs or kwargs['rw_lock'] is None:
+                    self.logger.info('rw_lock not defined! Possible read-write conflicts may happen!')
+                lock = kwargs.get('rw_lock', Lock())
+                lock.acquire()
+                if np.isfinite(score):
+                    _ = self.topk_model_saver.add(config, score, classifier_id)
+                lock.release()
 
             except Exception as e:
                 import traceback
@@ -294,6 +327,27 @@ class CombinedEvaluator(_BaseEvaluator):
                                    onehot=self.onehot_encoder if isinstance(self.scorer,
                                                                             _ThresholdScorer) else None,
                                    fit_params=fit_params)
+
+                # TODO: Only save models with maximum resources
+                if 'rw_lock' not in kwargs or kwargs['rw_lock'] is None:
+                    self.logger.info('rw_lock not defined! Possible read-write conflicts may happen!')
+                lock = kwargs.get('rw_lock', Lock())
+                lock.acquire()
+                if np.isfinite(score) and downsample_ratio == 1:
+                    save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config, score,
+                                                                                                       classifier_id)
+                    if save_flag is True:
+                        with open(model_path, 'wb') as f:
+                            pkl.dump([op_list, clf], f)
+                        self.logger.info("Model saved to %s" % model_path)
+
+                    try:
+                        if delete_flag and os.path.exists(model_path_deleted):
+                            os.remove(model_path_deleted)
+                            self.logger.info("Model deleted from %s" % model_path)
+                    except:
+                        pass
+                lock.release()
             except Exception as e:
                 import traceback
                 traceback.print_exc()
@@ -303,37 +357,11 @@ class CombinedEvaluator(_BaseEvaluator):
         else:
             raise ValueError('Invalid resampling strategy: %s!' % self.resampling_strategy)
 
-        self.logger.info('%d-Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
-                         (self.eval_id, classifier_id,
+        self.logger.info('Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
+                         (classifier_id,
                           self.scorer._sign * score,
                           time.time() - start_time, _x_train.shape))
-        self.eval_id += 1
 
         # Turn it into a minimization problem.
         return_dict['score'] = -score
         return -score
-
-
-def fetch_ensemble_members(nbest_algo_ids, seed, eval_dict, record_op):
-    stats = dict()
-    stats['include_algorithms'] = nbest_algo_ids
-    stats['split_seed'] = seed
-
-    for algo_id in nbest_algo_ids:
-        data = dict()
-        model_num = 60
-
-        _eval_list = sorted(eval_dict[algo_id].items(), key=lambda item: item[1], reverse=True)
-        _eval_list = list(filter(lambda item: np.isfinite(item[1]), _eval_list))
-        model_items = _eval_list[:model_num]
-
-        configs = [item[0][1] for item in model_items]
-
-        node_list = record_op.fetch_nodes_by_config(configs)
-        model_to_eval = []
-        for idx, node in enumerate(node_list):
-            if node is not None:
-                model_to_eval.append((node_list[idx], configs[idx]))
-        data['model_to_eval'] = model_to_eval
-        stats[algo_id] = data
-    return stats
