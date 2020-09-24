@@ -4,7 +4,7 @@ import numpy as np
 sys.path.append(os.getcwd())
 from solnml.components.meta_learning.algorithm_recomendation.ranknet_advisor import RankNetAdvisor
 from solnml.components.meta_learning.algorithm_recomendation.gbm_advisor import GBMAdvisor
-from solnml.components.meta_learning.algorithm_recomendation.meta_generator import get_feature_vector
+from solnml.components.meta_learning.algorithm_recomendation.metadata_manager import get_feature_vector
 from solnml.components.utils.constants import MULTICLASS_CLS
 
 
@@ -41,8 +41,8 @@ if __name__ == "__main__":
 
     for i in range(n_fold):
         test_datasets = total_datasets[i * fold_size: (i+1) * fold_size]
-        ranker = RankNetAdvisor(task_type=MULTICLASS_CLS, exclude_datasets=test_datasets, metric='bal_acc')
-        # ranker = GBMAdvisor(task_type=MULTICLASS_CLS, exclude_datasets=test_datasets, metric='bal_acc')
+        # ranker = RankNetAdvisor(task_type=MULTICLASS_CLS, exclude_datasets=test_datasets, metric='bal_acc')
+        ranker = GBMAdvisor(task_type=MULTICLASS_CLS, exclude_datasets=test_datasets, metric='bal_acc')
         ranker.fit()
 
         for test_dataset in test_datasets:

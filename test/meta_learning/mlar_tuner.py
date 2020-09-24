@@ -8,8 +8,9 @@ from litebo.facade.bo_facade import BayesianOptimization
 sys.path.append(os.getcwd())
 from solnml.components.meta_learning.algorithm_recomendation.ranknet_advisor import RankNetAdvisor
 from solnml.components.meta_learning.algorithm_recomendation.gbm_advisor import GBMAdvisor
-from solnml.components.meta_learning.algorithm_recomendation.meta_generator import get_feature_vector
+from solnml.components.meta_learning.algorithm_recomendation.metadata_manager import get_feature_vector
 from solnml.components.utils.constants import MULTICLASS_CLS
+
 
 total_datasets = ['space_ga', 'yeast', 'fri_c0_1000_10', 'mfeat-fourier(1)', 'codrna', 'fri_c3_1000_5', 'pc4',
                   'fri_c3_1000_10', 'kc1', 'fri_c1_1000_5', 'fri_c2_1000_25', 'wind', 'spambase', 'fri_c0_1000_25',

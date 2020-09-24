@@ -17,21 +17,21 @@ class GBMAdvisor(BaseAdvisor):
         self.model = None
 
     @staticmethod
-    def create_pairwise_data(X, y, n_algo_candidates):
+    def create_pairwise_data(X, y):
+        n_algo = y.shape[1]
         X1, labels = list(), list()
-        size_meta_feat = len(X[0][0]) - n_algo_candidates
         _instance_num = 0
 
         for _X, _y in zip(X, y):
-            n_sample = len(_X)
-            assert n_sample == n_algo_candidates
-            meta_vec = list(_X[0][:size_meta_feat])
-            for i in range(n_sample):
-                for j in range(i+1, n_sample):
-                    if np.isnan(_X[i]).any() or np.isnan(_X[j]).any():
+            if np.isnan(_X).any():
+                continue
+            meta_vec = _X
+            for i in range(n_algo):
+                for j in range(i+1, n_algo):
+                    if (_y[i] == -1) or (_y[j] == -1):
                         continue
 
-                    vector_i, vector_j = np.zeros(n_algo_candidates), np.zeros(n_algo_candidates)
+                    vector_i, vector_j = np.zeros(n_algo), np.zeros(n_algo)
                     vector_i[i] = 1
                     vector_j[j] = 1
 
@@ -50,12 +50,11 @@ class GBMAdvisor(BaseAdvisor):
                     X1.append(meta_x2)
                     labels.append(meta_label2)
                     _instance_num += 1
-
         return np.asarray(X1), np.asarray(labels)
 
     def fit(self, **meta_learner_config):
-        _X, _y = self.load_train_data()
-        X, y = self.create_pairwise_data(_X, _y, n_algo_candidates=self.n_algo_candidates)
+        _X, _y, _ = self.metadata_manager.load_meta_data()
+        X, y = self.create_pairwise_data(_X, _y)
 
         # meta_learner_config_filename = self.meta_dir + 'meta_learner_%s_%s_%s_config.pkl' % (
         #     self.meta_algo, self.metric, 'none')
@@ -91,5 +90,4 @@ class GBMAdvisor(BaseAdvisor):
                 else:
                     scores[j] += 1
                 instance_idx += 1
-        scores = np.array(scores) / np.sum(scores)
-        return scores
+        return np.array(scores) / np.sum(scores)

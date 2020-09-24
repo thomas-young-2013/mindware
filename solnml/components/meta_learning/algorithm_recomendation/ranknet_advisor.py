@@ -11,11 +11,12 @@ from solnml.components.meta_learning.algorithm_recomendation.base_advisor import
 
 
 class RankNetAdvisor(BaseAdvisor):
-    def __init__(self, n_algorithm=3,
-                 task_type=None,
-                 metric='acc',
+    def __init__(self,
                  rep=3,
-                 total_resource=20,
+                 metric='acc',
+                 n_algorithm=3,
+                 task_type=None,
+                 total_resource=1200,
                  exclude_datasets=None,
                  meta_dir=None):
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
