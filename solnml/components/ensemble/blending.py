@@ -167,4 +167,5 @@ class Blending(BaseEnsembleModel):
         ens_info['ensemble_method'] = 'blending'
         ens_info['config'] = ens_config
         ens_info['meta_learner'] = self.meta_method
+        ens_info['meta_model']=self.meta_learner
         return ens_info
