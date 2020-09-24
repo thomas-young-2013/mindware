@@ -11,11 +11,9 @@ from sklearn.preprocessing import OneHotEncoder
 from solnml.utils.logging_utils import get_logger
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
 from solnml.components.evaluators.evaluate_func import validation
-from solnml.components.fe_optimizers.ano_bo_optimizer import AnotherBayesianOptimizationOptimizer
+from solnml.components.fe_optimizers.ano_bo_optimizer import get_task_hyperparameter_space
 from solnml.components.fe_optimizers.parse import parse_config
-from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
-from solnml.components.evaluators.base_evaluator import TopKModelSaver
-from solnml.datasets.utils import load_train_test_data
+from solnml.components.evaluators.base_evaluator import CombinedTopKModelSaver
 from solnml.components.models.classification import _classifiers, _addons
 
 
@@ -49,17 +47,15 @@ def get_hpo_cs(estimator_id, task_type=0):
     return cs
 
 
-def get_fe_cs(estimator_id, node, task_type=0):
-    tmp_evaluator = ClassificationEvaluator(None)
-    tmp_bo = AnotherBayesianOptimizationOptimizer(task_type, node, tmp_evaluator, estimator_id, 1, 1, 1)
-    cs = tmp_bo._get_task_hyperparameter_space('smac')
+def get_fe_cs(estimator_id, task_type=0):
+    cs = get_task_hyperparameter_space(task_type=task_type, estimator_id=estimator_id)
     return cs
 
 
-def get_combined_cs(estimator_id, node, task_type=0):
+def get_combined_cs(estimator_id, task_type=0):
     cs = ConfigurationSpace()
     hpo_cs = get_hpo_cs(estimator_id, task_type)
-    fe_cs = get_fe_cs(estimator_id, node, task_type)
+    fe_cs = get_fe_cs(estimator_id, task_type)
     config_cand = [estimator_id]
     config_option = CategoricalHyperparameter('hpo', config_cand)
     cs.add_hyperparameter(config_option)
@@ -99,7 +95,7 @@ class CombinedEvaluator(_BaseEvaluator):
 
         self.timestamp = timestamp
         # TODO: Top-k k?
-        self.topk_model_saver = TopKModelSaver(k=60, model_dir=self.output_dir, identifier=timestamp)
+        self.topk_model_saver = CombinedTopKModelSaver(k=60, model_dir=self.output_dir, identifier=timestamp)
 
     def get_fit_params(self, y, estimator):
         from solnml.components.utils.balancing import get_weights

@@ -7,7 +7,7 @@ from solnml.components.utils.constants import *
 
 
 def load_transformer_estimator(model_dir, config, timestamp):
-    model_path = os.path.join(model_dir, '%s_%s.pkl' % (timestamp, TopKModelSaver.get_configuration_id(config)))
+    model_path = os.path.join(model_dir, '%s_%s.pkl' % (timestamp, CombinedTopKModelSaver.get_configuration_id(config)))
     with open(model_path, 'rb') as f:
         op_list, model = pkl.load(f)
     return op_list, model
@@ -57,12 +57,28 @@ class _BaseEvaluator(metaclass=ABCMeta):
         raise NotImplementedError()
 
 
-class TopKModelSaver(object):
+class BaseTopKModelSaver(object):
     def __init__(self, k, model_dir, identifier):
         self.k = k
         self.model_dir = model_dir
         self.identifier = identifier
         self.sorted_list_path = os.path.join(model_dir, '%s_topk_config.pkl' % identifier)
+
+    @staticmethod
+    def get_topk_config(config_path):
+        if not os.path.exists(config_path):
+            return dict()
+        with open(config_path, 'rb') as f:
+            content = pkl.load(f)
+        return content
+
+    @staticmethod
+    def save_topk_config(config_path, configs):
+        with open(config_path, 'wb') as f:
+            pkl.dump(configs, f)
+
+
+class CombinedTopKModelSaver(BaseTopKModelSaver):
 
     @staticmethod
     def get_configuration_id(config):
@@ -79,19 +95,6 @@ class TopKModelSaver(object):
     def get_path_by_config(self, config, identifier):
         return os.path.join(self.model_dir, '%s_%s.pkl' % (identifier, self.get_configuration_id(config)))
 
-    @staticmethod
-    def get_topk_config(config_path):
-        if not os.path.exists(config_path):
-            return dict()
-        with open(config_path, 'rb') as f:
-            content = pkl.load(f)
-        return content
-
-    @staticmethod
-    def save_topk_config(config_path, configs):
-        with open(config_path, 'wb') as f:
-            pkl.dump(configs, f)
-
     def add(self, config, perf, estimator_id):
         """
             perf: the larger, the better.
@@ -107,6 +110,87 @@ class TopKModelSaver(object):
         sorted_dict = self.get_topk_config(self.sorted_list_path)
         sorted_list = sorted_dict.get(estimator_id, list())
 
+        # Update existed configs
+        for sorted_element in sorted_list:
+            if config == sorted_element[0]:
+                if perf > sorted_element[1]:
+                    sorted_list.remove(sorted_element)
+                    for idx, item in enumerate(sorted_list):
+                        if perf > item[1]:
+                            sorted_list.insert(idx, (config, perf, model_path_id))
+                            break
+                        if idx == len(sorted_list) - 1:
+                            sorted_list.append((config, perf, model_path_id))
+                            break
+                    sorted_dict[estimator_id] = sorted_list
+                    self.save_topk_config(self.sorted_list_path, sorted_dict)
+                    return True, model_path_id, False, model_path_removed
+                else:
+                    return False, model_path_id, False, model_path_removed
+
+        if len(sorted_list) == 0:
+            sorted_list.append((config, perf, model_path_id))
+        else:
+            # Sorted list is in a descending order.
+            for idx, item in enumerate(sorted_list):
+                if perf > item[1]:
+                    sorted_list.insert(idx, (config, perf, model_path_id))
+                    break
+                if idx == len(sorted_list) - 1:
+                    sorted_list.append((config, perf, model_path_id))
+                    break
+
+        if len(sorted_list) > self.k:
+            model_path_removed = sorted_list[-1][2]
+            delete_flag = True
+            sorted_list = sorted_list[:-1]
+        if model_path_id in [item[2] for item in sorted_list]:
+            save_flag = True
+
+        sorted_dict[estimator_id] = sorted_list
+        self.save_topk_config(self.sorted_list_path, sorted_dict)
+
+        return save_flag, model_path_id, delete_flag, model_path_removed
+
+
+class BanditTopKModelSaver(BaseTopKModelSaver):
+
+    @staticmethod
+    def get_configuration_id(hpo_config, fe_config):
+        hpo_data_dict = hpo_config.get_dictionary()
+        fe_data_dict = fe_config.get_dictionary()
+        data_list = []
+        for data_dict in [hpo_data_dict, fe_data_dict]:
+            for key, value in sorted(data_dict.items(), key=lambda t: t[0]):
+                if isinstance(value, float):
+                    value = round(value, 5)
+                data_list.append('%s-%s' % (key, str(value)))
+        data_id = '_'.join(data_list)
+        sha = hashlib.sha1(data_id.encode('utf8'))
+        return sha.hexdigest()
+
+    def get_path_by_config(self, hpo_config, fe_config, identifier):
+        return os.path.join(self.model_dir,
+                            '%s_%s.pkl' % (identifier, self.get_configuration_id(hpo_config, fe_config)))
+
+    def add(self, hpo_config, fe_config, perf, estimator_id):
+        """
+            perf: the larger, the better.
+        :param fe_config:
+        :param hpo_config:
+        :param estimator_id:
+        :param perf:
+        :return:
+        """
+
+        model_path_id = os.path.join(self.model_dir,
+                                     '%s_%s.pkl' % (self.identifier, self.get_configuration_id(hpo_config, fe_config)))
+        model_path_removed = None
+        save_flag, delete_flag = False, False
+        sorted_dict = self.get_topk_config(self.sorted_list_path)
+        sorted_list = sorted_dict.get(estimator_id, list())
+
+        config = (hpo_config, fe_config)
         # Update existed configs
         for sorted_element in sorted_list:
             if config == sorted_element[0]:
