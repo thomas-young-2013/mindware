@@ -44,11 +44,9 @@ class RankNetAdvisor(BaseAdvisor):
 
                     meta_x1 = list(meta_vec.copy())
                     meta_x1.extend(vector_i.copy())
-                    meta_x1.extend(vector_j.copy())
 
                     meta_x2 = list(meta_vec.copy())
                     meta_x2.extend(vector_j.copy())
-                    meta_x2.extend(vector_i.copy())
 
                     X1.append(meta_x1)
                     X1.append(meta_x2)
@@ -101,7 +99,6 @@ class RankNetAdvisor(BaseAdvisor):
         l2_size = kwargs.get('layer2_size', 32)
         act_func = kwargs.get('activation', 'relu')
         batch_size = kwargs.get('batch_size', 32)
-
         self.model = self.create_model(X1.shape[1], hidden_layer_sizes=(l1_size, l2_size,),
                                        activation=(act_func, act_func,),
                                        solver='adam')
@@ -128,8 +125,8 @@ class RankNetAdvisor(BaseAdvisor):
         for i in range(n_algo):
             vector_i = np.zeros(n_algo)
             vector_i[i] = 1
-            _X.append(list(dataset_meta_feat.copy()) + list(vector_i))
+            item = list(dataset_meta_feat.copy()) + list(vector_i)
+            _X.append(item)
         X = np.asarray(_X)
-
         ranker_output = K.function([self.model.layers[0].input], [self.model.layers[-3].get_output_at(0)])
         return ranker_output([X])[0].ravel()
