@@ -67,7 +67,6 @@ class BaseAdvisor(object):
         self.metadata_manager = MetaDataManager(self.meta_dir, _builtin_algorithms, self._builtin_datasets,
                                                 metric, total_resource, task_type=task_type, rep=rep)
         self.meta_learner = None
-        print(self._builtin_datasets)
 
     def fetch_algorithm_set(self, dataset):
         input_vector = get_feature_vector(dataset, task_type=self.task_type)

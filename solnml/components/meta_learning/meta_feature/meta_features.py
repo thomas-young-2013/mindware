@@ -14,7 +14,7 @@ from sklearn.compose import ColumnTransformer
 
 from solnml.utils.logging_utils import get_logger
 from solnml.components.utils.constants import CLS_TASKS
-from solnml.components.meta_learning.meta_feature import MetaFeature, HelperFunction, DatasetMetafeatures
+from solnml.components.meta_learning.meta_feature.meta_feature import MetaFeature, HelperFunction, DatasetMetafeatures
 
 
 class HelperFunctions(object):

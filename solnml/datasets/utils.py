@@ -6,7 +6,7 @@ from sklearn.preprocessing._encoders import OrdinalEncoder, _BaseEncoder
 from solnml.utils.data_manager import DataManager
 from solnml.components.feature_engineering.fe_pipeline import FEPipeline
 from solnml.components.feature_engineering.transformation_graph import DataNode
-from solnml.components.meta_learning.meta_features import calculate_all_metafeatures
+from solnml.components.meta_learning.meta_feature.meta_features import calculate_all_metafeatures
 from solnml.components.utils.constants import CLS_TASKS, REG_TASKS
 
 
