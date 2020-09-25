@@ -1,7 +1,6 @@
 import os
 import hashlib
 import numpy as np
-import pickle as pk
 from collections import OrderedDict
 from solnml.utils.logging_utils import get_logger
 from solnml.components.utils.constants import CLS_TASKS, REG_TASKS
@@ -68,71 +67,19 @@ class BaseAdvisor(object):
         self.metadata_manager = MetaDataManager(self.meta_dir, _builtin_algorithms, self._builtin_datasets,
                                                 metric, total_resource, task_type=task_type, rep=rep)
         self.meta_learner = None
+        print(self._builtin_datasets)
 
-    @DeprecationWarning
-    def load_train_data(self):
-        file_id = 'ranker_%s_dataset_%s_%s.pkl' % (self.meta_algo, self.metric, self.hash_id)
-        meta_dataset_filename = os.path.join(self.meta_dir, file_id)
-        if os.path.exists(meta_dataset_filename):
-            self.logger.info('Meta dataset file exists: %s' % meta_dataset_filename)
-            with open(meta_dataset_filename, 'rb') as f:
-                meta_X, meta_y, meta_infos = pk.load(f)
-        else:
-            X, Y, include_datasets = self.metadata_manager.load_meta_data()
-            meta_X, meta_y = list(), list()
-            self.logger.info('Meta information comes from %d datasets.' % len(meta_y))
-            meta_infos = list()
-
-            for idx in range(len(X)):
-                meta_feature, run_results, _dataset = X[idx], Y[idx], include_datasets[idx]
-                _instance_num = 0
-                n_algo = len(run_results)
-                _X, _y = list(), list()
-
-                for i in range(n_algo):
-                    vector_i = np.zeros(n_algo)
-                    vector_i[i] = 1
-                    meta_x = meta_feature.copy()
-                    meta_x.extend(vector_i.copy())
-                    meta_label = run_results[i]
-                    _X.append(meta_x)
-                    _y.append(meta_label)
-                    _instance_num += 1
-
-                self.logger.info('Meta instances: %s - %d' % (_dataset, _instance_num))
-                meta_X.append(_X)
-                meta_y.append(_y)
-                meta_infos.append((_dataset, _instance_num))
-
-            meta_X, meta_y = np.array(meta_X), np.array(meta_y)
-            with open(meta_dataset_filename, 'wb') as f:
-                pk.dump([meta_X, meta_y, meta_infos], f)
-        return meta_X, meta_y
-
-    @DeprecationWarning
-    def load_test_data(self, meta_feature):
-        n_algo = self.n_algo_candidates
-        _X = list()
-        for i in range(n_algo):
-            vector_i = np.zeros(n_algo)
-            vector_i[i] = 1
-            meta_x = meta_feature.copy()
-            meta_x.extend(vector_i)
-            _X.append(meta_x)
-        return np.asarray(_X)
-
-    def fetch_algorithm_set(self, dataset, dataset_id=None):
-        input_vector = get_feature_vector(dataset, dataset_id, task_type=self.task_type)
+    def fetch_algorithm_set(self, dataset):
+        input_vector = get_feature_vector(dataset, task_type=self.task_type)
         preds = self.predict(input_vector)
         idxs = np.argsort(-preds)
         return [_builtin_algorithms[idx] for idx in idxs]
 
-    @DeprecationWarning
     def fetch_run_results(self, dataset):
-        X, Y, include_datasets = self.metadata_manager.load_meta_data()
-        idxs = np.argsort(-np.array(Y[0]))
+        scores = self.metadata_manager.fetch_meta_runs(dataset)
+        idxs = np.argsort(-scores)
         sorted_algos = [_builtin_algorithms[idx] for idx in idxs]
-        sorted_scores = [Y[0][idx] for idx in idxs]
+        sorted_scores = [scores[idx] for idx in idxs]
         return OrderedDict(zip(sorted_algos, sorted_scores))
 
     def fit(self):

@@ -4,19 +4,21 @@ import numpy as np
 from solnml.datasets.utils import calculate_metafeatures
 
 
-def get_feature_vector(dataset, dataset_id, data_dir='./', task_type=None):
+def get_feature_vector(dataset, task_type=None):
     meta_dir = os.path.dirname(__file__)
     meta_dir = os.path.join(meta_dir, '..')
     meta_dir = os.path.join(meta_dir, 'meta_resource')
-    dataset_meta_feat_filename = meta_dir + 'meta_feature_dataset_%s.pkl' % dataset
-    if os.path.exists(dataset_meta_feat_filename):
-        with open(dataset_meta_feat_filename, 'rb') as f:
-            feature_vec = pickle.load(f)
-        return feature_vec
-    else:
-        feature_dict = calculate_metafeatures(dataset, dataset_id, data_dir, task_type=task_type)
-        sorted_keys = sorted(feature_dict.keys())
-        return [feature_dict[key] for key in sorted_keys]
+    meta_dataset_dir = os.path.join(meta_dir, 'meta_dataset_vec')
+    save_path1 = os.path.join(meta_dataset_dir, 'meta_dataset_embedding.pkl')
+
+    assert os.path.exists(save_path1)
+    with open(save_path1, 'rb') as f:
+        data1 = pickle.load(f)
+
+    task_id = 'init_%s' % dataset
+    assert task_id in data1['task_ids']
+    idx = data1['task_ids'].index(task_id)
+    return data1['dataset_embedding'][idx]
 
 
 def fetch_algorithm_runs(meta_dir, dataset, metric, total_resource, rep, buildin_algorithms):
@@ -57,6 +59,18 @@ class MetaDataManager(object):
         self._dataset_embedding = list()
         self._dataset_perf4algo = list()
 
+    def fetch_meta_runs(self, dataset):
+        meta_dataset_dir = os.path.join(self.metadata_dir, 'meta_dataset_vec')
+        save_path2 = os.path.join(meta_dataset_dir, 'meta_dataset_algo2perf.pkl')
+        assert os.path.exists(save_path2)
+
+        with open(save_path2, 'rb') as f:
+            data2 = pickle.load(f)
+
+        task_id = 'init_%s' % dataset
+        idx = data2['task_ids'].index(task_id)
+        return data2['perf4algo'][idx]
+
     def load_meta_data(self):
         X, perf4algo, task_ids = list(), list(), list()
         meta_dataset_dir = os.path.join(self.metadata_dir, 'meta_dataset_vec')
@@ -95,9 +109,6 @@ class MetaDataManager(object):
                 scores = fetch_algorithm_runs(self.metadata_dir, _dataset, self.metric,
                                               self.resource_n, self.rep_num, self.builtin_algorithms)
                 perf4algo.append(scores)
-
-                print(len(X))
-                print(scores)
 
             self._dataset_embedding = np.asarray(X)
             self._dataset_perf4algo = np.asarray(perf4algo)

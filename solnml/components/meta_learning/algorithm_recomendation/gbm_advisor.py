@@ -1,6 +1,4 @@
-import os
 import numpy as np
-import pickle as pk
 import lightgbm as lgb
 from solnml.utils.logging_utils import get_logger
 from solnml.components.meta_learning.algorithm_recomendation.base_advisor import BaseAdvisor
@@ -39,7 +37,7 @@ class GBMAdvisor(BaseAdvisor):
                     meta_x1.extend(vector_i.copy())
                     meta_x1.extend(vector_j.copy())
 
-                    meta_x2 = meta_vec.copy()
+                    meta_x2 = list(meta_vec.copy())
                     meta_x2.extend(vector_j.copy())
                     meta_x2.extend(vector_i.copy())
 
@@ -54,7 +52,7 @@ class GBMAdvisor(BaseAdvisor):
 
     def fit(self, **meta_learner_config):
         _X, _y, _ = self.metadata_manager.load_meta_data()
-        print(_X.shape, _y.shape)
+        # print(_X.shape, _y.shape)
         X, y = self.create_pairwise_data(_X, _y)
 
         # meta_learner_config_filename = self.meta_dir + 'meta_learner_%s_%s_%s_config.pkl' % (
@@ -64,7 +62,10 @@ class GBMAdvisor(BaseAdvisor):
         #         meta_learner_config = pk.load(f)
         # print(meta_learner_config)
         self.model = lgb.LGBMClassifier(**meta_learner_config)
+        print(X.shape, y.shape)
+        print('Start to fit LGB Model.')
         self.model.fit(X, y)
+        print('Fitting LGB Model finished.')
 
     def predict(self, meta_feature):
         n_algo = self.n_algo_candidates
