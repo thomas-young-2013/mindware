@@ -12,23 +12,7 @@ from solnml.components.meta_learning.algorithm_recomendation.metadata_manager im
 from solnml.components.utils.constants import MULTICLASS_CLS
 
 
-total_datasets = ['space_ga', 'yeast', 'fri_c0_1000_10', 'mfeat-fourier(1)', 'codrna', 'fri_c3_1000_5', 'pc4',
-                  'fri_c3_1000_10', 'kc1', 'fri_c1_1000_5', 'fri_c2_1000_25', 'wind', 'spambase', 'fri_c0_1000_25',
-                  'vehicle', 'pc3', 'electricity', 'adult-census', 'fri_c1_1000_10', 'ailerons', 'glass', 'musk',
-                  'hypothyroid(1)', 'nursery', 'socmob', 'fri_c1_1000_25', 'delta_elevators', 'usps', 'colleges_usnews',
-                  'magic_telescope', 'letter(1)', 'semeion', 'poker', 'credit', 'optdigits', 'mc1', 'mammography',
-                  'waveform-5000(2)', 'kin8nm', 'sylva_prior', 'kropt', 'fri_c4_1000_10', '2dplanes',
-                  'mfeat-fourier(2)', 'fri_c2_1000_10', 'fri_c3_1000_50', 'page-blocks(1)', 'house_16H', 'madelon',
-                  'cpu_act', 'messidor_features', 'ionosphere', 'analcatdata_supreme', 'adult', 'car(1)', 'cmc',
-                  'higgs', 'fri_c1_1000_50', 'winequality_white', 'winequality_red', 'satimage', 'gina_prior2',
-                  'mushroom', 'car(2)', 'eeg', 'visualizing_soil', 'elevators', 'spectf', 'fri_c4_1000_50', 'segment',
-                  'diabetes', 'covertype', 'amazon_employee', 'bank32nh', 'page-blocks(2)', 'houses', 'mv', 'puma32H',
-                  'jm1', 'colleges_aaup', 'analcatdata_halloffame', 'pollen', 'fried', 'quake', 'fri_c2_1000_5',
-                  'delta_ailerons', 'pc2', 'mfeat-morphological(1)', 'sick', 'lymphography', 'mfeat-factors(2)',
-                  'isolet', 'letter(2)', 'a9a', 'fri_c2_1000_50', 'pendigits', 'dna', 'waveform-5000(1)', 'credit-g',
-                  'fri_c0_1000_50', 'cal_housing', 'ap_omentum_ovary', 'mfeat-zernike(1)', 'fri_c0_1000_5', 'pc1',
-                  'house_8L', 'mfeat-karhunen(2)', 'mfeat-morphological(2)', 'puma8NH', 'cpu_small', 'abalone',
-                  'splice', 'balloon', 'rmftsa_sleepdata(2)']
+total_datasets = ['abalone', 'adult', 'adult-census', 'ailerons', 'amazon_employee', 'analcatdata_halloffame', 'analcatdata_supreme', 'balloon', 'bank32nh', 'baseball', 'cal_housing', 'car(1)', 'car(2)', 'cmc', 'colleges_aaup', 'colleges_usnews', 'covertype', 'cpu_act', 'cpu_small', 'credit', 'credit-g', 'delta_ailerons', 'delta_elevators', 'diabetes', 'dna', 'eeg', 'elevators', 'fri_c0_1000_10', 'fri_c0_1000_25', 'fri_c0_1000_5', 'fri_c0_1000_50', 'fri_c1_1000_10', 'fri_c1_1000_25', 'fri_c1_1000_5', 'fri_c1_1000_50', 'fri_c2_1000_25', 'fri_c2_1000_5', 'fri_c2_1000_50', 'fri_c3_1000_10', 'fri_c3_1000_25', 'fri_c3_1000_5', 'fri_c3_1000_50', 'fri_c4_1000_10', 'fri_c4_1000_25', 'fri_c4_1000_50', 'gina_prior2', 'glass', 'house_16H', 'houses', 'hypothyroid(1)', 'hypothyroid(2)', 'ionosphere', 'isolet', 'jm1', 'kc1', 'kr-vs-kp', 'kropt', 'letter(1)', 'letter(2)', 'lymphography', 'madelon', 'magic_telescope', 'mammography', 'messidor_features', 'mfeat-factors(1)', 'mfeat-factors(2)', 'mfeat-fourier(1)', 'mfeat-fourier(2)', 'mfeat-karhunen(1)', 'mfeat-karhunen(2)', 'mfeat-morphological(1)', 'mfeat-morphological(2)', 'mfeat-zernike(1)', 'mfeat-zernike(2)', 'mnist_784', 'mushroom', 'musk', 'mv', 'nursery', 'optdigits', 'page-blocks(1)', 'pc1', 'pc3', 'pc4', 'pendigits', 'poker', 'pol', 'pollen', 'puma32H', 'puma8NH', 'quake', 'rmftsa_sleepdata(1)', 'rmftsa_sleepdata(2)', 'satimage', 'semeion', 'sick', 'socmob', 'space_ga', 'spectf', 'splice', 'sylva_prior', 'usps', 'vehicle', 'vehicle_sensIT', 'waveform-5000(1)', 'waveform-5000(2)', 'wind', 'winequality_red', 'yeast']
 np.random.shuffle(total_datasets)
 
 
@@ -56,7 +40,7 @@ def obj_function(config):
         ranker.fit(**config)
 
         for test_dataset in test_datasets:
-            pred_algos = ranker.fetch_algorithm_set(test_dataset, dataset_id=test_dataset)
+            pred_algos = ranker.fetch_algorithm_set(test_dataset)
             true_ranks = list(ranker.fetch_run_results(test_dataset).keys())
             ap = average_precision_atN(pred_algos[:5], true_ranks[:5])
             top1.append(1 if true_ranks[0] in pred_algos[:5] else 0)
