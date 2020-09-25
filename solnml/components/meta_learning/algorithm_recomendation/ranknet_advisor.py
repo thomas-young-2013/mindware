@@ -27,23 +27,37 @@ class RankNetAdvisor(BaseAdvisor):
     @staticmethod
     def create_pairwise_data(X, y):
         X1, X2, labels = list(), list(), list()
+        n_algo = y.shape[1]
+
         for _X, _y in zip(X, y):
-            n_sample = len(_X)
-            for i in range(n_sample):
-                for j in range(i+1, n_sample):
-                    if np.isnan(_X[i]).any() or np.isnan(_X[j]).any():
+            if np.isnan(_X).any():
+                continue
+            meta_vec = _X
+            for i in range(n_algo):
+                for j in range(i+1, n_algo):
+                    if (_y[i] == -1) or (_y[j] == -1):
                         continue
-                    X1.append(_X[i])
-                    X1.append(_X[j])
-                    X2.append(_X[j])
-                    X2.append(_X[i])
+
+                    vector_i, vector_j = np.zeros(n_algo), np.zeros(n_algo)
+                    vector_i[i] = 1
+                    vector_j[j] = 1
+
+                    meta_x1 = list(meta_vec.copy())
+                    meta_x1.extend(vector_i.copy())
+                    meta_x1.extend(vector_j.copy())
+
+                    meta_x2 = list(meta_vec.copy())
+                    meta_x2.extend(vector_j.copy())
+                    meta_x2.extend(vector_i.copy())
+
+                    X1.append(meta_x1)
+                    X1.append(meta_x2)
+                    X2.append(meta_x2)
+                    X2.append(meta_x1)
                     _label = 1 if _y[i] > _y[j] else 0
                     labels.append(_label)
                     labels.append(1 - _label)
-        X1, X2, labels = np.asarray(X1), np.asarray(X2), np.asarray(labels)
-        # perm = np.random.permutation(X1.shape[0])
-        # return X1[perm], X2[perm], labels[perm]
-        return X1, X2, labels
+        return np.asarray(X1), np.asarray(X2), np.asarray(labels)
 
     @staticmethod
     def create_model(input_shape, hidden_layer_sizes, activation, solver):
@@ -80,7 +94,7 @@ class RankNetAdvisor(BaseAdvisor):
         return model
 
     def fit(self, **kwargs):
-        _X, _y = self.load_train_data()
+        _X, _y, _ = self.metadata_manager.load_meta_data()
         X1, X2, y = self.create_pairwise_data(_X, _y)
 
         l1_size = kwargs.get('layer1_size', 64)
@@ -109,6 +123,13 @@ class RankNetAdvisor(BaseAdvisor):
                     pk.dump(self.model, f)
                 print('Dump model to file: %s.' % meta_learner_filename)
 
-        X = self.load_test_data(dataset_meta_feat)
+        n_algo = self.n_algo_candidates
+        _X = list()
+        for i in range(n_algo):
+            vector_i = np.zeros(n_algo)
+            vector_i[i] = 1
+            _X.append(list(dataset_meta_feat.copy()) + list(vector_i))
+        X = np.asarray(_X)
+
         ranker_output = K.function([self.model.layers[0].input], [self.model.layers[-3].get_output_at(0)])
         return ranker_output([X])[0].ravel()
