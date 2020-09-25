@@ -63,7 +63,7 @@ class BaseAdvisor(object):
                 if self.exclude_datasets is not None and meta_name in self.exclude_datasets:
                     continue
                 meta_datasets.add(meta_name)
-        self._builtin_datasets = list(meta_datasets)
+        self._builtin_datasets = sorted(list(meta_datasets))
 
         self.metadata_manager = MetaDataManager(self.meta_dir, _builtin_algorithms, self._builtin_datasets,
                                                 metric, total_resource, task_type=task_type, rep=rep)

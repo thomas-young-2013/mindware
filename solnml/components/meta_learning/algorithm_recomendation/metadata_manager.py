@@ -26,7 +26,7 @@ def fetch_algorithm_runs(meta_dir, dataset, metric, total_resource, rep, buildin
         for run_id in range(rep):
             meta_folder = os.path.join(meta_dir, 'meta_runs')
             meta_folder = os.path.join(meta_folder, metric)
-            save_path = os.path.join(meta_folder + '%s-%s-%s-%d-%d.pkl' % (
+            save_path = os.path.join(meta_folder, '%s-%s-%s-%d-%d.pkl' % (
                 dataset, algo, metric, run_id, total_resource))
             if not os.path.exists(save_path):
                 continue
@@ -68,8 +68,13 @@ class MetaDataManager(object):
                 data1 = pickle.load(f)
             with open(save_path2, 'rb') as f:
                 data2 = pickle.load(f)
-            self._dataset_embedding = data1['dataset_embedding']
-            self._task_ids = data1['task_ids']
+            _X = list()
+            for task_id in data2['task_ids']:
+                idx = data1['task_ids'].index(task_id)
+                _X.append(data1['dataset_embedding'][idx])
+
+            self._dataset_embedding = np.asarray(_X)
+            self._task_ids = data2['task_ids']
             self._dataset_perf4algo = data2['perf4algo']
         else:
             for _dataset in self.builtin_datasets:
@@ -91,20 +96,26 @@ class MetaDataManager(object):
                                               self.resource_n, self.rep_num, self.builtin_algorithms)
                 perf4algo.append(scores)
 
+                print(len(X))
+                print(scores)
+
+            self._dataset_embedding = np.asarray(X)
+            self._dataset_perf4algo = np.asarray(perf4algo)
+            self._task_ids = task_ids
+
             with open(save_path1, 'wb') as f:
                 data = dict()
-                data['task_ids'] = task_ids
-                data['dataset_embedding'] = X
+                data['task_ids'] = self._task_ids
+                data['dataset_embedding'] = self._dataset_embedding
                 pickle.dump(data, f)
 
             with open(save_path2, 'wb') as f:
                 data = dict()
+                data['task_ids'] = self._task_ids
                 data['algorithms_included'] = self.builtin_algorithms
-                data['perf4algo'] = np.asarray(perf4algo)
+                data['perf4algo'] = self._dataset_perf4algo
                 pickle.dump(data, f)
-        self._dataset_embedding = np.asarray(X)
-        self._dataset_perf4algo = np.asarray(perf4algo)
-        self._task_ids = task_ids
+
         return self._dataset_embedding, self._dataset_perf4algo, self._task_ids
 
     def add_meta_runs(self, task_id, dataset_vec, algo_perf):

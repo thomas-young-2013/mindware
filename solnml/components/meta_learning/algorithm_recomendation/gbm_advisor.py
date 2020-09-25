@@ -35,7 +35,7 @@ class GBMAdvisor(BaseAdvisor):
                     vector_i[i] = 1
                     vector_j[j] = 1
 
-                    meta_x1 = meta_vec.copy()
+                    meta_x1 = list(meta_vec.copy())
                     meta_x1.extend(vector_i.copy())
                     meta_x1.extend(vector_j.copy())
 
@@ -54,6 +54,7 @@ class GBMAdvisor(BaseAdvisor):
 
     def fit(self, **meta_learner_config):
         _X, _y, _ = self.metadata_manager.load_meta_data()
+        print(_X.shape, _y.shape)
         X, y = self.create_pairwise_data(_X, _y)
 
         # meta_learner_config_filename = self.meta_dir + 'meta_learner_%s_%s_%s_config.pkl' % (
