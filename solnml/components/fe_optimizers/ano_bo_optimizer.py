@@ -60,15 +60,15 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
                             rng=np.random.RandomState(self.seed))
         self.eval_dict = {}
 
-    def evaluate_function(self, config, data_subsample_ratio=1.0):
+    def evaluate_function(self, config, resource_ratio=1.0, **kwargs):
         """
             The config is the configuration that specifies the FE pipeline.
-        :param data_subsample_ratio:
+        :param resource_ratio:
         :param config:
         :return: the evaluation score.
         """
         return self.evaluator(self.hp_config, fe_config=config, name='fe',
-                              data_subsample_ratio=data_subsample_ratio)
+                              resource_ratio=resource_ratio, **kwargs)
 
     def optimize(self):
         """
@@ -88,25 +88,22 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
     def iterate(self):
         result = None
         for _ in range(self.number_of_unit_resource):
-            result = self._iterate()
+            _start_time = time.time()
+            for _ in range(self.iter_num_per_unit_resource):
+                _, status, _, info = self.optimizer.iterate()
+                if status == 1:
+                    print(info)
+
+            runhistory = self.optimizer.get_history()
+            self.eval_dict = {(fe_config, self.evaluator.hpo_config): -score for fe_config, score in
+                              runhistory.data.items()}
+            self.incumbent_config, iter_incumbent_score = runhistory.get_incumbents()[0]
+            self.incumbent_score = -iter_incumbent_score  # Maximize
+            iteration_cost = time.time() - _start_time
+
+            # incumbent_score: the large the better
+            result = (self.incumbent_score, iteration_cost, self.incumbent_config)
         return result
-
-    def _iterate(self):
-        _start_time = time.time()
-        for _ in range(self.iter_num_per_unit_resource):
-            _, status, _, info = self.optimizer.iterate()
-            if status == 1:
-                print(info)
-
-        runhistory = self.optimizer.get_history()
-        self.eval_dict = {(fe_config, self.evaluator.hpo_config): -score for fe_config, score in
-                          runhistory.data.items()}
-        self.incumbent_config, iter_incumbent_score = runhistory.get_incumbents()[0]
-        self.incumbent_score = -iter_incumbent_score  # Maximize
-        iteration_cost = time.time() - _start_time
-
-        # incumbent_score: the large the better
-        return self.incumbent_score, iteration_cost, self.incumbent_config
 
     def fetch_nodes(self, n=5):
         runhistory = self.optimizer.get_history()

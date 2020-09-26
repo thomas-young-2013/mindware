@@ -8,12 +8,8 @@ from .base.nondaemonic_processpool import ProcessPool
 def execute_func(evaluator, config, resource_ratio, eta, first_iter, rw_lock):
     start_time = time.time()
     try:
-        if isinstance(config, Configuration):
-            score = evaluator(config, name='hpo', resource_ratio=resource_ratio, eta=eta, first_iter=first_iter,
-                              rw_lock=rw_lock)
-        else:
-            score = evaluator(None, data_node=config, name='fe', resource_ratio=resource_ratio, eta=eta,
-                              first_iter=first_iter, rw_lock=rw_lock)
+        score = evaluator(config, name='hpo', resource_ratio=resource_ratio, eta=eta, first_iter=first_iter,
+                          rw_lock=rw_lock)
     except Exception as e:
         print(e)
         score = np.inf
