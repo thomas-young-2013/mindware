@@ -35,7 +35,6 @@ class BaseEnsembleModel(object):
         logger_name = 'EnsembleBuilder'
         self.logger = get_logger(logger_name)
 
-        X_valid_list = []
         for algo_id in self.stats.keys():
             model_to_eval = self.stats[algo_id]
             for idx, (_, _, path) in enumerate(model_to_eval):

@@ -8,7 +8,7 @@ from solnml.components.metrics.metric import get_metric
 from solnml.utils.constant import MAX_INT
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.bandits.second_layer_bandit import SecondLayerBandit
-from solnml.components.evaluators.base_evaluator import fetch_predict_estimator, load_transformer_estimator
+from solnml.components.evaluators.base_evaluator import load_transformer_estimator, load_combined_transformer_estimator
 from solnml.utils.logging_utils import get_logger
 from solnml.components.utils.constants import CLS_TASKS
 
@@ -66,7 +66,6 @@ class FirstLayerBandit(object):
         self.rewards = dict()
         self.sub_bandits = dict()
         self.evaluation_cost = dict()
-        self.fe_datanodes = dict()
         self.eval_type = eval_type
         self.enable_fe = enable_fe
         self.fe_algo = fe_algo
@@ -83,7 +82,6 @@ class FirstLayerBandit(object):
         for arm in self.arms:
             self.rewards[arm] = list()
             self.evaluation_cost[arm] = list()
-            self.fe_datanodes[arm] = list()
             self.sub_bandits[arm] = SecondLayerBandit(
                 self.task_type, arm, self.original_data,
                 metric=self.metric,
@@ -145,18 +143,13 @@ class FirstLayerBandit(object):
             self.best_config = self.sub_bandits[self.optimal_algo_id].incumbent_config
         else:
             # Fit the best model
-            self.fe_optimizer = self.sub_bandits[self.optimal_algo_id].optimizer['fe']
-            if self.fe_algo == 'bo':
-                self.fe_optimizer.fetch_nodes(1)
-
-            best_config = self.sub_bandits[self.optimal_algo_id].inc['hpo']
-            best_estimator = fetch_predict_estimator(self.task_type, best_config, self.best_data_node.data[0],
-                                                     self.best_data_node.data[1],
-                                                     weight_balance=self.best_data_node.enable_balance,
-                                                     data_balance=self.best_data_node.data_balance)
-
-            with open(os.path.join(self.output_dir, '%s-best_model' % self.timestamp), 'wb') as f:
-                pkl.dump(best_estimator, f)
+            eval_dict = dict()
+            fe_eval_dict = self.sub_bandits[self.optimal_algo_id].eval_dict['fe']
+            hpo_eval_dict = self.sub_bandits[self.optimal_algo_id].eval_dict['hpo']
+            eval_dict.update(fe_eval_dict)
+            eval_dict.update(hpo_eval_dict)
+            self.best_fe_config, self.best_hpo_config = sorted(eval_dict.items(), key=lambda t: t[1], reverse=True)[0][
+                0]
 
         if self.ensemble_method is not None:
             if self.inner_opt_algorithm == 'combined':
@@ -166,8 +159,9 @@ class FirstLayerBandit(object):
 
                 from solnml.components.ensemble.combined_ensemble.ensemble_bulider import EnsembleBuilder
             else:
-                # stats = self.fetch_ensemble_members_ano()
-                stats = self.fetch_ensemble_members()
+                config_path = os.path.join(self.output_dir, '%s_topk_config.pkl' % self.timestamp)
+                with open(config_path, 'rb') as f:
+                    stats = pkl.load(f)
 
                 from solnml.components.ensemble import EnsembleBuilder
 
@@ -189,26 +183,21 @@ class FirstLayerBandit(object):
         if self.ensemble_method is not None:
             if self.es is None:
                 raise AttributeError("AutoML is not fitted!")
-            if self.inner_opt_algorithm == 'combined':
-                return self.es.predict(test_data)
-            else:
-                args = self.sub_bandits
-                return self.es.predict(test_data, args)
+            return self.es.predict(test_data)
         else:
             if self.inner_opt_algorithm == 'combined':
-                best_op_list, estimator = load_transformer_estimator(self.output_dir, self.best_config,
-                                                                     self.timestamp)
-                test_data_node = test_data.copy_()
-                if best_op_list[0] is not None:
-                    test_data_node = best_op_list[0].operate(test_data_node)
-                if best_op_list[2] is not None:
-                    test_data_node = best_op_list[2].operate(test_data_node)
+                best_op_list, estimator = load_combined_transformer_estimator(self.output_dir, self.best_config,
+                                                                              self.timestamp)
             else:
-                fe_optimizer = self.fe_optimizer
-                node = self.best_data_node
-                test_data_node = fe_optimizer.apply(test_data, node)
-                with open(os.path.join(self.output_dir, '%s-best_model' % self.timestamp), 'rb') as f:
-                    estimator = pkl.load(f)
+                best_op_list, estimator = load_transformer_estimator(self.output_dir, self.best_hpo_config,
+                                                                     self.best_fe_config, self.timestamp)
+
+            test_data_node = test_data.copy_()
+            if best_op_list[0] is not None:
+                test_data_node = best_op_list[0].operate(test_data_node)
+            if best_op_list[2] is not None:
+                test_data_node = best_op_list[2].operate(test_data_node)
+
             if self.task_type in CLS_TASKS:
                 return estimator.predict_proba(test_data_node.data[0])
             else:
@@ -353,126 +342,126 @@ class FirstLayerBandit(object):
         for _arm in self.arms:
             del self.sub_bandits[_arm].optimizer
 
-    def fetch_ensemble_members(self):
-        stats = dict()
-        stats['candidate_algorithms'] = self.include_algorithms
-        stats['include_algorithms'] = self.nbest_algo_ids
-        stats['split_seed'] = self.seed
+    # def fetch_ensemble_members(self):
+    #     stats = dict()
+    #     stats['candidate_algorithms'] = self.include_algorithms
+    #     stats['include_algorithms'] = self.nbest_algo_ids
+    #     stats['split_seed'] = self.seed
+    #
+    #     self.logger.info('Prepare basic models for ensemble stage.')
+    #     self.logger.info('algorithm_id, #models')
+    #     for algo_id in self.nbest_algo_ids:
+    #         data = dict()
+    #         model_num = 60
+    #         model_num_partial = int(model_num * 0.667)
+    #
+    #         fe_eval_dict = self.sub_bandits[algo_id].eval_dict['fe']
+    #         hpo_eval_dict = self.sub_bandits[algo_id].eval_dict['hpo']
+    #
+    #         fe_eval_list = sorted(fe_eval_dict.items(), key=lambda item: item[1], reverse=True)
+    #         hpo_eval_list = sorted(hpo_eval_dict.items(), key=lambda item: item[1], reverse=True)
+    #
+    #         combined_list = list()
+    #         combined_list.extend(fe_eval_list[:model_num_partial])
+    #         combined_list.extend(hpo_eval_list[:model_num_partial])
+    #
+    #         # Sort the combined configs.
+    #         combined_list = sorted(combined_list, key=lambda item: item[1], reverse=True)
+    #         model_items = combined_list[:model_num]
+    #
+    #         fe_configs = [item[0][0] for item in model_items]
+    #         hpo_configs = [item[0][1] for item in model_items]
+    #
+    #         node_list = self.sub_bandits[algo_id].optimizer['fe'].fetch_nodes_by_config(fe_configs)
+    #         model_to_eval = []
+    #         for idx, node in enumerate(node_list):
+    #             if node is not None:
+    #                 model_to_eval.append((node_list[idx], hpo_configs[idx]))
+    #         data['model_to_eval'] = model_to_eval
+    #         self.logger.info('%s, %d' % (algo_id, len(model_to_eval)))
+    #         stats[algo_id] = data
+    #     self.logger.info('Preparing basic models finished.')
+    #     return stats
+    #
+    # def fetch_ensemble_members_ano(self):
+    #     stats = dict()
+    #     stats['candidate_algorithms'] = self.include_algorithms
+    #     stats['include_algorithms'] = self.nbest_algo_ids
+    #     stats['split_seed'] = self.seed
+    #
+    #     self.logger.info('Prepare basic models for ensemble stage.')
+    #     self.logger.info('algorithm_id, #models')
+    #     for algo_id in self.nbest_algo_ids:
+    #         data = dict()
+    #         leap = 2
+    #         model_num, min_model_num = 20, 5
+    #
+    #         fe_eval_dict = self.sub_bandits[algo_id].optimizer['fe'].eval_dict
+    #         hpo_eval_dict = self.sub_bandits[algo_id].optimizer['hpo'].eval_dict
+    #
+    #         # combined_dict = fe_eval_dict.copy()
+    #         # for key in hpo_eval_dict:
+    #         #     if key not in fe_eval_dict:
+    #         #         combined_dict[key] = hpo_eval_dict[key]
+    #         #
+    #         # max_list = sorted(combined_dict.items(), key=lambda item: item[1], reverse=True)
+    #         # model_items = max_list[:model_num]
+    #
+    #         fe_eval_list = sorted(fe_eval_dict.items(), key=lambda item: item[1], reverse=True)
+    #         hpo_eval_list = sorted(hpo_eval_dict.items(), key=lambda item: item[1], reverse=True)
+    #         model_items = list()
+    #         combined_list = list()
+    #
+    #         if len(fe_eval_list) > 20:
+    #             idxs = np.arange(min_model_num) * leap
+    #             for idx in idxs:
+    #                 model_items.append(fe_eval_list[idx])
+    #             combined_list.extend(fe_eval_list[min_model_num * leap:])
+    #         else:
+    #             model_items.extend(fe_eval_list[:min_model_num])
+    #             combined_list.extend(fe_eval_list[min_model_num:])
+    #
+    #         if len(hpo_eval_list) > 20:
+    #             idxs = np.arange(min_model_num) * leap
+    #             for idx in idxs:
+    #                 model_items.append(hpo_eval_list[idx])
+    #             combined_list.extend(hpo_eval_list[min_model_num * leap:])
+    #         else:
+    #             model_items.extend(hpo_eval_list[:min_model_num])
+    #             combined_list.extend(hpo_eval_list[min_model_num:])
+    #         # Sort the left configs.
+    #         combined_list = sorted(combined_list, key=lambda item: item[1], reverse=True)
+    #
+    #         left_model_num = model_num - 2 * min_model_num
+    #         if left_model_num > 0:
+    #             if len(combined_list) > 20:
+    #                 idxs = np.arange(left_model_num) * leap
+    #                 for idx in idxs:
+    #                     model_items.append(combined_list[idx])
+    #             else:
+    #                 model_items.extend(combined_list[:left_model_num])
+    #
+    #         fe_configs = [item[0][0] for item in model_items]
+    #         hpo_configs = [item[0][1] for item in model_items]
+    #
+    #         node_list = self.sub_bandits[algo_id].optimizer['fe'].fetch_nodes_by_config(fe_configs)
+    #         model_to_eval = []
+    #         for idx, node in enumerate(node_list):
+    #             if node is not None:
+    #                 model_to_eval.append((node_list[idx], hpo_configs[idx]))
+    #         data['model_to_eval'] = model_to_eval
+    #         self.logger.info('%s, %d' % (algo_id, len(model_to_eval)))
+    #         stats[algo_id] = data
+    #     self.logger.info('Preparing basic models finished.')
+    #     return stats
 
-        self.logger.info('Prepare basic models for ensemble stage.')
-        self.logger.info('algorithm_id, #models')
-        for algo_id in self.nbest_algo_ids:
-            data = dict()
-            model_num = 60
-            model_num_partial = int(model_num * 0.667)
-
-            fe_eval_dict = self.sub_bandits[algo_id].eval_dict['fe']
-            hpo_eval_dict = self.sub_bandits[algo_id].eval_dict['hpo']
-
-            fe_eval_list = sorted(fe_eval_dict.items(), key=lambda item: item[1], reverse=True)
-            hpo_eval_list = sorted(hpo_eval_dict.items(), key=lambda item: item[1], reverse=True)
-
-            combined_list = list()
-            combined_list.extend(fe_eval_list[:model_num_partial])
-            combined_list.extend(hpo_eval_list[:model_num_partial])
-
-            # Sort the combined configs.
-            combined_list = sorted(combined_list, key=lambda item: item[1], reverse=True)
-            model_items = combined_list[:model_num]
-
-            fe_configs = [item[0][0] for item in model_items]
-            hpo_configs = [item[0][1] for item in model_items]
-
-            node_list = self.sub_bandits[algo_id].optimizer['fe'].fetch_nodes_by_config(fe_configs)
-            model_to_eval = []
-            for idx, node in enumerate(node_list):
-                if node is not None:
-                    model_to_eval.append((node_list[idx], hpo_configs[idx]))
-            data['model_to_eval'] = model_to_eval
-            self.logger.info('%s, %d' % (algo_id, len(model_to_eval)))
-            stats[algo_id] = data
-        self.logger.info('Preparing basic models finished.')
-        return stats
-
-    def fetch_ensemble_members_ano(self):
-        stats = dict()
-        stats['candidate_algorithms'] = self.include_algorithms
-        stats['include_algorithms'] = self.nbest_algo_ids
-        stats['split_seed'] = self.seed
-
-        self.logger.info('Prepare basic models for ensemble stage.')
-        self.logger.info('algorithm_id, #models')
-        for algo_id in self.nbest_algo_ids:
-            data = dict()
-            leap = 2
-            model_num, min_model_num = 20, 5
-
-            fe_eval_dict = self.sub_bandits[algo_id].optimizer['fe'].eval_dict
-            hpo_eval_dict = self.sub_bandits[algo_id].optimizer['hpo'].eval_dict
-
-            # combined_dict = fe_eval_dict.copy()
-            # for key in hpo_eval_dict:
-            #     if key not in fe_eval_dict:
-            #         combined_dict[key] = hpo_eval_dict[key]
-            #
-            # max_list = sorted(combined_dict.items(), key=lambda item: item[1], reverse=True)
-            # model_items = max_list[:model_num]
-
-            fe_eval_list = sorted(fe_eval_dict.items(), key=lambda item: item[1], reverse=True)
-            hpo_eval_list = sorted(hpo_eval_dict.items(), key=lambda item: item[1], reverse=True)
-            model_items = list()
-            combined_list = list()
-
-            if len(fe_eval_list) > 20:
-                idxs = np.arange(min_model_num) * leap
-                for idx in idxs:
-                    model_items.append(fe_eval_list[idx])
-                combined_list.extend(fe_eval_list[min_model_num * leap:])
-            else:
-                model_items.extend(fe_eval_list[:min_model_num])
-                combined_list.extend(fe_eval_list[min_model_num:])
-
-            if len(hpo_eval_list) > 20:
-                idxs = np.arange(min_model_num) * leap
-                for idx in idxs:
-                    model_items.append(hpo_eval_list[idx])
-                combined_list.extend(hpo_eval_list[min_model_num * leap:])
-            else:
-                model_items.extend(hpo_eval_list[:min_model_num])
-                combined_list.extend(hpo_eval_list[min_model_num:])
-            # Sort the left configs.
-            combined_list = sorted(combined_list, key=lambda item: item[1], reverse=True)
-
-            left_model_num = model_num - 2 * min_model_num
-            if left_model_num > 0:
-                if len(combined_list) > 20:
-                    idxs = np.arange(left_model_num) * leap
-                    for idx in idxs:
-                        model_items.append(combined_list[idx])
-                else:
-                    model_items.extend(combined_list[:left_model_num])
-
-            fe_configs = [item[0][0] for item in model_items]
-            hpo_configs = [item[0][1] for item in model_items]
-
-            node_list = self.sub_bandits[algo_id].optimizer['fe'].fetch_nodes_by_config(fe_configs)
-            model_to_eval = []
-            for idx, node in enumerate(node_list):
-                if node is not None:
-                    model_to_eval.append((node_list[idx], hpo_configs[idx]))
-            data['model_to_eval'] = model_to_eval
-            self.logger.info('%s, %d' % (algo_id, len(model_to_eval)))
-            stats[algo_id] = data
-        self.logger.info('Preparing basic models finished.')
-        return stats
-
-    @property
-    def best_data_node(self):
-        if self.fe_algo == 'tree_based':
-            return self.sub_bandits[self.optimal_algo_id].inc['fe']
-        else:
-            return self.fe_optimizer.fetch_incumbent
-
-    @property
-    def best_hpo_config(self):
-        return self.sub_bandits[self.optimal_algo_id].inc['hpo']
+    # @property
+    # def best_data_node(self):
+    #     if self.fe_algo == 'tree_based':
+    #         return self.sub_bandits[self.optimal_algo_id].inc['fe']
+    #     else:
+    #         return self.fe_optimizer.fetch_incumbent
+    #
+    # @property
+    # def best_hpo_config(self):
+    #     return self.sub_bandits[self.optimal_algo_id].inc['hpo']

@@ -16,93 +16,85 @@ from solnml.utils.logging_utils import get_logger
 class BaseEnsembleModel(object):
     """Base class for model ensemble"""
 
-    def __init__(self, stats, ensemble_method: str,
+    def __init__(self, stats, data_node,
+                 ensemble_method: str,
                  ensemble_size: int,
                  task_type: int,
                  metric: _BaseScorer,
-                 base_save=False,
                  output_dir=None):
         self.stats = stats
+        self.node = data_node
         self.ensemble_method = ensemble_method
         self.ensemble_size = ensemble_size
         self.task_type = task_type
         self.metric = metric
         self.output_dir = output_dir
         # TODO: n_workers
-        self.fetcher = ParallelFetcher(n_worker=4)
+        self.fetcher = ParallelFetcher(n_worker=1)
 
-        self.train_predictions = []
-        self.config_list = []
-        self.train_data_dict = {}
+        self.predictions = []
         self.train_labels = None
-        self.seed = self.stats['split_seed']
         self.timestamp = str(time.time())
         logger_name = 'EnsembleBuilder'
         self.logger = get_logger(logger_name)
 
-        X_valid_list = list()
-        for algo_id in self.stats["include_algorithms"]:
-            model_to_eval = self.stats[algo_id]['model_to_eval']
-            for idx, (node, config) in enumerate(model_to_eval):
-                X, y = node.data
+        for algo_id in self.stats.keys():
+            model_to_eval = self.stats[algo_id]
+            for idx, (_, _, path) in enumerate(model_to_eval):
+                with open(path, 'rb')as f:
+                    op_list, model = pkl.load(f)
+                _node = self.node.copy_()
+                if op_list[0] is not None:
+                    _node = op_list[0].operate(_node)
+                if op_list[2] is not None:
+                    _node = op_list[2].operate(_node)
 
-                # TODO: Hyperparameter
+                # TODO: Test size
                 test_size = 0.33
+                X, y = _node.data
 
                 if self.task_type in CLS_TASKS:
                     ss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=1)
                 else:
                     ss = ShuffleSplit(n_splits=1, test_size=test_size, random_state=1)
 
-                for train_index, test_index in ss.split(X, y):
-                    X_train, X_valid = X[train_index], X[test_index]
-                    y_train, y_valid = y[train_index], y[test_index]
+                for train_index, val_index in ss.split(X, y):
+                    X_valid = X[val_index]
+                    y_valid = y[val_index]
 
                 if self.train_labels is not None:
                     assert (self.train_labels == y_valid).all()
                 else:
                     self.train_labels = y_valid
-                X_valid_list.append(X_valid)
-                self.fetcher.submit(self.task_type, config, X_train, y_train,
-                                    weight_balance=node.enable_balance,
-                                    data_balance=node.data_balance)
 
-        estimator_list = self.fetcher.wait_tasks_finish()
-        for model_cnt, estimator in enumerate(estimator_list):
-            if base_save:  # For ensemble selection
-                with open(os.path.join(self.output_dir, '%s-model%d' % (self.timestamp, model_cnt)),
-                          'wb') as f:
-                    pkl.dump(estimator, f)
+                if self.task_type in CLS_TASKS:
+                    y_valid_pred = model.predict_proba(X_valid)
+                else:
+                    y_valid_pred = model.predict(X_valid)
+                self.predictions.append(y_valid_pred)
 
-            if self.task_type in CLS_TASKS:
-                y_valid_pred = estimator.predict_proba(X_valid_list[model_cnt])
-            else:
-                y_valid_pred = estimator.predict(X_valid_list[model_cnt])
-            self.train_predictions.append(y_valid_pred)
-
-        if len(self.train_predictions) < self.ensemble_size:
-            self.ensemble_size = len(self.train_predictions)
+        if len(self.predictions) < self.ensemble_size:
+            self.ensemble_size = len(self.predictions)
 
         if ensemble_method == 'ensemble_selection':
             return
 
         if task_type in CLS_TASKS:
-            self.base_model_mask = choose_base_models_classification(np.array(self.train_predictions),
+            self.base_model_mask = choose_base_models_classification(np.array(self.predictions),
                                                                      self.ensemble_size)
         else:
-            self.base_model_mask = choose_base_models_regression(np.array(self.train_predictions), np.array(y_valid),
+            self.base_model_mask = choose_base_models_regression(np.array(self.predictions), np.array(y_valid),
                                                                  self.ensemble_size)
         self.ensemble_size = sum(self.base_model_mask)
 
     def fit(self, data):
         raise NotImplementedError
 
-    def predict(self, data, solvers):
+    def predict(self, data):
         raise NotImplementedError
 
     def get_ens_model_info(self):
         raise NotImplementedError
 
     def refit(self):
-        pass
-
+        raise NotImplementedError

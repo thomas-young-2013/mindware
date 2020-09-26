@@ -6,10 +6,10 @@ from solnml.utils.logging_utils import get_logger
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.fe_optimizers import build_fe_optimizer
+from solnml.components.fe_optimizers.ano_bo_optimizer import get_task_hyperparameter_space
 from solnml.components.hpo_optimizer import build_hpo_optimizer
 from solnml.components.utils.constants import CLS_TASKS, REG_TASKS
 from solnml.utils.decorators import time_limit
-from solnml.utils.functions import get_increasing_sequence
 from solnml.utils.combined_evaluator import get_combined_cs, CombinedEvaluator
 
 
@@ -102,16 +102,24 @@ class SecondLayerBandit(object):
         self.default_config = cs.get_default_configuration()
         self.config_space.seed(self.seed)
 
+        self.fe_default_config = get_task_hyperparameter_space(self.task_type,
+                                                               self.estimator_id).get_default_configuration()
+
         self.timestamp = timestamp
         # Build the Feature Engineering component.
         if self.task_type in CLS_TASKS:
-            fe_evaluator = ClassificationEvaluator(self.default_config, scorer=self.metric,
-                                                   name='fe', resampling_strategy=self.evaluation_type,
-                                                   seed=self.seed)
-            hpo_evaluator = ClassificationEvaluator(self.default_config, scorer=self.metric,
+            fe_evaluator = ClassificationEvaluator(self.default_config, self.fe_default_config, scorer=self.metric,
+                                                   data_node=self.original_data, name='fe',
+                                                   resampling_strategy=self.evaluation_type,
+                                                   seed=self.seed, output_dir=self.output_dir,
+                                                   timestamp=self.timestamp)
+            hpo_evaluator = ClassificationEvaluator(self.default_config, self.fe_default_config, scorer=self.metric,
                                                     data_node=self.original_data, name='hpo',
                                                     resampling_strategy=self.evaluation_type,
-                                                    seed=self.seed)
+                                                    seed=self.seed, output_dir=self.output_dir,
+                                                    timestamp=self.timestamp)
+
+        # TODO: Reg Re-write!
         elif self.task_type in REG_TASKS:
             fe_evaluator = RegressionEvaluator(self.default_config, scorer=self.metric,
                                                name='fe', resampling_strategy=self.evaluation_type,
@@ -132,7 +140,7 @@ class SecondLayerBandit(object):
                                                       per_run_mem_limit, self.seed,
                                                       shared_mode=self.share_fe, n_jobs=n_jobs)
 
-            self.inc['fe'], self.local_inc['fe'] = self.original_data, self.original_data
+            self.inc['fe'], self.local_inc['fe'] = self.fe_default_config, self.fe_default_config
 
             # Build the HPO component.
             # trials_per_iter = max(len(self.optimizer['fe'].trans_types), 20)
@@ -145,7 +153,7 @@ class SecondLayerBandit(object):
 
             self.inc['hpo'], self.local_inc['hpo'] = self.default_config, self.default_config
             self.init_config = cs.get_default_configuration()
-            self.local_hist['fe'].append(self.original_data)
+            self.local_hist['fe'].append(self.fe_default_config)
             self.local_hist['hpo'].append(self.default_config)
 
         else:
@@ -159,7 +167,7 @@ class SecondLayerBandit(object):
                 timestamp=self.timestamp,
                 output_dir=self.output_dir,
                 resampling_strategy=self.evaluation_type)
-            cs = get_combined_cs(self.estimator_id, self.original_data, self.task_type)
+            cs = get_combined_cs(self.estimator_id, self.task_type)
 
             self.optimizer = build_hpo_optimizer(self.evaluation_type, self.evaluator, cs, output_dir=self.output_dir,
                                                  per_run_time_limit=self.per_run_time_limit,
@@ -317,12 +325,13 @@ class SecondLayerBandit(object):
         # Update join incumbent from FE and HPO.
         _perf = None
         try:
-            with time_limit(600):
+            with time_limit(self.per_run_time_limit):
                 if self.task_type in CLS_TASKS:
                     _perf = ClassificationEvaluator(
-                        self.local_inc['hpo'], data_node=self.local_inc['fe'], scorer=self.metric,
+                        self.local_inc['hpo'], self.local_inc['fe'],
+                        data_node=self.original_data, scorer=self.metric,
                         name='fe', resampling_strategy=self.evaluation_type,
-                        seed=self.seed)(self.local_inc['hpo'])
+                        seed=self.seed, output_dir=self.output_dir, timestamp=self.timestamp)(self.local_inc['hpo'])
                 else:
                     _perf = RegressionEvaluator(
                         self.local_inc['hpo'], data_node=self.local_inc['fe'], scorer=self.metric,
@@ -365,9 +374,11 @@ class SecondLayerBandit(object):
             self.original_data._node_id = -1
             inc_hpo = copy.deepcopy(self.inc['hpo'])
             if self.task_type in CLS_TASKS:
-                fe_evaluator = ClassificationEvaluator(inc_hpo, scorer=self.metric,
+                fe_evaluator = ClassificationEvaluator(inc_hpo, self.fe_default_config,
+                                                       data_node=self.original_data, scorer=self.metric,
                                                        name='fe', resampling_strategy=self.evaluation_type,
-                                                       seed=self.seed)
+                                                       seed=self.seed, output_dir=self.output_dir,
+                                                       timestamp=self.timestamp)
             elif self.task_type in REG_TASKS:
                 fe_evaluator = RegressionEvaluator(inc_hpo, scorer=self.metric,
                                                    name='fe', resampling_strategy=self.evaluation_type,
@@ -375,7 +386,7 @@ class SecondLayerBandit(object):
             else:
                 raise ValueError('Invalid task type!')
             self.optimizer[_arm] = build_fe_optimizer(self.fe_algo, self.evaluation_type,
-                                                      self.task_type, self.inc['fe'],
+                                                      self.task_type, self.original_data.copy_(),
                                                       fe_evaluator, self.estimator_id, self.per_run_time_limit,
                                                       self.per_run_mem_limit, self.seed,
                                                       shared_mode=self.share_fe,
@@ -384,11 +395,13 @@ class SecondLayerBandit(object):
         else:
             # trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
             # trials_per_iter = max(20, trials_per_iter)
+            inc_fe = copy.deepcopy(self.inc['fe'])
             if self.task_type in CLS_TASKS:
-                hpo_evaluator = ClassificationEvaluator(self.default_config, scorer=self.metric,
-                                                        data_node=self.inc['fe'].copy_(), name='hpo',
+                hpo_evaluator = ClassificationEvaluator(self.default_config, inc_fe, scorer=self.metric,
+                                                        data_node=self.original_data, name='hpo',
                                                         resampling_strategy=self.evaluation_type,
-                                                        seed=self.seed)
+                                                        seed=self.seed, output_dir=self.output_dir,
+                                                        timestamp=self.timestamp)
             elif self.task_type in REG_TASKS:
                 hpo_evaluator = RegressionEvaluator(self.default_config, scorer=self.metric,
                                                     data_node=self.inc['fe'].copy_(), name='hpo',

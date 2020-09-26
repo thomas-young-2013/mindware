@@ -6,8 +6,16 @@ from solnml.components.metrics.metric import get_metric
 from solnml.components.utils.constants import *
 
 
-def load_transformer_estimator(model_dir, config, timestamp):
+def load_combined_transformer_estimator(model_dir, config, timestamp):
     model_path = os.path.join(model_dir, '%s_%s.pkl' % (timestamp, CombinedTopKModelSaver.get_configuration_id(config)))
+    with open(model_path, 'rb') as f:
+        op_list, model = pkl.load(f)
+    return op_list, model
+
+
+def load_transformer_estimator(model_dir, hpo_config, fe_config, timestamp):
+    model_path = os.path.join(model_dir, '%s_%s.pkl' % (
+        timestamp, BanditTopKModelSaver.get_configuration_id(hpo_config, fe_config)))
     with open(model_path, 'rb') as f:
         op_list, model = pkl.load(f)
     return op_list, model
