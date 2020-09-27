@@ -1,5 +1,4 @@
 from collections import Counter
-import os
 import numpy as np
 import pickle as pkl
 from sklearn.preprocessing import OneHotEncoder
@@ -7,7 +6,6 @@ from sklearn.metrics.scorer import _BaseScorer, _PredictScorer, _ThresholdScorer
 
 from solnml.components.utils.constants import *
 from solnml.components.ensemble.combined_ensemble.base_ensemble import BaseEnsembleModel
-from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
 
 
 class EnsembleSelection(BaseEnsembleModel):

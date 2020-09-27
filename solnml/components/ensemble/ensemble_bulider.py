@@ -10,32 +10,33 @@ from solnml.components.ensemble.ensemble_selection import EnsembleSelection
 
 
 class EnsembleBuilder:
-    def __init__(self, stats, ensemble_method: str,
+    def __init__(self, stats, data_node,
+                 ensemble_method: str,
                  ensemble_size: int,
                  task_type: int,
                  metric: _BaseScorer,
                  output_dir=None):
         self.model = None
         if ensemble_method == 'bagging':
-            self.model = Bagging(stats=stats,
+            self.model = Bagging(stats=stats, data_node=data_node,
                                  ensemble_size=ensemble_size,
                                  task_type=task_type,
                                  metric=metric,
                                  output_dir=output_dir)
         elif ensemble_method == 'blending':
-            self.model = Blending(stats=stats,
+            self.model = Blending(stats=stats, data_node=data_node,
                                   ensemble_size=ensemble_size,
                                   task_type=task_type,
                                   metric=metric,
                                   output_dir=output_dir)
         elif ensemble_method == 'stacking':
-            self.model = Stacking(stats=stats,
+            self.model = Stacking(stats=stats, data_node=data_node,
                                   ensemble_size=ensemble_size,
                                   task_type=task_type,
                                   metric=metric,
                                   output_dir=output_dir)
         elif ensemble_method == 'ensemble_selection':
-            self.model = EnsembleSelection(stats=stats,
+            self.model = EnsembleSelection(stats=stats, data_node=data_node,
                                            ensemble_size=ensemble_size,
                                            task_type=task_type,
                                            metric=metric,
@@ -46,8 +47,8 @@ class EnsembleBuilder:
     def fit(self, data):
         return self.model.fit(data)
 
-    def predict(self, data, solvers):
-        return self.model.predict(data, solvers)
+    def predict(self, data):
+        return self.model.predict(data)
 
     def refit(self):
         return self.model.refit()

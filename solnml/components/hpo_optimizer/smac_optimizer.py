@@ -74,8 +74,8 @@ class SMACOptimizer(BaseHPOptimizer):
                 self.perfs.append(-_perf)
 
         runhistory = self.optimizer.get_history()
-        if hasattr(self.evaluator, 'data_node'):
-            fe_config = self.evaluator.data_node.config
+        if hasattr(self.evaluator, 'fe_config'):
+            fe_config = self.evaluator.fe_config
         else:
             fe_config = None
         self.eval_dict = {(fe_config, hpo_config): -score for hpo_config, score in

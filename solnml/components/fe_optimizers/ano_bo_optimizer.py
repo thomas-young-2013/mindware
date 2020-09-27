@@ -46,7 +46,8 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
 
         self.evaluator.parse_needed = True
         # Prepare the hyperparameter space.
-        self.hyperparameter_space = self._get_task_hyperparameter_space(optimizer=algo)
+        self.hyperparameter_space = get_task_hyperparameter_space(task_type=task_type, estimator_id=model_id,
+                                                                  optimizer=algo)
         if algo == 'smac':
             self.incumbent_config = self.hyperparameter_space.get_default_configuration()
         else:
@@ -59,19 +60,15 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
                             rng=np.random.RandomState(self.seed))
         self.eval_dict = {}
 
-    def evaluate_function(self, config, name='fe', data_subsample_ratio=1.0):
+    def evaluate_function(self, config, resource_ratio=1.0, **kwargs):
         """
             The config is the configuration that specifies the FE pipeline.
-        :param name:
-        :param data_subsample_ratio:
+        :param resource_ratio:
         :param config:
         :return: the evaluation score.
         """
-        input_node = self.root_node
-        output_node = parse_config(input_node, config)
-        output_node.config = config
-        return self.evaluator(self.hp_config, data_node=output_node, name='fe',
-                              data_subsample_ratio=data_subsample_ratio)
+        return self.evaluator(self.hp_config, fe_config=config, name='fe',
+                              resource_ratio=resource_ratio, **kwargs)
 
     def optimize(self):
         """
@@ -91,136 +88,22 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
     def iterate(self):
         result = None
         for _ in range(self.number_of_unit_resource):
-            result = self._iterate()
+            _start_time = time.time()
+            for _ in range(self.iter_num_per_unit_resource):
+                _, status, _, info = self.optimizer.iterate()
+                if status == 1:
+                    print(info)
+
+            runhistory = self.optimizer.get_history()
+            self.eval_dict = {(fe_config, self.evaluator.hpo_config): -score for fe_config, score in
+                              runhistory.data.items()}
+            self.incumbent_config, iter_incumbent_score = runhistory.get_incumbents()[0]
+            self.incumbent_score = -iter_incumbent_score  # Maximize
+            iteration_cost = time.time() - _start_time
+
+            # incumbent_score: the large the better
+            result = (self.incumbent_score, iteration_cost, self.incumbent_config)
         return result
-
-    def _iterate(self):
-        _start_time = time.time()
-        for _ in range(self.iter_num_per_unit_resource):
-            _, status, _, info = self.optimizer.iterate()
-            if status == 1:
-                print(info)
-
-        runhistory = self.optimizer.get_history()
-        self.eval_dict = {(fe_config, self.evaluator.hpo_config): -score for fe_config, score in
-                          runhistory.data.items()}
-        self.incumbent_config, iter_incumbent_score = runhistory.get_incumbents()[0]
-        iter_incumbent_score = -iter_incumbent_score
-        iteration_cost = time.time() - _start_time
-        if iter_incumbent_score > self.incumbent_score:
-            self.incumbent_score = iter_incumbent_score
-            self.incumbent = parse_config(self.root_node, self.incumbent_config)
-
-        # incumbent_score: the large the better
-        return self.incumbent_score, iteration_cost, self.incumbent
-
-    def _get_task_hyperparameter_space(self, optimizer='tpe'):
-        """
-            Fetch the underlying hyperparameter space for feature engineering.
-            Pipeline Space:
-                1. balancer: weight_balancer,
-                             data_balancer.
-                2. scaler: normalizer, scaler, quantile.
-                3. preprocessor
-        :return: hyper space.
-        """
-        if self.task_type in CLS_TASKS:
-            self.trans_types = TRANS_CANDIDATES['classification'].copy()
-        else:
-            self.trans_types = TRANS_CANDIDATES['regression'].copy()
-
-        # Avoid transformations, which would take too long
-        # Combinations of non-linear models with feature learning.
-        # feature_learning = ["kitchen_sinks", "kernel_pca", "nystroem_sampler"]
-        if self.task_type in CLS_TASKS:
-            classifier_set = ["adaboost", "decision_tree", "extra_trees",
-                              "gradient_boosting", "k_nearest_neighbors",
-                              "libsvm_svc", "random_forest", "gaussian_nb",
-                              "decision_tree", "lightgbm"]
-
-            if self.model_id in classifier_set:
-                for tran_id in [12, 13, 15]:
-                    if tran_id in self.trans_types:
-                        self.trans_types.remove(tran_id)
-
-            # if self.model_id == 'random_forest':
-            #     if 18 in self.trans_types:
-            #         self.trans_types.remove(18)
-            #
-            # if self.model_id == 'liblinear_svc':
-            #     if 7 in self.trans_types:
-            #         self.trans_types.remove(7)
-            #
-            # if self.model_id == 'extra_trees':
-            #     if 35 in self.trans_types:
-            #         self.trans_types.remove(35)
-
-        preprocessor_dict = self._get_configuration_space(_preprocessor, self.trans_types, optimizer=optimizer)
-        rescaler_dict = self._get_configuration_space(_rescaler, self.trans_types, optimizer=optimizer)
-        if self.task_type in CLS_TASKS:
-            _balancer = _bal_balancer if self.if_bal else _imb_balancer
-            balancer_dict = self._get_configuration_space(_balancer, optimizer=optimizer)
-        else:
-            balancer_dict = None
-        cs = self._build_hierachical_configspace(preprocessor_dict, rescaler_dict, balancer_dict, optimizer=optimizer)
-        return cs
-
-    def _get_configuration_space(self, builtin_transformers, trans_type=None, optimizer='smac'):
-        config_dict = dict()
-        for tran_key in builtin_transformers:
-            tran = builtin_transformers[tran_key]
-            tran_id = tran().type
-            if trans_type is None or tran_id in trans_type:
-                try:
-                    sub_configuration_space = builtin_transformers[tran_key].get_hyperparameter_search_space(
-                        optimizer=optimizer)
-                    config_dict[tran_key] = sub_configuration_space
-                except:
-                    if optimizer == 'smac':
-                        config_dict[tran_key] = ConfigurationSpace()
-                    elif optimizer == 'tpe':
-                        config_dict[tran_key] = {}
-        return config_dict
-
-    def _build_hierachical_configspace(self, pre_config, res_config, bal_config=None, optimizer='smac'):
-        if optimizer == 'smac':
-            cs = ConfigurationSpace()
-            if bal_config is not None:
-                self._add_hierachical_configspace(cs, bal_config, "balancer")
-            self._add_hierachical_configspace(cs, pre_config, "preprocessor")
-            self._add_hierachical_configspace(cs, res_config, "rescaler")
-            return cs
-        elif optimizer == 'tpe':
-            from hyperopt import hp
-            space = {}
-
-            def dict2hi(dictionary):
-                hi_list = list()
-                for key in dictionary:
-                    hi_list.append((key, dictionary[key]))
-                return hi_list
-
-            space['generator'] = hp.choice('generator', dict2hi(pre_config))
-            if bal_config is not None:
-                space['balancer'] = hp.choice('balancer', dict2hi(bal_config))
-            space['rescaler'] = hp.choice('rescaler', dict2hi(res_config))
-            return space
-
-    def _add_hierachical_configspace(self, cs, config, parent_name):
-        config_cand = list(config.keys())
-        config_cand.append("empty")
-        config_option = CategoricalHyperparameter(parent_name, config_cand,
-                                                  default_value=config_cand[-1])
-        cs.add_hyperparameter(config_option)
-        for config_item in config_cand:
-            if config_item == 'empty':
-                sub_configuration_space = ConfigurationSpace()
-            else:
-                sub_configuration_space = config[config_item]
-            parent_hyperparameter = {'parent': config_option,
-                                     'value': config_item}
-            cs.add_configuration_space(config_item, sub_configuration_space,
-                                       parent_hyperparameter=parent_hyperparameter)
 
     def fetch_nodes(self, n=5):
         runhistory = self.optimizer.get_history()

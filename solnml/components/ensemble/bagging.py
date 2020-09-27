@@ -10,12 +10,13 @@ from functools import reduce
 
 
 class Bagging(BaseEnsembleModel):
-    def __init__(self, stats,
+    def __init__(self, stats, data_node,
                  ensemble_size: int,
                  task_type: int,
                  metric: _BaseScorer,
                  output_dir=None):
         super().__init__(stats=stats,
+                         data_node=data_node,
                          ensemble_method='bagging',
                          ensemble_size=ensemble_size,
                          task_type=task_type,
@@ -23,38 +24,30 @@ class Bagging(BaseEnsembleModel):
                          output_dir=output_dir)
 
     def fit(self, datanode):
-        model_cnt = 0
-        for algo_id in self.stats["include_algorithms"]:
-            model_to_eval = self.stats[algo_id]['model_to_eval']
-            for idx, (node, config) in enumerate(model_to_eval):
-                X, y = node.data
-                if self.base_model_mask[model_cnt] == 1:
-                    estimator = fetch_predict_estimator(self.task_type, config, X, y,
-                                                        weight_balance=node.enable_balance,
-                                                        data_balance=node.data_balance)
-                    with open(os.path.join(self.output_dir, '%s-bagging-model%d' % (self.timestamp, model_cnt)),
-                              'wb') as f:
-                        pkl.dump(estimator, f)
-                model_cnt += 1
         return self
 
-    def predict(self, data, solvers):
+    def predict(self, data):
         model_pred_list = []
         final_pred = []
         # Get predictions from each model
         model_cnt = 0
-        for algo_id in self.stats["include_algorithms"]:
-            model_to_eval = self.stats[algo_id]['model_to_eval']
-            for idx, (node, config) in enumerate(model_to_eval):
-                test_node = solvers[algo_id].optimizer['fe'].apply(data, node)
+        for algo_id in self.stats:
+            model_to_eval = self.stats[algo_id]
+            for idx, (_, _, path) in enumerate(model_to_eval):
+                with open(path, 'rb')as f:
+                    op_list, model = pkl.load(f)
+                _node = data.copy_()
+
+                if op_list[0] is not None:
+                    _node = op_list[0].operate(_node)
+                if op_list[2] is not None:
+                    _node = op_list[2].operate(_node)
+
                 if self.base_model_mask[model_cnt] == 1:
-                    with open(os.path.join(self.output_dir, '%s-bagging-model%d' % (self.timestamp, model_cnt)),
-                              'rb') as f:
-                        estimator = pkl.load(f)
-                        if self.task_type in CLS_TASKS:
-                            model_pred_list.append(estimator.predict_proba(test_node.data[0]))
-                        else:
-                            model_pred_list.append(estimator.predict(test_node.data[0]))
+                    if self.task_type in CLS_TASKS:
+                        model_pred_list.append(model.predict_proba(_node.data[0]))
+                    else:
+                        model_pred_list.append(model.predict(_node.data[0]))
                 model_cnt += 1
 
         # Calculate the average of predictions
@@ -69,12 +62,11 @@ class Bagging(BaseEnsembleModel):
         model_cnt = 0
         ens_info = {}
         ens_config = []
-        for algo_id in self.stats["include_algorithms"]:
-            model_to_eval = self.stats[algo_id]['model_to_eval']
-            for idx, (node, config) in enumerate(model_to_eval):
+        for algo_id in self.stats:
+            model_to_eval = self.stats[algo_id]
+            for idx, (config, _, path) in enumerate(model_to_eval):
                 if not hasattr(self, 'base_model_mask') or self.base_model_mask[model_cnt] == 1:
-                    model_path = os.path.join(self.output_dir, '%s-bagging-model%d' % (self.timestamp, model_cnt))
-                    ens_config.append((algo_id, node.config, config, model_path))
+                    ens_config.append((algo_id, config, path))
                 model_cnt += 1
         ens_info['ensemble_method'] = 'bagging'
         ens_info['config'] = ens_config

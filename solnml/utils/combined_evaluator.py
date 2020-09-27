@@ -353,10 +353,13 @@ class CombinedEvaluator(_BaseEvaluator):
         else:
             raise ValueError('Invalid resampling strategy: %s!' % self.resampling_strategy)
 
-        self.logger.info('Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
-                         (classifier_id,
-                          self.scorer._sign * score,
-                          time.time() - start_time, _x_train.shape))
+        try:
+            self.logger.info('Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
+                             (classifier_id,
+                              self.scorer._sign * score,
+                              time.time() - start_time, _x_train.shape))
+        except:
+            pass
 
         # Turn it into a minimization problem.
         return_dict['score'] = -score

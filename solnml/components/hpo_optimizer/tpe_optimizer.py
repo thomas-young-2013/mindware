@@ -68,8 +68,8 @@ class TPEOptimizer(BaseHPOptimizer):
                 self.configs.append(_config)
                 self.perfs.append(-_perf)
 
-        if hasattr(self.evaluator, 'data_node'):
-            fe_config = self.evaluator.data_node.config
+        if hasattr(self.evaluator, 'fe_config'):
+            fe_config = self.evaluator.fe_config
         else:
             fe_config = None
         self.eval_dict = {(fe_config, self.configs[i]): -self.perfs[i] for i in range(len(self.perfs))}
