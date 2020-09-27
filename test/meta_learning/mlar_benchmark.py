@@ -12,7 +12,7 @@ def average_precision_atN(preds, true_labels):
     N = len(preds)
     precision_ = list()
     for i in range(1, N+1):
-        if preds[i-1] in true_labels:
+        if preds[i-1] in true_labels[:i]:
             _pre = (len(precision_)+1)/i
             precision_.append(_pre)
     if len(precision_) == 0:
