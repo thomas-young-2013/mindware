@@ -95,10 +95,10 @@ class RankNetAdvisor(BaseAdvisor):
         _X, _y, _ = self.metadata_manager.load_meta_data()
         X1, X2, y = self.create_pairwise_data(_X, _y)
 
-        l1_size = kwargs.get('layer1_size', 64)
-        l2_size = kwargs.get('layer2_size', 32)
-        act_func = kwargs.get('activation', 'relu')
-        batch_size = kwargs.get('batch_size', 32)
+        l1_size = kwargs.get('layer1_size', 256)
+        l2_size = kwargs.get('layer2_size', 128)
+        act_func = kwargs.get('activation', 'tanh')
+        batch_size = kwargs.get('batch_size', 128)
         self.model = self.create_model(X1.shape[1], hidden_layer_sizes=(l1_size, l2_size,),
                                        activation=(act_func, act_func,),
                                        solver='adam')
