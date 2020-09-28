@@ -47,7 +47,6 @@ class Transformer(object, metaclass=abc.ABCMeta):
         35: extra_trees_based_selector.
         -----
         41: minmax_scaler
-        42: maxabs_scaler
         43: standard_scaler
         44: robust_scaler
     """

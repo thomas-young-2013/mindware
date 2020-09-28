@@ -6,6 +6,7 @@ from sklearn.metrics.scorer import _BaseScorer, _PredictScorer, _ThresholdScorer
 
 from solnml.components.utils.constants import *
 from solnml.components.ensemble.combined_ensemble.base_ensemble import BaseEnsembleModel
+from solnml.components.fe_optimizers.parse import construct_node
 
 
 class EnsembleSelection(BaseEnsembleModel):
@@ -210,10 +211,7 @@ class EnsembleSelection(BaseEnsembleModel):
                     op_list, estimator = pkl.load(f)
                 _node = data.copy_()
 
-                if op_list[0] is not None:
-                    _node = op_list[0].operate(_node)
-                if op_list[2] is not None:
-                    _node = op_list[2].operate(_node)
+                _node = construct_node(_node, op_list)
 
                 X_test = _node.data[0]
                 if cur_idx in self.model_idx:

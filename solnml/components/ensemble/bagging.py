@@ -5,6 +5,7 @@ import pickle as pkl
 
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
+from solnml.components.fe_optimizers.parse import construct_node
 from solnml.components.ensemble.base_ensemble import BaseEnsembleModel
 from functools import reduce
 
@@ -38,10 +39,7 @@ class Bagging(BaseEnsembleModel):
                     op_list, model = pkl.load(f)
                 _node = data.copy_()
 
-                if op_list[0] is not None:
-                    _node = op_list[0].operate(_node)
-                if op_list[2] is not None:
-                    _node = op_list[2].operate(_node)
+                _node = construct_node(_node, op_list)
 
                 if self.base_model_mask[model_cnt] == 1:
                     if self.task_type in CLS_TASKS:

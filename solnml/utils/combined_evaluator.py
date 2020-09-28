@@ -12,7 +12,7 @@ from solnml.utils.logging_utils import get_logger
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
 from solnml.components.evaluators.evaluate_func import validation
 from solnml.components.fe_optimizers.ano_bo_optimizer import get_task_hyperparameter_space
-from solnml.components.fe_optimizers.parse import parse_config
+from solnml.components.fe_optimizers.parse import parse_config, construct_node
 from solnml.components.evaluators.base_evaluator import CombinedTopKModelSaver
 from solnml.components.models.classification import _classifiers, _addons
 
@@ -130,10 +130,7 @@ class CombinedEvaluator(_BaseEvaluator):
 
                     data_node, op_list = parse_config(self.train_node, config, record=True)
                     _val_node = self.val_node.copy_()
-                    if op_list[0] is not None:
-                        _val_node = op_list[0].operate(_val_node)
-                    if op_list[2] is not None:
-                        _val_node = op_list[2].operate(_val_node)
+                    _val_node = construct_node(_val_node, op_list)
 
                 _x_train, _y_train = data_node.data
                 _x_val, _y_val = _val_node.data
@@ -212,10 +209,7 @@ class CombinedEvaluator(_BaseEvaluator):
 
                         data_node, op_list = parse_config(self.train_node, config, record=True)
                         _val_node = self.val_node.copy_()
-                        if op_list[0] is not None:
-                            _val_node = op_list[0].operate(_val_node)
-                        if op_list[2] is not None:
-                            _val_node = op_list[2].operate(_val_node)
+                        _val_node = construct_node(_val_node, op_list)
 
                         _x_train, _y_train = data_node.data
                         _x_val, _y_val = _val_node.data
@@ -282,10 +276,7 @@ class CombinedEvaluator(_BaseEvaluator):
 
                     data_node, op_list = parse_config(self.train_node, config, record=True)
                     _val_node = self.val_node.copy_()
-                    if op_list[0] is not None:
-                        _val_node = op_list[0].operate(_val_node)
-                    if op_list[2] is not None:
-                        _val_node = op_list[2].operate(_val_node)
+                    _val_node = construct_node(_val_node, op_list)
 
                 _x_train, _y_train = data_node.data
 

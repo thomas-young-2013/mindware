@@ -1,6 +1,7 @@
 from solnml.components.feature_engineering.transformations import _imb_balancer, _bal_balancer, _preprocessor, _rescaler
 from solnml.components.feature_engineering.transformation_graph import DataNode
 
+
 def parse_config(data_node: DataNode, config, record=False, skip_balance=False):
     """
         Transform the data node based on the pipeline specified by configuration.
@@ -53,3 +54,14 @@ def parse_config(data_node: DataNode, config, record=False, skip_balance=False):
     if record:
         return _node, [bal_tran, res_tran, gen_tran]
     return _node
+
+
+def construct_node(data_node: DataNode, op_list, mode='test'):
+    if mode != 'test':
+        if op_list[0] is not None:
+            data_node = op_list[0].operate(data_node)
+    if op_list[1] is not None:
+        data_node = op_list[1].operate(data_node)
+    if op_list[2] is not None:
+        data_node = op_list[2].operate(data_node)
+    return data_node

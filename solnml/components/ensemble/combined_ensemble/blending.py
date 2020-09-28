@@ -8,6 +8,7 @@ from sklearn.metrics.scorer import _BaseScorer
 from solnml.components.ensemble.combined_ensemble.base_ensemble import BaseEnsembleModel
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
+from solnml.components.fe_optimizers.parse import construct_node
 
 
 class Blending(BaseEnsembleModel):
@@ -65,12 +66,7 @@ class Blending(BaseEnsembleModel):
                     op_list, model = pkl.load(f)
                 _node = data.copy_()
 
-                if op_list[0] is not None:
-                    _node = op_list[0].operate(_node)
-                if op_list[1] is not None:
-                    _node = op_list[1].operate(_node)
-                if op_list[2] is not None:
-                    _node = op_list[2].operate(_node)
+                _node = construct_node(_node, op_list, mode='train')
 
                 X, y = _node.data
                 if self.task_type in CLS_TASKS:
@@ -128,10 +124,7 @@ class Blending(BaseEnsembleModel):
                     op_list, model = pkl.load(f)
                 _node = data.copy_()
 
-                if op_list[0] is not None:
-                    _node = op_list[0].operate(_node)
-                if op_list[2] is not None:
-                    _node = op_list[2].operate(_node)
+                _node = construct_node(_node, op_list)
 
                 if self.base_model_mask[model_cnt] == 1:
                     with open(os.path.join(self.output_dir, '%s-blending-model%d' % (self.timestamp, model_cnt)),

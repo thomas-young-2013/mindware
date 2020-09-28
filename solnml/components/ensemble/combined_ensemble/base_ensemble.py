@@ -8,7 +8,7 @@ import time
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.ensemble.unnamed_ensemble import choose_base_models_classification, \
     choose_base_models_regression
-from solnml.components.computation.parallel_fetcher import ParallelFetcher
+from solnml.components.fe_optimizers.parse import construct_node
 from solnml.utils.logging_utils import get_logger
 
 
@@ -41,10 +41,7 @@ class BaseEnsembleModel(object):
                 with open(path, 'rb')as f:
                     op_list, model = pkl.load(f)
                 _node = self.node.copy_()
-                if op_list[0] is not None:
-                    _node = op_list[0].operate(_node)
-                if op_list[2] is not None:
-                    _node = op_list[2].operate(_node)
+                _node = construct_node(_node, op_list)
 
                 # TODO: Test size
                 test_size = 0.33

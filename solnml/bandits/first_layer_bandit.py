@@ -9,6 +9,7 @@ from solnml.utils.constant import MAX_INT
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.bandits.second_layer_bandit import SecondLayerBandit
 from solnml.components.evaluators.base_evaluator import load_transformer_estimator, load_combined_transformer_estimator
+from solnml.components.fe_optimizers.parse import construct_node
 from solnml.utils.logging_utils import get_logger
 from solnml.components.utils.constants import CLS_TASKS
 
@@ -193,10 +194,7 @@ class FirstLayerBandit(object):
                                                                      self.best_fe_config, self.timestamp)
 
             test_data_node = test_data.copy_()
-            if best_op_list[0] is not None:
-                test_data_node = best_op_list[0].operate(test_data_node)
-            if best_op_list[2] is not None:
-                test_data_node = best_op_list[2].operate(test_data_node)
+            test_data_node = construct_node(test_data_node, best_op_list)
 
             if self.task_type in CLS_TASKS:
                 return estimator.predict_proba(test_data_node.data[0])
