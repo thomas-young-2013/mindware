@@ -15,7 +15,6 @@ from solnml.components.feature_engineering.transformations.selector.percentile_s
 from solnml.components.feature_engineering.transformations.selector.extra_trees_based_selector import *
 
 from solnml.components.feature_engineering.transformations.rescaler.quantile_transformer import *
-from solnml.components.feature_engineering.transformations.rescaler.scaler import *
 
 from solnml.components.feature_engineering.transformations.generator.kernel_pca import *
 from solnml.components.feature_engineering.transformations.generator.kitchen_sinks import *
@@ -113,11 +112,5 @@ def get_trans_from_str(str):
         tran = PcaDecomposer
     elif str == 'polynomial':
         tran = PolynomialTransformation
-    elif str == 'standardize':
-        tran = partialclass(ScaleTransformation, 'standard')
-    elif str == 'minmax':
-        tran = partialclass(ScaleTransformation, 'min_max')
-    elif str == 'robust_scaler':
-        tran = partialclass(ScaleTransformation, 'robust')
 
     return tran

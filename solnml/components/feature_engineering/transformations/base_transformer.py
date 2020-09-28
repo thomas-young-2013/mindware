@@ -14,7 +14,6 @@ class Transformer(object, metaclass=abc.ABCMeta):
         0: empty.
         1: imputer.
         2: one-hot encoding.
-        3: scaler.
         4: normalizer.
         5: quantile_transformer.
         6: generic_univariate_selector.
@@ -46,6 +45,11 @@ class Transformer(object, metaclass=abc.ABCMeta):
         33: smote_balancer
         34: polynomial_regression
         35: extra_trees_based_selector.
+        -----
+        41: minmax_scaler
+        42: maxabs_scaler
+        43: standard_scaler
+        44: robust_scaler
     """
 
     def __init__(self, name, type, random_state=1):
