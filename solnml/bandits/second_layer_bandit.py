@@ -119,15 +119,17 @@ class SecondLayerBandit(object):
                                                     seed=self.seed, output_dir=self.output_dir,
                                                     timestamp=self.timestamp)
 
-        # TODO: Reg Re-write!
         elif self.task_type in REG_TASKS:
-            fe_evaluator = RegressionEvaluator(self.default_config, scorer=self.metric,
-                                               name='fe', resampling_strategy=self.evaluation_type,
-                                               seed=self.seed)
-            hpo_evaluator = RegressionEvaluator(self.default_config, scorer=self.metric,
+            fe_evaluator = RegressionEvaluator(self.default_config, self.fe_default_config, scorer=self.metric,
+                                               data_node=self.original_data, name='fe',
+                                               resampling_strategy=self.evaluation_type,
+                                               seed=self.seed, output_dir=self.output_dir,
+                                               timestamp=self.timestamp)
+            hpo_evaluator = RegressionEvaluator(self.default_config, self.fe_default_config, scorer=self.metric,
                                                 data_node=self.original_data, name='hpo',
                                                 resampling_strategy=self.evaluation_type,
-                                                seed=self.seed)
+                                                seed=self.seed, output_dir=self.output_dir,
+                                                timestamp=self.timestamp)
         else:
             raise ValueError('Invalid task type!')
 
@@ -334,9 +336,10 @@ class SecondLayerBandit(object):
                         seed=self.seed, output_dir=self.output_dir, timestamp=self.timestamp)(self.local_inc['hpo'])
                 else:
                     _perf = RegressionEvaluator(
-                        self.local_inc['hpo'], data_node=self.local_inc['fe'], scorer=self.metric,
+                        self.local_inc['hpo'], self.local_inc['fe'],
+                        data_node=self.original_data, scorer=self.metric,
                         name='fe', resampling_strategy=self.evaluation_type,
-                        seed=self.seed)(self.local_inc['hpo'])
+                        seed=self.seed, output_dir=self.output_dir, timestamp=self.timestamp)(self.local_inc['hpo'])
         except Exception as e:
             self.logger.error(str(e))
         # Update INC.
@@ -380,9 +383,11 @@ class SecondLayerBandit(object):
                                                        seed=self.seed, output_dir=self.output_dir,
                                                        timestamp=self.timestamp)
             elif self.task_type in REG_TASKS:
-                fe_evaluator = RegressionEvaluator(inc_hpo, scorer=self.metric,
+                fe_evaluator = RegressionEvaluator(inc_hpo, self.fe_default_config,
+                                                   data_node=self.original_data, scorer=self.metric,
                                                    name='fe', resampling_strategy=self.evaluation_type,
-                                                   seed=self.seed)
+                                                   seed=self.seed, output_dir=self.output_dir,
+                                                   timestamp=self.timestamp)
             else:
                 raise ValueError('Invalid task type!')
             self.optimizer[_arm] = build_fe_optimizer(self.fe_algo, self.evaluation_type,
@@ -403,10 +408,11 @@ class SecondLayerBandit(object):
                                                         seed=self.seed, output_dir=self.output_dir,
                                                         timestamp=self.timestamp)
             elif self.task_type in REG_TASKS:
-                hpo_evaluator = RegressionEvaluator(self.default_config, scorer=self.metric,
-                                                    data_node=self.inc['fe'].copy_(), name='hpo',
+                hpo_evaluator = RegressionEvaluator(self.default_config, inc_fe, scorer=self.metric,
+                                                    data_node=self.original_data, name='hpo',
                                                     resampling_strategy=self.evaluation_type,
-                                                    seed=self.seed)
+                                                    seed=self.seed, output_dir=self.output_dir,
+                                                    timestamp=self.timestamp)
             else:
                 raise ValueError('Invalid task type!')
 

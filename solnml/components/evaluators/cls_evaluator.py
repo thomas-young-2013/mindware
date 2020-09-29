@@ -77,7 +77,6 @@ class ClassificationEvaluator(_BaseEvaluator):
         config = config if config is not None else self.hpo_config
 
         downsample_ratio = kwargs.get('resource_ratio', 1.0)
-        # Prepare data node.
 
         if 'holdout' in self.resampling_strategy:
             try:

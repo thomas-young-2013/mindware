@@ -131,11 +131,7 @@ class Regressor(BaseEstimator):
         self.metric = 'mse' if self.metric is None else self.metric
 
         # Check the task type: {continuous}
-        task_type = type_of_target(data.data[1])
-        if task_type in type_dict:
-            task_type = type_dict[task_type]
-        else:
-            raise ValueError("Invalid Task Type: %s!" % task_type)
+        task_type = type_dict['continuous']
         self.task_type = task_type
         super().fit(data)
 
