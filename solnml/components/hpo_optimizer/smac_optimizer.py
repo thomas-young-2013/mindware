@@ -16,7 +16,6 @@ class SMACOptimizer(BaseHPOptimizer):
         self.per_run_time_limit = per_run_time_limit
         self.per_run_mem_limit = per_run_mem_limit
         self.output_dir = output_dir
-
         self.optimizer = BO(objective_function=self.evaluator,
                             config_space=config_space,
                             max_runs=int(1e10),
@@ -78,7 +77,7 @@ class SMACOptimizer(BaseHPOptimizer):
             fe_config = self.evaluator.fe_config
         else:
             fe_config = None
-        self.eval_dict = {(fe_config, hpo_config): -score for hpo_config, score in
+        self.eval_dict = {(fe_config, hpo_config): [-score, time.time()] for hpo_config, score in
                           runhistory.data.items()}
         if len(runhistory.get_incumbents()) > 0:
             self.incumbent_config, self.incumbent_perf = runhistory.get_incumbents()[0]

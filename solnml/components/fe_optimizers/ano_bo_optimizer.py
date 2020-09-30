@@ -52,23 +52,13 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
             self.incumbent_config = self.hyperparameter_space.get_default_configuration()
         else:
             self.incumbent_config = None
-        self.optimizer = BO(objective_function=self.evaluate_function,
+        self.optimizer = BO(objective_function=self.evaluator,
                             config_space=self.hyperparameter_space,
                             max_runs=int(1e10),
                             task_id=self.model_id,
                             time_limit_per_trial=self.time_limit_per_trans,
                             rng=np.random.RandomState(self.seed))
         self.eval_dict = {}
-
-    def evaluate_function(self, config, resource_ratio=1.0, **kwargs):
-        """
-            The config is the configuration that specifies the FE pipeline.
-        :param resource_ratio:
-        :param config:
-        :return: the evaluation score.
-        """
-        return self.evaluator(self.hp_config, fe_config=config, name='fe',
-                              resource_ratio=resource_ratio, **kwargs)
 
     def optimize(self):
         """
@@ -95,7 +85,7 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
                     print(info)
 
             runhistory = self.optimizer.get_history()
-            self.eval_dict = {(fe_config, self.evaluator.hpo_config): -score for fe_config, score in
+            self.eval_dict = {(fe_config, self.evaluator.hpo_config): [-score, time.time()] for fe_config, score in
                               runhistory.data.items()}
             self.incumbent_config, iter_incumbent_score = runhistory.get_incumbents()[0]
             self.incumbent_score = -iter_incumbent_score  # Maximize

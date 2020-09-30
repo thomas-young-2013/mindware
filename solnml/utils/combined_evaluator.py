@@ -24,7 +24,8 @@ def get_estimator(config):
     config_['%s:random_state' % classifier_type] = 1
     hpo_config = dict()
     for key in config_:
-        if classifier_type in key:
+        key_name = key.split(':')[0]
+        if classifier_type == key_name:
             act_key = key.split(':')[1]
             hpo_config[act_key] = config_[key]
     try:

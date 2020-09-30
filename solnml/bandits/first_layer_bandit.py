@@ -105,6 +105,19 @@ class FirstLayerBandit(object):
     def get_stats(self):
         return self.time_records, self.final_rewards
 
+    def get_eval_dict(self):
+        # Call after fit
+        eval_dict = {}
+        for _arm in self.arms:
+            if self.inner_opt_algorithm == 'combined':
+                eval_dict.update(self.sub_bandits[_arm].eval_dict)
+            else:
+                fe_eval_dict = self.sub_bandits[_arm].eval_dict['fe']
+                hpo_eval_dict = self.sub_bandits[_arm].eval_dict['hpo']
+                eval_dict.update(fe_eval_dict)
+                eval_dict.update(hpo_eval_dict)
+        return eval_dict
+
     def optimize(self):
         if self.inner_opt_algorithm in ['rb_hpo', 'fixed', 'alter_hpo', 'alter', 'combined']:
             self.optimize_explore_first()

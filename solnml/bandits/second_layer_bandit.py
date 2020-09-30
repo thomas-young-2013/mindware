@@ -329,16 +329,16 @@ class SecondLayerBandit(object):
         try:
             with time_limit(self.per_run_time_limit):
                 if self.task_type in CLS_TASKS:
-                    _perf = ClassificationEvaluator(
+                    _perf = -ClassificationEvaluator(
                         self.local_inc['hpo'], self.local_inc['fe'],
                         data_node=self.original_data, scorer=self.metric,
-                        name='fe', resampling_strategy=self.evaluation_type,
+                        name='hpo', resampling_strategy=self.evaluation_type,
                         seed=self.seed, output_dir=self.output_dir, timestamp=self.timestamp)(self.local_inc['hpo'])
                 else:
-                    _perf = RegressionEvaluator(
+                    _perf = -RegressionEvaluator(
                         self.local_inc['hpo'], self.local_inc['fe'],
                         data_node=self.original_data, scorer=self.metric,
-                        name='fe', resampling_strategy=self.evaluation_type,
+                        name='hpo', resampling_strategy=self.evaluation_type,
                         seed=self.seed, output_dir=self.output_dir, timestamp=self.timestamp)(self.local_inc['hpo'])
         except Exception as e:
             self.logger.error(str(e))

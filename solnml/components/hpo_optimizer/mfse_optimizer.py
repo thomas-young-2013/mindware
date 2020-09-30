@@ -51,7 +51,7 @@ class MfseOptimizer(BaseHPOptimizer, MfseBase):
                     fe_config = self.evaluator.fe_config
                 else:
                     fe_config = None
-                self.eval_dict[(fe_config, self.incumbent_configs[idx])] = -self.incumbent_perfs[idx]
+                self.eval_dict[(fe_config, self.incumbent_configs[idx])] = [-self.incumbent_perfs[idx], time.time()]
 
             self.incumbent_perf = -self.incumbent_perfs[inc_idx]
             self.incumbent_config = self.incumbent_configs[inc_idx]

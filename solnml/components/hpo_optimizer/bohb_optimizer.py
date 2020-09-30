@@ -50,7 +50,7 @@ class BohbOptimizer(BaseHPOptimizer, BohbBase):
                 fe_config = self.evaluator.fe_config
             else:
                 fe_config = None
-            self.eval_dict[(fe_config, self.incumbent_configs[idx])] = -self.incumbent_perfs[idx]
+            self.eval_dict[(fe_config, self.incumbent_configs[idx])] = [-self.incumbent_perfs[idx], time.time()]
 
         self.perfs = self.incumbent_perfs
         self.configs = self.incumbent_configs

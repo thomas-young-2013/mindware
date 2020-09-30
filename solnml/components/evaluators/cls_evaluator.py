@@ -71,11 +71,15 @@ class ClassificationEvaluator(_BaseEvaluator):
             raise ValueError('This evaluator has no name/type!')
         assert self.name in ['hpo', 'fe']
 
-        # Prepare configuration.
-        # Experimental setting, match auto-sklearn.
-        self.seed = 1
-        config = config if config is not None else self.hpo_config
+        if self.name == 'hpo':
+            hpo_config = config if config is not None else self.hpo_config
+            fe_config = kwargs.get('ano_config', self.fe_config)
+        else:
+            fe_config = config if config is not None else self.fe_config
+            hpo_config = kwargs.get('ano_config', self.hpo_config)
 
+        # Prepare configuration.
+        self.seed = 1
         downsample_ratio = kwargs.get('resource_ratio', 1.0)
 
         if 'holdout' in self.resampling_strategy:
@@ -86,8 +90,6 @@ class ClassificationEvaluator(_BaseEvaluator):
                         test_size = 0.33
                     else:
                         test_size = self.resampling_params['test_size']
-
-                    fe_config = kwargs.get('fe_config', self.fe_config)
 
                     from sklearn.model_selection import StratifiedShuffleSplit
                     ss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=self.seed)
@@ -104,11 +106,11 @@ class ClassificationEvaluator(_BaseEvaluator):
                 _X_train, _y_train = data_node.data
                 _X_val, _y_val = _val_node.data
 
-                config_dict = config.get_dictionary().copy()
+                config_dict = hpo_config.get_dictionary().copy()
                 # Prepare training and initial params for classifier.
                 init_params, fit_params = {}, {}
                 if data_node.enable_balance == 1:
-                    init_params, fit_params = self.get_fit_params(_y_train, config['estimator'])
+                    init_params, fit_params = self.get_fit_params(_y_train, hpo_config['estimator'])
                     for key, val in init_params.items():
                         config_dict[key] = val
 
@@ -133,7 +135,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                 lock = kwargs.get('rw_lock', Lock())
                 lock.acquire()
                 if np.isfinite(score):
-                    save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config,
+                    save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(hpo_config,
                                                                                                        fe_config,
                                                                                                        score,
                                                                                                        classifier_id)
@@ -167,8 +169,6 @@ class ClassificationEvaluator(_BaseEvaluator):
                         else:
                             folds = self.resampling_params['folds']
 
-                    fe_config = kwargs.get('fe_config', self.fe_config)
-
                     from sklearn.model_selection import StratifiedKFold
                     skfold = StratifiedKFold(n_splits=folds, random_state=self.seed, shuffle=False)
                     scores = list()
@@ -186,11 +186,11 @@ class ClassificationEvaluator(_BaseEvaluator):
                         _X_train, _y_train = data_node.data
                         _X_val, _y_val = _val_node.data
 
-                        config_dict = config.get_dictionary().copy()
+                        config_dict = hpo_config.get_dictionary().copy()
                         # Prepare training and initial params for classifier.
                         init_params, fit_params = {}, {}
                         if data_node.enable_balance == 1:
-                            init_params, fit_params = self.get_fit_params(_y_train, config['estimator'])
+                            init_params, fit_params = self.get_fit_params(_y_train, hpo_config['estimator'])
                             for key, val in init_params.items():
                                 config_dict[key] = val
 
@@ -218,7 +218,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                 lock = kwargs.get('rw_lock', Lock())
                 lock.acquire()
                 if np.isfinite(score):
-                    _ = self.topk_model_saver.add(config, fe_config, score, classifier_id)
+                    _ = self.topk_model_saver.add(hpo_config, fe_config, score, classifier_id)
                 lock.release()
 
             except Exception as e:
@@ -237,8 +237,6 @@ class ClassificationEvaluator(_BaseEvaluator):
                         test_size = 0.33
                     else:
                         test_size = self.resampling_params['test_size']
-
-                    fe_config = kwargs.get('fe_config', self.fe_config)
 
                     from sklearn.model_selection import StratifiedShuffleSplit
                     ss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=self.seed)
@@ -265,11 +263,11 @@ class ClassificationEvaluator(_BaseEvaluator):
 
                 _X_val, _y_val = _val_node.data
 
-                config_dict = config.get_dictionary().copy()
+                config_dict = hpo_config.get_dictionary().copy()
                 # Prepare training and initial params for classifier.
                 init_params, fit_params = {}, {}
                 if data_node.enable_balance == 1:
-                    init_params, fit_params = self.get_fit_params(_y_train, config['estimator'])
+                    init_params, fit_params = self.get_fit_params(_y_train, hpo_config['estimator'])
                     for key, val in init_params.items():
                         config_dict[key] = val
                 if 'sample_weight' in fit_params:
@@ -296,7 +294,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                 lock = kwargs.get('rw_lock', Lock())
                 lock.acquire()
                 if np.isfinite(score) and downsample_ratio == 1:
-                    save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config,
+                    save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(hpo_config,
                                                                                                        fe_config, score,
                                                                                                        classifier_id)
                     if save_flag is True:
