@@ -55,6 +55,9 @@ class BaseEstimator(object):
             os.makedirs(self.output_dir)
         self.delete_output_dir = delete_output_dir_after_fit
 
+    def get_output_dir(self):
+        return self.output_dir
+
     def build_engine(self):
         """Build AutoML controller"""
         engine = self.get_automl()(

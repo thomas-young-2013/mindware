@@ -4,6 +4,7 @@
 """
 import os
 import sys
+import shutil
 import time
 import pickle
 import argparse
@@ -81,6 +82,9 @@ def evaluate_sys(run_id, task_type, mth, dataset, ens_method,
         task_type, mth, dataset, time_limit, (ens_method is None), run_id)
     with open(save_path, 'wb') as f:
         pickle.dump([dataset, validation_score, test_score, start_time, eval_dict], f)
+
+    # Delete output dir
+    shutil.rmtree(os.path.join(estimator.get_output_dir()))
 
 
 def evaluate_ausk(run_id, task_type, mth, dataset, ens_method,
@@ -207,7 +211,8 @@ if __name__ == "__main__":
             for mth in method_ids:
                 results = list()
                 for run_id in range(rep):
-                    file_path = save_folder + '%s_%s_%d_%d_%s.pkl' % (mth, dataset, time_cost, run_id, algo)
+                    file_path = save_folder + '%s_%s_%s_%d_%d_%d.pkl' % (
+                        task_type, mth, dataset, time_cost, (ens_method is None), run_id)
                     if not os.path.exists(file_path):
                         continue
                     with open(file_path, 'rb') as f:
