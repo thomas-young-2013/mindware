@@ -5,8 +5,8 @@ import warnings
 import numpy as np
 import pickle as pkl
 from multiprocessing import Lock
-from sklearn.metrics.scorer import balanced_accuracy_scorer, _ThresholdScorer
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.metrics.scorer import balanced_accuracy_scorer
+
 
 from solnml.utils.logging_utils import get_logger
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
@@ -79,7 +79,7 @@ def get_combined_cs(estimator_id, task_type=REGRESSION):
 
 
 class CombinedRegressionEvaluator(_BaseEvaluator):
-    def __init__(self, scorer=None, data_node=None, task_type=0, resampling_strategy='cv',
+    def __init__(self, scorer=None, data_node=None, task_type=REGRESSION, resampling_strategy='cv',
                  resampling_params=None, timestamp=None, output_dir=None, seed=1):
         self.resampling_strategy = resampling_strategy
         self.resampling_params = resampling_params
@@ -98,12 +98,6 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
         self.timestamp = timestamp
         # TODO: Top-k k?
         self.topk_model_saver = CombinedTopKModelSaver(k=60, model_dir=self.output_dir, identifier=timestamp)
-
-    def get_fit_params(self, y, estimator):
-        from solnml.components.utils.balancing import get_weights
-        _init_params, _fit_params = get_weights(
-            y, estimator, None, {}, {})
-        return _init_params, _fit_params
 
     def __call__(self, config, **kwargs):
         start_time = time.time()
@@ -138,28 +132,11 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
                 _x_val, _y_val = _val_node.data
 
                 config_dict = config.get_dictionary().copy()
-                # Prepare training and initial params for classifier.
-                init_params, fit_params = {}, {}
-                if data_node.enable_balance == 1:
-                    init_params, fit_params = self.get_fit_params(_y_train, config['estimator'])
-                    for key, val in init_params.items():
-                        config_dict[key] = val
-
-                if data_node.data_balance == 1:
-                    fit_params['data_balance'] = True
-
-                classifier_id, clf = get_estimator(config_dict)
-
-                if self.onehot_encoder is None:
-                    self.onehot_encoder = OneHotEncoder(categories='auto')
-                    y = np.reshape(_y_train, (len(_y_train), 1))
-                    self.onehot_encoder.fit(y)
+                # regression gadgets
+                regressor_id, clf = get_estimator(config_dict)
 
                 score = validation(clf, self.scorer, _x_train, _y_train, _x_val, _y_val,
-                                   random_state=self.seed,
-                                   onehot=self.onehot_encoder if isinstance(self.scorer,
-                                                                            _ThresholdScorer) else None,
-                                   fit_params=fit_params)
+                                   random_state=self.seed)
 
                 if 'rw_lock' not in kwargs or kwargs['rw_lock'] is None:
                     self.logger.info('rw_lock not defined! Possible read-write conflicts may happen!')
@@ -167,7 +144,7 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
                 lock.acquire()
                 if np.isfinite(score):
                     save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config, score,
-                                                                                                       classifier_id)
+                                                                                                       regressor_id)
                     if save_flag is True:
                         with open(model_path, 'wb') as f:
                             pkl.dump([op_list, clf], f)
@@ -199,11 +176,11 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
                         else:
                             folds = self.resampling_params['folds']
 
-                    from sklearn.model_selection import StratifiedKFold
-                    skfold = StratifiedKFold(n_splits=folds, random_state=self.seed, shuffle=False)
+                    from sklearn.model_selection import KFold
+                    kfold = KFold(n_splits=folds, random_state=self.seed, shuffle=False)
                     scores = list()
 
-                    for train_index, test_index in skfold.split(self.data_node.data[0], self.data_node.data[1]):
+                    for train_index, test_index in kfold.split(self.data_node.data[0], self.data_node.data[1]):
                         _x_train, _x_val = self.data_node.data[0][train_index], self.data_node.data[0][test_index]
                         _y_train, _y_val = self.data_node.data[1][train_index], self.data_node.data[1][test_index]
                         self.train_node.data = [_x_train, _y_train]
@@ -217,28 +194,12 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
                         _x_val, _y_val = _val_node.data
 
                         config_dict = config.get_dictionary().copy()
-                        # Prepare training and initial params for classifier.
-                        init_params, fit_params = {}, {}
-                        if data_node.enable_balance == 1:
-                            init_params, fit_params = self.get_fit_params(_y_train, config['estimator'])
-                            for key, val in init_params.items():
-                                config_dict[key] = val
+                        # regressor gadgets
+                        regressor_id, clf = get_estimator(config_dict)
 
-                        if data_node.data_balance == 1:
-                            fit_params['data_balance'] = True
-
-                        classifier_id, clf = get_estimator(config_dict)
-
-                        if self.onehot_encoder is None:
-                            self.onehot_encoder = OneHotEncoder(categories='auto')
-                            y = np.reshape(_y_train, (len(_y_train), 1))
-                            self.onehot_encoder.fit(y)
 
                         _score = validation(clf, self.scorer, _x_train, _y_train, _x_val, _y_val,
-                                            random_state=self.seed,
-                                            onehot=self.onehot_encoder if isinstance(self.scorer,
-                                                                                     _ThresholdScorer) else None,
-                                            fit_params=fit_params)
+                                            random_state=self.seed)
                         scores.append(_score)
                     score = np.mean(scores)
 
@@ -248,7 +209,7 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
                 lock = kwargs.get('rw_lock', Lock())
                 lock.acquire()
                 if np.isfinite(score):
-                    _ = self.topk_model_saver.add(config, score, classifier_id)
+                    _ = self.topk_model_saver.add(config, score, regressor_id)
                 lock.release()
 
             except Exception as e:
@@ -294,28 +255,12 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
                 _x_val, _y_val = _val_node.data
 
                 config_dict = config.get_dictionary().copy()
-                # Prepare training and initial params for classifier.
-                init_params, fit_params = {}, {}
-                if data_node.enable_balance == 1:
-                    init_params, fit_params = self.get_fit_params(_y_train, config['estimator'])
-                    for key, val in init_params.items():
-                        config_dict[key] = val
-                if 'sample_weight' in fit_params:
-                    fit_params['sample_weight'] = fit_params['sample_weight'][_val_index]
-                if data_node.data_balance == 1:
-                    fit_params['data_balance'] = True
+                # Regressor gadgets
+                regressor_id, clf = get_estimator(config_dict)
 
-                classifier_id, clf = get_estimator(config_dict)
 
-                if self.onehot_encoder is None:
-                    self.onehot_encoder = OneHotEncoder(categories='auto')
-                    y = np.reshape(_y_train, (len(_y_train), 1))
-                    self.onehot_encoder.fit(y)
                 score = validation(clf, self.scorer, _act_x_train, _act_y_train, _x_val, _y_val,
-                                   random_state=self.seed,
-                                   onehot=self.onehot_encoder if isinstance(self.scorer,
-                                                                            _ThresholdScorer) else None,
-                                   fit_params=fit_params)
+                                   random_state=self.seed)
 
                 # TODO: Only save models with maximum resources
                 if 'rw_lock' not in kwargs or kwargs['rw_lock'] is None:
@@ -324,7 +269,7 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
                 lock.acquire()
                 if np.isfinite(score) and downsample_ratio == 1:
                     save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config, score,
-                                                                                                       classifier_id)
+                                                                                                       regressor_id)
                     if save_flag is True:
                         with open(model_path, 'wb') as f:
                             pkl.dump([op_list, clf], f)
@@ -348,7 +293,7 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
 
         try:
             self.logger.info('Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
-                             (classifier_id,
+                             (regressor_id,
                               self.scorer._sign * score,
                               time.time() - start_time, _x_train.shape))
         except:
@@ -357,14 +302,3 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
         # Turn it into a minimization problem.
         return_dict['score'] = -score
         return -score
-
-
-
-
-
-
-
-
-
-
-

@@ -38,7 +38,7 @@ def fetch_predict_estimator(task_type, config, X_train, y_train, weight_balance=
             from solnml.utils.combined_cls_evaluator import get_estimator
         else:
             from solnml.components.evaluators.cls_evaluator import get_estimator
-    elif task_type in REG_TASKS:
+    elif task_type in RGS_TASKS:
         if combined:
             from solnml.utils.combined_rgs_evaluator import get_estimator
         else:

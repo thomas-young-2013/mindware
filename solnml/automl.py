@@ -3,7 +3,7 @@ import sys
 import traceback
 from solnml.utils.logging_utils import setup_logger, get_logger
 from solnml.components.metrics.metric import get_metric
-from solnml.components.utils.constants import CLS_TASKS, REG_TASKS, IMG_CLS, TEXT_CLS
+from solnml.components.utils.constants import CLS_TASKS, RGS_TASKS, IMG_CLS, TEXT_CLS
 from solnml.components.ensemble import ensemble_list
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.models.regression import _regressors
@@ -63,7 +63,7 @@ class AutoML(object):
                     raise ValueError('Please use AutoDL module, instead of AutoML.')
                 else:
                     self.include_algorithms = list(classification_algorithms)
-            elif task_type in REG_TASKS:
+            elif task_type in RGS_TASKS:
                 self.include_algorithms = list(regression_algorithms)
             else:
                 raise ValueError("Unknown task type %s" % task_type)
