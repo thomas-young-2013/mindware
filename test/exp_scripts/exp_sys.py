@@ -142,7 +142,10 @@ def evaluate_ausk(run_id, task_type, mth, dataset, ens_method,
     automl.fit(X.copy(), y.copy(), feat_type=feat_type,
                metric=scorer)
     valid_results = automl.cv_results_['mean_test_score']
-    validation_score = np.max(valid_results)
+    if task_type == 'cls':
+        validation_score = np.max(valid_results)
+    else:
+        validation_score = np.min(valid_results)
     # automl.refit(X.copy(), y.copy())
     predictions = automl.predict(X_test)
     test_score = score_func(y_test, predictions)
