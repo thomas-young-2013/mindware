@@ -131,16 +131,21 @@ def evaluate_ausk(run_id, task_type, mth, dataset, ens_method,
     X_test, y_test = test_data.data
     feat_type = ['Categorical' if _type == CATEGORICAL else 'Numerical'
                  for _type in train_data.feature_types]
-    from sklearn.metrics import balanced_accuracy_score
     from autosklearn.metrics import make_scorer
+    if task_type == 'cls':
+        scorer = make_scorer(name='bal_acc', score_func=balanced_accuracy_score)
+        score_func = balanced_accuracy_score
+    else:
+        scorer = make_scorer(name='bal_acc', score_func=mean_squared_error, greater_is_better=False)
+        score_func = mean_squared_error
     start_time = time.time()
     automl.fit(X.copy(), y.copy(), feat_type=feat_type,
-               metric=make_scorer(name='bal_acc', score_func=balanced_accuracy_score))
+               metric=scorer)
     valid_results = automl.cv_results_['mean_test_score']
     validation_score = np.max(valid_results)
     # automl.refit(X.copy(), y.copy())
     predictions = automl.predict(X_test)
-    test_score = balanced_accuracy_score(y_test, predictions)
+    test_score = score_func(y_test, predictions)
     model_desc = automl.show_models()
     str_stats = automl.sprint_statistics()
     result_score = automl.cv_results_['mean_test_score']
@@ -202,7 +207,7 @@ if __name__ == "__main__":
         # method_ids = ['fixed', 'alter_hpo', 'rb', 'ausk']
         method_ids = mode.split(',')[1:]
         if len(method_ids) == 0:
-            method_ids = ['combined', 'ausk']
+            method_ids = ['alter_hpo', 'combined', 'ausk']
         for mth in method_ids:
             headers.extend(['val-%s' % mth, 'test-%s' % mth])
         tbl_data = list()
