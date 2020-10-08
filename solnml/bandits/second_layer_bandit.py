@@ -1,16 +1,15 @@
 import copy
 import numpy as np
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
-from solnml.components.evaluators.reg_evaluator import RegressionEvaluator
+from solnml.components.evaluators.rgs_evaluator import RegressionEvaluator
 from solnml.utils.logging_utils import get_logger
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.fe_optimizers import build_fe_optimizer
 from solnml.components.fe_optimizers.ano_bo_optimizer import get_task_hyperparameter_space
 from solnml.components.hpo_optimizer import build_hpo_optimizer
-from solnml.components.utils.constants import CLS_TASKS, REG_TASKS
+from solnml.components.utils.constants import CLS_TASKS, RGS_TASKS
 from solnml.utils.decorators import time_limit
-from solnml.utils.combined_evaluator import get_combined_cs, CombinedEvaluator
 
 
 class SecondLayerBandit(object):
@@ -84,7 +83,7 @@ class SecondLayerBandit(object):
             cs = clf_class.get_hyperparameter_search_space()
             model = UnParametrizedHyperparameter("estimator", estimator_id)
             cs.add_hyperparameter(model)
-        elif self.task_type in REG_TASKS:
+        elif self.task_type in RGS_TASKS:
             from solnml.components.models.regression import _regressors, _addons
             if estimator_id in _regressors:
                 reg_class = _regressors[estimator_id]
@@ -119,7 +118,7 @@ class SecondLayerBandit(object):
                                                     seed=self.seed, output_dir=self.output_dir,
                                                     timestamp=self.timestamp)
 
-        elif self.task_type in REG_TASKS:
+        elif self.task_type in RGS_TASKS:
             fe_evaluator = RegressionEvaluator(self.default_config, self.fe_default_config, scorer=self.metric,
                                                data_node=self.original_data, name='fe',
                                                resampling_strategy=self.evaluation_type,
@@ -163,6 +162,13 @@ class SecondLayerBandit(object):
             self.evaluation_cost = list()
             self.eval_dict = {}
             self.incumbent_config = None
+            if self.task_type in CLS_TASKS:
+                from solnml.utils.combined_cls_evaluator import get_combined_cs
+                from solnml.utils.combined_cls_evaluator import CombinedClassificationEvaluator as CombinedEvaluator
+            else:
+                from solnml.utils.combined_rgs_evaluator import get_combined_cs
+                from solnml.utils.combined_rgs_evaluator import CombinedRegressionEvaluator as CombinedEvaluator
+
             self.evaluator = CombinedEvaluator(
                 scorer=self.metric,
                 data_node=self.original_data,
@@ -171,7 +177,8 @@ class SecondLayerBandit(object):
                 resampling_strategy=self.evaluation_type)
             cs = get_combined_cs(self.estimator_id, self.task_type)
 
-            self.optimizer = build_hpo_optimizer(self.evaluation_type, self.evaluator, cs, output_dir=self.output_dir,
+            self.optimizer = build_hpo_optimizer(self.evaluation_type, self.evaluator, cs,
+                                                 output_dir=self.output_dir,
                                                  per_run_time_limit=self.per_run_time_limit,
                                                  inner_iter_num_per_iter=10,
                                                  seed=self.seed, n_jobs=self.n_jobs)
@@ -382,7 +389,7 @@ class SecondLayerBandit(object):
                                                        name='fe', resampling_strategy=self.evaluation_type,
                                                        seed=self.seed, output_dir=self.output_dir,
                                                        timestamp=self.timestamp)
-            elif self.task_type in REG_TASKS:
+            elif self.task_type in RGS_TASKS:
                 fe_evaluator = RegressionEvaluator(inc_hpo, self.fe_default_config,
                                                    data_node=self.original_data, scorer=self.metric,
                                                    name='fe', resampling_strategy=self.evaluation_type,
@@ -407,7 +414,7 @@ class SecondLayerBandit(object):
                                                         resampling_strategy=self.evaluation_type,
                                                         seed=self.seed, output_dir=self.output_dir,
                                                         timestamp=self.timestamp)
-            elif self.task_type in REG_TASKS:
+            elif self.task_type in RGS_TASKS:
                 hpo_evaluator = RegressionEvaluator(self.default_config, inc_fe, scorer=self.metric,
                                                     data_node=self.original_data, name='hpo',
                                                     resampling_strategy=self.evaluation_type,

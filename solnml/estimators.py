@@ -133,7 +133,7 @@ class Regressor(BaseEstimator):
         # Check the task type: {continuous}
         task_type = type_dict['continuous']
         self.task_type = task_type
-        super().fit(data)
+        super().fit(data, **kwargs)
 
         return self
 

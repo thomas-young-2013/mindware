@@ -7,7 +7,7 @@ from solnml.utils.data_manager import DataManager
 from solnml.components.feature_engineering.fe_pipeline import FEPipeline
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.meta_learning.meta_feature.meta_features import calculate_all_metafeatures
-from solnml.components.utils.constants import CLS_TASKS, REG_TASKS
+from solnml.components.utils.constants import CLS_TASKS, RGS_TASKS
 
 
 def load_data(dataset, data_dir='./', datanode_returned=False, preprocess=True, task_type=None):
@@ -16,7 +16,7 @@ def load_data(dataset, data_dir='./', datanode_returned=False, preprocess=True, 
         data_path = data_dir + 'data/datasets/%s.csv' % dataset
     elif task_type in CLS_TASKS:
         data_path = data_dir + 'data/cls_datasets/%s.csv' % dataset
-    elif task_type in REG_TASKS:
+    elif task_type in RGS_TASKS:
         data_path = data_dir + 'data/rgs_datasets/%s.csv' % dataset
     else:
         raise ValueError("Unknown task type %s" % str(task_type))

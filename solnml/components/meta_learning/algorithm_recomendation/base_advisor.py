@@ -3,7 +3,7 @@ import hashlib
 import numpy as np
 from collections import OrderedDict
 from solnml.utils.logging_utils import get_logger
-from solnml.components.utils.constants import CLS_TASKS, REG_TASKS
+from solnml.components.utils.constants import CLS_TASKS, RGS_TASKS
 from solnml.components.meta_learning.algorithm_recomendation.metadata_manager import MetaDataManager
 from solnml.components.meta_learning.algorithm_recomendation.metadata_manager import get_feature_vector
 
@@ -32,7 +32,7 @@ class BaseAdvisor(object):
             if metric not in ['acc', 'bal_acc']:
                 self.logger.info('Meta information about metric-%s does not exist, use accuracy instead.' % str(metric))
                 metric = 'acc'
-        elif task_type in REG_TASKS:
+        elif task_type in RGS_TASKS:
             raise NotImplementedError()
         else:
             raise ValueError('Invalid metric: %s.' % metric)

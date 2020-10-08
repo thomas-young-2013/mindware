@@ -2,10 +2,12 @@ import os
 import sys
 import time
 import warnings
+import numpy as np
 import pickle as pkl
 from multiprocessing import Lock
 
-import numpy as np
+
+
 from solnml.utils.logging_utils import get_logger
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
 from solnml.components.evaluators.evaluate_func import validation
@@ -223,7 +225,7 @@ class RegressionEvaluator(_BaseEvaluator):
 
                 config_dict = hpo_config.get_dictionary().copy()
 
-                classifier_id, clf = get_estimator(config_dict)
+                regressor_id, clf = get_estimator(config_dict)
 
                 score = validation(clf, self.scorer, _act_x_train, _act_y_train, _X_val, _y_val,
                                    random_state=self.seed)
@@ -236,7 +238,7 @@ class RegressionEvaluator(_BaseEvaluator):
                 if np.isfinite(score) and downsample_ratio == 1:
                     save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(hpo_config,
                                                                                                        fe_config, score,
-                                                                                                       classifier_id)
+                                                                                                       regressor_id)
                     if save_flag is True:
                         with open(model_path, 'wb') as f:
                             pkl.dump([op_list, clf], f)

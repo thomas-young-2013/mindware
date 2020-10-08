@@ -15,6 +15,7 @@ from solnml.components.fe_optimizers.ano_bo_optimizer import get_task_hyperparam
 from solnml.components.fe_optimizers.parse import parse_config, construct_node
 from solnml.components.evaluators.base_evaluator import CombinedTopKModelSaver
 from solnml.components.models.classification import _classifiers, _addons
+from solnml.components.utils.constants import *
 
 
 def get_estimator(config):
@@ -37,7 +38,7 @@ def get_estimator(config):
     return classifier_type, estimator
 
 
-def get_hpo_cs(estimator_id, task_type=0):
+def get_hpo_cs(estimator_id, task_type=CLASSIFICATION):
     if estimator_id in _classifiers:
         clf_class = _classifiers[estimator_id]
     elif estimator_id in _addons.components:
@@ -77,7 +78,7 @@ def get_combined_cs(estimator_id, task_type=0):
     return cs
 
 
-class CombinedEvaluator(_BaseEvaluator):
+class CombinedClassificationEvaluator(_BaseEvaluator):
     def __init__(self, scorer=None, data_node=None, task_type=0, resampling_strategy='cv',
                  resampling_params=None, timestamp=None, output_dir=None, seed=1):
         self.resampling_strategy = resampling_strategy
