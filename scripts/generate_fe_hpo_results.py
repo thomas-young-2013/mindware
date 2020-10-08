@@ -13,7 +13,7 @@ from solnml.datasets.utils import load_train_test_data
 from solnml.components.metrics.metric import get_metric
 from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
-from solnml.components.evaluators.reg_evaluator import RegressionEvaluator
+from solnml.components.evaluators.rgs_evaluator import RegressionEvaluator
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--datasets', type=str, default='diabetes')

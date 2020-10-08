@@ -2,10 +2,12 @@ import os
 import sys
 import time
 import warnings
+import numpy as np
 import pickle as pkl
 from multiprocessing import Lock
 
-import numpy as np
+
+
 from solnml.utils.logging_utils import get_logger
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
 from solnml.components.evaluators.evaluate_func import validation

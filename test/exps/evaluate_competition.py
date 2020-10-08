@@ -9,7 +9,7 @@ from sklearn.metrics import make_scorer
 
 sys.path.append(os.getcwd())
 from solnml.utils.data_manager import DataManager
-from solnml.components.evaluators.reg_evaluator import RegressionEvaluator
+from solnml.components.evaluators.rgs_evaluator import RegressionEvaluator
 from solnml.components.feature_engineering.fe_pipeline import FEPipeline
 
 parser = argparse.ArgumentParser()

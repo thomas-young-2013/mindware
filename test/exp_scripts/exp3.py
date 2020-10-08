@@ -28,7 +28,7 @@ parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--rep_num', type=int, default=5)
 # choices=['rb', 'alter_hpo', 'fixed', 'plot', 'all', 'ausk', 'combined']
 project_dir = './'
-save_folder = project_dir + 'data/exp2/'
+save_folder = project_dir + 'data/exp3/'
 if not os.path.exists(save_folder):
     os.makedirs(save_folder)
 

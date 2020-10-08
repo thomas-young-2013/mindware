@@ -35,11 +35,14 @@ def fetch_predict_estimator(task_type, config, X_train, y_train, weight_balance=
         X_train, y_train = smote(X_train, y_train)
     if task_type in CLS_TASKS:
         if combined:
-            from solnml.utils.combined_evaluator import get_estimator
+            from solnml.utils.combined_cls_evaluator import get_estimator
         else:
             from solnml.components.evaluators.cls_evaluator import get_estimator
-    else:
-        from solnml.components.evaluators.reg_evaluator import get_estimator
+    elif task_type in REG_TASKS:
+        if combined:
+            from solnml.utils.combined_rgs_evaluator import get_estimator
+        else:
+            from solnml.components.evaluators.rgs_evaluator import get_estimator
     _, estimator = get_estimator(config_dict)
 
     estimator.fit(X_train, y_train, **_fit_params)

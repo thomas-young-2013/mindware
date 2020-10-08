@@ -8,7 +8,7 @@ sys.path.append(os.getcwd())
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from solnml.components.hpo_optimizer.smac_optimizer import SMACOptimizer
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
-from solnml.components.evaluators.reg_evaluator import RegressionEvaluator
+from solnml.components.evaluators.rgs_evaluator import RegressionEvaluator
 from solnml.components.models.classification import _classifiers
 from solnml.components.models.regression import _regressors
 from solnml.components.utils.constants import MULTICLASS_CLS, BINARY_CLS, REGRESSION, CLS_TASKS

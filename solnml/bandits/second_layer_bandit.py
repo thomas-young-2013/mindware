@@ -1,7 +1,7 @@
 import copy
 import numpy as np
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
-from solnml.components.evaluators.reg_evaluator import RegressionEvaluator
+from solnml.components.evaluators.rgs_evaluator import RegressionEvaluator
 from solnml.utils.logging_utils import get_logger
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from solnml.components.feature_engineering.transformation_graph import DataNode
@@ -10,7 +10,6 @@ from solnml.components.fe_optimizers.ano_bo_optimizer import get_task_hyperparam
 from solnml.components.hpo_optimizer import build_hpo_optimizer
 from solnml.components.utils.constants import CLS_TASKS, REG_TASKS
 from solnml.utils.decorators import time_limit
-from solnml.utils.combined_evaluator import get_combined_cs, CombinedEvaluator
 
 
 class SecondLayerBandit(object):
@@ -163,18 +162,36 @@ class SecondLayerBandit(object):
             self.evaluation_cost = list()
             self.eval_dict = {}
             self.incumbent_config = None
-            self.evaluator = CombinedEvaluator(
-                scorer=self.metric,
-                data_node=self.original_data,
-                timestamp=self.timestamp,
-                output_dir=self.output_dir,
-                resampling_strategy=self.evaluation_type)
-            cs = get_combined_cs(self.estimator_id, self.task_type)
+            if self.task_type in CLS_TASKS:
+                from solnml.utils.combined_cls_evaluator import get_combined_cs, CombinedClassificationEvaluator
+                self.evaluator = CombinedClassificationEvaluator(
+                    scorer=self.metric,
+                    data_node=self.original_data,
+                    timestamp=self.timestamp,
+                    output_dir=self.output_dir,
+                    resampling_strategy=self.evaluation_type)
+                cs = get_combined_cs(self.estimator_id, self.task_type)
 
-            self.optimizer = build_hpo_optimizer(self.evaluation_type, self.evaluator, cs, output_dir=self.output_dir,
-                                                 per_run_time_limit=self.per_run_time_limit,
-                                                 inner_iter_num_per_iter=10,
-                                                 seed=self.seed, n_jobs=self.n_jobs)
+                self.optimizer = build_hpo_optimizer(self.evaluation_type, self.evaluator, cs,
+                                                     output_dir=self.output_dir,
+                                                     per_run_time_limit=self.per_run_time_limit,
+                                                     inner_iter_num_per_iter=10,
+                                                     seed=self.seed, n_jobs=self.n_jobs)
+            elif self.task_type in REG_TASKS:
+                from solnml.utils.combined_rgs_evaluator import get_combined_cs, CombinedRegressionEvaluator
+                self.evaluator = CombinedRegressionEvaluator(
+                    scorer=self.metric,
+                    data_node=self.original_data,
+                    timestamp=self.timestamp,
+                    output_dir=self.output_dir,
+                    resampling_strategy=self.evaluation_type)
+                cs = get_combined_cs(self.estimator_id, self.task_type)
+
+                self.optimizer = build_hpo_optimizer(self.evaluation_type, self.evaluator, cs,
+                                                     output_dir=self.output_dir,
+                                                     per_run_time_limit=self.per_run_time_limit,
+                                                     inner_iter_num_per_iter=10,
+                                                     seed=self.seed, n_jobs=self.n_jobs)
 
     def collect_iter_stats(self, _arm, results):
         pre_inc_perf = self.incumbent_perf
