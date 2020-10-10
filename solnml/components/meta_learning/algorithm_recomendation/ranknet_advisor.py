@@ -115,21 +115,6 @@ class RankNetAdvisor(BaseAdvisor):
             self.model.save(saved_model_dir)
 
     def predict(self, dataset_meta_feat):
-        # meta_learner_filename = self.meta_dir + 'ranknet_model_%s_%s_%s.pkl' % (
-        #     self.meta_algo, self.metric, self.hash_id)
-
-        #
-        # if self.model is None:
-        #     if os.path.exists(meta_learner_filename):
-        #         print('Load model from file: %s.' % meta_learner_filename)
-        #         with open(meta_learner_filename, 'rb') as f:
-        #             self.model = pk.load(f)
-        #     else:
-        #         self.fit()
-        #         with open(meta_learner_filename, 'wb') as f:
-        #             pk.dump(self.model, f)
-        #         print('Dump model to file: %s.' % meta_learner_filename)
-
         n_algo = self.n_algo_candidates
         _X = list()
         for i in range(n_algo):
