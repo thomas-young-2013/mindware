@@ -100,10 +100,11 @@ class RankNetAdvisor(BaseAdvisor):
         act_func = kwargs.get('activation', 'tanh')
         batch_size = kwargs.get('batch_size', 128)
 
-        saved_model_dir = os.path.join(self.meta_dir, "meta_learner", "ranknet_keras_model")
-        if os.path.exists(saved_model_dir):
+        meta_learner_filename = os.path.join(self.meta_dir, "meta_learner", 'ranknet_model_%s_%s_%s.h5' % (
+            self.meta_algo, self.metric, self.hash_id))
+        if os.path.exists(meta_learner_filename):
             # print("load model...")
-            self.model = load_model(saved_model_dir)
+            self.model = load_model(meta_learner_filename)
         else:
             # print("fit model..")
             self.model = self.create_model(X1.shape[1], hidden_layer_sizes=(l1_size, l2_size,),
@@ -112,7 +113,7 @@ class RankNetAdvisor(BaseAdvisor):
 
             self.model.fit([X1, X2], y, epochs=200, batch_size=batch_size)
             # print("save model...")
-            self.model.save(saved_model_dir)
+            self.model.save(meta_learner_filename)
 
     def predict(self, dataset_meta_feat):
         n_algo = self.n_algo_candidates
