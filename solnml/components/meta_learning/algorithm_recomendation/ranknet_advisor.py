@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pickle as pk
 from keras import backend as K
-from keras.models import Model
+from keras.models import Model, load_model
 from keras.layers import Activation, Dense, Input, Subtract
 from keras.layers import BatchNormalization
 from keras.optimizers import SGD
@@ -34,7 +34,7 @@ class RankNetAdvisor(BaseAdvisor):
                 continue
             meta_vec = _X
             for i in range(n_algo):
-                for j in range(i+1, n_algo):
+                for j in range(i + 1, n_algo):
                     if (_y[i] == -1) or (_y[j] == -1):
                         continue
 
@@ -99,26 +99,36 @@ class RankNetAdvisor(BaseAdvisor):
         l2_size = kwargs.get('layer2_size', 128)
         act_func = kwargs.get('activation', 'tanh')
         batch_size = kwargs.get('batch_size', 128)
-        self.model = self.create_model(X1.shape[1], hidden_layer_sizes=(l1_size, l2_size,),
-                                       activation=(act_func, act_func,),
-                                       solver='adam')
 
-        self.model.fit([X1, X2], y, epochs=200, batch_size=batch_size)
+        saved_model_dir = os.path.join(self.meta_dir, "meta_learner", "ranknet_keras_model")
+        if os.path.exists(saved_model_dir):
+            # print("load model...")
+            self.model = load_model(saved_model_dir)
+        else:
+            # print("fit model..")
+            self.model = self.create_model(X1.shape[1], hidden_layer_sizes=(l1_size, l2_size,),
+                                           activation=(act_func, act_func,),
+                                           solver='adam')
+
+            self.model.fit([X1, X2], y, epochs=200, batch_size=batch_size)
+            # print("save model...")
+            self.model.save(saved_model_dir)
 
     def predict(self, dataset_meta_feat):
-        meta_learner_filename = self.meta_dir + 'ranknet_model_%s_%s_%s.pkl' % (
-            self.meta_algo, self.metric, self.hash_id)
+        # meta_learner_filename = self.meta_dir + 'ranknet_model_%s_%s_%s.pkl' % (
+        #     self.meta_algo, self.metric, self.hash_id)
 
-        if self.model is None:
-            if os.path.exists(meta_learner_filename):
-                print('Load model from file: %s.' % meta_learner_filename)
-                with open(meta_learner_filename, 'rb') as f:
-                    self.model = pk.load(f)
-            else:
-                self.fit()
-                with open(meta_learner_filename, 'wb') as f:
-                    pk.dump(self.model, f)
-                print('Dump model to file: %s.' % meta_learner_filename)
+        #
+        # if self.model is None:
+        #     if os.path.exists(meta_learner_filename):
+        #         print('Load model from file: %s.' % meta_learner_filename)
+        #         with open(meta_learner_filename, 'rb') as f:
+        #             self.model = pk.load(f)
+        #     else:
+        #         self.fit()
+        #         with open(meta_learner_filename, 'wb') as f:
+        #             pk.dump(self.model, f)
+        #         print('Dump model to file: %s.' % meta_learner_filename)
 
         n_algo = self.n_algo_candidates
         _X = list()
