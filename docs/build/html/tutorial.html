@@ -1,0 +1,287 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="zh-cn" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>this is the tutorial &mdash; learn_sphinx 1.0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Welcome to learn_sphinx’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> learn_sphinx
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">this is the tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">写在前面</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#python">配置python环境</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#repo">现在配置你的项目repo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#read-the-docs">和 read the docs 联动</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">learn_sphinx</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>this is the tutorial</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/tutorial.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="this-is-the-tutorial">
+<h1>this is the tutorial<a class="headerlink" href="#this-is-the-tutorial" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="id1">
+<h2>写在前面<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p>如果是使用windows系统，则可以跟随tutorial顺畅地完成sphinx-quickstart之后还能和read the docs联动。</p></li>
+<li><p>但如果你觉得官方文档还是太麻烦，且你有以下需求</p>
+<ul class="simple">
+<li><p>想使用中文和英文一起写文档</p></li>
+<li><p>想使用普通的markdown文档来生成html</p></li>
+</ul>
+<p>那么不妨采用本文档下面描述的解决方案</p>
+</li>
+</ul>
+<p>created in 2020/10/11</p>
+<p>我必须承认这套sphinx和read the docs的联动在MAC上出现了奇怪的问题</p>
+<p>所以我目前在MAC的解决方法是先用windows生成相关的文件夹，然后把这个文件夹（docs）复制到我想要加入文档的repo里面</p>
+<p>基于这一解决方案，下面将给出详细的配置步骤</p>
+</div>
+<div class="section" id="python">
+<h2>配置python环境<a class="headerlink" href="#python" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>下载我放在项目组TAPD里的这个repo，并且创建一个用来生成文档的python虚拟环境（本经验使用的是python3.8.5）</p></li>
+<li><p>activate你想要用来编辑项目文档的python虚拟环境，并在本项目根目录下<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-r</span> <span class="pre">requirements.txt</span></code></p></li>
+</ul>
+</div>
+<div class="section" id="repo">
+<h2>现在配置你的项目repo<a class="headerlink" href="#repo" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>把本repo的/docs文件夹完整地复制到你的repo的master分支的根目录下（注意必须是master分支，且必须是根目录，否则无法和read the docs联动，此后描述中使用‘/’表示项目根目录）（尤其是github更新后新创建的repo主分支默认名为main，特别注意！）</p></li>
+<li><p>（此后操作均在自己的repo里面进行）</p></li>
+<li><p>进入docs文件夹，make.bat和makefile是已经用sphinx生成好的工具，不要触碰，/docs/build/是sphinx用于输出的文件夹，里面的内容不要手动修改</p></li>
+<li><p>进入/docs/source/文件夹，应该有：</p>
+<ul>
+<li><p>conf.py</p></li>
+<li><p>Index.rst</p></li>
+<li><p>以及一系列自己写的<em>内容文件</em>（就是一堆markdown）</p></li>
+</ul>
+</li>
+<li><p>修改conf.py里的下述内容</p>
+<ul>
+<li><p>project 现在是’learn_sphinx’，请把他改成你的项目名称</p></li>
+<li><p>cpoyright 请改成你的年份和id</p></li>
+<li><p>author改成你的id</p></li>
+<li><p>release改成你的项目版本号（人为规定即可）</p></li>
+<li><p>其余保持不变</p></li>
+</ul>
+</li>
+<li><p>当你想要添加新的<em>内容文件</em>时，需要：</p>
+<ul>
+<li><p>把新添加的 .md 结尾的文件放到/docs/source/ 文件夹里</p></li>
+<li><p>使用vscode（反正只要不要用windows自带的记事本就行）打开文件/docs/index.rst，在第一长串等号下面是用rst语法描述的文档结构（就是那个toctree缩进里），目前文档结构里只有一个<em>内容文件</em>（就是本文件tutorial.md）如果以后想要向文档中加入更多<em>内容文件</em>，就仿照着在下面列出即可</p></li>
+<li><p>每次修改docs/index.rst之后，把它复制一份放到/docs/source/里面，替代掉老旧的/docs/source/index.rst</p></li>
+</ul>
+</li>
+<li><p>当你想要基于内容文件生成网页html的时候</p>
+<ul>
+<li><p>进入到/docs/文件夹（也就是makefile的同级位置）</p></li>
+<li><p>运行指令<code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">html</span></code></p></li>
+</ul>
+</li>
+<li><p>成功完成后可以在docs/build/html/里面看到生成的html，为了更为优雅的体验，可以使用自己的浏览器打开其中的index.html进行阅读</p></li>
+</ul>
+</div>
+<div class="section" id="read-the-docs">
+<h2>和 read the docs 联动<a class="headerlink" href="#read-the-docs" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>去read the docs注册自己的read the docs账户（这里推荐使用自己的github账户来注册）</p></li>
+<li><p>把自己的read the docs账户和github账户关联成功后，可以跟随read the docs 网页提示import自己的git repository到自己的read the docs repository</p></li>
+<li><p>只要你的项目根目录下有按照前文搞定的docs文件夹，那么稍等片刻你就可以进入你的read the docs repository，在右上角会有一个绿色的按钮（View Docs），点开就是python官方风格的文档页面了，并且这个文档已经托管在readthedocs的服务器上，所有人都可以阅读。</p></li>
+<li><p>此后每当你更新你的github repo时，readthedocs会自动同步，完全不需要你担心。</p></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to learn_sphinx’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Dee-Why
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
