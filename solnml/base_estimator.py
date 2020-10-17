@@ -20,6 +20,7 @@ class BaseEstimator(object):
             amount_of_resource=None,
             metric='acc',
             include_algorithms=None,
+            include_preprocessors=None,
             enable_meta_algorithm_selection=True,
             enable_fe=True,
             ensemble_method='ensemble_selection',
@@ -36,6 +37,7 @@ class BaseEstimator(object):
         self.time_limit = time_limit
         self.amount_of_resource = amount_of_resource
         self.include_algorithms = include_algorithms
+        self.include_preprocessors = include_preprocessors
         self.enable_meta_algorithm_selection = enable_meta_algorithm_selection
         self.enable_fe = enable_fe
         self.ensemble_method = ensemble_method
@@ -67,6 +69,7 @@ class BaseEstimator(object):
             time_limit=self.time_limit,
             amount_of_resource=self.amount_of_resource,
             include_algorithms=self.include_algorithms,
+            include_preprocessors=self.include_preprocessors,
             enable_meta_algorithm_selection=self.enable_meta_algorithm_selection,
             enable_fe=self.enable_fe,
             ensemble_method=self.ensemble_method,

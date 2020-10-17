@@ -24,6 +24,7 @@ class AutoML(object):
                  task_type=None,
                  metric='bal_acc',
                  include_algorithms=None,
+                 include_preprocessors=None,
                  ensemble_method='ensemble_selection',
                  enable_meta_algorithm_selection=True,
                  enable_fe=True,
@@ -46,6 +47,8 @@ class AutoML(object):
         self.logger = self._get_logger(self.dataset_name)
 
         self.evaluation_type = evaluation
+        self.include_preprocessors = include_preprocessors
+
         self.amount_of_resource = amount_of_resource
         self.ensemble_method = ensemble_method
         self.ensemble_size = ensemble_size
@@ -54,6 +57,10 @@ class AutoML(object):
         self.task_type = task_type
         self.n_jobs = n_jobs
         self.solver = None
+
+        # Disable meta learning
+        if self.include_preprocessors is not None:
+            self.enable_meta_algorithm_selection = False
 
         if include_algorithms is not None:
             self.include_algorithms = include_algorithms
@@ -122,6 +129,7 @@ class AutoML(object):
 
         self.solver = FirstLayerBandit(self.task_type, self.amount_of_resource,
                                        self.include_algorithms, train_data,
+                                       include_preprocessors=self.include_preprocessors,
                                        per_run_time_limit=self.per_run_time_limit,
                                        dataset_name=self.dataset_name,
                                        ensemble_method=self.ensemble_method,

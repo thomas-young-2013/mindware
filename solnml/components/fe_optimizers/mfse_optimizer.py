@@ -10,7 +10,8 @@ from solnml.components.hpo_optimizer.base_optimizer import MAX_INT
 
 
 class MfseOptimizer(AnotherBayesianOptimizationOptimizer, MfseBase):
-    def __init__(self, task_type, input_data: DataNode, evaluator: _BaseEvaluator,
+    def __init__(self, task_type, input_data: DataNode,
+                 config_space, evaluator: _BaseEvaluator,
                  model_id: str, time_limit_per_trans: int,
                  mem_limit_per_trans: int,
                  seed: int, n_jobs=1,
@@ -18,6 +19,7 @@ class MfseOptimizer(AnotherBayesianOptimizationOptimizer, MfseBase):
                  time_budget=600, inner_iter_num_per_iter=1,
                  R=27, eta=3):
         AnotherBayesianOptimizationOptimizer.__init__(self, task_type=task_type, input_data=input_data,
+                                                      config_space=config_space,
                                                       evaluator=evaluator, model_id=model_id,
                                                       time_limit_per_trans=time_limit_per_trans,
                                                       mem_limit_per_trans=mem_limit_per_trans,

@@ -44,20 +44,21 @@ def get_hpo_cs(estimator_id, task_type=REGRESSION):
     elif estimator_id in _addons.components:
         rgs_class = _addons.components[estimator_id]
     else:
-        raise  ValueError("Algorithm %s not supported!" % estimator_id)
+        raise ValueError("Algorithm %s not supported!" % estimator_id)
     cs = rgs_class.get_hyperparameter_search_space()
     return cs
 
 
-def get_fe_cs(estimator_id, task_type=REGRESSION):
-    cs = get_task_hyperparameter_space(task_type=task_type, estimator_id=estimator_id)
+def get_fe_cs(estimator_id, task_type=0, include_preprocessors=None):
+    cs = get_task_hyperparameter_space(task_type=task_type, estimator_id=estimator_id,
+                                       include_preprocessors=include_preprocessors)
     return cs
 
 
-def get_combined_cs(estimator_id, task_type=REGRESSION):
+def get_combined_cs(estimator_id, task_type=REGRESSION, include_preprocessors=None):
     cs = ConfigurationSpace()
     hpo_cs = get_hpo_cs(estimator_id, task_type)
-    fe_cs = get_fe_cs(estimator_id, task_type)
+    fe_cs = get_fe_cs(estimator_id, task_type, include_preprocessors=include_preprocessors)
     config_cand = [estimator_id]
     config_option = CategoricalHyperparameter('hpo', config_cand)
     cs.add_hyperparameter(config_option)
@@ -197,7 +198,6 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
                         # regressor gadgets
                         regressor_id, clf = get_estimator(config_dict)
 
-
                         _score = validation(clf, self.scorer, _x_train, _y_train, _x_val, _y_val,
                                             random_state=self.seed)
                         scores.append(_score)
@@ -257,7 +257,6 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
                 config_dict = config.get_dictionary().copy()
                 # Regressor gadgets
                 regressor_id, clf = get_estimator(config_dict)
-
 
                 score = validation(clf, self.scorer, _act_x_train, _act_y_train, _x_val, _y_val,
                                    random_state=self.seed)

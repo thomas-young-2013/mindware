@@ -15,7 +15,8 @@ from litebo.facade.bo_facade import BayesianOptimization as BO
 
 
 class AnotherBayesianOptimizationOptimizer(Optimizer):
-    def __init__(self, task_type, input_data: DataNode, evaluator: _BaseEvaluator,
+    def __init__(self, task_type, input_data: DataNode,
+                 config_space: ConfigurationSpace, evaluator: _BaseEvaluator,
                  model_id: str, time_limit_per_trans: int,
                  mem_limit_per_trans: int,
                  seed: int, n_jobs=1,
@@ -46,8 +47,7 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
 
         self.evaluator.parse_needed = True
         # Prepare the hyperparameter space.
-        self.hyperparameter_space = get_task_hyperparameter_space(task_type=task_type, estimator_id=model_id,
-                                                                  optimizer=algo)
+        self.hyperparameter_space = config_space
         if algo == 'smac':
             self.incumbent_config = self.hyperparameter_space.get_default_configuration()
         else:
@@ -191,7 +191,7 @@ class AnotherBayesianOptimizationOptimizer(Optimizer):
         return input_node
 
 
-def get_task_hyperparameter_space(task_type, estimator_id, optimizer='smac'):
+def get_task_hyperparameter_space(task_type, estimator_id, include_preprocessors=None, optimizer='smac'):
     """
         Fetch the underlying hyperparameter space for feature engineering.
         Pipeline Space:
@@ -202,8 +202,10 @@ def get_task_hyperparameter_space(task_type, estimator_id, optimizer='smac'):
     :return: hyper space.
     """
     if task_type in CLS_TASKS:
+        _trans_types = TRANS_CANDIDATES['classification'].copy()
         trans_types = TRANS_CANDIDATES['classification'].copy()
     else:
+        _trans_types = TRANS_CANDIDATES['regression'].copy()
         trans_types = TRANS_CANDIDATES['regression'].copy()
 
     # Avoid transformations, which would take too long
@@ -220,19 +222,18 @@ def get_task_hyperparameter_space(task_type, estimator_id, optimizer='smac'):
                 if tran_id in trans_types:
                     trans_types.remove(tran_id)
 
-        # if self.model_id == 'random_forest':
-        #     if 18 in self.trans_types:
-        #         self.trans_types.remove(18)
-        #
-        # if self.model_id == 'liblinear_svc':
-        #     if 7 in self.trans_types:
-        #         self.trans_types.remove(7)
-        #
-        # if self.model_id == 'extra_trees':
-        #     if 35 in self.trans_types:
-        #         self.trans_types.remove(35)
+    preprocessor = dict()
+    if include_preprocessors:
+        for key in include_preprocessors:
+            if key not in _preprocessor:
+                raise ValueError("Preprocessor %s not in built-in preprocessors!" % key)
+            else:
+                preprocessor[key] = _preprocessor[key]
+        trans_types = _trans_types
+    else:
+        preprocessor = _preprocessor
 
-    preprocessor_dict = _get_configuration_space(_preprocessor, trans_types, optimizer=optimizer)
+    preprocessor_dict = _get_configuration_space(preprocessor, trans_types, optimizer=optimizer)
     rescaler_dict = _get_configuration_space(_rescaler, trans_types, optimizer=optimizer)
     if task_type in CLS_TASKS:
         _balancer = _bal_balancer

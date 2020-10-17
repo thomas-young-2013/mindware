@@ -17,6 +17,7 @@ from solnml.components.utils.constants import CLS_TASKS
 class FirstLayerBandit(object):
     def __init__(self, task_type, trial_num,
                  classifier_ids: List[str], data: DataNode,
+                 include_preprocessors=None,
                  time_limit=None,
                  metric='acc',
                  ensemble_method='ensemble_selection',
@@ -37,6 +38,7 @@ class FirstLayerBandit(object):
         """
         self.timestamp = time.time()
         self.task_type = task_type
+        self.include_preprocessors = include_preprocessors
         self.metric = get_metric(metric)
         self.original_data = data.copy_()
         self.ensemble_method = ensemble_method
@@ -85,6 +87,7 @@ class FirstLayerBandit(object):
             self.evaluation_cost[arm] = list()
             self.sub_bandits[arm] = SecondLayerBandit(
                 self.task_type, arm, self.original_data,
+                include_preprocessors=self.include_preprocessors,
                 metric=self.metric,
                 output_dir=output_dir,
                 per_run_time_limit=per_run_time_limit,

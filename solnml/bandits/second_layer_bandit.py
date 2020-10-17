@@ -14,6 +14,7 @@ from solnml.utils.decorators import time_limit
 
 class SecondLayerBandit(object):
     def __init__(self, task_type, estimator_id: str, data: DataNode, metric,
+                 include_preprocessors=None,
                  share_fe=False, output_dir='logs',
                  per_run_time_limit=120,
                  per_run_mem_limit=5120,
@@ -34,6 +35,7 @@ class SecondLayerBandit(object):
         self.per_run_time_limit = per_run_time_limit
         self.per_run_mem_limit = per_run_mem_limit
         self.estimator_id = estimator_id
+        self.include_preprocessors = include_preprocessors
         self.evaluation_type = eval_type
         self.original_data = data.copy_()
         self.share_fe = share_fe
@@ -101,8 +103,10 @@ class SecondLayerBandit(object):
         self.default_config = cs.get_default_configuration()
         self.config_space.seed(self.seed)
 
-        self.fe_default_config = get_task_hyperparameter_space(self.task_type,
-                                                               self.estimator_id).get_default_configuration()
+        self.fe_config_space = get_task_hyperparameter_space(self.task_type,
+                                                             self.estimator_id,
+                                                             include_preprocessors=self.include_preprocessors)
+        self.fe_default_config = self.fe_config_space.get_default_configuration()
 
         self.timestamp = timestamp
         # Build the Feature Engineering component.
@@ -136,8 +140,9 @@ class SecondLayerBandit(object):
             self.enable_fe = enable_fe
             self.fe_algo = fe_algo
             self.optimizer['fe'] = build_fe_optimizer(self.fe_algo, self.evaluation_type,
-                                                      self.task_type, self.original_data,
-                                                      fe_evaluator, estimator_id, per_run_time_limit,
+                                                      self.task_type, self.fe_config_space,
+                                                      self.original_data, fe_evaluator,
+                                                      estimator_id, per_run_time_limit,
                                                       per_run_mem_limit, self.seed,
                                                       shared_mode=self.share_fe, n_jobs=n_jobs)
 
@@ -175,7 +180,7 @@ class SecondLayerBandit(object):
                 timestamp=self.timestamp,
                 output_dir=self.output_dir,
                 resampling_strategy=self.evaluation_type)
-            cs = get_combined_cs(self.estimator_id, self.task_type)
+            cs = get_combined_cs(self.estimator_id, self.task_type, include_preprocessors=self.include_preprocessors)
 
             self.optimizer = build_hpo_optimizer(self.evaluation_type, self.evaluator, cs,
                                                  output_dir=self.output_dir,
@@ -398,7 +403,8 @@ class SecondLayerBandit(object):
             else:
                 raise ValueError('Invalid task type!')
             self.optimizer[_arm] = build_fe_optimizer(self.fe_algo, self.evaluation_type,
-                                                      self.task_type, self.original_data.copy_(),
+                                                      self.task_type, self.fe_config_space,
+                                                      self.original_data.copy_(),
                                                       fe_evaluator, self.estimator_id, self.per_run_time_limit,
                                                       self.per_run_mem_limit, self.seed,
                                                       shared_mode=self.share_fe,
