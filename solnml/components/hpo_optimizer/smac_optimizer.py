@@ -34,7 +34,7 @@ class SMACOptimizer(BaseHPOptimizer):
         if hp_num == 0:
             self.config_num_threshold = 0
         else:
-            _threshold = int(len(set(self.config_space.sample_configuration(10000))) * 0.75)
+            _threshold = int(len(set(self.config_space.sample_configuration(5000))))
             self.config_num_threshold = _threshold
         self.logger.debug('The maximum trial number in HPO is: %d' % self.config_num_threshold)
         self.maximum_config_num = min(600, self.config_num_threshold)

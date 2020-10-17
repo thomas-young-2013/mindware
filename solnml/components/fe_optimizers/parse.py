@@ -1,4 +1,5 @@
-from solnml.components.feature_engineering.transformations import _imb_balancer, _bal_balancer, _preprocessor, _rescaler
+from solnml.components.feature_engineering.transformations import _imb_balancer, _bal_balancer, _preprocessor, \
+    _rescaler
 from solnml.components.feature_engineering.transformation_graph import DataNode
 
 
@@ -27,16 +28,14 @@ def parse_config(data_node: DataNode, config, record=False, skip_balance=False):
     config_dict.pop('rescaler')
 
     def tran_operate(id, tran_set, config, node):
-        if id != "empty":
-            _config = {}
-            for key in config:
-                if id in key:
-                    config_name = key.split(':')[1]
-                    _config[config_name] = config[key]
-            tran = tran_set[id](**_config)
-            output_node = tran.operate(node)
-            return output_node, tran
-        return node, None
+        _config = {}
+        for key in config:
+            if id in key:
+                config_name = key.split(':')[1]
+                _config[config_name] = config[key]
+        tran = tran_set[id](**_config)
+        output_node = tran.operate(node)
+        return output_node, tran
 
     _node = data_node.copy_()
 

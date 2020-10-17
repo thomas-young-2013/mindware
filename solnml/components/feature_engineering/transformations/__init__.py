@@ -6,6 +6,7 @@ from solnml.components.feature_engineering.transformations.generator import _gen
 from solnml.components.feature_engineering.transformations.selector import _selector
 from solnml.components.feature_engineering.transformations.rescaler import _rescaler
 from solnml.components.feature_engineering.transformations.preprocessor import _imb_balancer, _bal_balancer
+from solnml.components.feature_engineering.transformations.empty_transformer import EmptyTransformer
 from solnml.components.feature_engineering.transformations.continous_discretizer import KBinsDiscretizer
 from solnml.components.feature_engineering.transformations.discrete_categorizer import DiscreteCategorizer
 
@@ -37,3 +38,12 @@ for key in _selector:
     # if key not in ['rfe_selector', 'variance_selector', 'percentile_selector', 'percentile_selector_regression']:
     if key not in ['rfe_selector', 'variance_selector']:
         _preprocessor[key] = _selector[key]
+
+_preprocessor1['empty'] = EmptyTransformer
+_preprocessor2['empty'] = EmptyTransformer
+_preprocessor['empty'] = EmptyTransformer
+_generator['empty'] = EmptyTransformer
+_bal_balancer['empty'] = EmptyTransformer
+_imb_balancer['empty'] = EmptyTransformer
+_selector['empty'] = EmptyTransformer
+_rescaler['empty'] = EmptyTransformer

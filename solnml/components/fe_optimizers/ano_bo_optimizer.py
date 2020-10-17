@@ -263,15 +263,11 @@ def _get_configuration_space(builtin_transformers, trans_type=None, optimizer='s
 
 def _add_hierachical_configspace(cs, config, parent_name):
     config_cand = list(config.keys())
-    config_cand.append("empty")
     config_option = CategoricalHyperparameter(parent_name, config_cand,
                                               default_value=config_cand[-1])
     cs.add_hyperparameter(config_option)
     for config_item in config_cand:
-        if config_item == 'empty':
-            sub_configuration_space = ConfigurationSpace()
-        else:
-            sub_configuration_space = config[config_item]
+        sub_configuration_space = config[config_item]
         parent_hyperparameter = {'parent': config_option,
                                  'value': config_item}
         cs.add_configuration_space(config_item, sub_configuration_space,
