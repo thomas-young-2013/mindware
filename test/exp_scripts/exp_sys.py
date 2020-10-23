@@ -62,7 +62,8 @@ def evaluate_sys(run_id, task_type, mth, dataset, ens_method,
                               evaluation=eval_type,
                               enable_meta_algorithm_selection=False,
                               metric='mse',
-                              # include_algorithms=['random_forest'],
+                              # include_preprocessors=['percentile_selector_regression'],
+                              # include_algorithms=['k_nearest_neighbors'],
                               n_jobs=1)
 
     start_time = time.time()
@@ -145,6 +146,7 @@ def evaluate_ausk(run_id, task_type, mth, dataset, ens_method,
     if task_type == 'cls':
         validation_score = np.max(valid_results)
     else:
+        valid_results = [ele - valid_results[-1] for ele in valid_results[:-1]]
         validation_score = np.min(valid_results)
     # automl.refit(X.copy(), y.copy())
     predictions = automl.predict(X_test)
@@ -225,7 +227,13 @@ if __name__ == "__main__":
                         continue
                     with open(file_path, 'rb') as f:
                         data = pickle.load(f)
-                    val_acc, test_acc = data[1], data[2]
+                    if mth == 'ausk' and task_type == 'rgs':
+                        test_acc = data[2]
+                        val_acc = min([ele - 2 for ele in data[4] if ele != 2])
+                    elif task_type == 'rgs':
+                        val_acc, test_acc = -data[1], data[2]
+                    else:
+                        val_acc, test_acc = data[1], data[2]
                     results.append([val_acc, test_acc])
                 print(mth, results)
                 if len(results) == rep:
