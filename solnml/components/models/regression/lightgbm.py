@@ -4,7 +4,6 @@ from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
     UniformIntegerHyperparameter, CategoricalHyperparameter, \
     UnParametrizedHyperparameter
 import numpy as np
-from lightgbm import LGBMRegressor
 
 from solnml.components.utils.constants import *
 from solnml.components.models.base_model import BaseRegressionModel
@@ -12,7 +11,7 @@ from solnml.components.models.base_model import BaseRegressionModel
 
 class LightGBM(BaseRegressionModel):
     def __init__(self, n_estimators, learning_rate, num_leaves, min_child_weight,
-                 subsample, colsample_bytree, reg_alpha, reg_lambda, random_state):
+                 subsample, colsample_bytree, reg_alpha, reg_lambda, random_state=1):
         self.n_estimators = n_estimators
         self.learning_rate = learning_rate
         self.num_leaves = num_leaves
@@ -22,11 +21,12 @@ class LightGBM(BaseRegressionModel):
         self.min_child_weight = min_child_weight
         self.colsample_bytree = colsample_bytree
 
-        self.n_jobs = -1
+        self.n_jobs = 1
         self.random_state = random_state
         self.estimator = None
 
     def fit(self, X, y):
+        from lightgbm import LGBMRegressor
         self.estimator = LGBMRegressor(num_leaves=self.num_leaves,
                                        learning_rate=self.learning_rate,
                                        n_estimators=self.n_estimators,
@@ -44,11 +44,6 @@ class LightGBM(BaseRegressionModel):
         if self.estimator is None:
             raise NotImplementedError()
         return self.estimator.predict(X)
-
-    def predict_proba(self, X):
-        if self.estimator is None:
-            raise NotImplementedError()
-        return self.estimator.predict_proba(X)
 
     @staticmethod
     def get_properties(dataset_properties=None):

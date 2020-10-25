@@ -20,7 +20,8 @@ class KNearestNeighborsRegressor(BaseRegressionModel):
         from sklearn.neighbors import KNeighborsRegressor
         self.estimator = KNeighborsRegressor(n_neighbors=self.n_neighbors,
                                              weights=self.weights,
-                                             p=self.p)
+                                             p=self.p,
+                                             n_jobs=self.n_jobs)
         self.estimator.fit(X, Y)
         return self
 

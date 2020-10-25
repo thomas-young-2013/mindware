@@ -15,11 +15,11 @@ class RandomForest(
     IterativeComponentWithSampleWeight,
     BaseRegressionModel,
 ):
-    def __init__(self, n_estimators, criterion, max_features,
+    def __init__(self, criterion, max_features,
                  max_depth, min_samples_split, min_samples_leaf,
                  min_weight_fraction_leaf, bootstrap, max_leaf_nodes,
                  min_impurity_decrease, random_state=None, n_jobs=-1):
-        self.n_estimators = n_estimators
+        self.n_estimators = self.get_max_iter()
         self.criterion = criterion
         self.max_features = max_features
         self.max_depth = max_depth
@@ -34,6 +34,13 @@ class RandomForest(
         self.estimator = None
         self.start_time = time.time()
         self.time_limit = None
+
+    @staticmethod
+    def get_max_iter():
+        return 100
+
+    def get_current_iter(self):
+        return self.estimator.n_estimators
 
     def iterative_fit(self, X, y, sample_weight=None, n_iter=1, refit=False):
         from sklearn.ensemble import RandomForestRegressor
@@ -117,7 +124,6 @@ class RandomForest(
     def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
         if optimizer == 'smac':
             cs = ConfigurationSpace()
-            n_estimators = Constant("n_estimators", 100)
             criterion = CategoricalHyperparameter(
                 "criterion", ["mse", "mae"], default_value="mse")
 
@@ -138,15 +144,14 @@ class RandomForest(
             min_impurity_decrease = UnParametrizedHyperparameter('min_impurity_decrease', 0.0)
             bootstrap = CategoricalHyperparameter(
                 "bootstrap", ["True", "False"], default_value="True")
-            cs.add_hyperparameters([n_estimators, criterion, max_features,
+            cs.add_hyperparameters([criterion, max_features,
                                     max_depth, min_samples_split, min_samples_leaf,
                                     min_weight_fraction_leaf, max_leaf_nodes,
                                     bootstrap, min_impurity_decrease])
             return cs
         elif optimizer == 'tpe':
             from hyperopt import hp
-            space = {'n_estimators': hp.choice('rf_n_estimators', [100]),
-                     'criterion': hp.choice('rf_criterion', ["mse", "mae"]),
+            space = {'criterion': hp.choice('rf_criterion', ["mse", "mae"]),
                      'max_features': hp.uniform('rf_max_features', 0, 1),
                      'max_depth': hp.choice('rf_max_depth', [None]),
                      'min_samples_split': hp.randint('rf_min_samples_split', 19) + 2,
@@ -156,8 +161,7 @@ class RandomForest(
                      'min_impurity_decrease': hp.choice('rf_min_impurity_decrease', [0]),
                      'bootstrap': hp.choice('rf_bootstrap', ["True", "False"])}
 
-            init_trial = {'n_estimators': 100,
-                          'criterion': "mse",
+            init_trial = {'criterion': "mse",
                           'max_features': 0.5,
                           'max_depth': None,
                           'min_samples_split': 2,
