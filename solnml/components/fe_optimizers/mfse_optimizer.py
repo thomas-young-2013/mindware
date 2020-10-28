@@ -26,7 +26,7 @@ class MfseOptimizer(AnotherBayesianOptimizationOptimizer, MfseBase):
                                                       seed=seed, n_jobs=n_jobs,
                                                       number_of_unit_resource=number_of_unit_resource,
                                                       time_budget=time_budget)
-        MfseBase.__init__(self, eval_func=self.evaluate_function, config_space=self.hyperparameter_space,
+        MfseBase.__init__(self, eval_func=self.evaluator, config_space=self.hyperparameter_space,
                           seed=seed, R=R, eta=eta, n_jobs=n_jobs)
 
         self.inner_iter_num_per_iter = inner_iter_num_per_iter

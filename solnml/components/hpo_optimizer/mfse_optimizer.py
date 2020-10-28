@@ -11,7 +11,7 @@ class MfseOptimizer(BaseHPOptimizer, MfseBase):
                  R=27, eta=3, n_jobs=1):
         BaseHPOptimizer.__init__(self, evaluator, config_space, seed)
         MfseBase.__init__(self, eval_func=self.evaluator, config_space=self.config_space,
-                          seed=seed, R=R, eta=eta, n_jobs=n_jobs)
+                          seed=seed, R=R, eta=eta, n_jobs=n_jobs, output_dir=output_dir)
         self.time_limit = time_limit
         self.evaluation_num_limit = evaluation_limit
         self.inner_iter_num_per_iter = inner_iter_num_per_iter
