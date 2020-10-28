@@ -1,13 +1,21 @@
 import time
 import numpy as np
+import os
+import pickle as pkl
+import re
+from collections import OrderedDict
 
 from litebo.utils.constants import SUCCESS
+from litebo.optimizer.smbo import SMBO
 from solnml.components.hpo_optimizer.base_optimizer import BaseHPOptimizer, MAX_INT
-from solnml.components.transfer_learning.tlbo.tlbo_optimizer import TLBO
+
+cur_dir = os.path.dirname(__file__)
+source_dir = os.path.join('%s', '..', 'transfer_learning', 'tlbo', 'runhistory') % cur_dir
 
 
 class TlboOptimizer(BaseHPOptimizer):
-    def __init__(self, evaluator, config_space, time_limit=None, evaluation_limit=None,
+    def __init__(self, evaluator, config_space, surrogate_type='tlbo_rgpe_prf',
+                 metric='bal_acc', time_limit=None, evaluation_limit=None,
                  per_run_time_limit=300, per_run_mem_limit=1024, output_dir='./',
                  inner_iter_num_per_iter=1, seed=1, n_jobs=1):
         super().__init__(evaluator, config_space, seed)
@@ -18,13 +26,18 @@ class TlboOptimizer(BaseHPOptimizer):
         self.per_run_mem_limit = per_run_mem_limit
         self.output_dir = output_dir
 
-        self.optimizer = TLBO(objective_function=self.evaluator,
-                              config_space=config_space,
-                              metric='bal_acc',
+        # TODO: leave target out
+        estimator_id = config_space.get_default_configuration()['estimator']
+        runhistory_dir = os.path.join(source_dir, 'hpo', '%s_%s_%s') % ('hpo', metric, estimator_id)
+        dataset_names = get_datasets(runhistory_dir, estimator_id, metric, 'hpo')
+        source_data = load_runhistory(runhistory_dir, dataset_names, estimator_id, metric, 'hpo')
+
+        self.optimizer = SMBO(self.evaluator, config_space,
+                              history_bo_data=source_data,
+                              surrogate_type=surrogate_type,
                               max_runs=int(1e10),
-                              task_id=None,
                               time_limit_per_trial=self.per_run_time_limit,
-                              rng=np.random.RandomState(self.seed))
+                              logging_dir=output_dir)
 
         self.trial_cnt = 0
         self.configs = list()
@@ -80,3 +93,36 @@ class TlboOptimizer(BaseHPOptimizer):
         iteration_cost = time.time() - _start_time
         # incumbent_perf: the large the better
         return self.incumbent_perf, iteration_cost, self.incumbent_config
+
+
+def get_metafeature_vector(metafeature_dict):
+    sorted_keys = sorted(metafeature_dict.keys())
+    return np.array([metafeature_dict[key] for key in sorted_keys])
+
+
+def get_datasets(runhistory_dir, estimator_id, metric, task_id='hpo'):
+    _datasets = list()
+    pattern = r'(.*)-%s-%s-%s.pkl' % (estimator_id, metric, task_id)
+    for filename in os.listdir(runhistory_dir):
+        result = re.search(pattern, filename, re.M | re.I)
+        if result is not None:
+            _datasets.append(result.group(1))
+    return _datasets
+
+
+def load_runhistory(runhistory_dir, dataset_names, estimator_id, metric, task_id):
+    metafeature_file = os.path.join(source_dir, 'metafeature.pkl')
+    with open(metafeature_file, 'rb') as f:
+        metafeature_dict = pkl.load(f)
+
+    for dataset in metafeature_dict.keys():
+        vec = get_metafeature_vector(metafeature_dict[dataset])
+        metafeature_dict[dataset] = vec
+
+    runhistory = list()
+    for dataset in dataset_names:
+        _filename = '%s-%s-%s-%s.pkl' % (dataset, estimator_id, metric, task_id)
+        with open(os.path.join(runhistory_dir, _filename), 'rb') as f:
+            data = pkl.load(f)
+        runhistory.append(OrderedDict(data))
+    return runhistory

@@ -10,6 +10,7 @@ from solnml.components.metrics.metric import get_metric
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
 from solnml.components.models.classification import _classifiers
 from solnml.components.utils.constants import MULTICLASS_CLS
+from solnml.components.fe_optimizers.ano_bo_optimizer import get_task_hyperparameter_space
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--algo', type=str, default='libsvm_svc')
@@ -48,10 +49,15 @@ def evaluate(dataset):
     default_hpo_config = cs.get_default_configuration()
     metric = get_metric('bal_acc')
 
-    evaluator = ClassificationEvaluator(default_hpo_config, data_node=train_data,
+    fe_cs = get_task_hyperparameter_space(0, algo_name)
+    default_fe_config = fe_cs.get_default_configuration()
+
+    evaluator = ClassificationEvaluator(default_hpo_config, default_fe_config,
+                                        data_node=train_data,
                                         scorer=metric,
                                         name='hpo',
                                         resampling_strategy='holdout',
+                                        output_dir='./data/exp_sys',
                                         seed=1)
 
     from solnml.components.hpo_optimizer.tlbo_optimizer import TlboOptimizer
