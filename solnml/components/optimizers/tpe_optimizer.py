@@ -1,15 +1,15 @@
 import time
 import numpy as np
 from litebo.utils.constants import SUCCESS, FAILDED
-from solnml.components.optimizers.base_optimizer import BaseHPOptimizer
+from solnml.components.optimizers.base_optimizer import BaseOptimizer
 from solnml.components.transfer_learning.tlbo.models.kde import TPE
 
 
-class TPEOptimizer(BaseHPOptimizer):
-    def __init__(self, evaluator, config_space, time_limit=None, evaluation_limit=None,
+class TPEOptimizer(BaseOptimizer):
+    def __init__(self, evaluator, config_space, name, time_limit=None, evaluation_limit=None,
                  per_run_time_limit=300, per_run_mem_limit=1024, output_dir='./',
                  trials_per_iter=1, seed=1, n_jobs=1):
-        super().__init__(evaluator, config_space, seed)
+        super().__init__(evaluator, config_space, name, seed)
         self.time_limit = time_limit
         self.evaluation_num_limit = evaluation_limit
         self.trials_per_iter = trials_per_iter
@@ -68,11 +68,19 @@ class TPEOptimizer(BaseHPOptimizer):
                 self.configs.append(_config)
                 self.perfs.append(-_perf)
 
-        if hasattr(self.evaluator, 'fe_config'):
-            fe_config = self.evaluator.fe_config
+        if self.name == 'hpo':
+            if hasattr(self.evaluator, 'fe_config'):
+                fe_config = self.evaluator.fe_config
+            else:
+                fe_config = None
+            self.eval_dict = {(fe_config, self.configs[i]): -self.perfs[i] for i in range(len(self.perfs))}
         else:
-            fe_config = None
-        self.eval_dict = {(fe_config, self.configs[i]): -self.perfs[i] for i in range(len(self.perfs))}
+            if hasattr(self.evaluator, 'hpo_config'):
+                hpo_config = self.evaluator.hpo_config
+            else:
+                hpo_config = None
+            self.eval_dict = {(self.configs[i], hpo_config): -self.perfs[i] for i in range(len(self.perfs))}
+
         incumbent_idx = np.argsort(self.perfs)[-1]
         self.incumbent_config = self.configs[incumbent_idx]
         self.incumbent_perf = self.perfs[incumbent_idx]

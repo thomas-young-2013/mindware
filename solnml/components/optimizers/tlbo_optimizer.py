@@ -7,18 +7,18 @@ from collections import OrderedDict
 
 from litebo.utils.constants import SUCCESS
 from litebo.optimizer.smbo import SMBO
-from solnml.components.optimizers.base_optimizer import BaseHPOptimizer, MAX_INT
+from solnml.components.optimizers.base_optimizer import BaseOptimizer, MAX_INT
 
 cur_dir = os.path.dirname(__file__)
 source_dir = os.path.join('%s', '..', 'transfer_learning', 'tlbo', 'runhistory') % cur_dir
 
 
-class TlboOptimizer(BaseHPOptimizer):
-    def __init__(self, evaluator, config_space, surrogate_type='tlbo_rgpe_prf',
+class TlboOptimizer(BaseOptimizer):
+    def __init__(self, evaluator, config_space, name, surrogate_type='tlbo_rgpe_prf',
                  metric='bal_acc', time_limit=None, evaluation_limit=None,
                  per_run_time_limit=300, per_run_mem_limit=1024, output_dir='./',
                  inner_iter_num_per_iter=1, seed=1, n_jobs=1):
-        super().__init__(evaluator, config_space, seed)
+        super().__init__(evaluator, config_space, name, seed)
         self.time_limit = time_limit
         self.evaluation_num_limit = evaluation_limit
         self.inner_iter_num_per_iter = inner_iter_num_per_iter
@@ -82,12 +82,21 @@ class TlboOptimizer(BaseHPOptimizer):
                 self.perfs.append(-_perf)
 
         runhistory = self.optimizer.get_history()
-        if hasattr(self.evaluator, 'fe_config'):
-            fe_config = self.evaluator.fe_config
+        if self.name == 'hpo':
+            if hasattr(self.evaluator, 'fe_config'):
+                fe_config = self.evaluator.fe_config
+            else:
+                fe_config = None
+            self.eval_dict = {(fe_config, hpo_config): [-score, time.time()] for hpo_config, score in
+                              runhistory.data.items()}
         else:
-            fe_config = None
-        self.eval_dict = {(fe_config, hpo_config): -score for hpo_config, score in
-                          runhistory.data.items()}
+            if hasattr(self.evaluator, 'hpo_config'):
+                hpo_config = self.evaluator.hpo_config
+            else:
+                hpo_config = None
+            self.eval_dict = {(fe_config, hpo_config): [-score, time.time()] for fe_config, score in
+                              runhistory.data.items()}
+
         self.incumbent_config, self.incumbent_perf = runhistory.get_incumbents()[0]
         self.incumbent_perf = -self.incumbent_perf
         iteration_cost = time.time() - _start_time

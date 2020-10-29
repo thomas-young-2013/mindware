@@ -6,10 +6,13 @@ from solnml.utils.logging_utils import get_logger
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
 
 
-class BaseHPOptimizer(object):
-    def __init__(self, evaluator: _BaseEvaluator, config_space, seed=None):
+class BaseOptimizer(object):
+    def __init__(self, evaluator: _BaseEvaluator, config_space, name, seed=None):
         self.evaluator = evaluator
         self.config_space = config_space
+
+        assert name in ['hpo', 'fe']
+        self.name = name
         self.seed = np.random.random_integers(MAX_INT) if seed is None else seed
         self.start_time = time.time()
         self.timing_list = list()

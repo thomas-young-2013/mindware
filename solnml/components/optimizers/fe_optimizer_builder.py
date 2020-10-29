@@ -17,7 +17,7 @@ def build_fe_optimizer(eval_type, evaluator, config_space,
     #                        number_of_unit_resource=number_of_unit_resource,
     #                        seed=seed, n_jobs=n_jobs)
 
-    return optimizer_class(evaluator, config_space,
+    return optimizer_class(evaluator, config_space, 'fe',
                            output_dir=output_dir,
                            per_run_time_limit=per_run_time_limit,
                            inner_iter_num_per_iter=inner_iter_num_per_iter,

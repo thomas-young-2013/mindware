@@ -16,7 +16,7 @@ def build_hpo_optimizer(eval_type, evaluator, config_space,
     else:
         # TODO: Support asynchronous BO
         optimizer_class = SMACOptimizer
-    return optimizer_class(evaluator, config_space,
+    return optimizer_class(evaluator, config_space, 'hpo',
                            output_dir=output_dir,
                            per_run_time_limit=per_run_time_limit,
                            inner_iter_num_per_iter=inner_iter_num_per_iter,

@@ -1,16 +1,16 @@
 import time
 import os
 import numpy as np
-from solnml.components.optimizers.base_optimizer import BaseHPOptimizer, MAX_INT
+from solnml.components.optimizers.base_optimizer import BaseOptimizer, MAX_INT
 from solnml.components.optimizers.base.bohbbase import BohbBase
 
 
-class BohbOptimizer(BaseHPOptimizer, BohbBase):
-    def __init__(self, evaluator, config_space, time_limit=None, evaluation_limit=None,
+class BohbOptimizer(BaseOptimizer, BohbBase):
+    def __init__(self, evaluator, config_space, name, time_limit=None, evaluation_limit=None,
                  per_run_time_limit=600, per_run_mem_limit=1024, output_dir='./',
                  inner_iter_num_per_iter=1, seed=1,
                  R=27, eta=3, mode='smac', n_jobs=1):
-        BaseHPOptimizer.__init__(self, evaluator, config_space, seed)
+        BaseOptimizer.__init__(self, evaluator, config_space, name, seed)
         BohbBase.__init__(self, eval_func=self.evaluator, config_generator=mode, config_space=self.config_space,
                           seed=seed, R=R, eta=eta, n_jobs=n_jobs)
         self.time_limit = time_limit
@@ -46,11 +46,19 @@ class BohbOptimizer(BaseHPOptimizer, BohbBase):
 
         inc_idx = np.argmin(np.array(self.incumbent_perfs))
         for idx in range(len(self.incumbent_perfs)):
-            if hasattr(self.evaluator, 'fe_config'):
-                fe_config = self.evaluator.fe_config
+            if self.name == 'hpo':
+                if hasattr(self.evaluator, 'fe_config'):
+                    fe_config = self.evaluator.fe_config
+                else:
+                    fe_config = None
+                self.eval_dict[(fe_config, self.incumbent_configs[idx])] = [-self.incumbent_perfs[idx], time.time()]
             else:
-                fe_config = None
-            self.eval_dict[(fe_config, self.incumbent_configs[idx])] = [-self.incumbent_perfs[idx], time.time()]
+                if hasattr(self.evaluator, 'hpo_config'):
+                    hpo_config = self.evaluator.hpo_config
+                else:
+                    hpo_config = None
+                self.eval_dict[(self.incumbent_configs[idx], hpo_config)] = [-self.incumbent_perfs[idx],
+                                                                             time.time()]
 
         self.perfs = self.incumbent_perfs
         self.configs = self.incumbent_configs

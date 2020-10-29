@@ -2,14 +2,14 @@ import time
 import numpy as np
 from litebo.facade.bo_facade import BayesianOptimization as BO
 from litebo.utils.constants import SUCCESS
-from solnml.components.optimizers.base_optimizer import BaseHPOptimizer, MAX_INT
+from solnml.components.optimizers.base_optimizer import BaseOptimizer, MAX_INT
 
 
-class SMACOptimizer(BaseHPOptimizer):
-    def __init__(self, evaluator, config_space, time_limit=None, evaluation_limit=None,
+class SMACOptimizer(BaseOptimizer):
+    def __init__(self, evaluator, config_space, name, time_limit=None, evaluation_limit=None,
                  per_run_time_limit=300, per_run_mem_limit=1024, output_dir='./',
                  inner_iter_num_per_iter=1, seed=1, n_jobs=1):
-        super().__init__(evaluator, config_space, seed)
+        super().__init__(evaluator, config_space, name, seed)
         self.time_limit = time_limit
         self.evaluation_num_limit = evaluation_limit
         self.inner_iter_num_per_iter = inner_iter_num_per_iter
@@ -73,12 +73,21 @@ class SMACOptimizer(BaseHPOptimizer):
                 self.perfs.append(-_perf)
 
         runhistory = self.optimizer.get_history()
-        if hasattr(self.evaluator, 'fe_config'):
-            fe_config = self.evaluator.fe_config
+        if self.name == 'hpo':
+            if hasattr(self.evaluator, 'fe_config'):
+                fe_config = self.evaluator.fe_config
+            else:
+                fe_config = None
+            self.eval_dict = {(fe_config, hpo_config): [-score, time.time()] for hpo_config, score in
+                              runhistory.data.items()}
         else:
-            fe_config = None
-        self.eval_dict = {(fe_config, hpo_config): [-score, time.time()] for hpo_config, score in
-                          runhistory.data.items()}
+            if hasattr(self.evaluator, 'hpo_config'):
+                hpo_config = self.evaluator.hpo_config
+            else:
+                hpo_config = None
+            self.eval_dict = {(fe_config, hpo_config): [-score, time.time()] for fe_config, score in
+                              runhistory.data.items()}
+
         if len(runhistory.get_incumbents()) > 0:
             self.incumbent_config, self.incumbent_perf = runhistory.get_incumbents()[0]
             self.incumbent_perf = -self.incumbent_perf

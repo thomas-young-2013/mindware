@@ -8,13 +8,13 @@ from smac.scenario.scenario import Scenario
 from smac.facade.smac_facade import SMAC
 from smac.optimizer import pSMAC
 
-from solnml.components.optimizers.base_optimizer import BaseHPOptimizer
+from solnml.components.optimizers.base_optimizer import BaseOptimizer
 
 
-class PSMACOptimizer(BaseHPOptimizer):
-    def __init__(self, evaluator, config_space, n_jobs=4, time_limit=None, evaluation_limit=200,
+class PSMACOptimizer(BaseOptimizer):
+    def __init__(self, evaluator, config_space, name, n_jobs=4, time_limit=None, evaluation_limit=200,
                  per_run_time_limit=600, per_run_mem_limit=1024, output_dir='./', trials_per_iter=1, seed=1):
-        super().__init__(evaluator, config_space, seed)
+        super().__init__(evaluator, config_space, name, seed)
         self.time_limit = time_limit
         self.evaluation_num_limit = evaluation_limit
         self.trials_per_iter = trials_per_iter
