@@ -6,7 +6,7 @@ from .utils.constants import MAXINT, SUCCESS, FAILDED, TIMEOUT
 from .utils.limit import time_limit, TimeoutException
 from .config_space.util import convert_configurations_to_array
 from solnml.components.transfer_learning.tlbo.models.kde import TPE
-from solnml.components.hpo_optimizer.base.config_space_utils import sample_configurations
+from solnml.components.optimizers.base.config_space_utils import sample_configurations
 
 
 class TPE_BO(BaseFacade):

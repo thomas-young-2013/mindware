@@ -2,7 +2,7 @@ import time
 import numpy as np
 from litebo.facade.bo_facade import BayesianOptimization as BO
 from litebo.utils.constants import SUCCESS
-from solnml.components.hpo_optimizer.base_optimizer import BaseHPOptimizer, MAX_INT
+from solnml.components.optimizers.base_optimizer import BaseHPOptimizer, MAX_INT
 
 
 class SMACOptimizer(BaseHPOptimizer):

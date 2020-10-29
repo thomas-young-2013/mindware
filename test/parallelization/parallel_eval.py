@@ -5,7 +5,7 @@ from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 
 sys.path.append(os.getcwd())
 from solnml.datasets.image_dataset import ImageDataset
-from solnml.components.hpo_optimizer.base.config_space_utils import sample_configurations
+from solnml.components.optimizers.base.config_space_utils import sample_configurations
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space
 from solnml.components.evaluators.dl_evaluator import DLEvaluator
 from solnml.components.metrics.metric import get_metric

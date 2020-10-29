@@ -1,5 +1,4 @@
 from .base_optimizer import Optimizer
-from .fe_optimizer_builder import build_fe_optimizer
 from .evaluation_based_optimizer import EvaluationBasedOptimizer
 from .hyperband_evaluation_based_optimizer import HyperbandOptimizer
 from .multithread_evaluation_based_optimizer import MultiThreadEvaluationBasedOptimizer

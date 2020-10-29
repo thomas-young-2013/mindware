@@ -11,7 +11,7 @@ from sklearn.metrics.scorer import balanced_accuracy_scorer
 from solnml.utils.logging_utils import get_logger
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
 from solnml.components.evaluators.evaluate_func import validation
-from solnml.components.fe_optimizers.ano_bo_optimizer import get_task_hyperparameter_space
+from solnml.components.fe_optimizers.task_space import get_task_hyperparameter_space
 from solnml.components.fe_optimizers.parse import parse_config, construct_node
 from solnml.components.evaluators.base_evaluator import CombinedTopKModelSaver
 from solnml.components.models.regression import _regressors, _addons

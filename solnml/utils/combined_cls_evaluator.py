@@ -11,7 +11,7 @@ from sklearn.preprocessing import OneHotEncoder
 from solnml.utils.logging_utils import get_logger
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
 from solnml.components.evaluators.evaluate_func import validation
-from solnml.components.fe_optimizers.ano_bo_optimizer import get_task_hyperparameter_space
+from solnml.components.fe_optimizers.task_space import get_task_hyperparameter_space
 from solnml.components.fe_optimizers.parse import parse_config, construct_node
 from solnml.components.evaluators.base_evaluator import CombinedTopKModelSaver
 from solnml.components.models.classification import _classifiers, _addons

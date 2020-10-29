@@ -3,7 +3,7 @@ import sys
 import argparse
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 sys.path.append(os.getcwd())
-from solnml.components.hpo_optimizer.smac_optimizer import SMACOptimizer
+from solnml.components.optimizers.smac_optimizer import SMACOptimizer
 from solnml.datasets.utils import load_data
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
 

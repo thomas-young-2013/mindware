@@ -14,8 +14,8 @@ from solnml.components.metrics.cls_metrics import balanced_accuracy
 from solnml.components.evaluators.evaluator import Evaluator
 from solnml.utils.logging_utils import get_logger
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
-from solnml.components.hpo_optimizer.smac_optimizer import SMACOptimizer
-from solnml.components.hpo_optimizer.psmac_optimizer import PSMACOptimizer
+from solnml.components.optimizers.smac_optimizer import SMACOptimizer
+from solnml.components.optimizers.psmac_optimizer import PSMACOptimizer
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter

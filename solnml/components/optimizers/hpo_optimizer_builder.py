@@ -1,7 +1,7 @@
-from solnml.components.hpo_optimizer.smac_optimizer import SMACOptimizer
-from solnml.components.hpo_optimizer.mfse_optimizer import MfseOptimizer
-from solnml.components.hpo_optimizer.bohb_optimizer import BohbOptimizer
-from solnml.components.hpo_optimizer.tpe_optimizer import TPEOptimizer
+from solnml.components.optimizers.smac_optimizer import SMACOptimizer
+from solnml.components.optimizers.mfse_optimizer import MfseOptimizer
+from solnml.components.optimizers.bohb_optimizer import BohbOptimizer
+from solnml.components.optimizers.tpe_optimizer import TPEOptimizer
 
 
 def build_hpo_optimizer(eval_type, evaluator, config_space,

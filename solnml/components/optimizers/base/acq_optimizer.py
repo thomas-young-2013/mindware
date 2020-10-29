@@ -1,7 +1,7 @@
 import numpy as np
 from ConfigSpace.util import get_one_exchange_neighbourhood
 
-from solnml.components.hpo_optimizer.base.config_space_utils import convert_configurations_to_array, \
+from solnml.components.optimizers.base.config_space_utils import convert_configurations_to_array, \
     sample_configurations
 
 

@@ -8,7 +8,7 @@ from smac.scenario.scenario import Scenario
 from smac.facade.smac_facade import SMAC
 from smac.optimizer import pSMAC
 
-from solnml.components.hpo_optimizer.base_optimizer import BaseHPOptimizer
+from solnml.components.optimizers.base_optimizer import BaseHPOptimizer
 
 
 class PSMACOptimizer(BaseHPOptimizer):

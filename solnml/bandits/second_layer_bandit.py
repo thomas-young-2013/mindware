@@ -5,9 +5,9 @@ from solnml.components.evaluators.rgs_evaluator import RegressionEvaluator
 from solnml.utils.logging_utils import get_logger
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from solnml.components.feature_engineering.transformation_graph import DataNode
-from solnml.components.fe_optimizers import build_fe_optimizer
-from solnml.components.fe_optimizers.ano_bo_optimizer import get_task_hyperparameter_space
-from solnml.components.hpo_optimizer import build_hpo_optimizer
+from solnml.components.optimizers import build_fe_optimizer
+from solnml.components.fe_optimizers.task_space import get_task_hyperparameter_space
+from solnml.components.optimizers import build_hpo_optimizer
 from solnml.components.utils.constants import CLS_TASKS, RGS_TASKS
 from solnml.utils.decorators import time_limit
 
@@ -138,13 +138,15 @@ class SecondLayerBandit(object):
 
         if self.mth != 'combined':
             self.enable_fe = enable_fe
-            self.fe_algo = fe_algo
-            self.optimizer['fe'] = build_fe_optimizer(self.fe_algo, self.evaluation_type,
-                                                      self.task_type, self.fe_config_space,
-                                                      self.original_data, fe_evaluator,
-                                                      estimator_id, per_run_time_limit,
-                                                      per_run_mem_limit, self.seed,
-                                                      shared_mode=self.share_fe, n_jobs=n_jobs)
+            trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
+
+            self.optimizer['fe'] = build_fe_optimizer(self.evaluation_type, fe_evaluator,
+                                                      self.fe_config_space,
+                                                      per_run_time_limit=per_run_time_limit,
+                                                      per_run_mem_limit=per_run_mem_limit,
+                                                      inner_iter_num_per_iter=trials_per_iter,
+                                                      output_dir=output_dir,
+                                                      seed=self.seed, n_jobs=n_jobs)
 
             self.inc['fe'], self.local_inc['fe'] = self.fe_default_config, self.fe_default_config
 
@@ -167,6 +169,8 @@ class SecondLayerBandit(object):
             self.evaluation_cost = list()
             self.eval_dict = {}
             self.incumbent_config = None
+            trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
+
             if self.task_type in CLS_TASKS:
                 from solnml.utils.combined_cls_evaluator import get_combined_cs
                 from solnml.utils.combined_cls_evaluator import CombinedClassificationEvaluator as CombinedEvaluator
@@ -185,7 +189,7 @@ class SecondLayerBandit(object):
             self.optimizer = build_hpo_optimizer(self.evaluation_type, self.evaluator, cs,
                                                  output_dir=self.output_dir,
                                                  per_run_time_limit=self.per_run_time_limit,
-                                                 inner_iter_num_per_iter=10,
+                                                 inner_iter_num_per_iter=trials_per_iter,
                                                  seed=self.seed, n_jobs=self.n_jobs)
 
     def collect_iter_stats(self, _arm, results):
@@ -402,14 +406,13 @@ class SecondLayerBandit(object):
                                                    timestamp=self.timestamp)
             else:
                 raise ValueError('Invalid task type!')
-            self.optimizer[_arm] = build_fe_optimizer(self.fe_algo, self.evaluation_type,
-                                                      self.task_type, self.fe_config_space,
-                                                      self.original_data.copy_(),
-                                                      fe_evaluator, self.estimator_id, self.per_run_time_limit,
-                                                      self.per_run_mem_limit, self.seed,
-                                                      shared_mode=self.share_fe,
-                                                      number_of_unit_resource=self.number_of_unit_resource,
-                                                      n_jobs=self.n_jobs)
+            self.optimizer[_arm] = build_fe_optimizer(self.evaluation_type, fe_evaluator,
+                                                      self.fe_config_space,
+                                                      per_run_time_limit=self.per_run_time_limit,
+                                                      per_run_mem_limit=self.per_run_mem_limit,
+                                                      inner_iter_num_per_iter=trials_per_iter,
+                                                      output_dir=self.output_dir,
+                                                      seed=self.seed, n_jobs=self.n_jobs)
         else:
             # trials_per_iter = self.optimizer['fe'].evaluation_num_last_iteration // 2
             # trials_per_iter = max(20, trials_per_iter)

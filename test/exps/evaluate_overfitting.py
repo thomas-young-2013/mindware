@@ -5,7 +5,7 @@ import pickle
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 
 sys.path.append(os.getcwd())
-from solnml.components.hpo_optimizer.smac_optimizer import SMACOptimizer
+from solnml.components.optimizers.smac_optimizer import SMACOptimizer
 from solnml.components.fe_optimizers.evaluation_based_optimizer import EvaluationBasedOptimizer
 from solnml.datasets.utils import load_train_test_data
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator, fetch_predict_estimator

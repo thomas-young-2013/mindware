@@ -8,15 +8,15 @@ from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 
 from solnml.utils.logging_utils import get_logger
 from solnml.components.utils.constants import IMG_CLS, TEXT_CLS, OBJECT_DET
-from solnml.components.hpo_optimizer.base.config_space_utils import sample_configurations
+from solnml.components.optimizers.base.config_space_utils import sample_configurations
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space
 from solnml.components.computation.parallel_process import ParallelProcessEvaluator
 from solnml.components.transfer_learning.tlbo.models.kde import TPE
-from solnml.components.hpo_optimizer.base.acquisition import EI
-from solnml.components.hpo_optimizer.base.acq_optimizer import RandomSampling
-from solnml.components.hpo_optimizer.base.prob_rf_cluster import WeightedRandomForestCluster
-from solnml.components.hpo_optimizer.base.funcs import get_types, std_normalization
-from solnml.components.hpo_optimizer.base.config_space_utils import convert_configurations_to_array
+from solnml.components.optimizers.base.acquisition import EI
+from solnml.components.optimizers.base.acq_optimizer import RandomSampling
+from solnml.components.optimizers.base.prob_rf_cluster import WeightedRandomForestCluster
+from solnml.components.optimizers.base.funcs import get_types, std_normalization
+from solnml.components.optimizers.base.config_space_utils import convert_configurations_to_array
 
 
 class CashpOptimizer(object):

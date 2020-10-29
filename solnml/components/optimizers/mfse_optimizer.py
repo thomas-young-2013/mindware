@@ -1,35 +1,22 @@
 import time
 import os
 import numpy as np
-
-from solnml.components.feature_engineering.transformation_graph import DataNode
-from solnml.components.evaluators.base_evaluator import _BaseEvaluator
-from solnml.components.hpo_optimizer.base.mfsebase import MfseBase
-from solnml.components.fe_optimizers.ano_bo_optimizer import AnotherBayesianOptimizationOptimizer
-from solnml.components.hpo_optimizer.base_optimizer import MAX_INT
+from solnml.components.optimizers.base_optimizer import BaseHPOptimizer, MAX_INT
+from solnml.components.optimizers.base.mfsebase import MfseBase
 
 
-class MfseOptimizer(AnotherBayesianOptimizationOptimizer, MfseBase):
-    def __init__(self, task_type, input_data: DataNode,
-                 config_space, evaluator: _BaseEvaluator,
-                 model_id: str, time_limit_per_trans: int,
-                 mem_limit_per_trans: int,
-                 seed: int, n_jobs=1,
-                 number_of_unit_resource=1,
-                 time_budget=600, inner_iter_num_per_iter=1,
-                 R=27, eta=3):
-        AnotherBayesianOptimizationOptimizer.__init__(self, task_type=task_type, input_data=input_data,
-                                                      config_space=config_space,
-                                                      evaluator=evaluator, model_id=model_id,
-                                                      time_limit_per_trans=time_limit_per_trans,
-                                                      mem_limit_per_trans=mem_limit_per_trans,
-                                                      seed=seed, n_jobs=n_jobs,
-                                                      number_of_unit_resource=number_of_unit_resource,
-                                                      time_budget=time_budget)
-        MfseBase.__init__(self, eval_func=self.evaluator, config_space=self.hyperparameter_space,
-                          seed=seed, R=R, eta=eta, n_jobs=n_jobs)
-
+class MfseOptimizer(BaseHPOptimizer, MfseBase):
+    def __init__(self, evaluator, config_space, time_limit=None, evaluation_limit=None,
+                 per_run_time_limit=600, per_run_mem_limit=1024, output_dir='./', inner_iter_num_per_iter=1, seed=1,
+                 R=27, eta=3, n_jobs=1):
+        BaseHPOptimizer.__init__(self, evaluator, config_space, seed)
+        MfseBase.__init__(self, eval_func=self.evaluator, config_space=self.config_space,
+                          seed=seed, R=R, eta=eta, n_jobs=n_jobs, output_dir=output_dir)
+        self.time_limit = time_limit
+        self.evaluation_num_limit = evaluation_limit
         self.inner_iter_num_per_iter = inner_iter_num_per_iter
+        self.per_run_time_limit = per_run_time_limit
+        self.per_run_mem_limit = per_run_mem_limit
 
     def iterate(self, budget=MAX_INT):
         '''

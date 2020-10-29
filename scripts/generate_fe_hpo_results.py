@@ -7,7 +7,7 @@ import numpy as np
 sys.path.append(os.getcwd())
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from solnml.components.fe_optimizers.bo_optimizer import BayesianOptimizationOptimizer
-from solnml.components.hpo_optimizer.smac_optimizer import SMACOptimizer
+from solnml.components.optimizers.smac_optimizer import SMACOptimizer
 from solnml.components.utils.constants import CLASSIFICATION, REGRESSION
 from solnml.datasets.utils import load_train_test_data
 from solnml.components.metrics.metric import get_metric

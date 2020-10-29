@@ -2,7 +2,7 @@ import numpy as np
 import logging
 
 from pyrfr import regression
-from solnml.components.hpo_optimizer.base.base_epm import AbstractEPM
+from solnml.components.optimizers.base.base_epm import AbstractEPM
 
 
 class RandomForestWithInstances(AbstractEPM):

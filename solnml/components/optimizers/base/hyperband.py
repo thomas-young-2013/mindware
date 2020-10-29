@@ -4,7 +4,7 @@ from math import log, ceil
 
 from solnml.utils.constant import MAX_INT
 from solnml.utils.logging_utils import get_logger
-from solnml.components.hpo_optimizer.base.config_space_utils import sample_configurations
+from solnml.components.optimizers.base.config_space_utils import sample_configurations
 from solnml.components.computation.parallel_process import ParallelProcessEvaluator
 
 

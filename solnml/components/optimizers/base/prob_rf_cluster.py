@@ -1,6 +1,6 @@
 import numpy as np
-from solnml.components.hpo_optimizer.base.base_epm import AbstractEPM
-from solnml.components.hpo_optimizer.base.prob_rf import RandomForestWithInstances
+from solnml.components.optimizers.base.base_epm import AbstractEPM
+from solnml.components.optimizers.base.prob_rf import RandomForestWithInstances
 
 
 class WeightedRandomForestCluster(AbstractEPM):

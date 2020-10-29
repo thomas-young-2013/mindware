@@ -7,7 +7,7 @@ from collections import OrderedDict
 
 from litebo.utils.constants import SUCCESS
 from litebo.optimizer.smbo import SMBO
-from solnml.components.hpo_optimizer.base_optimizer import BaseHPOptimizer, MAX_INT
+from solnml.components.optimizers.base_optimizer import BaseHPOptimizer, MAX_INT
 
 cur_dir = os.path.dirname(__file__)
 source_dir = os.path.join('%s', '..', 'transfer_learning', 'tlbo', 'runhistory') % cur_dir

@@ -10,7 +10,7 @@ from solnml.components.metrics.metric import get_metric
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
 from solnml.components.models.classification import _classifiers
 from solnml.components.utils.constants import MULTICLASS_CLS
-from solnml.components.fe_optimizers.ano_bo_optimizer import get_task_hyperparameter_space
+from solnml.components.fe_optimizers.task_space import get_task_hyperparameter_space
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--algo', type=str, default='libsvm_svc')
@@ -60,7 +60,7 @@ def evaluate(dataset):
                                         output_dir='./data/exp_sys',
                                         seed=1)
 
-    from solnml.components.hpo_optimizer.tlbo_optimizer import TlboOptimizer
+    from solnml.components.optimizers.tlbo_optimizer import TlboOptimizer
 
     optimizer = TlboOptimizer(evaluator, cs, time_limit=300)
     optimizer.run()

@@ -9,7 +9,7 @@ from ConfigSpace.hyperparameters import CategoricalHyperparameter
 from solnml.components.utils.constants import IMG_CLS, TEXT_CLS, OBJECT_DET
 from solnml.datasets.base_dl_dataset import DLDataset
 from solnml.components.ensemble.dl_ensemble.ensemble_bulider import EnsembleBuilder, ensemble_list
-from solnml.components.hpo_optimizer import build_hpo_optimizer
+from solnml.components.optimizers import build_hpo_optimizer
 from solnml.components.evaluators.dl_evaluator import DLEvaluator
 from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters, TopKModelSaver, get_estimator
 from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space, \
@@ -114,7 +114,7 @@ class AutoDL(AutoDLBase):
                                    timestamp=self.timestamp,
                                    **kwargs)
         if self.optalgo == 'see':
-            from solnml.components.hpo_optimizer.cashp_optimizer import CashpOptimizer
+            from solnml.components.optimizers.cashp_optimizer import CashpOptimizer
             self.see_optimizer = CashpOptimizer(self.task_type, algorithm_candidates, self.time_limit,
                                                 n_jobs=self.n_jobs)
             inc_config, inc_perf = self.see_optimizer.run(dl_evaluator)
