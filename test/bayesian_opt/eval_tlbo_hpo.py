@@ -62,7 +62,7 @@ def evaluate(dataset):
 
     from solnml.components.optimizers.tlbo_optimizer import TlboOptimizer
 
-    optimizer = TlboOptimizer(evaluator, cs, time_limit=300)
+    optimizer = TlboOptimizer(evaluator, cs, time_limit=300, name='hpo')
     optimizer.run()
 
 
