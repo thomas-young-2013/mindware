@@ -7,7 +7,6 @@ import pickle as pkl
 from multiprocessing import Lock
 from sklearn.metrics.scorer import balanced_accuracy_scorer
 
-
 from solnml.utils.logging_utils import get_logger
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
 from solnml.components.evaluators.evaluate_func import validation
@@ -18,10 +17,9 @@ from solnml.components.models.regression import _regressors, _addons
 from solnml.components.utils.constants import *
 
 
-def get_estimator(config):
-    regressor_type = config['estimator']
+def get_estimator(config, estimator_id):
+    regressor_type = estimator_id
     config_ = config.copy()
-    config_.pop('estimator', None)
     config_['%s:random_state' % regressor_type] = 1
     hpo_config = dict()
     for key in config_:
@@ -74,16 +72,16 @@ def get_combined_cs(estimator_id, task_type=REGRESSION, include_preprocessors=No
         cs.add_condition(cond)
     for bid in fe_cs.get_forbiddens():
         cs.add_forbidden_clause(bid)
-    model = UnParametrizedHyperparameter("estimator", estimator_id)
-    cs.add_hyperparameter(model)
     return cs
 
 
 class CombinedRegressionEvaluator(_BaseEvaluator):
-    def __init__(self, scorer=None, data_node=None, task_type=REGRESSION, resampling_strategy='cv',
+    def __init__(self, estimator_id, scorer=None, data_node=None, task_type=REGRESSION, resampling_strategy='cv',
                  resampling_params=None, timestamp=None, output_dir=None, seed=1):
         self.resampling_strategy = resampling_strategy
         self.resampling_params = resampling_params
+
+        self.estimator_id = estimator_id
         self.scorer = scorer if scorer is not None else balanced_accuracy_scorer
         self.task_type = task_type
         self.data_node = data_node
@@ -134,7 +132,7 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
 
                 config_dict = config.get_dictionary().copy()
                 # regression gadgets
-                regressor_id, clf = get_estimator(config_dict)
+                regressor_id, clf = get_estimator(config_dict, self.estimator_id)
 
                 score = validation(clf, self.scorer, _x_train, _y_train, _x_val, _y_val,
                                    random_state=self.seed)
@@ -196,7 +194,7 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
 
                         config_dict = config.get_dictionary().copy()
                         # regressor gadgets
-                        regressor_id, clf = get_estimator(config_dict)
+                        regressor_id, clf = get_estimator(config_dict, self.estimator_id)
 
                         _score = validation(clf, self.scorer, _x_train, _y_train, _x_val, _y_val,
                                             random_state=self.seed)
@@ -256,7 +254,7 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
 
                 config_dict = config.get_dictionary().copy()
                 # Regressor gadgets
-                regressor_id, clf = get_estimator(config_dict)
+                regressor_id, clf = get_estimator(config_dict, self.estimator_id)
 
                 score = validation(clf, self.scorer, _act_x_train, _act_y_train, _x_val, _y_val,
                                    random_state=self.seed)

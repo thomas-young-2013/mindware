@@ -6,8 +6,6 @@ import numpy as np
 import pickle as pkl
 from multiprocessing import Lock
 
-
-
 from solnml.utils.logging_utils import get_logger
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
 from solnml.components.evaluators.evaluate_func import validation
@@ -15,9 +13,9 @@ from solnml.components.fe_optimizers.parse import parse_config, construct_node
 from solnml.components.evaluators.base_evaluator import BanditTopKModelSaver
 
 
-def get_estimator(config):
+def get_estimator(config, estimator_id):
     from solnml.components.models.regression import _regressors, _addons
-    regressor_type = config['estimator']
+    regressor_type = estimator_id
     config_ = config.copy()
     config_.pop('estimator', None)
     config_['random_state'] = 1
@@ -31,7 +29,7 @@ def get_estimator(config):
 
 
 class RegressionEvaluator(_BaseEvaluator):
-    def __init__(self, reg_config, fe_config, scorer=None, data_node=None, name=None,
+    def __init__(self, reg_config, fe_config, estimator_id, scorer=None, data_node=None, name=None,
                  resampling_strategy='cv', resampling_params=None, seed=1,
                  timestamp=None, output_dir=None):
         self.resampling_strategy = resampling_strategy
@@ -40,6 +38,7 @@ class RegressionEvaluator(_BaseEvaluator):
 
         # TODO: Optimize: Fit the same transformers only once
         self.fe_config = fe_config
+        self.estimator_id = estimator_id
         self.scorer = scorer
         self.data_node = data_node
         self.name = name
@@ -102,7 +101,7 @@ class RegressionEvaluator(_BaseEvaluator):
                 _X_val, _y_val = _val_node.data
 
                 config_dict = hpo_config.get_dictionary().copy()
-                regressor_id, clf = get_estimator(config_dict)
+                regressor_id, clf = get_estimator(config_dict, self.estimator_id)
 
                 score = validation(clf, self.scorer, _X_train, _y_train, _X_val, _y_val,
                                    random_state=self.seed)
@@ -165,7 +164,7 @@ class RegressionEvaluator(_BaseEvaluator):
 
                         config_dict = hpo_config.get_dictionary().copy()
 
-                        regressor_id, clf = get_estimator(config_dict)
+                        regressor_id, clf = get_estimator(config_dict, self.estimator_id)
 
                         _score = validation(clf, self.scorer, _X_train, _y_train, _X_val, _y_val,
                                             random_state=self.seed)
@@ -225,7 +224,7 @@ class RegressionEvaluator(_BaseEvaluator):
 
                 config_dict = hpo_config.get_dictionary().copy()
 
-                regressor_id, clf = get_estimator(config_dict)
+                regressor_id, clf = get_estimator(config_dict, self.estimator_id)
 
                 score = validation(clf, self.scorer, _act_x_train, _act_y_train, _X_val, _y_val,
                                    random_state=self.seed)

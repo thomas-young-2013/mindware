@@ -15,11 +15,10 @@ from solnml.components.fe_optimizers.parse import parse_config, construct_node
 from solnml.components.evaluators.base_evaluator import BanditTopKModelSaver
 
 
-def get_estimator(config):
+def get_estimator(config, estimator_id):
     from solnml.components.models.classification import _classifiers, _addons
-    classifier_type = config['estimator']
+    classifier_type = estimator_id
     config_ = config.copy()
-    config_.pop('estimator', None)
     config_['random_state'] = 1
     try:
         estimator = _classifiers[classifier_type](**config_)
@@ -31,7 +30,7 @@ def get_estimator(config):
 
 
 class ClassificationEvaluator(_BaseEvaluator):
-    def __init__(self, clf_config, fe_config, scorer=None, data_node=None, name=None,
+    def __init__(self, clf_config, fe_config, estimator_id, scorer=None, data_node=None, name=None,
                  resampling_strategy='cv', resampling_params=None, seed=1,
                  timestamp=None, output_dir=None):
         self.resampling_strategy = resampling_strategy
@@ -40,6 +39,7 @@ class ClassificationEvaluator(_BaseEvaluator):
 
         # TODO: Optimize: Fit the same transformers only once
         self.fe_config = fe_config
+        self.estimator_id = estimator_id
         self.scorer = scorer if scorer is not None else balanced_accuracy_scorer
         self.data_node = data_node
         self.name = name
@@ -110,14 +110,14 @@ class ClassificationEvaluator(_BaseEvaluator):
                 # Prepare training and initial params for classifier.
                 init_params, fit_params = {}, {}
                 if data_node.enable_balance == 1:
-                    init_params, fit_params = self.get_fit_params(_y_train, hpo_config['estimator'])
+                    init_params, fit_params = self.get_fit_params(_y_train, self.estimator_id)
                     for key, val in init_params.items():
                         config_dict[key] = val
 
                 if data_node.data_balance == 1:
                     fit_params['data_balance'] = True
 
-                classifier_id, clf = get_estimator(config_dict)
+                classifier_id, clf = get_estimator(config_dict, self.estimator_id)
 
                 if self.onehot_encoder is None:
                     self.onehot_encoder = OneHotEncoder(categories='auto')
@@ -190,14 +190,14 @@ class ClassificationEvaluator(_BaseEvaluator):
                         # Prepare training and initial params for classifier.
                         init_params, fit_params = {}, {}
                         if data_node.enable_balance == 1:
-                            init_params, fit_params = self.get_fit_params(_y_train, hpo_config['estimator'])
+                            init_params, fit_params = self.get_fit_params(_y_train, self.estimator_id)
                             for key, val in init_params.items():
                                 config_dict[key] = val
 
                         if data_node.data_balance == 1:
                             fit_params['data_balance'] = True
 
-                        classifier_id, clf = get_estimator(config_dict)
+                        classifier_id, clf = get_estimator(config_dict, self.estimator_id)
 
                         if self.onehot_encoder is None:
                             self.onehot_encoder = OneHotEncoder(categories='auto')
@@ -267,7 +267,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                 # Prepare training and initial params for classifier.
                 init_params, fit_params = {}, {}
                 if data_node.enable_balance == 1:
-                    init_params, fit_params = self.get_fit_params(_y_train, hpo_config['estimator'])
+                    init_params, fit_params = self.get_fit_params(_y_train, self.estimator_id)
                     for key, val in init_params.items():
                         config_dict[key] = val
                 if 'sample_weight' in fit_params:
@@ -275,7 +275,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                 if data_node.data_balance == 1:
                     fit_params['data_balance'] = True
 
-                classifier_id, clf = get_estimator(config_dict)
+                classifier_id, clf = get_estimator(config_dict, self.estimator_id)
 
                 if self.onehot_encoder is None:
                     self.onehot_encoder = OneHotEncoder(categories='auto')

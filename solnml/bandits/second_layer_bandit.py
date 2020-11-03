@@ -83,8 +83,6 @@ class SecondLayerBandit(object):
             else:
                 raise ValueError("Algorithm %s not supported!" % estimator_id)
             cs = clf_class.get_hyperparameter_search_space()
-            model = UnParametrizedHyperparameter("estimator", estimator_id)
-            cs.add_hyperparameter(model)
         elif self.task_type in RGS_TASKS:
             from solnml.components.models.regression import _regressors, _addons
             if estimator_id in _regressors:
@@ -94,8 +92,6 @@ class SecondLayerBandit(object):
             else:
                 raise ValueError("Algorithm %s not supported!" % estimator_id)
             cs = reg_class.get_hyperparameter_search_space()
-            model = UnParametrizedHyperparameter("estimator", estimator_id)
-            cs.add_hyperparameter(model)
         else:
             raise ValueError("Unknown task type %s!" % self.task_type)
 
@@ -111,24 +107,28 @@ class SecondLayerBandit(object):
         self.timestamp = timestamp
         # Build the Feature Engineering component.
         if self.task_type in CLS_TASKS:
-            fe_evaluator = ClassificationEvaluator(self.default_config, self.fe_default_config, scorer=self.metric,
+            fe_evaluator = ClassificationEvaluator(self.default_config, self.fe_default_config,
+                                                   estimator_id, scorer=self.metric,
                                                    data_node=self.original_data, name='fe',
                                                    resampling_strategy=self.evaluation_type,
                                                    seed=self.seed, output_dir=self.output_dir,
                                                    timestamp=self.timestamp)
-            hpo_evaluator = ClassificationEvaluator(self.default_config, self.fe_default_config, scorer=self.metric,
+            hpo_evaluator = ClassificationEvaluator(self.default_config, self.fe_default_config,
+                                                    estimator_id, scorer=self.metric,
                                                     data_node=self.original_data, name='hpo',
                                                     resampling_strategy=self.evaluation_type,
                                                     seed=self.seed, output_dir=self.output_dir,
                                                     timestamp=self.timestamp)
 
         elif self.task_type in RGS_TASKS:
-            fe_evaluator = RegressionEvaluator(self.default_config, self.fe_default_config, scorer=self.metric,
+            fe_evaluator = RegressionEvaluator(self.default_config, self.fe_default_config,
+                                               estimator_id, scorer=self.metric,
                                                data_node=self.original_data, name='fe',
                                                resampling_strategy=self.evaluation_type,
                                                seed=self.seed, output_dir=self.output_dir,
                                                timestamp=self.timestamp)
-            hpo_evaluator = RegressionEvaluator(self.default_config, self.fe_default_config, scorer=self.metric,
+            hpo_evaluator = RegressionEvaluator(self.default_config, self.fe_default_config,
+                                                estimator_id, scorer=self.metric,
                                                 data_node=self.original_data, name='hpo',
                                                 resampling_strategy=self.evaluation_type,
                                                 seed=self.seed, output_dir=self.output_dir,
@@ -179,6 +179,7 @@ class SecondLayerBandit(object):
                 from solnml.utils.combined_rgs_evaluator import CombinedRegressionEvaluator as CombinedEvaluator
 
             self.evaluator = CombinedEvaluator(
+                estimator_id,
                 scorer=self.metric,
                 data_node=self.original_data,
                 timestamp=self.timestamp,
@@ -346,13 +347,13 @@ class SecondLayerBandit(object):
             with time_limit(self.per_run_time_limit):
                 if self.task_type in CLS_TASKS:
                     _perf = -ClassificationEvaluator(
-                        self.local_inc['hpo'], self.local_inc['fe'],
+                        self.local_inc['hpo'], self.local_inc['fe'], self.estimator_id,
                         data_node=self.original_data, scorer=self.metric,
                         name='hpo', resampling_strategy=self.evaluation_type,
                         seed=self.seed, output_dir=self.output_dir, timestamp=self.timestamp)(self.local_inc['hpo'])
                 else:
                     _perf = -RegressionEvaluator(
-                        self.local_inc['hpo'], self.local_inc['fe'],
+                        self.local_inc['hpo'], self.local_inc['fe'], self.estimator_id,
                         data_node=self.original_data, scorer=self.metric,
                         name='hpo', resampling_strategy=self.evaluation_type,
                         seed=self.seed, output_dir=self.output_dir, timestamp=self.timestamp)(self.local_inc['hpo'])
@@ -393,13 +394,13 @@ class SecondLayerBandit(object):
             self.original_data._node_id = -1
             inc_hpo = copy.deepcopy(self.inc['hpo'])
             if self.task_type in CLS_TASKS:
-                fe_evaluator = ClassificationEvaluator(inc_hpo, self.fe_default_config,
+                fe_evaluator = ClassificationEvaluator(inc_hpo, self.fe_default_config, self.estimator_id,
                                                        data_node=self.original_data, scorer=self.metric,
                                                        name='fe', resampling_strategy=self.evaluation_type,
                                                        seed=self.seed, output_dir=self.output_dir,
                                                        timestamp=self.timestamp)
             elif self.task_type in RGS_TASKS:
-                fe_evaluator = RegressionEvaluator(inc_hpo, self.fe_default_config,
+                fe_evaluator = RegressionEvaluator(inc_hpo, self.fe_default_config, self.estimator_id,
                                                    data_node=self.original_data, scorer=self.metric,
                                                    name='fe', resampling_strategy=self.evaluation_type,
                                                    seed=self.seed, output_dir=self.output_dir,
@@ -418,13 +419,15 @@ class SecondLayerBandit(object):
             # trials_per_iter = max(20, trials_per_iter)
             inc_fe = copy.deepcopy(self.inc['fe'])
             if self.task_type in CLS_TASKS:
-                hpo_evaluator = ClassificationEvaluator(self.default_config, inc_fe, scorer=self.metric,
+                hpo_evaluator = ClassificationEvaluator(self.default_config, inc_fe,
+                                                        self.estimator_id, scorer=self.metric,
                                                         data_node=self.original_data, name='hpo',
                                                         resampling_strategy=self.evaluation_type,
                                                         seed=self.seed, output_dir=self.output_dir,
                                                         timestamp=self.timestamp)
             elif self.task_type in RGS_TASKS:
-                hpo_evaluator = RegressionEvaluator(self.default_config, inc_fe, scorer=self.metric,
+                hpo_evaluator = RegressionEvaluator(self.default_config, inc_fe,
+                                                    self.estimator_id, scorer=self.metric,
                                                     data_node=self.original_data, name='hpo',
                                                     resampling_strategy=self.evaluation_type,
                                                     seed=self.seed, output_dir=self.output_dir,
