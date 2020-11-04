@@ -27,10 +27,13 @@ class TlboOptimizer(BaseOptimizer):
         self.output_dir = output_dir
 
         # TODO: leave target out
-        estimator_id = config_space.get_default_configuration()['estimator']
-        runhistory_dir = os.path.join(source_dir, 'hpo', '%s_%s_%s') % ('hpo', metric, estimator_id)
-        dataset_names = get_datasets(runhistory_dir, estimator_id, metric, 'hpo')
-        source_data = load_runhistory(runhistory_dir, dataset_names, estimator_id, metric, 'hpo')
+        if hasattr(evaluator, 'estimator_id'):
+            estimator_id = evaluator.estimator_id
+        else:
+            raise ValueError
+        runhistory_dir = os.path.join(source_dir, 'hpo2', '%s_%s_%s') % ('hpo', metric, estimator_id)
+        dataset_names = get_datasets(runhistory_dir, estimator_id, metric)
+        source_data = load_runhistory(runhistory_dir, dataset_names, estimator_id, metric)
 
         self.optimizer = SMBO(self.evaluator, config_space,
                               history_bo_data=source_data,
@@ -119,7 +122,7 @@ def get_datasets(runhistory_dir, estimator_id, metric, task_id='hpo'):
     return _datasets
 
 
-def load_runhistory(runhistory_dir, dataset_names, estimator_id, metric, task_id):
+def load_runhistory(runhistory_dir, dataset_names, estimator_id, metric, task_id='hpo'):
     metafeature_file = os.path.join(source_dir, 'metafeature.pkl')
     with open(metafeature_file, 'rb') as f:
         metafeature_dict = pkl.load(f)
