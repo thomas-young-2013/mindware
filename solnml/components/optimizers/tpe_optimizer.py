@@ -61,7 +61,7 @@ class TPEOptimizer(BaseOptimizer):
                 _status = SUCCESS
             except:
                 _perf = np.inf
-                _status = FAILDED
+                _status = FAILED
             self.config_gen.new_result(_config, _perf, 1)
             if _status == SUCCESS:
                 self.exp_output[time.time()] = (_config, _perf)
