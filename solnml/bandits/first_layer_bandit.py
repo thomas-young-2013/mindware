@@ -206,8 +206,9 @@ class FirstLayerBandit(object):
                 best_op_list, estimator = load_combined_transformer_estimator(self.output_dir, self.best_config,
                                                                               self.timestamp)
             else:
-                best_op_list, estimator = load_transformer_estimator(self.output_dir, self.best_hpo_config,
-                                                                     self.best_fe_config, self.timestamp)
+                best_op_list, estimator = load_transformer_estimator(self.output_dir, self.optimal_algo_id,
+                                                                     self.best_hpo_config, self.best_fe_config,
+                                                                     self.timestamp)
 
             test_data_node = test_data.copy_()
             test_data_node = construct_node(test_data_node, best_op_list)
