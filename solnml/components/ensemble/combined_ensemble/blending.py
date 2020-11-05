@@ -77,7 +77,7 @@ class Blending(BaseEnsembleModel):
                                                               random_state=1)
 
                 if self.base_model_mask[model_cnt] == 1:
-                    estimator = fetch_predict_estimator(self.task_type, config, x_p1, y_p1,
+                    estimator = fetch_predict_estimator(self.task_type, algo_id, config, x_p1, y_p1,
                                                         weight_balance=_node.enable_balance,
                                                         data_balance=_node.data_balance,
                                                         combined=True)

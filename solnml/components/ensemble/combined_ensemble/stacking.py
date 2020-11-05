@@ -80,7 +80,7 @@ class Stacking(BaseEnsembleModel):
                 if self.base_model_mask[model_cnt] == 1:
                     for j, (train, test) in enumerate(kf.split(X, y)):
                         x_p1, x_p2, y_p1, _ = X[train], X[test], y[train], y[test]
-                        estimator = fetch_predict_estimator(self.task_type, config, x_p1, y_p1,
+                        estimator = fetch_predict_estimator(self.task_type, algo_id, config, x_p1, y_p1,
                                                             weight_balance=data.enable_balance,
                                                             data_balance=data.data_balance,
                                                             combined=True

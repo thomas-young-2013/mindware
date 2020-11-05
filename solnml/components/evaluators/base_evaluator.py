@@ -21,14 +21,15 @@ def load_transformer_estimator(model_dir, hpo_config, fe_config, timestamp):
     return op_list, model
 
 
-def fetch_predict_estimator(task_type, config, X_train, y_train, weight_balance=0, data_balance=0, combined=False):
+def fetch_predict_estimator(task_type, estimator_id, config, X_train, y_train, weight_balance=0, data_balance=0,
+                            combined=False):
     # Build the ML estimator.
     from solnml.components.utils.balancing import get_weights, smote
     _fit_params = {}
     config_dict = config.get_dictionary().copy()
     if weight_balance == 1:
         _init_params, _fit_params = get_weights(
-            y_train, config['estimator'], None, {}, {})
+            y_train, estimator_id, None, {}, {})
         for key, val in _init_params.items():
             config_dict[key] = val
     if data_balance == 1:
@@ -43,7 +44,7 @@ def fetch_predict_estimator(task_type, config, X_train, y_train, weight_balance=
             from solnml.utils.combined_rgs_evaluator import get_estimator
         else:
             from solnml.components.evaluators.rgs_evaluator import get_estimator
-    _, estimator = get_estimator(config_dict)
+    _, estimator = get_estimator(config_dict, estimator_id)
 
     estimator.fit(X_train, y_train, **_fit_params)
     return estimator
