@@ -115,7 +115,7 @@ class CombinedTopKModelSaver(BaseTopKModelSaver):
         :return:
         """
 
-        model_path_id = os.path.join(self.model_dir, '%s_%s.pkl' % (self.identifier, self.get_configuration_id(config)))
+        model_path_id = self.get_path_by_config(config, self.identifier)
         model_path_removed = None
         save_flag, delete_flag = False, False
         sorted_dict = self.get_topk_config(self.sorted_list_path)
@@ -167,7 +167,7 @@ class CombinedTopKModelSaver(BaseTopKModelSaver):
 class BanditTopKModelSaver(BaseTopKModelSaver):
 
     @staticmethod
-    def get_configuration_id(hpo_config, fe_config):
+    def get_configuration_id(estimator_id, hpo_config, fe_config):
         hpo_data_dict = hpo_config.get_dictionary()
         fe_data_dict = fe_config.get_dictionary()
         data_list = []
@@ -177,12 +177,13 @@ class BanditTopKModelSaver(BaseTopKModelSaver):
                     value = round(value, 5)
                 data_list.append('%s-%s' % (key, str(value)))
         data_id = '_'.join(data_list)
-        sha = hashlib.sha1(data_id.encode('utf8'))
-        return sha.hexdigest()
+        sha1 = hashlib.sha1(estimator_id.encode('utf8'))
+        sha2 = hashlib.sha1(data_id.encode('utf8'))
+        return '%s_%s' % (sha1.hexdigest(), sha2.hexdigest())
 
-    def get_path_by_config(self, hpo_config, fe_config, identifier):
+    def get_path_by_config(self, estimator_id, hpo_config, fe_config, identifier):
         return os.path.join(self.model_dir,
-                            '%s_%s.pkl' % (identifier, self.get_configuration_id(hpo_config, fe_config)))
+                            '%s_%s.pkl' % (identifier, self.get_configuration_id(estimator_id, hpo_config, fe_config)))
 
     def add(self, hpo_config, fe_config, perf, estimator_id):
         """
@@ -194,8 +195,7 @@ class BanditTopKModelSaver(BaseTopKModelSaver):
         :return:
         """
 
-        model_path_id = os.path.join(self.model_dir,
-                                     '%s_%s.pkl' % (self.identifier, self.get_configuration_id(hpo_config, fe_config)))
+        model_path_id = self.get_path_by_config(estimator_id, hpo_config, fe_config, self.identifier)
         model_path_removed = None
         save_flag, delete_flag = False, False
         sorted_dict = self.get_topk_config(self.sorted_list_path)
