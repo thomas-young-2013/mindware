@@ -44,15 +44,13 @@ def evaluate(dataset):
     train_data, test_data = load_train_test_data(dataset, test_size=0.3, task_type=MULTICLASS_CLS)
 
     cs = _classifiers[algo_name].get_hyperparameter_search_space()
-    model = UnParametrizedHyperparameter("estimator", algo_name)
-    cs.add_hyperparameter(model)
     default_hpo_config = cs.get_default_configuration()
     metric = get_metric('bal_acc')
 
     fe_cs = get_task_hyperparameter_space(0, algo_name)
     default_fe_config = fe_cs.get_default_configuration()
 
-    evaluator = ClassificationEvaluator(default_hpo_config, default_fe_config,
+    evaluator = ClassificationEvaluator(default_hpo_config, default_fe_config, algo_name,
                                         data_node=train_data,
                                         scorer=metric,
                                         name='hpo',
