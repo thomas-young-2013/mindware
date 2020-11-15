@@ -20,7 +20,7 @@ class Logistic_Regression(BaseClassificationModel):
 
         self.n_jobs = 1
 
-    def fit(self, X, Y):
+    def fit(self, X, Y, sample_weight=None):
         from sklearn.linear_model import LogisticRegression
 
         self.C = float(self.C)
@@ -33,7 +33,7 @@ class Logistic_Regression(BaseClassificationModel):
                                             tol=self.tol,
                                             max_iter=self.max_iter,
                                             n_jobs=self.n_jobs)
-        self.estimator.fit(X, Y)
+        self.estimator.fit(X, Y, sample_weight=sample_weight)
         return self
 
     def predict(self, X):
