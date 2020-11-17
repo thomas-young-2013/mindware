@@ -5,7 +5,8 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 from solnml.components.feature_engineering.transformations.generator import _generator
 from solnml.components.feature_engineering.transformations.selector import _selector
 from solnml.components.feature_engineering.transformations.rescaler import _rescaler
-from solnml.components.feature_engineering.transformations.preprocessor import _imb_balancer, _bal_balancer
+from solnml.components.feature_engineering.transformations.preprocessor import _imb_balancer, _bal_balancer, \
+    _image_preprocessor, _text_preprocessor
 from solnml.components.feature_engineering.transformations.empty_transformer import EmptyTransformer
 from solnml.components.feature_engineering.transformations.continous_discretizer import KBinsDiscretizer
 from solnml.components.feature_engineering.transformations.discrete_categorizer import DiscreteCategorizer

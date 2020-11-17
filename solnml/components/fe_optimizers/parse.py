@@ -1,5 +1,5 @@
 from solnml.components.feature_engineering.transformations import _imb_balancer, _bal_balancer, _preprocessor, \
-    _rescaler
+    _rescaler, _image_preprocessor, _text_preprocessor
 from solnml.components.feature_engineering.transformation_graph import DataNode
 
 
@@ -27,6 +27,13 @@ def parse_config(data_node: DataNode, config, record=False, skip_balance=False):
     res_id = config_dict['rescaler']
     config_dict.pop('rescaler')
 
+    image_pre_id = config_dict.get('image_preprocessor', None)
+    if image_pre_id:
+        config_dict.pop('image_preprocessor')
+    text_pre_id = config_dict.get('text_preprocessor', None)
+    if text_pre_id:
+        config_dict.pop('text_preprocessor')
+
     def tran_operate(id, tran_set, config, node):
         _config = {}
         for key in config:
@@ -38,29 +45,47 @@ def parse_config(data_node: DataNode, config, record=False, skip_balance=False):
         return output_node, tran
 
     _node = data_node.copy_()
+    tran_dict = dict()
+
+    # Image preprocessor
+    if image_pre_id:
+        _node, image_tran = tran_operate(image_pre_id, _image_preprocessor, config_dict, _node)
+        tran_dict['image_preprocessor'] = image_tran
+
+    # Text preprocessor
+    if text_pre_id:
+        _node, text_tran = tran_operate(text_pre_id, _text_preprocessor, config_dict, _node)
+        tran_dict['text_preprocessor'] = text_tran
 
     # Balancer
     _balancer = _bal_balancer
     _node, bal_tran = tran_operate(bal_id, _balancer, config_dict, _node)
+    tran_dict['balancer'] = bal_tran
 
     # Rescaler
     _node, res_tran = tran_operate(res_id, _rescaler, config_dict, _node)
+    tran_dict['rescaler'] = res_tran
 
     # Generator
     _node, gen_tran = tran_operate(gen_id, _preprocessor, config_dict, _node)
+    tran_dict['preprocessor'] = gen_tran
 
     _node.config = config
     if record:
-        return _node, [bal_tran, res_tran, gen_tran]
+        return _node, tran_dict
     return _node
 
 
-def construct_node(data_node: DataNode, op_list, mode='test'):
+def construct_node(data_node: DataNode, tran_dict, mode='test'):
+    if 'image_preprocessor' in tran_dict:
+        data_node = tran_dict['image_preprocessor'].operate(data_node)
+
+    if 'text_preprocessor' in tran_dict:
+        data_node = tran_dict['text_preprocessor'].operate(data_node)
+
     if mode != 'test':
-        if op_list[0] is not None:
-            data_node = op_list[0].operate(data_node)
-    if op_list[1] is not None:
-        data_node = op_list[1].operate(data_node)
-    if op_list[2] is not None:
-        data_node = op_list[2].operate(data_node)
+        data_node = tran_dict['balancer'].operate(data_node)
+
+    data_node = tran_dict['rescaler'].operate(data_node)
+    data_node = tran_dict['preprocessor'].operate(data_node)
     return data_node

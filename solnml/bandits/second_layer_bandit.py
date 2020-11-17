@@ -8,7 +8,7 @@ from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.optimizers import build_fe_optimizer
 from solnml.components.fe_optimizers.task_space import get_task_hyperparameter_space
 from solnml.components.optimizers import build_hpo_optimizer
-from solnml.components.utils.constants import CLS_TASKS, RGS_TASKS
+from solnml.components.utils.constants import CLS_TASKS, RGS_TASKS, TEXT, IMAGE
 from solnml.utils.decorators import time_limit
 
 
@@ -73,6 +73,9 @@ class SecondLayerBandit(object):
         self.early_stopped_flag = False
         self.first_start = True
 
+        self.include_text = True if TEXT in self.original_data.feature_types else False
+        self.include_image = True if IMAGE in self.original_data.feature_types else False
+
         # Fetch hyperparameter space.
         if self.task_type in CLS_TASKS:
             from solnml.components.models.classification import _classifiers, _addons
@@ -101,7 +104,9 @@ class SecondLayerBandit(object):
 
         self.fe_config_space = get_task_hyperparameter_space(self.task_type,
                                                              self.estimator_id,
-                                                             include_preprocessors=self.include_preprocessors)
+                                                             include_preprocessors=self.include_preprocessors,
+                                                             include_text=self.include_text,
+                                                             include_image=self.include_image)
         self.fe_default_config = self.fe_config_space.get_default_configuration()
 
         self.timestamp = timestamp

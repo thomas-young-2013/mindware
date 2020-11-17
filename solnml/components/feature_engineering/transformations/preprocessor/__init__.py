@@ -19,3 +19,9 @@ _bal_balancer = {}
 for key in ['weight_balancer']:
     if key in _preprocessor.keys():
         _bal_balancer[key] = _preprocessor[key]
+
+_image_preprocessor = {}
+_image_preprocessor['image2vector'] = _preprocessor['image2vector']
+
+_text_preprocessor = {}
+_text_preprocessor['text2vector'] = _preprocessor['text2vector']

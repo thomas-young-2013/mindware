@@ -1,12 +1,15 @@
 from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter
 
-from solnml.components.feature_engineering.transformations import _imb_balancer, _bal_balancer, _preprocessor, _rescaler
+from solnml.components.feature_engineering.transformations import _bal_balancer, _preprocessor, _rescaler, \
+    _image_preprocessor, _text_preprocessor
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.feature_engineering import TRANS_CANDIDATES
 
 
-def get_task_hyperparameter_space(task_type, estimator_id, include_preprocessors=None, optimizer='smac'):
+def get_task_hyperparameter_space(task_type, estimator_id, include_preprocessors=None,
+                                  include_text=False, include_image=False,
+                                  optimizer='smac'):
     """
         Fetch the underlying hyperparameter space for feature engineering.
         Pipeline Space:
@@ -48,14 +51,26 @@ def get_task_hyperparameter_space(task_type, estimator_id, include_preprocessors
     else:
         preprocessor = _preprocessor
 
+    configs = dict()
+
+    if include_image:
+        image_preprocessor_dict = _get_configuration_space(_image_preprocessor, optimizer=optimizer)
+        configs['image_preprocessor'] = image_preprocessor_dict
+    if include_text:
+        text_preprocessor_dict = _get_configuration_space(_text_preprocessor, optimizer=optimizer)
+        configs['text_preprocessor'] = text_preprocessor_dict
+
     preprocessor_dict = _get_configuration_space(preprocessor, trans_types, optimizer=optimizer)
+    configs['preprocessor'] = preprocessor_dict
     rescaler_dict = _get_configuration_space(_rescaler, trans_types, optimizer=optimizer)
+    configs['rescaler'] = rescaler_dict
     if task_type in CLS_TASKS:
         _balancer = _bal_balancer
         balancer_dict = _get_configuration_space(_balancer, optimizer=optimizer)
     else:
         balancer_dict = None
-    cs = _build_hierachical_configspace(preprocessor_dict, rescaler_dict, balancer_dict, optimizer=optimizer)
+    configs['balancer'] = balancer_dict
+    cs = _build_hierachical_configspace(configs, optimizer=optimizer)
     return cs
 
 
@@ -90,13 +105,12 @@ def _add_hierachical_configspace(cs, config, parent_name):
                                    parent_hyperparameter=parent_hyperparameter)
 
 
-def _build_hierachical_configspace(pre_config, res_config, bal_config=None, optimizer='smac'):
+def _build_hierachical_configspace(configs, optimizer='smac'):
     if optimizer == 'smac':
         cs = ConfigurationSpace()
-        if bal_config is not None:
-            _add_hierachical_configspace(cs, bal_config, "balancer")
-        _add_hierachical_configspace(cs, pre_config, "preprocessor")
-        _add_hierachical_configspace(cs, res_config, "rescaler")
+        for config_key in configs:
+            if configs[config_key] is not None:
+                _add_hierachical_configspace(cs, configs[config_key], config_key)
         return cs
     elif optimizer == 'tpe':
         from hyperopt import hp
@@ -108,8 +122,8 @@ def _build_hierachical_configspace(pre_config, res_config, bal_config=None, opti
                 hi_list.append((key, dictionary[key]))
             return hi_list
 
-        space['generator'] = hp.choice('generator', dict2hi(pre_config))
-        if bal_config is not None:
-            space['balancer'] = hp.choice('balancer', dict2hi(bal_config))
-        space['rescaler'] = hp.choice('rescaler', dict2hi(res_config))
+        for config_key in configs:
+            if configs[config_key] is not None:
+                space[config_key] = hp.choice(config_key, dict2hi(configs[config_key]))
+
         return space
