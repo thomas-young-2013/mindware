@@ -2,6 +2,7 @@ import os
 import pickle
 import numpy as np
 from solnml.datasets.utils import calculate_metafeatures
+from solnml.components.utils.constants import CLS_TASKS, RGS_TASKS
 
 
 def get_feature_vector(dataset, task_type=None):
@@ -9,7 +10,13 @@ def get_feature_vector(dataset, task_type=None):
     meta_dir = os.path.join(meta_dir, '..')
     meta_dir = os.path.join(meta_dir, 'meta_resource')
     meta_dataset_dir = os.path.join(meta_dir, 'meta_dataset_vec')
-    save_path1 = os.path.join(meta_dataset_dir, 'meta_dataset_embedding.pkl')
+    if task_type in CLS_TASKS:
+        task_prefix = 'cls'
+    elif task_type in RGS_TASKS:
+        task_prefix = 'rgs'
+    else:
+        raise ValueError('Invalid task type %s!' % task_type)
+    save_path1 = os.path.join(meta_dataset_dir, '%s_meta_dataset_embedding.pkl' % task_prefix)
 
     assert os.path.exists(save_path1)
     with open(save_path1, 'rb') as f:
@@ -40,7 +47,7 @@ def fetch_algorithm_runs(meta_dir, dataset, metric, total_resource, rep, buildin
         if len(scores) >= 1:
             median_score.append(np.median(scores))
         else:
-            median_score.append(-1)
+            median_score.append(-np.inf)
     return median_score
 
 
@@ -48,6 +55,12 @@ class MetaDataManager(object):
     def __init__(self, metadata_dir, builtin_algorithms, builtin_datasets, metric, resource_n,
                  task_type=None, rep=3):
         self.task_type = task_type
+        if task_type in CLS_TASKS:
+            self.task_prefix = 'cls'
+        elif task_type in RGS_TASKS:
+            self.task_prefix = 'rgs'
+        else:
+            raise ValueError('Invalid task type %s!' % self.task_type)
         self.rep_num = rep
         self.metadata_dir = metadata_dir
         self.builtin_algorithms = builtin_algorithms
@@ -61,7 +74,7 @@ class MetaDataManager(object):
 
     def fetch_meta_runs(self, dataset):
         meta_dataset_dir = os.path.join(self.metadata_dir, 'meta_dataset_vec')
-        save_path2 = os.path.join(meta_dataset_dir, 'meta_dataset_algo2perf.pkl')
+        save_path2 = os.path.join(meta_dataset_dir, '%s_meta_dataset_algo2perf.pkl' % self.task_prefix)
         assert os.path.exists(save_path2)
 
         with open(save_path2, 'rb') as f:
@@ -74,8 +87,8 @@ class MetaDataManager(object):
     def load_meta_data(self):
         X, perf4algo, task_ids = list(), list(), list()
         meta_dataset_dir = os.path.join(self.metadata_dir, 'meta_dataset_vec')
-        save_path1 = os.path.join(meta_dataset_dir, 'meta_dataset_embedding.pkl')
-        save_path2 = os.path.join(meta_dataset_dir, 'meta_dataset_algo2perf.pkl')
+        save_path1 = os.path.join(meta_dataset_dir, '%s_meta_dataset_embedding.pkl' % self.task_prefix)
+        save_path2 = os.path.join(meta_dataset_dir, '%s_meta_dataset_algo2perf.pkl' % self.task_prefix)
 
         if os.path.exists(save_path1) and os.path.exists(save_path2):
             with open(save_path1, 'rb') as f:
@@ -97,7 +110,6 @@ class MetaDataManager(object):
                 try:
                     feature_dict = calculate_metafeatures(_dataset, task_type=self.task_type)
                 except Exception as e:
-                    print(e)
                     continue
                 sorted_keys = sorted(feature_dict.keys())
                 meta_instance = [feature_dict[key] for key in sorted_keys]
@@ -112,6 +124,7 @@ class MetaDataManager(object):
 
             self._dataset_embedding = np.asarray(X)
             self._dataset_perf4algo = np.asarray(perf4algo)
+
             self._task_ids = task_ids
 
             with open(save_path1, 'wb') as f:

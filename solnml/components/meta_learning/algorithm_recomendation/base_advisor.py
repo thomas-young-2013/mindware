@@ -7,9 +7,10 @@ from solnml.components.utils.constants import CLS_TASKS, RGS_TASKS
 from solnml.components.meta_learning.algorithm_recomendation.metadata_manager import MetaDataManager
 from solnml.components.meta_learning.algorithm_recomendation.metadata_manager import get_feature_vector
 
-
-_builtin_algorithms = ['lightgbm', 'random_forest', 'libsvm_svc', 'extra_trees', 'liblinear_svc',
-                       'k_nearest_neighbors', 'adaboost', 'lda', 'qda']
+_cls_builtin_algorithms = ['lightgbm', 'random_forest', 'libsvm_svc', 'extra_trees', 'liblinear_svc',
+                           'k_nearest_neighbors', 'adaboost', 'lda', 'qda']
+_rgs_builtin_algorithms = ['lightgbm', 'random_forest', 'libsvm_svr', 'extra_trees', 'liblinear_svr',
+                           'k_nearest_neighbors', 'adaboost', 'lasso_regression', 'gradient_boosting']
 
 
 class BaseAdvisor(object):
@@ -23,17 +24,23 @@ class BaseAdvisor(object):
                  meta_dir=None):
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
         self.n_algorithm = n_algorithm
-        self.n_algo_candidates = len(_builtin_algorithms)
+        self.n_algo_candidates = len(_cls_builtin_algorithms)
         self.task_type = task_type
         self.meta_algo = meta_algorithm
         self.rep = rep
         self.metric = metric
         if task_type in CLS_TASKS:
+            self.algorithms = _cls_builtin_algorithms
+            self.n_algo_candidates = len(_cls_builtin_algorithms)
             if metric not in ['acc', 'bal_acc']:
                 self.logger.info('Meta information about metric-%s does not exist, use accuracy instead.' % str(metric))
                 metric = 'acc'
         elif task_type in RGS_TASKS:
-            raise NotImplementedError()
+            self.algorithms = _rgs_builtin_algorithms
+            self.n_algo_candidates = len(_rgs_builtin_algorithms)
+            if metric not in ['mse']:
+                self.logger.info('Meta information about metric-%s does not exist, use accuracy instead.' % str(metric))
+                metric = 'mse'
         else:
             raise ValueError('Invalid metric: %s.' % metric)
 
@@ -64,7 +71,7 @@ class BaseAdvisor(object):
                 meta_datasets.add(meta_name)
         self._builtin_datasets = sorted(list(meta_datasets))
 
-        self.metadata_manager = MetaDataManager(self.meta_dir, _builtin_algorithms, self._builtin_datasets,
+        self.metadata_manager = MetaDataManager(self.meta_dir, self.algorithms, self._builtin_datasets,
                                                 metric, total_resource, task_type=task_type, rep=rep)
         self.meta_learner = None
 
@@ -72,12 +79,12 @@ class BaseAdvisor(object):
         input_vector = get_feature_vector(dataset, task_type=self.task_type)
         preds = self.predict(input_vector)
         idxs = np.argsort(-preds)
-        return [_builtin_algorithms[idx] for idx in idxs]
+        return [self.algorithms[idx] for idx in idxs]
 
     def fetch_run_results(self, dataset):
         scores = self.metadata_manager.fetch_meta_runs(dataset)
         idxs = np.argsort(-scores)
-        sorted_algos = [_builtin_algorithms[idx] for idx in idxs]
+        sorted_algos = [self.algorithms[idx] for idx in idxs]
         sorted_scores = [scores[idx] for idx in idxs]
         return OrderedDict(zip(sorted_algos, sorted_scores))
 

@@ -110,7 +110,7 @@ class RankNetAdvisor(BaseAdvisor):
 
     def weights_init(self, model):
         if isinstance(model, nn.Linear):
-            nn.init.xavier_uniform_(model.weight.data) # use xavier instead of default he_normal
+            nn.init.xavier_uniform_(model.weight.data)  # use xavier instead of default he_normal
             model.bias.data.zero_()
 
     def fit(self, **kwargs):
@@ -160,7 +160,8 @@ class RankNetAdvisor(BaseAdvisor):
                     train_samples += len(data1)
                     train_acc += sum(y_pred.detach().numpy().round() == y_true.detach().numpy())
 
-                print('Epoch{}, loss : {}, acc : {}'.format(epoch, train_loss / len(train_data), train_acc / len(train_data)))
+                print('Epoch{}, loss : {}, acc : {}'.format(epoch, train_loss / len(train_data),
+                                                            train_acc / len(train_data)))
 
             # print("save model...")
             torch.save(self.model, meta_learner_filename)
