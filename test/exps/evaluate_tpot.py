@@ -3,10 +3,11 @@ import sys
 import pickle
 import argparse
 import numpy as np
-from solnml.tpot import TPOTClassifier
-from sklearn.metrics import accuracy_score
+import time
+from sklearn.metrics import balanced_accuracy_score
 
 sys.path.append(os.getcwd())
+from tpot import TPOTClassifier
 from solnml.datasets.utils import load_data, load_train_test_data
 
 parser = argparse.ArgumentParser()
@@ -19,8 +20,8 @@ parser.add_argument('--time_limit', type=int, default=600)
 parser.add_argument('--n_job', type=int, default=1)
 parser.add_argument('--seed', type=int, default=1)
 
-max_eval_time = 2.5  # That's, 150 seconds.
-save_dir = './data/sys_baselines/'
+max_eval_time = 5  # That's, 300 seconds.
+save_dir = './data/exp_sys/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
@@ -35,23 +36,27 @@ def evaluate_tpot(dataset, run_id, time_limit, seed=1, use_fe=True):
 
     automl = TPOTClassifier(config_dict=config, generations=10000, population_size=20,
                             verbosity=2, n_jobs=n_job, cv=0.2,
-                            max_eval_time_mins=2.5,
+                            scoring='balanced_accuracy',
+                            max_eval_time_mins=max_eval_time,
                             max_time_mins=int(time_limit / 60),
                             random_state=seed)
 
-    raw_data, test_raw_data = load_train_test_data(dataset)
+    raw_data, test_raw_data = load_train_test_data(dataset, task_type=1)
     X_train, y_train = raw_data.data
     X_test, y_test = test_raw_data.data
     X_train, y_train = X_train.astype('float64'), y_train.astype('int')
     X_test, y_test = X_test.astype('float64'), y_test.astype('int')
+    start_time = time.time()
     automl.fit(X_train, y_train)
     y_hat = automl.predict(X_test)
-    test_accuracy = accuracy_score(y_test, y_hat)
-    print("%d-th Evaluation: accuracy score => %.4f" % (run_id, test_accuracy))
-
-    save_path = save_dir + 'tpot-%s-%d-%d.pkl' % (dataset, time_limit, run_id)
+    pareto_front = automl._pareto_front
+    valid_accuracy = max([pareto_front.keys[x].wvalues[1] for x in range(len(pareto_front.keys))])
+    test_accuracy = balanced_accuracy_score(y_test, y_hat)
+    print("%d-th Evaluation: Valid accuracy score => %.4f" % (run_id, valid_accuracy))
+    print("%d-th Evaluation: Test accuracy score => %.4f" % (run_id, test_accuracy))
+    save_path = save_dir + 'cls_tpot_%s_false_%d_1_%d.pkl' % (dataset, time_limit, run_id)
     with open(save_path, 'wb') as f:
-        pickle.dump([test_accuracy], f)
+        pickle.dump([dataset, valid_accuracy, test_accuracy, start_time], f)
 
 
 if __name__ == "__main__":
