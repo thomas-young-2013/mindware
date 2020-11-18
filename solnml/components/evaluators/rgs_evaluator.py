@@ -17,7 +17,6 @@ def get_estimator(config, estimator_id):
     from solnml.components.models.regression import _regressors, _addons
     regressor_type = estimator_id
     config_ = config.copy()
-    config_.pop('estimator', None)
     config_['random_state'] = 1
     try:
         estimator = _regressors[regressor_type](**config_)
@@ -73,7 +72,6 @@ class RegressionEvaluator(_BaseEvaluator):
 
         # Prepare configuration.
         self.seed = 1
-
         downsample_ratio = kwargs.get('resource_ratio', 1.0)
 
         if 'holdout' in self.resampling_strategy:
