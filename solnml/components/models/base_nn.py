@@ -12,7 +12,7 @@ from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
 
 from solnml.datasets.base_dl_dataset import DLDataset
 from solnml.components.utils.dl_util import EarlyStop
-from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import parse_bool
+from solnml.components.utils.configspace_utils import check_for_bool
 
 NUM_WORKERS = 10
 
@@ -114,7 +114,7 @@ class BaseImgClassificationNeuralNetwork(BaseNeuralNetwork):
         self.weight_decay = weight_decay
         self.sgd_learning_rate = sgd_learning_rate
         self.sgd_momentum = sgd_momentum
-        self.nesterov = parse_bool(nesterov)
+        self.nesterov = check_for_bool(nesterov)
         self.adam_learning_rate = adam_learning_rate
         self.beta1 = beta1
         self.random_state = random_state
@@ -608,7 +608,7 @@ class BaseODClassificationNeuralNetwork(BaseNeuralNetwork):
         self.weight_decay = weight_decay
         self.sgd_learning_rate = sgd_learning_rate
         self.sgd_momentum = sgd_momentum
-        self.nesterov = parse_bool(nesterov)
+        self.nesterov = check_for_bool(nesterov)
         self.adam_learning_rate = adam_learning_rate
         self.beta1 = beta1
         self.random_state = random_state

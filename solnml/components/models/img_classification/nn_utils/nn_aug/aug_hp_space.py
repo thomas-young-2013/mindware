@@ -6,6 +6,8 @@ from ConfigSpace.conditions import EqualsCondition
 
 from torchvision.transforms import transforms
 
+from solnml.components.utils.configspace_utils import check_for_bool
+
 resize_size_dict = {'mobilenet': 224,
                     'resnet50': 224,
                     'densenet161': 224,
@@ -13,13 +15,6 @@ resize_size_dict = {'mobilenet': 224,
                     'senet': 224,
                     'nasnet': 331,
                     'efficientnet': 224}
-
-
-def parse_bool(input):
-    if input == 'True':
-        return True
-    else:
-        return False
 
 
 def get_aug_hyperparameter_space():
@@ -68,8 +63,8 @@ def get_transforms(config, image_size=None):
         transforms.CenterCrop(image_size),
         transforms.ToTensor(),
     ])
-    if parse_bool(config['aug']):
-        if parse_bool(config['auto_aug']):
+    if check_for_bool(config['aug']):
+        if check_for_bool(config['auto_aug']):
             # from .transforms import AutoAugment
             data_transforms = {
                 'train': transforms.Compose([
@@ -83,18 +78,18 @@ def get_transforms(config, image_size=None):
             }
         else:
             transform_list = []
-            if parse_bool(config['jitter']):
+            if check_for_bool(config['jitter']):
                 transform_list.append(transforms.ColorJitter(brightness=config['brightness'],
                                                              saturation=config['saturation'],
                                                              hue=config['hue']))
-            if parse_bool(config['affine']):
+            if check_for_bool(config['affine']):
                 transform_list.append(transforms.RandomAffine(degrees=config['degree'],
                                                               shear=config['shear']))
 
             transform_list.append(transforms.RandomResizedCrop(image_size))
             transform_list.append(transforms.RandomCrop(image_size, padding=4))
 
-            if parse_bool(config['random_flip']):
+            if check_for_bool(config['random_flip']):
                 transform_list.append(transforms.RandomHorizontalFlip())
 
             transform_list.append(transforms.ToTensor())
