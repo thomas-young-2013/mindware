@@ -353,9 +353,9 @@ class FirstLayerBandit(object):
                 break
         return self.final_rewards
 
-    def __del__(self):
-        for _arm in self.arms:
-            del self.sub_bandits[_arm].optimizer
+    # def __del__(self):
+    #     for _arm in self.arms:
+    #         del self.sub_bandits[_arm].optimizer
 
     # def fetch_ensemble_members(self):
     #     stats = dict()
