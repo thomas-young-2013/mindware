@@ -24,4 +24,5 @@ _image_preprocessor = {}
 _image_preprocessor['image2vector'] = _preprocessor['image2vector']
 
 _text_preprocessor = {}
-_text_preprocessor['text2vector'] = _preprocessor['text2vector']
+for key in ['text2vector', 'text2bertvector']:
+    _text_preprocessor[key] = _preprocessor[key]

@@ -47,16 +47,20 @@ def get_hpo_cs(estimator_id, task_type=REGRESSION):
     return cs
 
 
-def get_fe_cs(estimator_id, task_type=0, include_preprocessors=None):
+def get_fe_cs(estimator_id, task_type=REGRESSION, include_image=False, include_text=False, include_preprocessors=None):
     cs = get_task_hyperparameter_space(task_type=task_type, estimator_id=estimator_id,
+                                       include_image=include_image, include_text=include_text,
                                        include_preprocessors=include_preprocessors)
     return cs
 
 
-def get_combined_cs(estimator_id, task_type=REGRESSION, include_preprocessors=None):
+def get_combined_cs(estimator_id, task_type=REGRESSION, include_image=False, include_text=False,
+                    include_preprocessors=None):
     cs = ConfigurationSpace()
     hpo_cs = get_hpo_cs(estimator_id, task_type)
-    fe_cs = get_fe_cs(estimator_id, task_type, include_preprocessors=include_preprocessors)
+    fe_cs = get_fe_cs(estimator_id, task_type,
+                      include_image=include_image, include_text=include_text,
+                      include_preprocessors=include_preprocessors)
     config_cand = [estimator_id]
     config_option = CategoricalHyperparameter('hpo', config_cand)
     cs.add_hyperparameter(config_option)

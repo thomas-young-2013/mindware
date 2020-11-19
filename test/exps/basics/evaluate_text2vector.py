@@ -23,4 +23,5 @@ clf = Classifier(time_limit=20,
                  enable_meta_algorithm_selection=False,
                  include_algorithms=['random_forest'])
 
-clf.fit(datanode)
+clf.fit(datanode, opt_strategy='combined')
+print(clf.predict(datanode))

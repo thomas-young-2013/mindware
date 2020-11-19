@@ -190,7 +190,9 @@ class SecondLayerBandit(object):
                 timestamp=self.timestamp,
                 output_dir=self.output_dir,
                 resampling_strategy=self.evaluation_type)
-            cs = get_combined_cs(self.estimator_id, self.task_type, include_preprocessors=self.include_preprocessors)
+            cs = get_combined_cs(self.estimator_id, self.task_type,
+                                 include_image=self.include_image, include_text=self.include_text,
+                                 include_preprocessors=self.include_preprocessors)
 
             self.optimizer = build_hpo_optimizer(self.evaluation_type, self.evaluator, cs,
                                                  output_dir=self.output_dir,
