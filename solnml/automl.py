@@ -9,7 +9,7 @@ from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.models.regression import _regressors
 from solnml.components.models.classification import _classifiers
 from solnml.components.models.imbalanced_classification import _imb_classifiers
-from solnml.components.meta_learning.algorithm_recomendation.ranknet_advisor import RankNetAdvisor
+from solnml.components.meta_learning.algorithm_recomendation.ranknet_advisor_torch import RankNetAdvisor
 from solnml.bandits.first_layer_bandit import FirstLayerBandit
 
 classification_algorithms = _classifiers.keys()
@@ -106,21 +106,21 @@ class AutoML(object):
                 n_algo_recommended = 5
                 meta_datasets = kwargs.get('meta_datasets', None)
                 self.logger.info('Executing Meta-Learning based Algorithm Recommendation.')
-                # alad = RankNetAdvisor(task_type=self.task_type, n_algorithm=9,
-                #                       exclude_datasets=meta_datasets,
-                #                       metric=self.metric_id)
-                # model_candidates = alad.fetch_algorithm_set(train_data, dataset_id=dataset_id)
-                # include_models = list()
-                # for algo in model_candidates:
-                #     if algo in self.include_algorithms and len(include_models) < n_algo_recommended:
-                #         include_models.append(algo)
+                alad = RankNetAdvisor(task_type=self.task_type, n_algorithm=n_algo_recommended,
+                                      metric=self.metric_id)
+                alad.fit()
+                model_candidates = alad.fetch_algorithm_set(dataset_id)
+                include_models = list()
+                for algo in model_candidates:
+                    if algo in self.include_algorithms and len(include_models) < n_algo_recommended:
+                        include_models.append(algo)
                 # if 'logistic_regression' in include_models:
                 #     include_models.remove('logistic_regression')
                 # if 'adaboost' not in include_models:
                 #     include_models.append('adaboost')
 
-                include_models = ['extra_trees', 'adaboost', 'liblinear_svc', 'random_forest',
-                                  'libsvm_svc', 'lightgbm']
+                # include_models = ['extra_trees', 'adaboost', 'liblinear_svc', 'random_forest',
+                #                   'libsvm_svc', 'lightgbm']
                 self.include_algorithms = include_models
                 self.logger.info('Final Algorithms Recommended: [%s]' % ','.join(self.include_algorithms))
             except Exception as e:

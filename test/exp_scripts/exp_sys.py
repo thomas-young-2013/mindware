@@ -27,6 +27,7 @@ parser.add_argument('--task_type', type=str, default='cls', choices=['cls', 'rgs
 parser.add_argument('--mode', type=str, default='alter_hpo')
 parser.add_argument('--cv', type=str, choices=['cv', 'holdout', 'partial'], default='holdout')
 parser.add_argument('--ens', type=str, default='None')
+parser.add_argument('--enable_meta', type=str, default='false', choices=['true', 'false'])
 parser.add_argument('--time_cost', type=int, default=600)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--rep_num', type=int, default=5)
@@ -37,21 +38,25 @@ if not os.path.exists(save_folder):
     os.makedirs(save_folder)
 
 
-def evaluate_sys(run_id, task_type, mth, dataset, ens_method,
+def evaluate_sys(run_id, task_type, mth, dataset, ens_method, enable_meta,
                  eval_type='holdout', time_limit=1200, seed=1):
     _task_type = MULTICLASS_CLS if task_type == 'cls' else REGRESSION
     train_data, test_data = load_train_test_data(dataset, task_type=_task_type)
-
+    _enable_meta = True if enable_meta == 'true' else False
     if task_type == 'cls':
         from solnml.estimators import Classifier
         estimator = Classifier(time_limit=time_limit,
                                per_run_time_limit=300,
                                output_dir=save_folder,
                                ensemble_method=ens_method,
+                               enable_meta_algorithm_selection=_enable_meta,
                                evaluation=eval_type,
-                               enable_meta_algorithm_selection=False,
                                metric='bal_acc',
-                               # include_algorithms=['extra_trees'],
+                               include_algorithms=['extra_trees', 'random_forest',
+                                                   'adaboost', 'gradient_boosting',
+                                                   'k_nearest_neighbors', 'liblinear_svc',
+                                                   'libsvm_svc', 'lightgbm',
+                                                   'logistic_regression', 'random_forest'],
                                n_jobs=1)
     else:
         from solnml.estimators import Regressor
@@ -59,15 +64,15 @@ def evaluate_sys(run_id, task_type, mth, dataset, ens_method,
                               per_run_time_limit=300,
                               output_dir=save_folder,
                               ensemble_method=ens_method,
+                              enable_meta_algorithm_selection=_enable_meta,
                               evaluation=eval_type,
-                              enable_meta_algorithm_selection=False,
                               metric='mse',
                               # include_preprocessors=['percentile_selector_regression'],
-                              # include_algorithms=['k_nearest_neighbors'],
+                              # include_algorithms=['random_forest'],
                               n_jobs=1)
 
     start_time = time.time()
-    estimator.fit(train_data, opt_strategy=mth)
+    estimator.fit(train_data, opt_strategy=mth, dataset_id=dataset)
     pred = estimator.predict(test_data)
     if task_type == 'cls':
         test_score = balanced_accuracy_score(test_data.data[1], pred)
@@ -79,8 +84,8 @@ def evaluate_sys(run_id, task_type, mth, dataset, ens_method,
     print('Dataset        : %s' % dataset)
     print('Val/Test score : %f - %f' % (validation_score, test_score))
 
-    save_path = save_folder + '%s_%s_%s_%d_%d_%d.pkl' % (
-        task_type, mth, dataset, time_limit, (ens_method is None), run_id)
+    save_path = save_folder + '%s_%s_%s_%s_%d_%d_%d.pkl' % (
+        task_type, mth, dataset, enable_meta, time_limit, (ens_method is None), run_id)
     with open(save_path, 'wb') as f:
         pickle.dump([dataset, validation_score, test_score, start_time, eval_dict], f)
 
@@ -88,8 +93,18 @@ def evaluate_sys(run_id, task_type, mth, dataset, ens_method,
     shutil.rmtree(os.path.join(estimator.get_output_dir()))
 
 
-def evaluate_ausk(run_id, task_type, mth, dataset, ens_method,
+def evaluate_ausk(run_id, task_type, mth, dataset, ens_method, enable_meta,
                   eval_type='holdout', time_limit=1200, seed=1):
+    tmp_dir = 'data/exp_sys/ausk_tmp_%s_%s_%s_%d_%d' % (task_type, mth, dataset, time_limit, run_id)
+    output_dir = 'data/exp_sys/ausk_output_%s_%s_%s_%d_%d' % (task_type, mth, dataset, time_limit, run_id)
+    initial_configs = 25 if enable_meta == 'true' else 0
+    if os.path.exists(tmp_dir):
+        try:
+            shutil.rmtree(tmp_dir)
+            shutil.rmtree(output_dir)
+        except:
+            pass
+
     if task_type == 'cls':
         automl = autosklearn.classification.AutoSklearnClassifier(
             time_left_for_this_task=int(time_limit),
@@ -99,8 +114,9 @@ def evaluate_ausk(run_id, task_type, mth, dataset, ens_method,
             ensemble_memory_limit=16384,
             ml_memory_limit=16384,
             ensemble_size=1 if ens_method is None else 50,
-            ensemble_nbest=1,
-            initial_configurations_via_metalearning=0,
+            initial_configurations_via_metalearning=initial_configs,
+            tmp_folder=tmp_dir,
+            output_folder=output_dir,
             delete_tmp_folder_after_terminate=False,
             delete_output_folder_after_terminate=False,
             seed=int(seed),
@@ -116,8 +132,9 @@ def evaluate_ausk(run_id, task_type, mth, dataset, ens_method,
             ensemble_memory_limit=16384,
             ml_memory_limit=16384,
             ensemble_size=1 if ens_method is None else 50,
-            ensemble_nbest=1,
-            initial_configurations_via_metalearning=0,
+            initial_configurations_via_metalearning=initial_configs,
+            tmp_folder=tmp_dir,
+            output_folder=output_dir,
             delete_tmp_folder_after_terminate=False,
             delete_output_folder_after_terminate=False,
             seed=int(seed),
@@ -134,10 +151,10 @@ def evaluate_ausk(run_id, task_type, mth, dataset, ens_method,
                  for _type in train_data.feature_types]
     from autosklearn.metrics import make_scorer
     if task_type == 'cls':
-        scorer = make_scorer(name='bal_acc', score_func=balanced_accuracy_score)
+        scorer = make_scorer(name='balanced_accuracy', score_func=balanced_accuracy_score)
         score_func = balanced_accuracy_score
     else:
-        scorer = make_scorer(name='bal_acc', score_func=mean_squared_error, greater_is_better=False)
+        scorer = make_scorer(name='mean_squared_error', score_func=mean_squared_error, greater_is_better=False)
         score_func = mean_squared_error
     start_time = time.time()
     automl.fit(X.copy(), y.copy(), feat_type=feat_type,
@@ -157,17 +174,20 @@ def evaluate_ausk(run_id, task_type, mth, dataset, ens_method,
     result_time = automl.cv_results_['mean_fit_time']
 
     print('=' * 10)
-    print(model_desc)
+    # print(model_desc)
     print(str_stats)
     print('=' * 10)
 
     print('Validation score', validation_score)
     print('Test score', test_score)
-    print(automl.show_models())
-    save_path = save_folder + '%s_%s_%s_%d_%d_%d.pkl' % (
-        task_type, mth, dataset, time_limit, (ens_method is None), run_id)
+    # print(automl.show_models())
+    save_path = save_folder + '%s_%s_%s_%s_%d_%d_%d.pkl' % (
+        task_type, mth, dataset, enable_meta, time_limit, (ens_method is None), run_id)
     with open(save_path, 'wb') as f:
         pickle.dump([dataset, validation_score, test_score, start_time, result_score, result_time], f)
+
+    shutil.rmtree(output_dir)
+    shutil.rmtree(os.path.join(tmp_dir, '.auto-sklearn'))
 
 
 if __name__ == "__main__":
@@ -183,6 +203,7 @@ if __name__ == "__main__":
     np.random.seed(1)
     rep = args.rep_num
     start_id = args.start_id
+    enable_meta = args.enable_meta
     seeds = np.random.randint(low=1, high=10000, size=start_id + rep)
     dataset_list = dataset_str.split(',')
 
@@ -199,10 +220,10 @@ if __name__ == "__main__":
                     seed = seeds[_id]
                     print('Running %s with %d-th seed' % (dataset, _id + 1))
                     if method in ['rb', 'fixed', 'alter_hpo', 'combined', 'rb_hpo']:
-                        evaluate_sys(_id, task_type, method, dataset, ens_method,
+                        evaluate_sys(_id, task_type, method, dataset, ens_method, enable_meta,
                                      eval_type=cv, time_limit=time_cost, seed=seed)
                     elif method in ['ausk']:
-                        evaluate_ausk(_id, task_type, method, dataset, ens_method,
+                        evaluate_ausk(_id, task_type, method, dataset, ens_method, enable_meta,
                                       eval_type=cv, time_limit=time_cost, seed=seed)
                     else:
                         raise ValueError('Invalid mode: %s!' % method)
@@ -212,7 +233,7 @@ if __name__ == "__main__":
         # method_ids = ['fixed', 'alter_hpo', 'rb', 'ausk']
         method_ids = mode.split(',')[1:]
         if len(method_ids) == 0:
-            method_ids = ['alter_hpo', 'combined', 'ausk']
+            method_ids = ['alter_hpo', 'combined', 'ausk', 'tpot']
         for mth in method_ids:
             headers.extend(['val-%s' % mth, 'test-%s' % mth])
         tbl_data = list()
@@ -221,8 +242,12 @@ if __name__ == "__main__":
             for mth in method_ids:
                 results = list()
                 for run_id in range(rep):
-                    file_path = save_folder + '%s_%s_%s_%d_%d_%d.pkl' % (
-                        task_type, mth, dataset, time_cost, (ens_method is None), run_id)
+                    if mth == 'tpot':
+                        _ens_method = None
+                    else:
+                        _ens_method = ens_method
+                    file_path = save_folder + '%s_%s_%s_%s_%d_%d_%d.pkl' % (
+                        task_type, mth, dataset, enable_meta, time_cost, (_ens_method is None), run_id)
                     if not os.path.exists(file_path):
                         continue
                     with open(file_path, 'rb') as f:
