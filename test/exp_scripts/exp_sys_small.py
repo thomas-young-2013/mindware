@@ -52,11 +52,11 @@ def evaluate_sys(run_id, task_type, mth, dataset, ens_method, enable_meta,
                                enable_meta_algorithm_selection=_enable_meta,
                                evaluation=eval_type,
                                metric='bal_acc',
-                               include_algorithms=['extra_trees', 'random_forest',
-                                                   'adaboost', 'gradient_boosting',
-                                                   'k_nearest_neighbors', 'liblinear_svc',
-                                                   'libsvm_svc', 'lightgbm',
-                                                   'logistic_regression', 'random_forest'],
+                               include_algorithms=['liblinear_svc', 'random_forest', 'adaboost'],
+                               include_preprocessors=['extra_trees_based_selector',
+                                                      'generic_univariate_selector',
+                                                      'liblinear_based_selector',
+                                                      'percentile_selector'],
                                n_jobs=1)
     else:
         from solnml.estimators import Regressor
@@ -67,8 +67,11 @@ def evaluate_sys(run_id, task_type, mth, dataset, ens_method, enable_meta,
                               enable_meta_algorithm_selection=_enable_meta,
                               evaluation=eval_type,
                               metric='mse',
-                              # include_preprocessors=['percentile_selector_regression'],
-                              # include_algorithms=['random_forest'],
+                              include_algorithms=['liblinear_svr', 'random_forest', 'adaboost'],
+                              include_preprocessors=['extra_trees_based_selector_regression',
+                                                     'generic_univariate_selector',
+                                                     'liblinear_based_selector',
+                                                     'percentile_selector_regression'],
                               n_jobs=1)
 
     start_time = time.time()
@@ -84,7 +87,7 @@ def evaluate_sys(run_id, task_type, mth, dataset, ens_method, enable_meta,
     print('Dataset        : %s' % dataset)
     print('Val/Test score : %f - %f' % (validation_score, test_score))
 
-    save_path = save_folder + '%s_%s_%s_%s_%d_%d_%d.pkl' % (
+    save_path = save_folder + 'small_%s_%s_%s_%s_%d_%d_%d.pkl' % (
         task_type, mth, dataset, enable_meta, time_limit, (ens_method is None), run_id)
     with open(save_path, 'wb') as f:
         pickle.dump([dataset, validation_score, test_score, start_time, eval_dict], f)
@@ -110,7 +113,11 @@ def evaluate_ausk(run_id, task_type, mth, dataset, ens_method, enable_meta,
             time_left_for_this_task=int(time_limit),
             per_run_time_limit=300,
             n_jobs=1,
-            # include_estimators=[algo],
+            include_estimators=['liblinear_svc', 'random_forest', 'adaboost'],
+            include_preprocessors=['extra_trees_preproc_for_classification',
+                                   'liblinear_svc_preprocessor',
+                                   'select_percentile_classification',
+                                   'select_rates'],
             ensemble_memory_limit=16384,
             ml_memory_limit=16384,
             ensemble_size=1 if ens_method is None else 50,
@@ -128,7 +135,10 @@ def evaluate_ausk(run_id, task_type, mth, dataset, ens_method, enable_meta,
             time_left_for_this_task=int(time_limit),
             per_run_time_limit=300,
             n_jobs=1,
-            # include_estimators=[algo],
+            include_estimators=['liblinear_svr', 'random_forest', 'adaboost'],
+            include_preprocessors=['extra_trees_preproc_for_regression',
+                                   'select_percentile_regression',
+                                   'select_rates'],
             ensemble_memory_limit=16384,
             ml_memory_limit=16384,
             ensemble_size=1 if ens_method is None else 50,
@@ -181,7 +191,7 @@ def evaluate_ausk(run_id, task_type, mth, dataset, ens_method, enable_meta,
     print('Validation score', validation_score)
     print('Test score', test_score)
     # print(automl.show_models())
-    save_path = save_folder + '%s_%s_%s_%s_%d_%d_%d.pkl' % (
+    save_path = save_folder + 'small_%s_%s_%s_%s_%d_%d_%d.pkl' % (
         task_type, mth, dataset, enable_meta, time_limit, (ens_method is None), run_id)
     with open(save_path, 'wb') as f:
         pickle.dump([dataset, validation_score, test_score, start_time, result_score, result_time], f)
@@ -246,7 +256,7 @@ if __name__ == "__main__":
                         _ens_method = None
                     else:
                         _ens_method = ens_method
-                    file_path = save_folder + '%s_%s_%s_%s_%d_%d_%d.pkl' % (
+                    file_path = save_folder + 'small_%s_%s_%s_%s_%d_%d_%d.pkl' % (
                         task_type, mth, dataset, enable_meta, time_cost, (_ens_method is None), run_id)
                     if not os.path.exists(file_path):
                         continue
