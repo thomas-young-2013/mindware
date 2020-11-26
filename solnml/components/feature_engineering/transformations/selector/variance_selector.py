@@ -41,10 +41,19 @@ class VarianceSelector(Transformer):
 
         if len(irrevalent_fields) > 0:
             new_X = np.hstack((_X, X[:, irrevalent_fields]))
+            if input_datanode.feature_names is not None:
+                feature_names = np.hstack(([input_datanode.feature_names[idx] for idx in irrevalent_fields],
+                                           [input_datanode.feature_names[idx] for idx in self.model.get_support(True)]))
+            else:
+                feature_names = None
         else:
             new_X = _X
+            if input_datanode.feature_names is not None:
+                feature_names = [input_datanode.feature_names[idx] for idx in self.model.get_support(True)]
+            else:
+                feature_names = None
         new_feature_types = selected_types
-        output_datanode = DataNode((new_X, y), new_feature_types, input_datanode.task_type)
+        output_datanode = DataNode((new_X, y), new_feature_types, input_datanode.task_type, feature_names=feature_names)
         output_datanode.trans_hist = input_datanode.trans_hist.copy()
         output_datanode.trans_hist.append(self.type)
         output_datanode.enable_balance = input_datanode.enable_balance

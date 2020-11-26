@@ -128,14 +128,13 @@ class FEPipeline(object, metaclass=abc.ABCMeta):
     def preprocess(self, input_node: DataNode, train_phase=True):
         # print('=' * 20)
         # print(input_node.shape)
-        input_node = self.remove_uninf_cols(input_node, train_phase)
-        # print(input_node.shape)
-        input_node = self.impute_cols(input_node)
-        # print(input_node.shape)
-        input_node = self.one_hot(input_node)
-        # print(input_node.shape)
+        try:
+            input_node = self.remove_uninf_cols(input_node, train_phase)
+            input_node = self.impute_cols(input_node)
+            input_node = self.one_hot(input_node)
+        except AttributeError as e:
+            print('data[0] in input_node should be a DataFrame!')
         input_node = self.remove_cols_with_same_values(input_node)
-        # print(input_node.shape)
         # print('=' * 20)
         if self.task_type is None or self.task_type in CLS_TASKS:
             # Label encoding.

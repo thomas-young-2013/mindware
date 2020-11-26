@@ -3,10 +3,11 @@ from solnml.components.utils.constants import CATEGORICAL
 
 
 class DataNode(object):
-    def __init__(self, data=None, feature_type=None, task_type=None):
+    def __init__(self, data=None, feature_type=None, task_type=None, feature_names=None):
         self.task_type = task_type
         self.data = data
         self.feature_types = feature_type
+        self.feature_names = feature_names
         self._node_id = -1
         self.depth = None
         self.score = None
@@ -39,7 +40,8 @@ class DataNode(object):
     def copy_(self):
         new_data = list([self.data[0].copy()])
         new_data.append(None if self.data[1] is None else self.data[1].copy())
-        new_node = DataNode(new_data, self.feature_types.copy(), self.task_type)
+        new_node = DataNode(new_data, self.feature_types.copy(), self.task_type,
+                            self.feature_names.copy() if self.feature_names else None)
         new_node.trans_hist = self.trans_hist.copy()
         new_node.depth = self.depth
         new_node.enable_balance = self.enable_balance
@@ -86,6 +88,14 @@ class DataNode(object):
             types_summary += ',...,' + ','.join(self.feature_types[-4:])
         else:
             types_summary = ','.join(self.feature_types)
+
+        if self.feature_names is not None:
+            if len(self.feature_names) > 8:
+                names_summary = ','.join(self.feature_names[:4])
+                names_summary += ',...,' + ','.join(self.feature_names[-4:])
+            else:
+                names_summary = ','.join(self.feature_names)
+            tabular_data.append(['feature names', names_summary])
         tabular_data.append(['feature types', types_summary])
         tabular_data.append(['data shape', '%d, %d' % self.shape])
         tabular_data.append(['#Cat-feature', self.cat_num])

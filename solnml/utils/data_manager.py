@@ -17,9 +17,10 @@ class DataManager(object):
     """
 
     # X,y should be None if using DataManager().load_csv(...)
-    def __init__(self, X=None, y=None, na_values=default_missing_values, feature_types=None):
+    def __init__(self, X=None, y=None, na_values=default_missing_values, feature_types=None, feature_names=None):
         self.na_values = na_values
-        self.feature_types = None
+        self.feature_types = feature_types
+        self.feature_names = feature_names
         self.missing_flags = None
         self.train_X, self.train_y = None, None
         self.test_X, self.test_y = None, None
@@ -30,8 +31,6 @@ class DataManager(object):
             self.train_y = np.array(y)
             if feature_types is None:
                 self.set_feat_types(pd.DataFrame(self.train_X), [])
-            else:
-                self.feature_types = feature_types
 
     def set_feat_types(self, df, columns_missed):
         self.missing_flags = list()
@@ -70,7 +69,7 @@ class DataManager(object):
     def get_data_node(self, X, y):
         if self.feature_types is None:
             raise ValueError("Feature type missing")
-        return DataNode([X, y], self.feature_types)
+        return DataNode([X, y], self.feature_types, feature_names=self.feature_names)
 
     def clean_data_with_nan(self, df, label_col, phase='train', drop_index=None, has_label=True):
         columns_missed = df.columns[df.isnull().any()].tolist()
@@ -135,7 +134,7 @@ class DataManager(object):
 
         self.train_X = df
         data = [self.train_X, self.train_y]
-        return DataNode(data, self.feature_types)
+        return DataNode(data, self.feature_types, feature_names=self.train_X.columns.values)
 
     def load_test_csv(self, file_location, has_label=False, label_col=-1,
                       drop_index=None, keep_default_na=True, header='infer',
@@ -148,4 +147,4 @@ class DataManager(object):
         self.test_X = df
 
         data = [self.test_X, self.test_y]
-        return DataNode(data, self.feature_types)
+        return DataNode(data, self.feature_types, feature_names=self.test_X.columns.values)
