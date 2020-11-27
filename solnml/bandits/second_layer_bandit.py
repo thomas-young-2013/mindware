@@ -1,15 +1,16 @@
 import copy
+import time
 import numpy as np
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
 from solnml.components.evaluators.rgs_evaluator import RegressionEvaluator
 from solnml.utils.logging_utils import get_logger
-from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.optimizers import build_fe_optimizer
 from solnml.components.fe_optimizers.task_space import get_task_hyperparameter_space
 from solnml.components.optimizers import build_hpo_optimizer
 from solnml.components.utils.constants import CLS_TASKS, RGS_TASKS, TEXT, IMAGE
 from solnml.utils.decorators import time_limit
+from solnml.utils.constant import MAX_INT
 
 
 class SecondLayerBandit(object):
@@ -69,6 +70,7 @@ class SecondLayerBandit(object):
         self.pull_cnt = 0
         self.action_sequence = list()
         self.final_rewards = list()
+        self.incumbent_config = None
         self.incumbent_perf = float("-INF")
         self.early_stopped_flag = False
         self.first_start = True
@@ -173,7 +175,6 @@ class SecondLayerBandit(object):
             self.rewards = list()
             self.evaluation_cost = list()
             self.eval_dict = {}
-            self.incumbent_config = None
             trials_per_iter = self.one_unit_of_resource * self.number_of_unit_resource
 
             if self.task_type in CLS_TASKS:
@@ -260,7 +261,7 @@ class SecondLayerBandit(object):
         else:
             self.inc_record[_arm].append(0.)
 
-    def optimize_rb(self):
+    def optimize_rb(self, remaining_budget=MAX_INT):
         # First pull each arm #sliding_window_size times.
         if self.pull_cnt < len(self.arms) * self.sliding_window_size:
             arm_picked = self.arms[self.pull_cnt % 2]
@@ -293,11 +294,11 @@ class SecondLayerBandit(object):
         self.action_sequence.append(arm_picked)
         self.logger.info(','.join(self.action_sequence))
         self.logger.info('Pulling arm: %s for %s at %d-th round' % (arm_picked, self.estimator_id, self.pull_cnt))
-        results = self.optimizer[arm_picked].iterate()
+        results = self.optimizer[arm_picked].iterate(budget=remaining_budget)
         self.collect_iter_stats(arm_picked, results)
         self.pull_cnt += 1
 
-    def optimize_alternatedly(self):
+    def optimize_alternatedly(self, remaining_budget=MAX_INT):
         # First choose one arm.
         _arm = self.arms[self.pull_cnt % 2]
         self.logger.debug('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
@@ -317,16 +318,17 @@ class SecondLayerBandit(object):
                 return
 
         # Execute one iteration.
-        results = self.optimizer[_arm].iterate()
+        results = self.optimizer[_arm].iterate(budget=remaining_budget)
         self.collect_iter_stats(_arm, results)
         self.action_sequence.append(_arm)
         self.pull_cnt += 1
 
-    def optimize_combined(self):
-        score, iter_cost, config = self.optimizer.iterate()
+    def optimize_combined(self, remaining_budget=MAX_INT):
+        score, iter_cost, config = self.optimizer.iterate(budget=remaining_budget)
         self.eval_dict.update(self.optimizer.eval_dict)
         self.rewards.append(score)
-        if max(self.rewards) == score:
+
+        if max(self.rewards) == score and not np.isinf(max(self.rewards)):
             self.incumbent_perf = score
             self.incumbent_config = config
         self.evaluation_cost.append(iter_cost)
@@ -336,7 +338,7 @@ class SecondLayerBandit(object):
             self.early_stopped_flag = True
             return
 
-    def optimize_fixed_pipeline(self):
+    def optimize_fixed_pipeline(self, remaining_budget=MAX_INT):
         if self.pull_cnt <= 3:
             _arm = 'hpo'
         else:
@@ -344,17 +346,17 @@ class SecondLayerBandit(object):
         self.logger.debug('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
 
         # Execute one iteration.
-        results = self.optimizer[_arm].iterate()
+        results = self.optimizer[_arm].iterate(budget=remaining_budget)
         self.collect_iter_stats(_arm, results)
         self.action_sequence.append(_arm)
         self.pull_cnt += 1
 
-    def optimize_one_component(self, mth):
+    def optimize_one_component(self, mth, remaining_budget=MAX_INT):
         _arm = 'hpo' if mth == 'hpo_only' else 'fe'
         self.logger.debug('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
 
         # Execute one iteration.
-        results = self.optimizer[_arm].iterate()
+        results = self.optimizer[_arm].iterate(budget=remaining_budget)
         self.collect_iter_stats(_arm, results)
         self.action_sequence.append(_arm)
         self.pull_cnt += 1
@@ -384,24 +386,27 @@ class SecondLayerBandit(object):
             self.inc['fe'] = self.local_inc['fe']
             self.incumbent_perf = _perf
 
-    def play_once(self):
+    def play_once(self, remaining_budget=MAX_INT):
+        start_time = time.time()
         if self.early_stopped_flag:
             self.logger.warning("Already explored 70 percent of the hp space or maximum configuration number met: %d" %
                                 self.optimizer.maximum_config_num)
             return self.incumbent_perf
 
         if self.mth in ['rb', 'rb_hpo']:
-            self.optimize_rb()
-            self.evaluate_joint_solution()
+            self.optimize_rb(remaining_budget=remaining_budget)
+            if time.time() - start_time < remaining_budget:
+                self.evaluate_joint_solution()
         elif self.mth in ['alter', 'alter_p', 'alter_hpo']:
-            self.optimize_alternatedly()
-            self.evaluate_joint_solution()
+            self.optimize_alternatedly(remaining_budget=remaining_budget)
+            if time.time() - start_time < remaining_budget:
+                self.evaluate_joint_solution()
         elif self.mth in ['fe_only', 'hpo_only']:
-            self.optimize_one_component(self.mth)
+            self.optimize_one_component(self.mth, remaining_budget=remaining_budget)
         elif self.mth in ['combined']:
-            self.optimize_combined()
+            self.optimize_combined(remaining_budget=remaining_budget)
         elif self.mth in ['fixed']:
-            self.optimize_fixed_pipeline()
+            self.optimize_fixed_pipeline(remaining_budget=remaining_budget)
         else:
             raise ValueError('Invalid method: %s' % self.mth)
 

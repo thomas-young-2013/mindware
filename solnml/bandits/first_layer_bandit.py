@@ -159,6 +159,8 @@ class FirstLayerBandit(object):
 
         if self.inner_opt_algorithm == 'combined':
             self.best_config = self.sub_bandits[self.optimal_algo_id].incumbent_config
+            if self.best_config is None:
+                raise ValueError("The best configuration is None! Check if the evaluator fails or try larger budget!")
         else:
             # Fit the best model
             eval_dict = dict()
@@ -255,7 +257,7 @@ class FirstLayerBandit(object):
                 _arm = self.arms[_iter_id % arm_num]
                 self.logger.info('Optimize %s in the %d-th iteration' % (_arm, _iter_id))
                 _start_time = time.time()
-                reward = self.sub_bandits[_arm].play_once()
+                reward = self.sub_bandits[_arm].play_once(self.time_limit - _start_time + self.start_time)
                 self.arm_cost_stats[_arm].append(time.time() - _start_time)
 
                 self.rewards[_arm].append(reward)
@@ -272,7 +274,7 @@ class FirstLayerBandit(object):
                 for _arm in arm_candidate:
                     self.logger.info('Optimize %s in the %d-th iteration' % (_arm, _iter_id))
                     _start_time = time.time()
-                    reward = self.sub_bandits[_arm].play_once()
+                    reward = self.sub_bandits[_arm].play_once(self.time_limit - _start_time + self.start_time)
                     self.arm_cost_stats[_arm].append(time.time() - _start_time)
 
                     self.rewards[_arm].append(reward)

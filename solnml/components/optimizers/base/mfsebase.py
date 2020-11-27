@@ -68,7 +68,7 @@ class MfseBase(object):
 
         with ParallelProcessEvaluator(self.eval_func, n_worker=self.n_workers) as executor:
             for i in range((s + 1) - int(skip_last)):  # changed from s + 1
-                if time.time() >= budget + start_time:
+                if time.time() > budget + start_time:
                     break
 
                 # Run each of the n configs for <iterations>
@@ -80,6 +80,7 @@ class MfseBase(object):
                                  (int(n_configs), n_resource, self.R))
 
                 if self.n_workers > 1:
+                    # TODO: Time limit control
                     val_losses = executor.parallel_execute(T, resource_ratio=float(n_resource / self.R),
                                                            eta=self.eta,
                                                            first_iter=(i == 0))
@@ -92,6 +93,9 @@ class MfseBase(object):
                 else:
                     val_losses = list()
                     for config in T:
+                        if time.time() - start_time > budget:
+                            self.logger.warning('Time limit exceeded!')
+                            break
                         try:
                             val_loss = self.eval_func(config, resource_ratio=float(n_resource / self.R),
                                                       eta=self.eta, first_iter=(i == 0))

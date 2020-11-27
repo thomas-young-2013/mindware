@@ -78,6 +78,9 @@ class TlboOptimizer(BaseOptimizer):
                 self.logger.warning('Already explored 70 percentage of the '
                                     'hyperspace or maximum configuration number met: %d!' % self.maximum_config_num)
                 break
+            if time.time() - _start_time > budget:
+                self.logger.warning('Time limit exceeded!')
+                break
             _config, _status, _perf, _ = self.optimizer.iterate()
             if _status == SUCCESS:
                 self.exp_output[time.time()] = (_config, _perf)

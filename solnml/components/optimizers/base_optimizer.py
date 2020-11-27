@@ -19,6 +19,7 @@ class BaseOptimizer(object):
         self.incumbent = None
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
         self.init_hpo_iter_num = None
+        self.early_stopped_flag = False
 
     @abc.abstractmethod
     def run(self):
