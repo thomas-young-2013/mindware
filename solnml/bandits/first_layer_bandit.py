@@ -48,6 +48,7 @@ class FirstLayerBandit(object):
         self.alpha = 4
         self.seed = seed
         self.output_dir = output_dir
+        self.early_stop_flag = False
         # np.random.seed(self.seed)
 
         # Best configuration.
@@ -318,7 +319,15 @@ class FirstLayerBandit(object):
                 # Update the arm_candidates.
                 arm_candidate = [item for index, item in enumerate(arm_candidate) if not flags[index]]
 
+            self.early_stop_flag = True
+            for arm in arm_candidate:
+                if not self.sub_bandits[arm].early_stopped_flag:
+                    self.early_stop_flag = False
+
             if self.time_limit is not None and time.time() > self.start_time + self.time_limit:
+                break
+            if self.early_stop_flag:
+                self.logger.info("Maximum configuration number met for each arm candidate!")
                 break
         return self.final_rewards
 

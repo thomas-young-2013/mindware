@@ -309,6 +309,13 @@ class SecondLayerBandit(object):
                 raise ValueError('Optimizer does not have property - init_hpo_iter_num.')
             self.first_start = False
 
+        # Early stopping scenario.
+        if self.optimizer[_arm].early_stopped_flag is True:
+            arm_picked = 'hpo' if _arm == 'fe' else 'fe'
+            if self.optimizer[arm_picked].early_stopped_flag is True:
+                self.early_stopped_flag = True
+                return
+
         # Execute one iteration.
         results = self.optimizer[_arm].iterate()
         self.collect_iter_stats(_arm, results)
@@ -323,6 +330,11 @@ class SecondLayerBandit(object):
             self.incumbent_perf = score
             self.incumbent_config = config
         self.evaluation_cost.append(iter_cost)
+
+        # Early stopping scenario.
+        if self.optimizer.early_stopped_flag is True:
+            self.early_stopped_flag = True
+            return
 
     def optimize_fixed_pipeline(self):
         if self.pull_cnt <= 3:
@@ -374,6 +386,8 @@ class SecondLayerBandit(object):
 
     def play_once(self):
         if self.early_stopped_flag:
+            self.logger.warning("Already explored 70 percent of the hp space or maximum configuration number met: %d" %
+                                self.optimizer.maximum_config_num)
             return self.incumbent_perf
 
         if self.mth in ['rb', 'rb_hpo']:
