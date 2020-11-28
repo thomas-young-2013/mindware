@@ -3,8 +3,10 @@ from solnml.utils.functions import is_unbalanced_dataset
 
 
 class DataBalancer(Transformer):
+    type = 33
+
     def __init__(self):
-        super().__init__("smote_balancer", 33)
+        super().__init__("smote_balancer")
 
     def operate(self, input_datanode, target_fields=None):
         output_datanode = input_datanode.copy_()

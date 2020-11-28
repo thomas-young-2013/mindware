@@ -1,6 +1,5 @@
 import os
 import sys
-import shutil
 import time
 import pickle
 import argparse
@@ -11,11 +10,9 @@ from sklearn.metrics import make_scorer
 sys.path.append(os.getcwd())
 
 from solnml.datasets.utils import load_train_test_data
-from solnml.components.utils.constants import CATEGORICAL
 from solnml.bandits.first_layer_bandit import FirstLayerBandit
 from solnml.components.metrics.cls_metrics import balanced_accuracy
 from solnml.components.utils.constants import MULTICLASS_CLS, BINARY_CLS
-from solnml.components.meta_learning.algorithm_recomendation.algorithm_advisor import AlgorithmAdvisor
 from solnml.utils.functions import is_unbalanced_dataset
 
 parser = argparse.ArgumentParser()
@@ -45,7 +42,7 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
     balanced_acc_metric = make_scorer(balanced_accuracy)
 
     if is_unbalanced_dataset(train_data):
-        from solnml.components.feature_engineering.transformations.preprocessor.smote_balancer import DataBalancer
+        from solnml.components.feature_engineering.transformations.balancer.smote_balancer import DataBalancer
         train_data = DataBalancer().operate(train_data)
 
     bandit = FirstLayerBandit(cls_task_type, trial_num, algorithms, train_data,
@@ -100,7 +97,7 @@ def evaluate_autosklearn(algorithms, dataset, run_id, trial_num, seed, time_limi
     balanced_acc_metric = make_scorer(balanced_accuracy)
 
     if is_unbalanced_dataset(train_data):
-        from solnml.components.feature_engineering.transformations.preprocessor.smote_balancer import DataBalancer
+        from solnml.components.feature_engineering.transformations.balancer.smote_balancer import DataBalancer
         train_data = DataBalancer().operate(train_data)
 
     bandit = FirstLayerBandit(cls_task_type, trial_num, algorithms, train_data,

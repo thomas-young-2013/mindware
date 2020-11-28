@@ -5,8 +5,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class QuantileTransformation(Transformer):
+    type = 5
+
     def __init__(self, n_quantiles=1000, output_distribution='uniform', random_state=1):
-        super().__init__("quantile_transformer", 5)
+        super().__init__("quantile_transformer")
         self.input_type = [NUMERICAL, DISCRETE]
         self.compound_mode = 'in_place'
         self.output_type = NUMERICAL

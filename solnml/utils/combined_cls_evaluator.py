@@ -14,6 +14,7 @@ from solnml.components.evaluators.evaluate_func import validation
 from solnml.components.fe_optimizers.task_space import get_task_hyperparameter_space
 from solnml.components.fe_optimizers.parse import parse_config, construct_node
 from solnml.components.evaluators.base_evaluator import CombinedTopKModelSaver
+from solnml.components.utils.class_loader import get_combined_candidtates
 from solnml.components.models.classification import _classifiers, _addons
 from solnml.components.utils.constants import *
 
@@ -28,20 +29,18 @@ def get_estimator(config, estimator_id):
         if classifier_type == key_name:
             act_key = key.split(':')[1]
             hpo_config[act_key] = config_[key]
-    try:
-        estimator = _classifiers[classifier_type](**hpo_config)
-    except:
-        estimator = _addons.components[classifier_type](**hpo_config)
+
+    _candidates = get_combined_candidtates(_classifiers, _addons)
+    estimator = _candidates[classifier_type](**hpo_config)
     if hasattr(estimator, 'n_jobs'):
         setattr(estimator, 'n_jobs', 1)
     return classifier_type, estimator
 
 
 def get_hpo_cs(estimator_id, task_type=CLASSIFICATION):
-    if estimator_id in _classifiers:
-        clf_class = _classifiers[estimator_id]
-    elif estimator_id in _addons.components:
-        clf_class = _addons.components[estimator_id]
+    _candidates = get_combined_candidtates(_classifiers, _addons)
+    if estimator_id in _candidates:
+        clf_class = _candidates[estimator_id]
     else:
         raise ValueError("Algorithm %s not supported!" % estimator_id)
     cs = clf_class.get_hyperparameter_search_space()

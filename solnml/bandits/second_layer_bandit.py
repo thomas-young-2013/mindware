@@ -3,6 +3,7 @@ import time
 import numpy as np
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
 from solnml.components.evaluators.rgs_evaluator import RegressionEvaluator
+from solnml.components.utils.class_loader import get_combined_candidtates
 from solnml.utils.logging_utils import get_logger
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.optimizers import build_fe_optimizer
@@ -81,19 +82,17 @@ class SecondLayerBandit(object):
         # Fetch hyperparameter space.
         if self.task_type in CLS_TASKS:
             from solnml.components.models.classification import _classifiers, _addons
-            if estimator_id in _classifiers:
-                clf_class = _classifiers[estimator_id]
-            elif estimator_id in _addons.components:
-                clf_class = _addons.components[estimator_id]
+            _candidates = get_combined_candidtates(_classifiers, _addons)
+            if estimator_id in _candidates:
+                clf_class = _candidates[estimator_id]
             else:
                 raise ValueError("Algorithm %s not supported!" % estimator_id)
             cs = clf_class.get_hyperparameter_search_space()
         elif self.task_type in RGS_TASKS:
             from solnml.components.models.regression import _regressors, _addons
-            if estimator_id in _regressors:
-                reg_class = _regressors[estimator_id]
-            elif estimator_id in _addons.components:
-                reg_class = _addons.components[estimator_id]
+            _candidates = get_combined_candidtates(_regressors, _addons)
+            if estimator_id in _candidates:
+                reg_class = _candidates[estimator_id]
             else:
                 raise ValueError("Algorithm %s not supported!" % estimator_id)
             cs = reg_class.get_hyperparameter_search_space()

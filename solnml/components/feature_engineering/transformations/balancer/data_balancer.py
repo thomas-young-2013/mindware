@@ -2,8 +2,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class DataBalancer(Transformer):
+    type = -20
+
     def __init__(self):
-        super().__init__("data_balancer", -20)
+        super().__init__("data_balancer")
 
     def operate(self, input_datanode, target_fields=None):
         output_datanode = input_datanode.copy_()

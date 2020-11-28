@@ -8,9 +8,11 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class NystronemSampler(Transformer):
+    type = 15
+
     def __init__(self, kernel='rbf', n_components=100, gamma=1.0, degree=3,
                  coef0=1, random_state=1):
-        super().__init__("nystronem_sampler", 15, random_state=random_state)
+        super().__init__("nystronem_sampler", random_state=random_state)
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
         self.output_type = NUMERICAL

@@ -2,8 +2,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class NormalizeTransformation(Transformer):
+    type = 4
+
     def __init__(self):
-        super().__init__("normalizer", 4)
+        super().__init__("normalizer")
         self.input_type = [NUMERICAL, DISCRETE]
         self.compound_mode = 'in_place'
         self.params = {'norm': 'l2'}

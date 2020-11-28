@@ -6,8 +6,10 @@ from solnml.components.utils.text_util import build_embeddings_index, load_text_
 
 
 class Text2BertVectorTransformation(Transformer):
+    type = 500
+
     def __init__(self, padding_size=256, config_dir=None):
-        super().__init__("text2bertvector", 500)
+        super().__init__("text2bertvector")
         self.input_type = [TEXT]
         self.output_type = [TEXT_EMBEDDING]
         self.compound_mode = 'replace'

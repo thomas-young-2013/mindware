@@ -4,8 +4,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class RobustScaler(Transformer):
+    type = 44
+
     def __init__(self, q_min=0.25, q_max=0.75, **kwargs):
-        super().__init__("robust_scaler", 44)
+        super().__init__("robust_scaler")
         self.input_type = [DISCRETE, NUMERICAL]
         self.compound_mode = 'in_place'
         self.output_type = NUMERICAL

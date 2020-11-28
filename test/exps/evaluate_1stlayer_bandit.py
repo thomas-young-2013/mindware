@@ -39,7 +39,7 @@ def evaluate_1stlayer_bandit(algorithms, dataset, run_id, trial_num, seed, time_
     print('%s-%s-%d: %d' % (hmab_flag, dataset, run_id, time_limit))
     _start_time = time.time()
     train_data, test_data = load_train_test_data(dataset, task_type=MULTICLASS_CLS)
-    from solnml.components.feature_engineering.transformations.preprocessor.smote_balancer import DataBalancer
+    from solnml.components.feature_engineering.transformations.balancer.smote_balancer import DataBalancer
     train_data = DataBalancer().operate(train_data)
     cls_task_type = BINARY_CLS if len(set(train_data.data[1])) == 2 else MULTICLASS_CLS
     balanced_acc_metric = make_scorer(balanced_accuracy)

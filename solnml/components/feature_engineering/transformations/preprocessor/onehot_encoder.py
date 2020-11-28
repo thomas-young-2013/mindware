@@ -2,8 +2,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class OneHotTransformation(Transformer):
+    type = 2
+
     def __init__(self):
-        super().__init__("onehot_encoder", 2)
+        super().__init__("onehot_encoder")
         self.input_type = CATEGORICAL
 
     def operate(self, input_datanode: DataNode, target_fields=None):

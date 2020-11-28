@@ -7,8 +7,10 @@ from solnml.components.utils.configspace_utils import check_for_bool
 
 
 class PolynomialTransformation(Transformer):
+    type = 17
+
     def __init__(self, degree=2, interaction_only='True', include_bias='False', random_state=1):
-        super().__init__("polynomial", 17)
+        super().__init__("polynomial")
         self.input_type = [DISCRETE, NUMERICAL]
         self.compound_mode = 'concatenate'
         self.best_idxs = list()

@@ -4,8 +4,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class SvdDecomposer(Transformer):
+    type = 19
+
     def __init__(self, target_dim=128, random_state=1):
-        super().__init__("svd", 19)
+        super().__init__("svd")
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
         self.output_type = NUMERICAL

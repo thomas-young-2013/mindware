@@ -50,10 +50,10 @@ class Transformer(object, metaclass=abc.ABCMeta):
         43: standard_scaler
         44: robust_scaler
     """
+    type = -1
 
-    def __init__(self, name, type, random_state=1):
+    def __init__(self, name, random_state=1):
         self.name = name
-        self.type = type
         self.params = None
         self.model = None
         self._input_type = None
@@ -111,6 +111,18 @@ class Transformer(object, metaclass=abc.ABCMeta):
             if type(attr_val) in [None, str, float, int]:
                 attributes[attr] = attr_val
         return attributes
+
+    @staticmethod
+    def get_properties(dataset_properties=None):
+        return {'shortname': 'Base tran',
+                'name': 'Base Transformer',
+                'handles_regression': True,
+                'handles_classification': True,
+                'handles_multiclass': True,
+                'handles_multilabel': True,
+                'is_deterministic': True,
+                'input': (DENSE, SPARSE, UNSIGNED_DATA),
+                'output': (INPUT,)}
 
 
 def ease_trans(func):

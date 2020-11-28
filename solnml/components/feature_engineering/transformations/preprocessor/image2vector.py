@@ -7,8 +7,10 @@ from solnml.components.utils.image_util import Image2vector
 
 
 class Image2VectorTransformation(Transformer):
+    type = 51
+
     def __init__(self, method='resnet'):
-        super().__init__("image2vector", 51)
+        super().__init__("image2vector")
         self.method = method
         self.input_type = [IMAGE]
         self.output_type = [IMAGE_EMBEDDING]

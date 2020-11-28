@@ -4,8 +4,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class KBinsDiscretizer(Transformer):
+    type = 24
+
     def __init__(self, n_bins=3, strategy='uniform'):
-        super().__init__("discretizer", 24)
+        super().__init__("discretizer")
         self.input_type = NUMERICAL
         self.output_type = DISCRETE
         self.compound_mode = 'in_place'

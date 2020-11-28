@@ -2,8 +2,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class MinmaxScaler(Transformer):
+    type = 41
+
     def __init__(self, **kwargs):
-        super().__init__("minmax_scaler", 41)
+        super().__init__("minmax_scaler")
         self.input_type = [DISCRETE, NUMERICAL]
         self.compound_mode = 'in_place'
         self.output_type = NUMERICAL

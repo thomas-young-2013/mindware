@@ -7,9 +7,11 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class FeatureAgglomerationDecomposer(Transformer):
+    type = 11
+
     def __init__(self, n_clusters=2, affinity='euclidean', linkage='ward', pooling_func='mean',
                  random_state=1):
-        super().__init__("feature_agglomeration_decomposer", 11)
+        super().__init__("feature_agglomeration_decomposer")
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
         self.output_type = NUMERICAL

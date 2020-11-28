@@ -1,5 +1,6 @@
-from solnml.components.feature_engineering.transformations import _imb_balancer, _bal_balancer, _preprocessor, \
-    _rescaler, _image_preprocessor, _text_preprocessor
+from solnml.components.feature_engineering.transformations import _bal_balancer, _preprocessor, _rescaler, \
+    _image_preprocessor, _text_preprocessor, _bal_addons, _gen_addons, _res_addons, _sel_addons
+from solnml.components.utils.class_loader import get_combined_fe_candidtates
 from solnml.components.feature_engineering.transformation_graph import DataNode
 
 
@@ -11,6 +12,11 @@ def parse_config(data_node: DataNode, config, record=False, skip_balance=False):
     :param record:
     :return: the resulting data node.
     """
+    _preprocessor_candidates = get_combined_fe_candidtates(_preprocessor, _gen_addons)
+    _preprocessor_candidates = get_combined_fe_candidtates(_preprocessor_candidates, _sel_addons)
+    _rescaler_candidates = get_combined_fe_candidtates(_rescaler, _res_addons)
+    _balancer_candadates = get_combined_fe_candidtates(_bal_balancer, _bal_addons)
+
     # Remove the indicator in config_dict.
     config_dict = config.get_dictionary().copy()
 
@@ -59,15 +65,15 @@ def parse_config(data_node: DataNode, config, record=False, skip_balance=False):
 
     # Balancer
     _balancer = _bal_balancer
-    _node, bal_tran = tran_operate(bal_id, _balancer, config_dict, _node)
+    _node, bal_tran = tran_operate(bal_id, _balancer_candadates, config_dict, _node)
     tran_dict['balancer'] = bal_tran
 
     # Rescaler
-    _node, res_tran = tran_operate(res_id, _rescaler, config_dict, _node)
+    _node, res_tran = tran_operate(res_id, _rescaler_candidates, config_dict, _node)
     tran_dict['rescaler'] = res_tran
 
     # Generator
-    _node, gen_tran = tran_operate(gen_id, _preprocessor, config_dict, _node)
+    _node, gen_tran = tran_operate(gen_id, _preprocessor_candidates, config_dict, _node)
     tran_dict['preprocessor'] = gen_tran
 
     _node.config = config

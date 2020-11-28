@@ -9,9 +9,11 @@ from solnml.components.utils.configspace_utils import check_for_bool, check_none
 
 
 class LibLinearBasedSelector(Transformer):
+    type = 7
+
     def __init__(self, penalty='l1', loss='squared_hinge', dual='False', tol=1e-4, C=1.0, multi_class='ovr',
                  fit_intercept='True', intercept_scaling=1, class_weight=None, random_state=1):
-        super().__init__("liblinear_based_selector", 7)
+        super().__init__("liblinear_based_selector")
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
 

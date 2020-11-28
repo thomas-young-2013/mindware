@@ -85,10 +85,6 @@ def test_additional_transformations():
     ]), np.array([1, 1, 2, 2, 3, 3]))
     feature_type = [NUMERICAL, NUMERICAL, DISCRETE, DISCRETE]
     datanode = DataNode(data, feature_type)
-    from solnml.components.feature_engineering.transformations.generator.arithmetic_transformer import \
-        ArithmeticTransformation
-    from solnml.components.feature_engineering.transformations.generator.lda_decomposer import LdaDecomposer
-    from solnml.components.feature_engineering.transformations.continous_discretizer import KBinsDiscretizer
     from solnml.components.feature_engineering.transformations.discrete_categorizer import DiscreteCategorizer
     # trans = ArithmeticTransformation()
     # trans = LdaDecomposer()
@@ -171,14 +167,14 @@ def test_generator():
 def test_balancer():
     dataset = 'winequality_red'
     sys.path.append(os.getcwd())
-    from solnml.datasets.utils import load_data, load_train_test_data
+    from solnml.datasets.utils import load_train_test_data
     raw_data, test_raw_data = load_train_test_data(dataset)
     # data = (
     # np.random.random((10, 4)), np.array([0, 0, 0, 0, 0, 2, 2, 2, 2, 2]))
     # feature_type = [NUMERICAL, NUMERICAL, DISCRETE, DISCRETE]
     # datanode = DataNode(data, feature_type)
     print(raw_data, test_raw_data)
-    from solnml.components.feature_engineering.transformations.preprocessor.data_balancer import DataBalancer
+    from solnml.components.feature_engineering.transformations.balancer.data_balancer import DataBalancer
     balancer = DataBalancer()
     a = balancer.operate(raw_data)
     b = balancer.operate(raw_data)

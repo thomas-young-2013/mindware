@@ -2,8 +2,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class DiscreteCategorizer(Transformer):
+    type = 25
+
     def __init__(self, max_unique=10):
-        super().__init__("discrete_categorizer", 25)
+        super().__init__("discrete_categorizer")
         self.input_type = [DISCRETE]
         self.output_type = CATEGORICAL
         self.max_unique = max_unique

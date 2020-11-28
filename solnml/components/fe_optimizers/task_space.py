@@ -2,7 +2,8 @@ from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter
 
 from solnml.components.feature_engineering.transformations import _bal_balancer, _preprocessor, _rescaler, \
-    _image_preprocessor, _text_preprocessor
+    _image_preprocessor, _text_preprocessor, _bal_addons, _gen_addons, _res_addons, _sel_addons
+from solnml.components.utils.class_loader import get_combined_fe_candidtates
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.feature_engineering import TRANS_CANDIDATES
 
@@ -20,11 +21,15 @@ def get_task_hyperparameter_space(task_type, estimator_id, include_preprocessors
     :return: hyper space.
     """
     if task_type in CLS_TASKS:
-        _trans_types = TRANS_CANDIDATES['classification'].copy()
         trans_types = TRANS_CANDIDATES['classification'].copy()
     else:
-        _trans_types = TRANS_CANDIDATES['regression'].copy()
         trans_types = TRANS_CANDIDATES['regression'].copy()
+
+    _preprocessor_candidates, trans_types = get_combined_fe_candidtates(_preprocessor, _gen_addons, trans_types)
+    _preprocessor_candidates, trans_types = get_combined_fe_candidtates(_preprocessor_candidates, _sel_addons,
+                                                                        trans_types)
+    _rescaler_candidates, trans_types = get_combined_fe_candidtates(_rescaler, _res_addons, trans_types)
+    _balancer_candadates, trans_types = get_combined_fe_candidtates(_bal_balancer, _bal_addons, trans_types)
 
     # Avoid transformations, which would take too long
     # Combinations of non-linear models with feature learning.
@@ -43,13 +48,15 @@ def get_task_hyperparameter_space(task_type, estimator_id, include_preprocessors
     preprocessor = dict()
     if include_preprocessors:
         for key in include_preprocessors:
-            if key not in _preprocessor:
-                raise ValueError("Preprocessor %s not in built-in preprocessors!" % key)
-            else:
-                preprocessor[key] = _preprocessor[key]
-        trans_types = _trans_types
+            if key not in _preprocessor_candidates:
+                raise ValueError(
+                    "Preprocessor %s not in built-in preprocessors! Only the following preprocessors are supported: %s." % (
+                        key, ','.join(_preprocessor_candidates.keys())))
+
+            preprocessor[key] = _preprocessor_candidates[key]
+            trans_types.append(_preprocessor_candidates[key].type)
     else:
-        preprocessor = _preprocessor
+        preprocessor = _preprocessor_candidates
 
     configs = dict()
 
@@ -62,10 +69,10 @@ def get_task_hyperparameter_space(task_type, estimator_id, include_preprocessors
 
     preprocessor_dict = _get_configuration_space(preprocessor, trans_types, optimizer=optimizer)
     configs['preprocessor'] = preprocessor_dict
-    rescaler_dict = _get_configuration_space(_rescaler, trans_types, optimizer=optimizer)
+    rescaler_dict = _get_configuration_space(_rescaler_candidates, trans_types, optimizer=optimizer)
     configs['rescaler'] = rescaler_dict
     if task_type in CLS_TASKS:
-        _balancer = _bal_balancer
+        _balancer = _balancer_candadates
         balancer_dict = _get_configuration_space(_balancer, optimizer=optimizer)
     else:
         balancer_dict = None
@@ -78,7 +85,7 @@ def _get_configuration_space(builtin_transformers, trans_type=None, optimizer='s
     config_dict = dict()
     for tran_key in builtin_transformers:
         tran = builtin_transformers[tran_key]
-        tran_id = tran().type
+        tran_id = tran.type
         if trans_type is None or tran_id in trans_type:
             try:
                 sub_configuration_space = builtin_transformers[tran_key].get_hyperparameter_search_space(
@@ -95,7 +102,7 @@ def _get_configuration_space(builtin_transformers, trans_type=None, optimizer='s
 def _add_hierachical_configspace(cs, config, parent_name):
     config_cand = list(config.keys())
     config_option = CategoricalHyperparameter(parent_name, config_cand,
-                                              default_value=config_cand[-1])
+                                              default_value=config_cand[0])
     cs.add_hyperparameter(config_option)
     for config_item in config_cand:
         sub_configuration_space = config[config_item]

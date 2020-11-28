@@ -6,10 +6,12 @@ from solnml.components.utils.configspace_utils import check_none, check_for_bool
 
 
 class RandomTreesEmbeddingTransformation(Transformer):
+    type = 18
+
     def __init__(self, n_estimators=10, max_depth=5, min_samples_split=2,
                  min_samples_leaf=1, min_weight_fraction_leaf=1.0, max_leaf_nodes='None',
                  sparse_output=True, bootstrap='False', n_jobs=-1, random_state=1):
-        super().__init__("random_trees_embedding", 18)
+        super().__init__("random_trees_embedding")
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
         self.output_type = CATEGORICAL

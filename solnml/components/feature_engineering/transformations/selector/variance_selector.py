@@ -3,8 +3,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class VarianceSelector(Transformer):
+    type = 9
+
     def __init__(self, threshold=1e-7):
-        super().__init__("variance_selector", 9)
+        super().__init__("variance_selector")
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
         self.threshold = threshold

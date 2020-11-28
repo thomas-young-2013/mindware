@@ -46,7 +46,7 @@ def evaluate_hmab(algorithms, dataset, run_id, trial_num, seed, time_limit=1200)
     balanced_acc_metric = make_scorer(balanced_accuracy)
 
     if is_unbalanced_dataset(train_data):
-        from solnml.components.feature_engineering.transformations.preprocessor.smote_balancer import DataBalancer
+        from solnml.components.feature_engineering.transformations.balancer.smote_balancer import DataBalancer
         train_data = DataBalancer().operate(train_data)
 
     bandit = FirstLayerBandit(cls_task_type, trial_num, algorithms, train_data,

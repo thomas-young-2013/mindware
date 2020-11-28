@@ -5,8 +5,10 @@ from solnml.components.utils.operations import *
 
 
 class BinaryTransformation(Transformer):
+    type = 22
+
     def __init__(self, func='add'):
-        super().__init__("binary_transformer", 22)
+        super().__init__("binary_transformer")
         self.input_type = NUMERICAL
         self.output_type = NUMERICAL
         self.compound_mode = 'concatenate'

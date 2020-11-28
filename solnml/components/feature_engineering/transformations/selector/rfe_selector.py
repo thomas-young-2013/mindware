@@ -3,8 +3,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 # TODO: Only for classification
 class RecursiveFeatureEliminationSelector(Transformer):
+    type = 23
+
     def __init__(self, param='lr', min_features=1):
-        super().__init__("rfe_selector", 23)
+        super().__init__("rfe_selector")
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.params = param
         self.min_features = min_features
@@ -24,7 +26,7 @@ class RecursiveFeatureEliminationSelector(Transformer):
         for field_id in target_fields:
             irrevalent_fields.remove(field_id)
 
-        self.min_features = max(self.min_features, n_fields//20)
+        self.min_features = max(self.min_features, n_fields // 20)
         if self.model is None:
             if self.params == 'lr':
                 from sklearn.linear_model import LogisticRegression

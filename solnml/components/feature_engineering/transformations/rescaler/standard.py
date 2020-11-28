@@ -2,8 +2,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class StandardScaler(Transformer):
+    type = 43
+
     def __init__(self, **kwargs):
-        super().__init__("standard_scaler", 43)
+        super().__init__("standard_scaler")
         self.input_type = [DISCRETE, NUMERICAL]
         self.compound_mode = 'in_place'
         self.output_type = NUMERICAL

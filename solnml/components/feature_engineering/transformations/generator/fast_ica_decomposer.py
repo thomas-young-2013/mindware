@@ -8,9 +8,11 @@ from solnml.components.utils.configspace_utils import check_for_bool, check_none
 
 
 class FastIcaDecomposer(Transformer):
+    type = 10
+
     def __init__(self, algorithm='parallel', whiten='False', fun='logcosh', n_components=100,
                  random_state=1):
-        super().__init__("fast_ica", 10)
+        super().__init__("fast_ica")
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
         self.output_type = NUMERICAL

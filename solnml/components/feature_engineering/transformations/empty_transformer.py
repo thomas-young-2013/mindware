@@ -3,8 +3,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class EmptyTransformer(Transformer):
+    type = 0
+
     def __init__(self):
-        super().__init__("empty_transformer", 0)
+        super().__init__("empty_transformer")
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'concatenate'
 

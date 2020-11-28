@@ -2,8 +2,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class WeightBalancer(Transformer):
+    type = 20
+
     def __init__(self, random_state=1):
-        super().__init__("weight_balancer", 20)
+        super().__init__("weight_balancer")
         self.random_state = random_state
 
     def operate(self, input_datanode: DataNode, target_fields=None):

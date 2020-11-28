@@ -8,8 +8,10 @@ from solnml.components.utils.configspace_utils import check_none
 
 @DeprecationWarning
 class LdaDecomposer(Transformer):
+    type = 14
+
     def __init__(self, shrinkage="None", n_components=None):
-        super().__init__("lda_decomposer", 14)
+        super().__init__("lda_decomposer")
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.output_type = NUMERICAL
         self.compound_mode = 'only_new'

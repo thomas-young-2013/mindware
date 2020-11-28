@@ -13,17 +13,16 @@ from solnml.components.evaluators.base_evaluator import _BaseEvaluator
 from solnml.components.evaluators.evaluate_func import validation
 from solnml.components.fe_optimizers.parse import parse_config, construct_node
 from solnml.components.evaluators.base_evaluator import BanditTopKModelSaver
+from solnml.components.utils.class_loader import get_combined_candidtates
 
 
 def get_estimator(config, estimator_id):
     from solnml.components.models.classification import _classifiers, _addons
+    _candidates = get_combined_candidtates(_classifiers, _addons)
     classifier_type = estimator_id
     config_ = config.copy()
     config_['random_state'] = 1
-    try:
-        estimator = _classifiers[classifier_type](**config_)
-    except:
-        estimator = _addons.components[classifier_type](**config_)
+    estimator = _candidates[classifier_type](**config_)
     if hasattr(estimator, 'n_jobs'):
         setattr(estimator, 'n_jobs', 1)
     return classifier_type, estimator

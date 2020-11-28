@@ -5,8 +5,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class GenericUnivariateSelector(Transformer):
+    type = 6
+
     def __init__(self, score_func='chi2', alpha=0.5, mode='fpr'):
-        super().__init__("generic_univariate_selector", 6)
+        super().__init__("generic_univariate_selector")
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
 

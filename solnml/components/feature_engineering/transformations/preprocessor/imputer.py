@@ -2,8 +2,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class ImputationTransformation(Transformer):
+    type = 1
+
     def __init__(self, param='mean'):
-        super().__init__("imputer", 1)
+        super().__init__("imputer")
         self.params = param
 
     def operate(self, input_datanode, target_fields=None):

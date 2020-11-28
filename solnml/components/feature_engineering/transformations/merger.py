@@ -2,8 +2,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class Merger(Transformer):
+    type = 26
+
     def __init__(self):
-        super().__init__("merger", 26)
+        super().__init__("merger")
 
     def operate(self, input_datanodes, target_fields=None):
         if type(input_datanodes) is not list:

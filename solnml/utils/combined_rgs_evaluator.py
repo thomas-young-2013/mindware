@@ -13,6 +13,7 @@ from solnml.components.evaluators.evaluate_func import validation
 from solnml.components.fe_optimizers.task_space import get_task_hyperparameter_space
 from solnml.components.fe_optimizers.parse import parse_config, construct_node
 from solnml.components.evaluators.base_evaluator import CombinedTopKModelSaver
+from solnml.components.utils.class_loader import get_combined_candidtates
 from solnml.components.models.regression import _regressors, _addons
 from solnml.components.utils.constants import *
 
@@ -27,20 +28,18 @@ def get_estimator(config, estimator_id):
         if regressor_type == key_name:
             act_key = key.split(':')[1]
             hpo_config[act_key] = config_[key]
-    try:
-        estimator = _regressors[regressor_type](**hpo_config)
-    except:
-        estimator = _addons.components[regressor_type](**hpo_config)
+
+    _candidates = get_combined_candidtates(_regressors, _addons)
+    estimator = _candidates[regressor_type](**hpo_config)
     if hasattr(estimator, 'n_jobs'):
         setattr(estimator, 'n_jobs', 1)
     return regressor_type, estimator
 
 
 def get_hpo_cs(estimator_id, task_type=REGRESSION):
-    if estimator_id in _regressors:
-        rgs_class = _regressors[estimator_id]
-    elif estimator_id in _addons.components:
-        rgs_class = _addons.components[estimator_id]
+    _candidates = get_combined_candidtates(_regressors, _addons)
+    if estimator_id in _candidates:
+        rgs_class = _candidates[estimator_id]
     else:
         raise ValueError("Algorithm %s not supported!" % estimator_id)
     cs = rgs_class.get_hyperparameter_search_space()

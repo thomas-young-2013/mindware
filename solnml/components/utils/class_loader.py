@@ -5,6 +5,23 @@ import importlib
 from collections import OrderedDict
 
 
+def get_combined_candidtates(builtin_candidates, thirdparty_candidates):
+    candidates = builtin_candidates.copy()
+    candidates.update(thirdparty_candidates.components)
+    return candidates
+
+
+def get_combined_fe_candidtates(builtin_candidates, thirdparty_candidates, tran_types=None):
+    candidates = builtin_candidates.copy()
+    candidates.update(thirdparty_candidates.components)
+    if tran_types:
+        for key in thirdparty_candidates.components:
+            tran_types.append(thirdparty_candidates.components[key].type)
+        return candidates, tran_types
+    else:
+        return candidates
+
+
 def find_components(package, directory, base_class):
     components = OrderedDict()
 

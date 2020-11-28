@@ -8,9 +8,11 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class KernelPCA(Transformer):
+    type = 12
+
     def __init__(self, n_components=100, kernel='rbf', degree=3, gamma=0.25, coef0=0.0,
                  random_state=1):
-        super().__init__("kernel_pca", 12)
+        super().__init__("kernel_pca")
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
         self.output_type = NUMERICAL

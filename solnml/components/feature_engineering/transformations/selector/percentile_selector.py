@@ -4,8 +4,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class PercentileSelector(Transformer):
+    type = 8
+
     def __init__(self, percentile=50, score_func='chi2'):
-        super().__init__("percentile_selector", 8)
+        super().__init__("percentile_selector")
         self.input_type = [NUMERICAL, DISCRETE, CATEGORICAL]
         self.compound_mode = 'only_new'
         self.score_func = score_func

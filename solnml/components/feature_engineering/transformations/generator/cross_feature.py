@@ -4,8 +4,10 @@ from solnml.components.feature_engineering.transformations.base_transformer impo
 
 
 class CrossFeatureTransformation(Transformer):
+    type = 32
+
     def __init__(self, random_state=1):
-        super().__init__("cross_features", 32)
+        super().__init__("cross_features")
         self.input_type = [CATEGORICAL]
         self.compound_mode = 'concatenate'
         self.output_type = CATEGORICAL

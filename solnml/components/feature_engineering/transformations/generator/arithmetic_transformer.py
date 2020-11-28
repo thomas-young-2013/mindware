@@ -6,8 +6,10 @@ from solnml.components.utils.operations import *
 
 
 class ArithmeticTransformation(Transformer):
+    type = 21
+
     def __init__(self, func='sqrt'):
-        super().__init__("arithmetic_transformer", 21)
+        super().__init__("arithmetic_transformer")
         self.input_type = [NUMERICAL, DISCRETE]
         self.output_type = NUMERICAL
         self.compound_mode = 'in_place'

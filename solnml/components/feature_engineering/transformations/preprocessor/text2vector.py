@@ -8,8 +8,10 @@ from solnml.components.utils.text_util import build_embeddings_index, load_text_
 
 
 class Text2VectorTransformation(Transformer):
+    type = 50
+
     def __init__(self, method='weighted', alpha=1e-4):
-        super().__init__("text2vector", 50)
+        super().__init__("text2vector")
         self.method = method
         self.alpha = alpha
         self.input_type = [TEXT]
