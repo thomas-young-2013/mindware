@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter
 
@@ -6,6 +7,29 @@ from solnml.components.feature_engineering.transformations import _bal_balancer,
 from solnml.components.utils.class_loader import get_combined_fe_candidtates
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.feature_engineering import TRANS_CANDIDATES
+
+builtin_stage = ['balancer', 'preprocessor', 'rescaler']
+stage_list = ['balancer', 'preprocessor', 'rescaler']
+thirdparty_candidates_dict = OrderedDict()
+
+
+def set_stage(udf_stage_list, stage_candidates_dict):
+    '''
+    :param udf_stage_list: List, a list for stage_name like ['my_stage','selector']
+    :param stage_candidates_dict: Dictionary, <key, value>.
+        Key is stage_name, and value is a list of operators in this stage.
+        Each operator must be a Transformer.
+    :return:
+    '''
+    global stage_list
+    stage_list = udf_stage_list
+    print("Current Stage: %s" % ','.join(stage_list))
+    for stage in udf_stage_list:
+        if stage in builtin_stage:
+            print("Built-in stage %s found!" % stage)
+        else:
+            thirdparty_candidates_dict[stage] = {candidate.__name__: candidate for candidate in
+                                                 stage_candidates_dict[stage]}
 
 
 def get_task_hyperparameter_space(task_type, estimator_id, include_preprocessors=None,
@@ -67,16 +91,23 @@ def get_task_hyperparameter_space(task_type, estimator_id, include_preprocessors
         text_preprocessor_dict = _get_configuration_space(_text_preprocessor, optimizer=optimizer)
         configs['text_preprocessor'] = text_preprocessor_dict
 
-    preprocessor_dict = _get_configuration_space(preprocessor, trans_types, optimizer=optimizer)
-    configs['preprocessor'] = preprocessor_dict
-    rescaler_dict = _get_configuration_space(_rescaler_candidates, trans_types, optimizer=optimizer)
-    configs['rescaler'] = rescaler_dict
-    if task_type in CLS_TASKS:
-        _balancer = _balancer_candadates
-        balancer_dict = _get_configuration_space(_balancer, optimizer=optimizer)
-    else:
-        balancer_dict = None
-    configs['balancer'] = balancer_dict
+    for stage in stage_list:
+        if stage == 'preprocessor':
+            stage_dict = _get_configuration_space(preprocessor, trans_types, optimizer=optimizer)
+        elif stage == 'rescaler':
+            stage_dict = _get_configuration_space(_rescaler_candidates, trans_types, optimizer=optimizer)
+        elif stage == 'balancer':
+            if task_type in CLS_TASKS:
+                _balancer = _balancer_candadates
+                stage_dict = _get_configuration_space(_balancer, optimizer=optimizer)
+            else:
+                stage_dict = None
+        else:
+            # Third party stage
+            trans_types.extend([candidate.type for _, candidate in thirdparty_candidates_dict[stage].items()])
+            stage_dict = _get_configuration_space(thirdparty_candidates_dict[stage], trans_types, optimizer=optimizer)
+        configs[stage] = stage_dict
+
     cs = _build_hierachical_configspace(configs, optimizer=optimizer)
     return cs
 

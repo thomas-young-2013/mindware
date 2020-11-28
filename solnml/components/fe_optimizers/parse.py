@@ -2,6 +2,7 @@ from solnml.components.feature_engineering.transformations import _bal_balancer,
     _image_preprocessor, _text_preprocessor, _bal_addons, _gen_addons, _res_addons, _sel_addons
 from solnml.components.utils.class_loader import get_combined_fe_candidtates
 from solnml.components.feature_engineering.transformation_graph import DataNode
+from solnml.components.fe_optimizers.task_space import stage_list, thirdparty_candidates_dict
 
 
 def parse_config(data_node: DataNode, config, record=False, skip_balance=False):
@@ -19,19 +20,6 @@ def parse_config(data_node: DataNode, config, record=False, skip_balance=False):
 
     # Remove the indicator in config_dict.
     config_dict = config.get_dictionary().copy()
-
-    if skip_balance:
-        bal_id = 'empty'
-    else:
-        if 'balancer' in config_dict:
-            bal_id = config_dict['balancer']
-            config_dict.pop('balancer')
-        else:
-            bal_id = 'empty'
-    gen_id = config_dict['preprocessor']
-    config_dict.pop('preprocessor')
-    res_id = config_dict['rescaler']
-    config_dict.pop('rescaler')
 
     image_pre_id = config_dict.get('image_preprocessor', None)
     if image_pre_id:
@@ -63,18 +51,30 @@ def parse_config(data_node: DataNode, config, record=False, skip_balance=False):
         _node, text_tran = tran_operate(text_pre_id, _text_preprocessor, config_dict, _node)
         tran_dict['text_preprocessor'] = text_tran
 
-    # Balancer
-    _balancer = _bal_balancer
-    _node, bal_tran = tran_operate(bal_id, _balancer_candadates, config_dict, _node)
-    tran_dict['balancer'] = bal_tran
+    for stage in stage_list:
+        if stage == 'balancer':
+            if skip_balance:
+                op_id = 'empty'
+            else:
+                if stage in config_dict:
+                    op_id = config_dict[stage]
+                    config_dict.pop(stage)
+                else:
+                    op_id = 'empty'
+        else:
+            op_id = config_dict[stage]
+            config_dict.pop(stage)
+        if stage == 'preprocessor':
+            _node, tran = tran_operate(op_id, _preprocessor_candidates, config_dict, _node)
+        elif stage == 'rescaler':
+            _node, tran = tran_operate(op_id, _rescaler_candidates, config_dict, _node)
+        elif stage == 'balancer':
+            _node, tran = tran_operate(op_id, _balancer_candadates, config_dict, _node)
+        else:
+            # Third party stage
+            _node, tran = tran_operate(op_id, thirdparty_candidates_dict[stage], config_dict, _node)
 
-    # Rescaler
-    _node, res_tran = tran_operate(res_id, _rescaler_candidates, config_dict, _node)
-    tran_dict['rescaler'] = res_tran
-
-    # Generator
-    _node, gen_tran = tran_operate(gen_id, _preprocessor_candidates, config_dict, _node)
-    tran_dict['preprocessor'] = gen_tran
+        tran_dict[stage] = tran
 
     _node.config = config
     if record:
@@ -89,9 +89,8 @@ def construct_node(data_node: DataNode, tran_dict, mode='test'):
     if 'text_preprocessor' in tran_dict:
         data_node = tran_dict['text_preprocessor'].operate(data_node)
 
-    if mode != 'test':
-        data_node = tran_dict['balancer'].operate(data_node)
-
-    data_node = tran_dict['rescaler'].operate(data_node)
-    data_node = tran_dict['preprocessor'].operate(data_node)
+    for stage in stage_list:
+        if stage_list == 'balancer' and mode == 'test':
+            continue
+        data_node = tran_dict[stage].operate(data_node)
     return data_node
