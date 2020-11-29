@@ -1,9 +1,10 @@
+import warnings
 from collections import OrderedDict
 from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter
 
 from solnml.components.feature_engineering.transformations import _bal_balancer, _preprocessor, _rescaler, \
-    _image_preprocessor, _text_preprocessor, _bal_addons, _gen_addons, _res_addons, _sel_addons
+    _image_preprocessor, _text_preprocessor, _bal_addons, _gen_addons, _res_addons, _sel_addons, EmptyTransformer
 from solnml.components.utils.class_loader import get_combined_fe_candidtates
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.feature_engineering import TRANS_CANDIDATES
@@ -23,11 +24,17 @@ def set_stage(udf_stage_list, stage_candidates_dict):
     '''
     global stage_list
     stage_list = udf_stage_list
-    print("Current Stage: %s" % ','.join(stage_list))
+    print("Current Stage: %s" % ', '.join(stage_list))
     for stage in udf_stage_list:
         if stage in builtin_stage:
-            print("Built-in stage %s found!" % stage)
+            print("Built-in stage '%s' found!" % stage)
         else:
+            print("User-defined stage '%s' found!" % stage)
+            if stage not in stage_candidates_dict:
+                raise ValueError("Expected stage name '%s' in stage_candidates_dict." % stage)
+            if len(stage_candidates_dict[stage]) == 0:
+                warnings.warn("Candidate list for stage '%s' is empty! EmptyTransformer will be used instead！" % stage)
+                stage_candidates_dict[stage] = [EmptyTransformer]
             thirdparty_candidates_dict[stage] = {candidate.__name__: candidate for candidate in
                                                  stage_candidates_dict[stage]}
 
