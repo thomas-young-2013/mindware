@@ -256,7 +256,7 @@ if __name__ == "__main__":
                         _ens_method = None
                     else:
                         _ens_method = ens_method
-                    file_path = save_folder + 'small_%s_%s_%s_%s_%d_%d_%d.pkl' % (
+                    file_path = save_folder + 'extremely_small_%s_%s_%s_%s_%d_%d_%d.pkl' % (
                         task_type, mth, dataset, enable_meta, time_cost, (_ens_method is None), run_id)
                     if not os.path.exists(file_path):
                         continue

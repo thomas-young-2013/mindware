@@ -16,11 +16,11 @@ dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
 parser.add_argument('--datasets', type=str, default='diabetes')
 parser.add_argument('--rep_num', type=int, default=5)
 parser.add_argument('--start_id', type=int, default=0)
-parser.add_argument('--time_limit', type=int, default=600)
+parser.add_argument('--time_cost', type=int, default=600)
 parser.add_argument('--n_job', type=int, default=1)
 parser.add_argument('--seed', type=int, default=1)
 
-max_eval_time = 5  # That's, 300 seconds.
+max_eval_time = 10
 save_dir = './data/exp_sys/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
@@ -54,15 +54,17 @@ def evaluate_tpot(dataset, run_id, time_limit, seed=1, use_fe=True):
     test_accuracy = balanced_accuracy_score(y_test, y_hat)
     print("%d-th Evaluation: Valid accuracy score => %.4f" % (run_id, valid_accuracy))
     print("%d-th Evaluation: Test accuracy score => %.4f" % (run_id, test_accuracy))
+    scores = automl.scores
+    times = automl.times
     save_path = save_dir + 'cls_tpot_%s_false_%d_1_%d.pkl' % (dataset, time_limit, run_id)
     with open(save_path, 'wb') as f:
-        pickle.dump([dataset, valid_accuracy, test_accuracy, start_time], f)
+        pickle.dump([dataset, valid_accuracy, test_accuracy, times, scores, start_time], f)
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
     dataset_str = args.datasets
-    time_limit = args.time_limit
+    time_limit = args.time_cost
     start_id = args.start_id
     rep = args.rep_num
     np.random.seed(args.seed)
