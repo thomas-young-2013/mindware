@@ -21,6 +21,7 @@ parser.add_argument('--time_cost', type=int, default=600)
 parser.add_argument('--n_job', type=int, default=1)
 parser.add_argument('--seed', type=int, default=1)
 parser.add_argument('--task_type', type=str, default='cls', choices=['cls', 'rgs'])
+parser.add_argument('--space_type', type=str, default='large', choices=['large', 'small', 'extremelly_small'])
 
 max_eval_time = 5
 save_dir = './data/exp_sys/'
@@ -31,22 +32,30 @@ if not os.path.exists(save_dir):
 def evaluate_tpot(dataset, task_type, run_id, time_limit, seed=1, use_fe=True):
     n_job = args.n_job
     # Construct the ML model.
-    config = None
     if not use_fe:
         from solnml.utils.tpot_config import classifier_config_dict
         config = classifier_config_dict
 
     _task_type = MULTICLASS_CLS if task_type == 'cls' else REGRESSION
+    if space_type == 'large':
+        from tpot.config.classifier import classifier_config_dict
+        config_dict = classifier_config_dict
+    elif space_type == 'small':
+        from tpot.config.classifier_small import classifier_config_dict
+        config_dict = classifier_config_dict
+    else:
+        from tpot.config.classifier_extremelly_small import classifier_config_dict
+        config_dict = classifier_config_dict
 
     if task_type == 'cls':
-        automl = TPOTClassifier(config_dict=config, generations=10000, population_size=20,
+        automl = TPOTClassifier(config_dict=config_dict, generations=10000, population_size=20,
                                 verbosity=2, n_jobs=n_job, cv=0.2,
                                 scoring='balanced_accuracy',
                                 max_eval_time_mins=max_eval_time,
                                 max_time_mins=int(time_limit / 60),
                                 random_state=seed)
     else:
-        automl = TPOTRegressor(config_dict=config, generations=10000, population_size=20,
+        automl = TPOTRegressor(config_dict=None, generations=10000, population_size=20,
                                verbosity=2, n_jobs=n_job, cv=0.2,
                                scoring='neg_mean_squared_error',
                                max_eval_time_mins=max_eval_time,
@@ -87,6 +96,7 @@ if __name__ == "__main__":
     start_id = args.start_id
     rep = args.rep_num
     task_type = args.task_type
+    space_type = args.space_type
     np.random.seed(args.seed)
     seeds = np.random.randint(low=1, high=10000, size=start_id + args.rep_num)
 
