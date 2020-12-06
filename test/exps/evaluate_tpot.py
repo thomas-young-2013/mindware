@@ -21,7 +21,7 @@ parser.add_argument('--time_cost', type=int, default=600)
 parser.add_argument('--n_job', type=int, default=1)
 parser.add_argument('--seed', type=int, default=1)
 parser.add_argument('--task_type', type=str, default='cls', choices=['cls', 'rgs'])
-parser.add_argument('--space_type', type=str, default='large', choices=['large', 'small', 'extremelly_small'])
+parser.add_argument('--space_type', type=str, default='large', choices=['large', 'small', 'extremely_small'])
 
 max_eval_time = 5
 save_dir = './data/exp_sys/'
@@ -37,15 +37,22 @@ def evaluate_tpot(dataset, task_type, run_id, time_limit, seed=1, use_fe=True):
         config = classifier_config_dict
 
     _task_type = MULTICLASS_CLS if task_type == 'cls' else REGRESSION
-    if space_type == 'large':
-        from tpot.config.classifier import classifier_config_dict
-        config_dict = classifier_config_dict
-    elif space_type == 'small':
-        from tpot.config.classifier_small import classifier_config_dict
+    if task_type == 'cls':
+        if space_type == 'large':
+            from tpot.config.classifier import classifier_config_dict
+        elif space_type == 'small':
+            from tpot.config.classifier_small import classifier_config_dict
+        else:
+            from tpot.config.classifier_extremely_small import classifier_config_dict
         config_dict = classifier_config_dict
     else:
-        from tpot.config.classifier_extremelly_small import classifier_config_dict
-        config_dict = classifier_config_dict
+        if space_type == 'large':
+            from tpot.config.regressor import regressor_config_dict
+        elif space_type == 'small':
+            from tpot.config.regressor_small import regressor_config_dict
+        else:
+            from tpot.config.regressor_extremely_small import regressor_config_dict
+        config_dict = regressor_config_dict
 
     if task_type == 'cls':
         automl = TPOTClassifier(config_dict=config_dict, generations=10000, population_size=20,
@@ -55,7 +62,7 @@ def evaluate_tpot(dataset, task_type, run_id, time_limit, seed=1, use_fe=True):
                                 max_time_mins=int(time_limit / 60),
                                 random_state=seed)
     else:
-        automl = TPOTRegressor(config_dict=None, generations=10000, population_size=20,
+        automl = TPOTRegressor(config_dict=config_dict, generations=10000, population_size=20,
                                verbosity=2, n_jobs=n_job, cv=0.2,
                                scoring='neg_mean_squared_error',
                                max_eval_time_mins=max_eval_time,
@@ -84,7 +91,8 @@ def evaluate_tpot(dataset, task_type, run_id, time_limit, seed=1, use_fe=True):
     print('Val/Test score : %f - %f' % (valid_score, test_score))
     scores = automl.scores
     times = automl.times
-    save_path = save_dir + '%s_tpot_%s_false_%d_1_%d.pkl' % (task_type, dataset, time_limit, run_id)
+    _space_type = '%s_' % space_type if space_type != 'large' else ''
+    save_path = save_dir + '%s%s_tpot_%s_false_%d_1_%d.pkl' % (_space_type, task_type, dataset, time_limit, run_id)
     with open(save_path, 'wb') as f:
         pickle.dump([dataset, valid_score, test_score, times, scores, start_time], f)
 
