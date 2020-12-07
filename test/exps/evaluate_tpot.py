@@ -61,6 +61,11 @@ def evaluate_tpot(dataset, task_type, run_id, time_limit, seed=1, use_fe=True):
                                 max_eval_time_mins=max_eval_time,
                                 max_time_mins=int(time_limit / 60),
                                 random_state=seed)
+        raw_data, test_raw_data = load_train_test_data(dataset, task_type=_task_type)
+        X_train, y_train = raw_data.data
+        X_test, y_test = test_raw_data.data
+        X_train, y_train = X_train.astype('float64'), y_train.astype('int')
+        X_test, y_test = X_test.astype('float64'), y_test.astype('int')
     else:
         automl = TPOTRegressor(config_dict=config_dict, generations=10000, population_size=20,
                                verbosity=2, n_jobs=n_job, cv=0.2,
@@ -68,12 +73,12 @@ def evaluate_tpot(dataset, task_type, run_id, time_limit, seed=1, use_fe=True):
                                max_eval_time_mins=max_eval_time,
                                max_time_mins=int(time_limit / 60),
                                random_state=seed)
+        raw_data, test_raw_data = load_train_test_data(dataset, task_type=_task_type)
+        X_train, y_train = raw_data.data
+        X_test, y_test = test_raw_data.data
+        X_train, y_train = X_train.astype('float64'), y_train.astype('float64')
+        X_test, y_test = X_test.astype('float64'), y_test.astype('float64')
 
-    raw_data, test_raw_data = load_train_test_data(dataset, task_type=_task_type)
-    X_train, y_train = raw_data.data
-    X_test, y_test = test_raw_data.data
-    X_train, y_train = X_train.astype('float64'), y_train.astype('int')
-    X_test, y_test = X_test.astype('float64'), y_test.astype('int')
     start_time = time.time()
     automl.fit(X_train, y_train)
     y_hat = automl.predict(X_test)
