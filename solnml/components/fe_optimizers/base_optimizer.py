@@ -2,7 +2,7 @@ import abc
 import typing
 from solnml.components.feature_engineering.transformations import _transformers, _type_infos, _params_infos
 from solnml.components.feature_engineering.transformation_graph import DataNode, TransformationGraph
-from solnml.utils.functions import is_unbalanced_dataset
+from solnml.utils.functions import is_imbalanced_dataset
 from solnml.utils.logging_utils import get_logger
 
 
@@ -19,7 +19,7 @@ class Optimizer(object, metaclass=abc.ABCMeta):
         self.maximum_evaluation_num = None
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
 
-        self.if_bal = False if is_unbalanced_dataset(data_node=datanode) else True
+        self.if_bal = False if is_imbalanced_dataset(data_node=datanode) else True
 
     @abc.abstractmethod
     def optimize(self):

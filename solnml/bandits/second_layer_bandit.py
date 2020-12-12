@@ -11,6 +11,7 @@ from solnml.components.fe_optimizers.task_space import get_task_hyperparameter_s
 from solnml.components.optimizers import build_hpo_optimizer
 from solnml.components.utils.constants import CLS_TASKS, RGS_TASKS, TEXT, IMAGE
 from solnml.utils.decorators import time_limit
+from solnml.utils.functions import is_imbalanced_dataset
 from solnml.utils.constant import MAX_INT
 
 
@@ -103,11 +104,15 @@ class SecondLayerBandit(object):
         self.default_config = cs.get_default_configuration()
         self.config_space.seed(self.seed)
 
+        self.if_imbal = is_imbalanced_dataset(self.original_data)
+
         self.fe_config_space = get_task_hyperparameter_space(self.task_type,
                                                              self.estimator_id,
                                                              include_preprocessors=self.include_preprocessors,
                                                              include_text=self.include_text,
-                                                             include_image=self.include_image)
+                                                             include_image=self.include_image,
+                                                             if_imbal=self.if_imbal
+                                                             )
         self.fe_default_config = self.fe_config_space.get_default_configuration()
 
         self.timestamp = timestamp
@@ -116,13 +121,13 @@ class SecondLayerBandit(object):
             fe_evaluator = ClassificationEvaluator(self.default_config, self.fe_default_config,
                                                    estimator_id, scorer=self.metric,
                                                    data_node=self.original_data, name='fe',
-                                                   resampling_strategy=self.evaluation_type,
+                                                   resampling_strategy=self.evaluation_type, if_imbal=self.if_imbal,
                                                    seed=self.seed, output_dir=self.output_dir,
                                                    timestamp=self.timestamp)
             hpo_evaluator = ClassificationEvaluator(self.default_config, self.fe_default_config,
                                                     estimator_id, scorer=self.metric,
                                                     data_node=self.original_data, name='hpo',
-                                                    resampling_strategy=self.evaluation_type,
+                                                    resampling_strategy=self.evaluation_type, if_imbal=self.if_imbal,
                                                     seed=self.seed, output_dir=self.output_dir,
                                                     timestamp=self.timestamp)
 
@@ -187,12 +192,14 @@ class SecondLayerBandit(object):
                 estimator_id,
                 scorer=self.metric,
                 data_node=self.original_data,
+                if_imbal=self.if_imbal,
                 timestamp=self.timestamp,
                 output_dir=self.output_dir,
                 resampling_strategy=self.evaluation_type)
             cs = get_combined_cs(self.estimator_id, self.task_type,
                                  include_image=self.include_image, include_text=self.include_text,
-                                 include_preprocessors=self.include_preprocessors)
+                                 include_preprocessors=self.include_preprocessors,
+                                 if_imbal=self.if_imbal)
 
             self.optimizer = build_hpo_optimizer(self.evaluation_type, self.evaluator, cs,
                                                  output_dir=self.output_dir,
@@ -372,7 +379,7 @@ class SecondLayerBandit(object):
                 if self.task_type in CLS_TASKS:
                     _perf = -ClassificationEvaluator(
                         self.local_inc['hpo'], self.local_inc['fe'], self.estimator_id,
-                        data_node=self.original_data, scorer=self.metric,
+                        data_node=self.original_data, scorer=self.metric, if_imbal=self.if_imbal,
                         name='hpo', resampling_strategy=self.evaluation_type,
                         seed=self.seed, output_dir=self.output_dir, timestamp=self.timestamp)(self.local_inc['hpo'])
                 else:
@@ -426,6 +433,7 @@ class SecondLayerBandit(object):
                 fe_evaluator = ClassificationEvaluator(inc_hpo, self.fe_default_config, self.estimator_id,
                                                        data_node=self.original_data, scorer=self.metric,
                                                        name='fe', resampling_strategy=self.evaluation_type,
+                                                       if_imbal=self.if_imbal,
                                                        seed=self.seed, output_dir=self.output_dir,
                                                        timestamp=self.timestamp)
             elif self.task_type in RGS_TASKS:
@@ -452,6 +460,7 @@ class SecondLayerBandit(object):
                                                         self.estimator_id, scorer=self.metric,
                                                         data_node=self.original_data, name='hpo',
                                                         resampling_strategy=self.evaluation_type,
+                                                        if_imbal=self.if_imbal,
                                                         seed=self.seed, output_dir=self.output_dir,
                                                         timestamp=self.timestamp)
             elif self.task_type in RGS_TASKS:

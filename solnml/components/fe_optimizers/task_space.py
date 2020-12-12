@@ -4,7 +4,8 @@ from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter
 
 from solnml.components.feature_engineering.transformations import _bal_balancer, _preprocessor, _rescaler, \
-    _image_preprocessor, _text_preprocessor, _bal_addons, _gen_addons, _res_addons, _sel_addons, EmptyTransformer
+    _image_preprocessor, _text_preprocessor, _bal_addons, _imb_balancer, _gen_addons, _res_addons, _sel_addons, \
+    EmptyTransformer
 from solnml.components.utils.class_loader import get_combined_fe_candidtates
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.feature_engineering import TRANS_CANDIDATES
@@ -40,7 +41,7 @@ def set_stage(udf_stage_list, stage_candidates_dict):
 
 
 def get_task_hyperparameter_space(task_type, estimator_id, include_preprocessors=None,
-                                  include_text=False, include_image=False,
+                                  include_text=False, include_image=False, if_imbal=False,
                                   optimizer='smac'):
     """
         Fetch the underlying hyperparameter space for feature engineering.
@@ -60,7 +61,11 @@ def get_task_hyperparameter_space(task_type, estimator_id, include_preprocessors
     _preprocessor_candidates, trans_types = get_combined_fe_candidtates(_preprocessor_candidates, _sel_addons,
                                                                         trans_types)
     _rescaler_candidates, trans_types = get_combined_fe_candidtates(_rescaler, _res_addons, trans_types)
-    _balancer_candadates, trans_types = get_combined_fe_candidtates(_bal_balancer, _bal_addons, trans_types)
+
+    if not if_imbal:
+        _balancer_candadates, trans_types = get_combined_fe_candidtates(_bal_balancer, _bal_addons, trans_types)
+    else:
+        _balancer_candadates, trans_types = get_combined_fe_candidtates(_imb_balancer, _bal_addons, trans_types)
 
     # Avoid transformations, which would take too long
     # Combinations of non-linear models with feature learning.
@@ -105,8 +110,7 @@ def get_task_hyperparameter_space(task_type, estimator_id, include_preprocessors
             stage_dict = _get_configuration_space(_rescaler_candidates, trans_types, optimizer=optimizer)
         elif stage == 'balancer':
             if task_type in CLS_TASKS:
-                _balancer = _balancer_candadates
-                stage_dict = _get_configuration_space(_balancer, optimizer=optimizer)
+                stage_dict = _get_configuration_space(_balancer_candadates, optimizer=optimizer)
             else:
                 stage_dict = None
         else:

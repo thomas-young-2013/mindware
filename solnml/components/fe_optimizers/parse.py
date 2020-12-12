@@ -1,11 +1,11 @@
 from solnml.components.feature_engineering.transformations import _bal_balancer, _preprocessor, _rescaler, \
-    _image_preprocessor, _text_preprocessor, _bal_addons, _gen_addons, _res_addons, _sel_addons
+    _image_preprocessor, _text_preprocessor, _bal_addons, _imb_balancer, _gen_addons, _res_addons, _sel_addons
 from solnml.components.utils.class_loader import get_combined_fe_candidtates
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.fe_optimizers.task_space import stage_list, thirdparty_candidates_dict
 
 
-def parse_config(data_node: DataNode, config, record=False, skip_balance=False):
+def parse_config(data_node: DataNode, config, record=False, skip_balance=False, if_imbal=False):
     """
         Transform the data node based on the pipeline specified by configuration.
     :param data_node:
@@ -16,7 +16,11 @@ def parse_config(data_node: DataNode, config, record=False, skip_balance=False):
     _preprocessor_candidates = get_combined_fe_candidtates(_preprocessor, _gen_addons)
     _preprocessor_candidates = get_combined_fe_candidtates(_preprocessor_candidates, _sel_addons)
     _rescaler_candidates = get_combined_fe_candidtates(_rescaler, _res_addons)
-    _balancer_candadates = get_combined_fe_candidtates(_bal_balancer, _bal_addons)
+
+    if not if_imbal:
+        _balancer_candidates = get_combined_fe_candidtates(_bal_balancer, _bal_addons)
+    else:
+        _balancer_candidates = get_combined_fe_candidtates(_imb_balancer, _bal_addons)
 
     # Remove the indicator in config_dict.
     config_dict = config.get_dictionary().copy()
@@ -69,7 +73,7 @@ def parse_config(data_node: DataNode, config, record=False, skip_balance=False):
         elif stage == 'rescaler':
             _node, tran = tran_operate(op_id, _rescaler_candidates, config_dict, _node)
         elif stage == 'balancer':
-            _node, tran = tran_operate(op_id, _balancer_candadates, config_dict, _node)
+            _node, tran = tran_operate(op_id, _balancer_candidates, config_dict, _node)
         else:
             # Third party stage
             _node, tran = tran_operate(op_id, thirdparty_candidates_dict[stage], config_dict, _node)

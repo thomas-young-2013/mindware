@@ -80,7 +80,7 @@ def get_combined_cs(estimator_id, task_type=REGRESSION, include_image=False, inc
 
 class CombinedRegressionEvaluator(_BaseEvaluator):
     def __init__(self, estimator_id, scorer=None, data_node=None, task_type=REGRESSION, resampling_strategy='cv',
-                 resampling_params=None, timestamp=None, output_dir=None, seed=1):
+                 resampling_params=None, timestamp=None, output_dir=None, seed=1, if_imbal=False):
         self.resampling_strategy = resampling_strategy
         self.resampling_params = resampling_params
 

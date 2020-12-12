@@ -29,7 +29,7 @@ def get_estimator(config, estimator_id):
 
 
 class ClassificationEvaluator(_BaseEvaluator):
-    def __init__(self, clf_config, fe_config, estimator_id, scorer=None, data_node=None, name=None,
+    def __init__(self, clf_config, fe_config, estimator_id, if_imbal=False, scorer=None, data_node=None, name=None,
                  resampling_strategy='cv', resampling_params=None, seed=1,
                  timestamp=None, output_dir=None):
         self.resampling_strategy = resampling_strategy
@@ -40,6 +40,7 @@ class ClassificationEvaluator(_BaseEvaluator):
         self.fe_config = fe_config
         self.estimator_id = estimator_id
         self.scorer = scorer if scorer is not None else balanced_accuracy_scorer
+        self.if_imbal = if_imbal
         self.data_node = data_node
         self.name = name
         self.seed = seed
@@ -98,7 +99,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                     self.train_node.data = [_X_train, _y_train]
                     self.val_node.data = [_X_val, _y_val]
 
-                    data_node, op_list = parse_config(self.train_node, fe_config, record=True)
+                    data_node, op_list = parse_config(self.train_node, fe_config, record=True, if_imbal=self.if_imbal)
                     _val_node = self.val_node.copy_()
                     _val_node = construct_node(_val_node, op_list)
 
@@ -178,7 +179,8 @@ class ClassificationEvaluator(_BaseEvaluator):
                         self.train_node.data = [_X_train, _y_train]
                         self.val_node.data = [_X_val, _y_val]
 
-                        data_node, op_list = parse_config(self.train_node, fe_config, record=True)
+                        data_node, op_list = parse_config(self.train_node, fe_config, record=True,
+                                                          if_imbal=self.if_imbal)
                         _val_node = self.val_node.copy_()
                         _val_node = construct_node(_val_node, op_list)
 
@@ -245,7 +247,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                     self.train_node.data = [_X_train, _y_train]
                     self.val_node.data = [_X_val, _y_val]
 
-                    data_node, op_list = parse_config(self.train_node, fe_config, record=True)
+                    data_node, op_list = parse_config(self.train_node, fe_config, record=True, if_imbal=self.if_imbal)
                     _val_node = self.val_node.copy_()
                     _val_node = construct_node(_val_node, op_list)
 

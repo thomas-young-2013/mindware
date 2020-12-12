@@ -66,7 +66,7 @@ def load_train_test_data(dataset, data_dir='./', test_size=0.2, task_type=None, 
             X, y, test_size=test_size, random_state=random_state)
     train_node = DataNode(data=[X_train, y_train], feature_type=feature_type.copy())
     test_node = DataNode(data=[X_test, y_test], feature_type=feature_type.copy())
-    # print('is imbalanced dataset', is_unbalanced_dataset(train_node))
+    # print('is imbalanced dataset', is_imbalanced_dataset(train_node))
     return train_node, test_node
 
 

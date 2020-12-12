@@ -93,7 +93,7 @@ class AutoML(object):
         :return:
         """
         # Check whether this dataset is balanced or not.
-        # if self.task_type in CLS_TASKS and is_unbalanced_dataset(train_data):
+        # if self.task_type in CLS_TASKS and is_imbalanced_dataset(train_data):
         #     self.logger.info('Input dataset is imbalanced!')
         #     train_data = DataBalancer().operate(train_data)
 

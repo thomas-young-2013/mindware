@@ -14,7 +14,7 @@ def get_increasing_sequence(data):
     return increasing_sequence
 
 
-def is_unbalanced_dataset(data_node: DataNode):
+def is_imbalanced_dataset(data_node: DataNode):
     """
         Identify this dataset is balanced or not.
     :param data_node:

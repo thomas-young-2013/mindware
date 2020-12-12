@@ -47,19 +47,21 @@ def get_hpo_cs(estimator_id, task_type=CLASSIFICATION):
     return cs
 
 
-def get_fe_cs(estimator_id, task_type=0, include_image=False, include_text=False, include_preprocessors=None):
+def get_fe_cs(estimator_id, task_type=0, include_image=False,
+              include_text=False, include_preprocessors=None, if_imbal=False):
     cs = get_task_hyperparameter_space(task_type=task_type, estimator_id=estimator_id,
                                        include_image=include_image, include_text=include_text,
-                                       include_preprocessors=include_preprocessors)
+                                       include_preprocessors=include_preprocessors, if_imbal=if_imbal)
     return cs
 
 
-def get_combined_cs(estimator_id, task_type=0, include_image=False, include_text=False, include_preprocessors=None):
+def get_combined_cs(estimator_id, task_type=0, include_image=False,
+                    include_text=False, include_preprocessors=None, if_imbal=False):
     cs = ConfigurationSpace()
     hpo_cs = get_hpo_cs(estimator_id, task_type)
     fe_cs = get_fe_cs(estimator_id, task_type,
                       include_image=include_image, include_text=include_text,
-                      include_preprocessors=include_preprocessors)
+                      include_preprocessors=include_preprocessors, if_imbal=if_imbal)
     config_cand = [estimator_id]
     config_option = CategoricalHyperparameter('hpo', config_cand)
     cs.add_hyperparameter(config_option)
@@ -80,12 +82,13 @@ def get_combined_cs(estimator_id, task_type=0, include_image=False, include_text
 
 class CombinedClassificationEvaluator(_BaseEvaluator):
     def __init__(self, estimator_id, scorer=None, data_node=None, task_type=0, resampling_strategy='cv',
-                 resampling_params=None, timestamp=None, output_dir=None, seed=1):
+                 resampling_params=None, timestamp=None, output_dir=None, seed=1, if_imbal=False):
         self.resampling_strategy = resampling_strategy
         self.resampling_params = resampling_params
 
         self.estimator_id = estimator_id
         self.scorer = scorer if scorer is not None else balanced_accuracy_scorer
+        self.if_imbal = if_imbal
         self.task_type = task_type
         self.data_node = data_node
         self.output_dir = output_dir
@@ -132,7 +135,7 @@ class CombinedClassificationEvaluator(_BaseEvaluator):
                     self.train_node.data = [_x_train, _y_train]
                     self.val_node.data = [_x_val, _y_val]
 
-                    data_node, op_list = parse_config(self.train_node, config, record=True)
+                    data_node, op_list = parse_config(self.train_node, config, record=True, if_imbal=self.if_imbal)
                     _val_node = self.val_node.copy_()
                     _val_node = construct_node(_val_node, op_list)
 
@@ -211,7 +214,7 @@ class CombinedClassificationEvaluator(_BaseEvaluator):
                         self.train_node.data = [_x_train, _y_train]
                         self.val_node.data = [_x_val, _y_val]
 
-                        data_node, op_list = parse_config(self.train_node, config, record=True)
+                        data_node, op_list = parse_config(self.train_node, config, record=True, if_imbal=self.if_imbal)
                         _val_node = self.val_node.copy_()
                         _val_node = construct_node(_val_node, op_list)
 
@@ -278,7 +281,7 @@ class CombinedClassificationEvaluator(_BaseEvaluator):
                     self.train_node.data = [_x_train, _y_train]
                     self.val_node.data = [_x_val, _y_val]
 
-                    data_node, op_list = parse_config(self.train_node, config, record=True)
+                    data_node, op_list = parse_config(self.train_node, config, record=True, if_imbal=self.if_imbal)
                     _val_node = self.val_node.copy_()
                     _val_node = construct_node(_val_node, op_list)
 
