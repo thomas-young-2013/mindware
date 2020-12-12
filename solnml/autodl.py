@@ -230,7 +230,7 @@ class AutoDL(AutoDLBase):
             #         intersection_dict[key] = hpo_eval_dict[key]
 
             hpo_eval_list = filter(lambda item: item[1] != -np.inf, hpo_eval_dict.items())
-            hpo_eval_list = sorted(hpo_eval_list, key=lambda item: item[1], reverse=True)
+            hpo_eval_list = sorted(hpo_eval_list, key=lambda item: item[1][0], reverse=True)
             model_items = list()
 
             if len(hpo_eval_list) > 20:

@@ -300,7 +300,7 @@ class BayesianOptimizationOptimizer(Optimizer):
         default_config = self.hyperparameter_space.get_default_configuration()
 
         if len(hist_dict) > 0:
-            min_list = sorted(hist_dict.items(), key=lambda item: item[1])
+            min_list = sorted(hist_dict.items(), key=lambda item: item[1][0])
         else:
             min_list = [(default_config, None)]
 

@@ -354,6 +354,10 @@ class SecondLayerBandit(object):
         _arm = 'hpo' if mth == 'hpo_only' else 'fe'
         self.logger.debug('Pulling arm: %s for %s at %d-th round' % (_arm, self.estimator_id, self.pull_cnt))
 
+        if self.optimizer[_arm].early_stopped_flag is True:
+            self.early_stopped_flag = True
+            return
+
         # Execute one iteration.
         results = self.optimizer[_arm].iterate(budget=remaining_budget)
         self.collect_iter_stats(_arm, results)

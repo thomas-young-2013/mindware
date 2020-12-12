@@ -11,8 +11,7 @@ _balancer = find_components(__package__, balancer_directory, Transformer)
 
 _imb_balancer = OrderedDict()
 # TODO:Verify the effect of smote_balancer
-# for key in ['weight_balancer', 'smote_balancer']:
-for key in ['weight_balancer']:
+for key in ['weight_balancer', 'smote_balancer']:
     if key in _balancer.keys():
         _imb_balancer[key] = _balancer[key]
 

@@ -168,8 +168,8 @@ class FirstLayerBandit(object):
             hpo_eval_dict = self.sub_bandits[self.optimal_algo_id].eval_dict['hpo']
             eval_dict.update(fe_eval_dict)
             eval_dict.update(hpo_eval_dict)
-            self.best_fe_config, self.best_hpo_config = sorted(eval_dict.items(), key=lambda t: t[1], reverse=True)[0][
-                0]
+            self.best_fe_config, self.best_hpo_config = \
+            sorted(eval_dict.items(), key=lambda t: t[1][0], reverse=True)[0][0]
 
         if self.ensemble_method is not None:
             if self.inner_opt_algorithm == 'combined':
