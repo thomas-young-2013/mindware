@@ -54,7 +54,7 @@ def get_fe_cs(estimator_id, task_type=REGRESSION, include_image=False, include_t
 
 
 def get_combined_cs(estimator_id, task_type=REGRESSION, include_image=False, include_text=False,
-                    include_preprocessors=None):
+                    include_preprocessors=None, if_imbal=False):
     cs = ConfigurationSpace()
     hpo_cs = get_hpo_cs(estimator_id, task_type)
     fe_cs = get_fe_cs(estimator_id, task_type,
