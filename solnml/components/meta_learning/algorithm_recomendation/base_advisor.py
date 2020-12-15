@@ -2,6 +2,7 @@ import os
 import hashlib
 import numpy as np
 from collections import OrderedDict
+from solnml.datasets.utils import calculate_metafeatures
 from solnml.utils.logging_utils import get_logger
 from solnml.components.utils.constants import CLS_TASKS, RGS_TASKS
 from solnml.components.meta_learning.algorithm_recomendation.metadata_manager import MetaDataManager
@@ -75,8 +76,12 @@ class BaseAdvisor(object):
                                                 metric, total_resource, task_type=task_type, rep=rep)
         self.meta_learner = None
 
-    def fetch_algorithm_set(self, dataset):
+    def fetch_algorithm_set(self, dataset, datanode=None):
         input_vector = get_feature_vector(dataset, task_type=self.task_type)
+        if input_vector is None:
+            input_dict = calculate_metafeatures(dataset=datanode, task_type=self.task_type)
+            sorted_keys = sorted(input_dict.keys())
+            input_vector = [input_dict[key] for key in sorted_keys]
         preds = self.predict(input_vector)
         idxs = np.argsort(-preds)
         return [self.algorithms[idx] for idx in idxs]

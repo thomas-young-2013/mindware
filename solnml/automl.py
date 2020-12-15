@@ -109,7 +109,7 @@ class AutoML(object):
                 alad = RankNetAdvisor(task_type=self.task_type, n_algorithm=n_algo_recommended,
                                       metric=self.metric_id)
                 alad.fit()
-                model_candidates = alad.fetch_algorithm_set(dataset_id)
+                model_candidates = alad.fetch_algorithm_set(dataset_id, datanode=train_data)
                 include_models = list()
                 for algo in model_candidates:
                     if algo in self.include_algorithms and len(include_models) < n_algo_recommended:

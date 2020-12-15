@@ -23,9 +23,12 @@ def get_feature_vector(dataset, task_type=None):
         data1 = pickle.load(f)
 
     task_id = 'init_%s' % dataset
-    assert task_id in data1['task_ids']
-    idx = data1['task_ids'].index(task_id)
-    return data1['dataset_embedding'][idx]
+
+    if task_id in data1['task_ids']:
+        idx = data1['task_ids'].index(task_id)
+        return data1['dataset_embedding'][idx]
+    else:
+        return None
 
 
 def fetch_algorithm_runs(meta_dir, dataset, metric, total_resource, rep, buildin_algorithms):
