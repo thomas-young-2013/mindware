@@ -32,6 +32,7 @@ class MfseOptimizer(BaseOptimizer, MfseBase):
                 break
             budget_left = budget - _time_elapsed
             self._iterate(self.s_values[self.inner_iter_id], budget=budget_left)
+            self.combine_tmp_config_path()
             self.inner_iter_id = (self.inner_iter_id + 1) % (self.s_max + 1)
 
             # Remove tmp model

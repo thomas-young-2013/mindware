@@ -73,6 +73,7 @@ class SMACOptimizer(BaseOptimizer):
                 self.exp_output[time.time()] = (_config, _perf)
                 self.configs.append(_config)
                 self.perfs.append(-_perf)
+                self.combine_tmp_config_path()
 
         runhistory = self.optimizer.get_history()
         if self.name == 'hpo':

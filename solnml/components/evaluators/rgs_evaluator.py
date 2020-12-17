@@ -123,6 +123,9 @@ class RegressionEvaluator(_BaseEvaluator):
                             self.logger.info("Model deleted from %s" % model_path)
                     except:
                         pass
+
+                    self.topk_model_saver.save_topk_config()
+
                 lock.release()
             except Exception as e:
                 import traceback
@@ -175,6 +178,7 @@ class RegressionEvaluator(_BaseEvaluator):
                 lock.acquire()
                 if np.isfinite(score):
                     _ = self.topk_model_saver.add(hpo_config, fe_config, score, regressor_id)
+                    self.topk_model_saver.save_topk_config()
                 lock.release()
 
             except Exception as e:
@@ -246,6 +250,9 @@ class RegressionEvaluator(_BaseEvaluator):
                             self.logger.info("Model deleted from %s" % model_path)
                     except:
                         pass
+
+                    self.topk_model_saver.save_topk_config()
+
                 lock.release()
             except Exception as e:
                 import traceback
@@ -266,5 +273,5 @@ class RegressionEvaluator(_BaseEvaluator):
             print(e)
 
         # Turn it into a minimization problem.
-        return_dict['score'] = -score
+        return_dict['objective_value'] = -score
         return -score

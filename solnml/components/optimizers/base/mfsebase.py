@@ -97,6 +97,7 @@ class MfseBase(object):
                             self.logger.warning('Time limit exceeded!')
                             break
                         try:
+                            # TODO: Add time limit
                             val_loss = self.eval_func(config, resource_ratio=float(n_resource / self.R),
                                                       eta=self.eta, first_iter=(i == 0))
                         except Exception as e:

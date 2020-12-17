@@ -67,6 +67,7 @@ class TPEOptimizer(BaseOptimizer):
                 self.exp_output[time.time()] = (_config, _perf)
                 self.configs.append(_config)
                 self.perfs.append(-_perf)
+                self.combine_tmp_config_path()
 
         if self.name == 'hpo':
             if hasattr(self.evaluator, 'fe_config'):

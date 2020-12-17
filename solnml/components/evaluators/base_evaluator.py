@@ -75,6 +75,7 @@ class BaseTopKModelSaver(object):
         self.model_dir = model_dir
         self.identifier = identifier
         self.sorted_list_path = os.path.join(model_dir, '%s_topk_config.pkl' % identifier)
+        self.sorted_dict = None
 
     @staticmethod
     def get_topk_config(config_path):
@@ -84,10 +85,14 @@ class BaseTopKModelSaver(object):
             content = pkl.load(f)
         return content
 
-    @staticmethod
-    def save_topk_config(config_path, configs):
-        with open(config_path, 'wb') as f:
-            pkl.dump(configs, f)
+    def save_topk_config(self):
+        # TODO：Multiple temp file in multiprocessing
+        # In case of timeout
+        path_list = os.path.split(self.sorted_list_path)
+        tmp_path = 'tmp_' + path_list[-1]
+        tmp_filepath = os.path.join(os.path.dirname(self.sorted_list_path), tmp_path)
+        with open(tmp_filepath, 'wb') as f:
+            pkl.dump(self.sorted_dict, f)
 
 
 class CombinedTopKModelSaver(BaseTopKModelSaver):
@@ -119,8 +124,8 @@ class CombinedTopKModelSaver(BaseTopKModelSaver):
         model_path_id = self.get_path_by_config(config, self.identifier)
         model_path_removed = None
         save_flag, delete_flag = False, False
-        sorted_dict = self.get_topk_config(self.sorted_list_path)
-        sorted_list = sorted_dict.get(estimator_id, list())
+        self.sorted_dict = self.get_topk_config(self.sorted_list_path)
+        sorted_list = self.sorted_dict.get(estimator_id, list())
 
         # Update existed configs
         for sorted_element in sorted_list:
@@ -134,8 +139,7 @@ class CombinedTopKModelSaver(BaseTopKModelSaver):
                         if idx == len(sorted_list) - 1:
                             sorted_list.append((config, perf, model_path_id))
                             break
-                    sorted_dict[estimator_id] = sorted_list
-                    self.save_topk_config(self.sorted_list_path, sorted_dict)
+                    self.sorted_dict[estimator_id] = sorted_list
                     return True, model_path_id, False, model_path_removed
                 else:
                     return False, model_path_id, False, model_path_removed
@@ -159,8 +163,7 @@ class CombinedTopKModelSaver(BaseTopKModelSaver):
         if model_path_id in [item[2] for item in sorted_list]:
             save_flag = True
 
-        sorted_dict[estimator_id] = sorted_list
-        self.save_topk_config(self.sorted_list_path, sorted_dict)
+        self.sorted_dict[estimator_id] = sorted_list
 
         return save_flag, model_path_id, delete_flag, model_path_removed
 
@@ -199,8 +202,8 @@ class BanditTopKModelSaver(BaseTopKModelSaver):
         model_path_id = self.get_path_by_config(estimator_id, hpo_config, fe_config, self.identifier)
         model_path_removed = None
         save_flag, delete_flag = False, False
-        sorted_dict = self.get_topk_config(self.sorted_list_path)
-        sorted_list = sorted_dict.get(estimator_id, list())
+        self.sorted_dict = self.get_topk_config(self.sorted_list_path)
+        sorted_list = self.sorted_dict.get(estimator_id, list())
 
         config = (hpo_config, fe_config)
         # Update existed configs
@@ -215,8 +218,7 @@ class BanditTopKModelSaver(BaseTopKModelSaver):
                         if idx == len(sorted_list) - 1:
                             sorted_list.append((config, perf, model_path_id))
                             break
-                    sorted_dict[estimator_id] = sorted_list
-                    self.save_topk_config(self.sorted_list_path, sorted_dict)
+                    self.sorted_dict[estimator_id] = sorted_list
                     return True, model_path_id, False, model_path_removed
                 else:
                     return False, model_path_id, False, model_path_removed
@@ -240,7 +242,6 @@ class BanditTopKModelSaver(BaseTopKModelSaver):
         if model_path_id in [item[2] for item in sorted_list]:
             save_flag = True
 
-        sorted_dict[estimator_id] = sorted_list
-        self.save_topk_config(self.sorted_list_path, sorted_dict)
+        self.sorted_dict[estimator_id] = sorted_list
 
         return save_flag, model_path_id, delete_flag, model_path_removed
