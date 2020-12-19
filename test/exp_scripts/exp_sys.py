@@ -46,7 +46,7 @@ def evaluate_sys(run_id, task_type, mth, dataset, ens_method, enable_meta,
     if task_type == 'cls':
         from solnml.estimators import Classifier
         estimator = Classifier(time_limit=time_limit,
-                               per_run_time_limit=300,
+                               per_run_time_limit=30,
                                output_dir=save_folder,
                                ensemble_method=ens_method,
                                enable_meta_algorithm_selection=_enable_meta,
@@ -61,7 +61,7 @@ def evaluate_sys(run_id, task_type, mth, dataset, ens_method, enable_meta,
     else:
         from solnml.estimators import Regressor
         estimator = Regressor(time_limit=time_limit,
-                              per_run_time_limit=300,
+                              per_run_time_limit=90,
                               output_dir=save_folder,
                               ensemble_method=ens_method,
                               enable_meta_algorithm_selection=_enable_meta,

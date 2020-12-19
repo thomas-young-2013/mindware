@@ -103,7 +103,7 @@ class AutoML(object):
 
         if self.enable_meta_algorithm_selection:
             try:
-                n_algo_recommended = 3
+                n_algo_recommended = 5
                 meta_datasets = kwargs.get('meta_datasets', None)
                 self.logger.info('Executing Meta-Learning based Algorithm Recommendation.')
                 alad = RankNetAdvisor(task_type=self.task_type, n_algorithm=n_algo_recommended,
