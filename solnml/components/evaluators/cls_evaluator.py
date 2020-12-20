@@ -147,7 +147,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                     try:
                         if delete_flag and os.path.exists(model_path_deleted):
                             os.remove(model_path_deleted)
-                            self.logger.info("Model deleted from %s" % model_path)
+                            self.logger.info("Model deleted from %s" % model_path_deleted)
                     except:
                         pass
 
@@ -310,7 +310,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                     try:
                         if delete_flag and os.path.exists(model_path_deleted):
                             os.remove(model_path_deleted)
-                            self.logger.info("Model deleted from %s" % model_path)
+                            self.logger.info("Model deleted from %s" % model_path_deleted)
                     except:
                         pass
 

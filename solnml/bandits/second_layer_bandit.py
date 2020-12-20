@@ -1,6 +1,8 @@
 import copy
 import time
+import os
 import numpy as np
+import pickle as pkl
 from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
 from solnml.components.evaluators.rgs_evaluator import RegressionEvaluator
 from solnml.components.utils.class_loader import get_combined_candidtates
@@ -377,19 +379,36 @@ class SecondLayerBandit(object):
         try:
             with time_limit(self.per_run_time_limit):
                 if self.task_type in CLS_TASKS:
-                    _perf = -ClassificationEvaluator(
+                    evaluator = ClassificationEvaluator(
                         self.local_inc['hpo'], self.local_inc['fe'], self.estimator_id,
                         data_node=self.original_data, scorer=self.metric, if_imbal=self.if_imbal,
                         name='hpo', resampling_strategy=self.evaluation_type,
-                        seed=self.seed, output_dir=self.output_dir, timestamp=self.timestamp)(self.local_inc['hpo'])
+                        seed=self.seed, output_dir=self.output_dir, timestamp=self.timestamp)
                 else:
-                    _perf = -RegressionEvaluator(
+                    evaluator = RegressionEvaluator(
                         self.local_inc['hpo'], self.local_inc['fe'], self.estimator_id,
                         data_node=self.original_data, scorer=self.metric,
                         name='hpo', resampling_strategy=self.evaluation_type,
-                        seed=self.seed, output_dir=self.output_dir, timestamp=self.timestamp)(self.local_inc['hpo'])
+                        seed=self.seed, output_dir=self.output_dir, timestamp=self.timestamp)
+                _perf = -evaluator(self.local_inc['hpo'])
         except Exception as e:
             self.logger.error(str(e))
+
+        # TODO: Need refactoring!
+        sorted_list_path = evaluator.topk_model_saver.sorted_list_path
+        path_list = os.path.split(sorted_list_path)
+        tmp_path = 'tmp_' + path_list[-1]
+        tmp_filepath = os.path.join(os.path.dirname(sorted_list_path), tmp_path)
+
+        # TODO: How to merge when using multi-process
+        if os.path.exists(tmp_filepath):
+            self.logger.info('Temporary config path detected!')
+            with open(tmp_filepath, 'rb') as f1:
+                sorted_file_replica = pkl.load(f1)
+            with open(sorted_list_path, 'wb') as f2:
+                pkl.dump(sorted_file_replica, f2)
+            self.logger.info('Temporary config path merged!')
+
         # Update INC.
         if _perf is not None and np.isfinite(_perf) and _perf > self.incumbent_perf:
             self.inc['hpo'] = self.local_inc['hpo']
