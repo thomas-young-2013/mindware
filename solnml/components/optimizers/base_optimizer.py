@@ -38,13 +38,17 @@ class BaseOptimizer(object):
         tmp_filepath = os.path.join(os.path.dirname(sorted_list_path), tmp_path)
 
         # TODO: How to merge when using multi-process
-        if os.path.exists(tmp_filepath):
-            self.logger.info('Temporary config path detected!')
-            with open(tmp_filepath, 'rb') as f1:
-                sorted_file_replica = pkl.load(f1)
-            with open(sorted_list_path, 'wb') as f2:
-                pkl.dump(sorted_file_replica, f2)
-            self.logger.info('Temporary config path merged!')
+        try:
+            if os.path.exists(tmp_filepath):
+                self.logger.info('Temporary config path detected!')
+                with open(tmp_filepath, 'rb') as f1:
+                    sorted_file_replica = pkl.load(f1)
+                with open(sorted_list_path, 'wb') as f2:
+                    pkl.dump(sorted_file_replica, f2)
+                self.logger.info('Temporary config path merged!')
+        except EOFError:
+            self.logger.error('Temporary config path empty!')
+
 
     def get_evaluation_stats(self):
         return
