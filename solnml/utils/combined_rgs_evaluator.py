@@ -152,6 +152,8 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
                             pkl.dump([op_list, clf], f)
                         self.logger.info("Model saved to %s" % model_path)
 
+                    self.topk_model_saver.save_topk_config()
+
                     try:
                         if delete_flag and os.path.exists(model_path_deleted):
                             os.remove(model_path_deleted)
@@ -159,7 +161,7 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
                     except:
                         pass
 
-                    self.topk_model_saver.save_topk_config()
+
 
                 lock.release()
 
@@ -279,6 +281,8 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
                             pkl.dump([op_list, clf], f)
                         self.logger.info("Model saved to %s" % model_path)
 
+                    self.topk_model_saver.save_topk_config()
+
                     try:
                         if delete_flag and os.path.exists(model_path_deleted):
                             os.remove(model_path_deleted)
@@ -286,7 +290,7 @@ class CombinedRegressionEvaluator(_BaseEvaluator):
                     except:
                         pass
 
-                    self.topk_model_saver.save_topk_config()
+
 
                 lock.release()
             except Exception as e:
