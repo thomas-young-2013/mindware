@@ -6,7 +6,7 @@ psutil
 
 Cython
 pyyaml
-litebo
+lite-bo
 statsmodels
 
 lazy-import
@@ -20,7 +20,7 @@ pyrfr==0.8.0
 scikit-learn==0.21.3
 imbalanced-learn==0.5.0
 tabulate>=0.8.5
-ConfigSpace>=0.4.0,<0.5
+ConfigSpace==0.4.12
 
 torch
 torchvision
