@@ -17,8 +17,8 @@ from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space im
 from solnml.components.utils.config_parser import ConfigParser
 from .autodl_base import AutoDLBase
 
-rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
-resource.setrlimit(resource.RLIMIT_NOFILE, (10240, rlimit[1]))
+# rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
+# resource.setrlimit(resource.RLIMIT_NOFILE, (10240, rlimit[1]))
 
 
 class AutoDL(AutoDLBase):
