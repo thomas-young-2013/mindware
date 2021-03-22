@@ -4,6 +4,10 @@ import pandas as pd
 from solnml.components.utils.constants import *
 from solnml.components.utils.utils import is_discrete, detect_abnormal_type, detect_categorical_type
 from solnml.components.feature_engineering.transformation_graph import DataNode
+from solnml.components.feature_engineering.transformations.preprocessor.imputer import ImputationTransformation
+from solnml.components.feature_engineering.transformations.preprocessor.onehot_encoder import \
+    OneHotTransformation
+from solnml.components.feature_engineering.transformations.selector.variance_selector import VarianceSelector
 
 default_missing_values = ["n/a", "na", "--", "-", "?"]
 
@@ -148,3 +152,98 @@ class DataManager(object):
 
         data = [self.test_X, self.test_y]
         return DataNode(data, self.feature_types, feature_names=self.test_X.columns.values)
+
+    def preprocess(self, input_node, task_type=CLASSIFICATION, train_phase=True):
+        try:
+            input_node = self.remove_uninf_cols(input_node, train_phase=True)
+            input_node = self.impute_cols(input_node)
+            input_node = self.one_hot(input_node)
+        except AttributeError as e:
+            print('data[0] in input_node should be a DataFrame!')
+        input_node = self.remove_cols_with_same_values(input_node)
+        # print('=' * 20)
+        if self.task_type is None or self.task_type in CLS_TASKS:
+            # Label encoding.
+            input_node = self.encode_label(input_node)
+        return input_node
+
+    def preprocess_fit(self, input_node, task_type=CLASSIFICATION):
+        self.task_type = task_type
+        self.variance_selector = None
+        self.onehot_encoder = None
+        self.label_encoder = None
+        preprocessed_node = self.preprocess(input_node, train_phase=True)
+        return preprocessed_node
+
+    def preprocess_transform(self, input_node):
+        preprocessed_node = self.preprocess(input_node, train_phase=False)
+        return preprocessed_node
+
+    def remove_uninf_cols(self, input_node: DataNode, train_phase=True):
+        raw_dataframe = input_node.data[0]
+        types = input_node.feature_types
+        if train_phase:
+            # Remove the uninformative columns.
+            uninformative_columns, uninformative_idx = list(), list()
+            for idx, column in enumerate(list(raw_dataframe)):
+                if raw_dataframe[column].isnull().values.all():
+                    uninformative_columns.append(column)
+                    uninformative_idx.append(idx)
+                    continue
+                if types[idx] == CATEGORICAL:
+                    num_sample = input_node.data[0].shape[0]
+                    num_unique = len(set(input_node.data[0][column]))
+                    if num_unique >= int(0.8 * num_sample):
+                        uninformative_columns.append(column)
+                        uninformative_idx.append(idx)
+            self.uninformative_columns, self.uninformative_idx = uninformative_columns, uninformative_idx
+
+        input_node.feature_types = [types[idx] for idx in range(len(types)) if idx not in self.uninformative_idx]
+        raw_dataframe = raw_dataframe.drop(self.uninformative_columns, axis=1)
+        input_node.data[0] = raw_dataframe
+        return input_node
+
+    def impute_cols(self, input_node: DataNode):
+        raw_dataframe = input_node.data[0]
+        feat_types = input_node.feature_types
+        need_imputation = raw_dataframe.isnull().values.any()
+        if need_imputation:
+            for idx, column in enumerate(list(raw_dataframe)):
+                if raw_dataframe[column].isnull().values.any():
+                    feature_type = feat_types[idx]
+                    if feature_type in [CATEGORICAL, ORDINAL]:
+                        imputer = ImputationTransformation('most_frequent')
+                        input_node = imputer.operate(input_node, [idx])
+                    else:
+                        imputer = ImputationTransformation('median')
+                        input_node = imputer.operate(input_node, [idx])
+        return input_node
+
+    def one_hot(self, input_node: DataNode):
+        # One-hot encoding TO categorical features.
+        categorical_fields = [idx for idx, type in enumerate(input_node.feature_types) if type == CATEGORICAL]
+        if len(categorical_fields) > 0:
+            if self.onehot_encoder is None:
+                self.onehot_encoder = OneHotTransformation()
+            input_node = self.onehot_encoder.operate(input_node, categorical_fields)
+        return input_node
+
+    def remove_cols_with_same_values(self, input_node: DataNode):
+        if self.variance_selector is None:
+            self.variance_selector = VarianceSelector()
+        input_node = self.variance_selector.operate(input_node)
+        return input_node
+
+    def encode_label(self, input_node: DataNode):
+        import pandas as pd
+        from sklearn.preprocessing import LabelEncoder
+        X, y = input_node.data
+        if isinstance(X, pd.DataFrame):
+            X = X.values
+        if y is not None:
+            if self.label_encoder is None:
+                self.label_encoder = LabelEncoder()
+                self.label_encoder.fit(y)
+            y = self.label_encoder.transform(y)
+        input_node.data = (X, y)
+        return input_node
