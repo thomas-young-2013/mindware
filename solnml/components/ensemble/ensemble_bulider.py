@@ -18,25 +18,29 @@ class EnsembleBuilder:
                  output_dir=None):
         self.model = None
         if ensemble_method == 'bagging':
-            self.model = Bagging(stats=stats, data_node=data_node,
+            self.model = Bagging(stats=stats,
+                                 data_node=data_node,
                                  ensemble_size=ensemble_size,
                                  task_type=task_type,
                                  metric=metric,
                                  output_dir=output_dir)
         elif ensemble_method == 'blending':
-            self.model = Blending(stats=stats, data_node=data_node,
+            self.model = Blending(stats=stats,
+                                  data_node=data_node,
                                   ensemble_size=ensemble_size,
                                   task_type=task_type,
                                   metric=metric,
                                   output_dir=output_dir)
         elif ensemble_method == 'stacking':
-            self.model = Stacking(stats=stats, data_node=data_node,
+            self.model = Stacking(stats=stats,
+                                  data_node=data_node,
                                   ensemble_size=ensemble_size,
                                   task_type=task_type,
                                   metric=metric,
                                   output_dir=output_dir)
         elif ensemble_method == 'ensemble_selection':
-            self.model = EnsembleSelection(stats=stats, data_node=data_node,
+            self.model = EnsembleSelection(stats=stats,
+                                           data_node=data_node,
                                            ensemble_size=ensemble_size,
                                            task_type=task_type,
                                            metric=metric,

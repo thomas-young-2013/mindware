@@ -21,12 +21,11 @@ def load_transformer_estimator(model_dir, estimator_id, hpo_config, fe_config, t
     return op_list, model
 
 
-def fetch_predict_estimator(task_type, estimator_id, config, X_train, y_train, weight_balance=0, data_balance=0,
-                            combined=False):
+def fetch_predict_estimator(task_type, estimator_id, config, X_train, y_train, weight_balance=0, data_balance=0):
     # Build the ML estimator.
     from solnml.components.utils.balancing import get_weights, smote
     _fit_params = {}
-    config_dict = config.get_dictionary().copy()
+    config_dict = config.copy()
     if weight_balance == 1:
         _init_params, _fit_params = get_weights(
             y_train, estimator_id, None, {}, {})
@@ -35,15 +34,9 @@ def fetch_predict_estimator(task_type, estimator_id, config, X_train, y_train, w
     if data_balance == 1:
         X_train, y_train = smote(X_train, y_train)
     if task_type in CLS_TASKS:
-        if combined:
-            from solnml.utils.combined_cls_evaluator import get_estimator
-        else:
-            from solnml.components.evaluators.cls_evaluator import get_estimator
+        from solnml.components.evaluators.cls_evaluator import get_estimator
     elif task_type in RGS_TASKS:
-        if combined:
-            from solnml.utils.combined_rgs_evaluator import get_estimator
-        else:
-            from solnml.components.evaluators.rgs_evaluator import get_estimator
+        from solnml.components.evaluators.rgs_evaluator import get_estimator
     _, estimator = get_estimator(config_dict, estimator_id)
 
     estimator.fit(X_train, y_train, **_fit_params)
@@ -98,8 +91,9 @@ class BaseTopKModelSaver(object):
 class CombinedTopKModelSaver(BaseTopKModelSaver):
 
     @staticmethod
-    def get_configuration_id(config):
-        data_dict = config.get_dictionary()
+    def get_configuration_id(config: dict):
+        sorted(config.items(), key=lambda x: x[0])
+        data_dict = dict(config)
         data_list = []
         for key, value in sorted(data_dict.items(), key=lambda t: t[0]):
             if isinstance(value, float):

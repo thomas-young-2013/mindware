@@ -1,7 +1,7 @@
-import os
-import sys
-import time
+from ConfigSpace import ConfigurationSpace, UnParametrizedHyperparameter, CategoricalHyperparameter
 import warnings
+import os
+import time
 import numpy as np
 import pickle as pkl
 from multiprocessing import Lock
@@ -11,51 +11,100 @@ from sklearn.preprocessing import OneHotEncoder
 from solnml.utils.logging_utils import get_logger
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
 from solnml.components.evaluators.evaluate_func import validation
-from solnml.components.fe_optimizers.parse import parse_config, construct_node
-from solnml.components.evaluators.base_evaluator import BanditTopKModelSaver
+from solnml.components.feature_engineering.task_space import get_task_hyperparameter_space
+from solnml.components.feature_engineering.parse import parse_config, construct_node
+from solnml.components.evaluators.base_evaluator import CombinedTopKModelSaver
 from solnml.components.utils.class_loader import get_combined_candidtates
+from solnml.components.models.classification import _classifiers, _addons
+from solnml.components.utils.constants import *
 
 
 def get_estimator(config, estimator_id):
-    from solnml.components.models.classification import _classifiers, _addons
-    _candidates = get_combined_candidtates(_classifiers, _addons)
     classifier_type = estimator_id
     config_ = config.copy()
-    config_['random_state'] = 1
-    estimator = _candidates[classifier_type](**config_)
+    config_['%s:random_state' % classifier_type] = 1
+    hpo_config = dict()
+    for key in config_:
+        key_name = key.split(':')[0]
+        if classifier_type == key_name:
+            act_key = key.split(':')[1]
+            hpo_config[act_key] = config_[key]
+
+    _candidates = get_combined_candidtates(_classifiers, _addons)
+    estimator = _candidates[classifier_type](**hpo_config)
     if hasattr(estimator, 'n_jobs'):
         setattr(estimator, 'n_jobs', 1)
     return classifier_type, estimator
 
 
+def get_hpo_cs(estimator_id, task_type=CLASSIFICATION):
+    _candidates = get_combined_candidtates(_classifiers, _addons)
+    if estimator_id in _candidates:
+        clf_class = _candidates[estimator_id]
+    else:
+        raise ValueError("Algorithm %s not supported!" % estimator_id)
+    cs = clf_class.get_hyperparameter_search_space()
+    return cs
+
+
+def get_cash_cs(task_type=CLASSIFICATION):
+    _candidates = get_combined_candidtates(_classifiers, _addons)
+    cs = ConfigurationSpace()
+    algo = CategoricalHyperparameter('algorithm', _candidates.keys())
+    cs.add_hyperparameter(algo)
+    for estimator_id in _candidates:
+        estimator_cs = get_hpo_cs(estimator_id)
+        parent_hyperparameter = {'parent': algo,
+                                 'value': estimator_id}
+        cs.add_configuration_space(estimator_id, estimator_cs, parent_hyperparameter=parent_hyperparameter)
+    return cs
+
+
+def get_fe_cs(task_type=CLASSIFICATION, include_image=False,
+              include_text=False, include_preprocessors=None, if_imbal=False):
+    cs = get_task_hyperparameter_space(task_type=task_type, include_image=include_image, include_text=include_text,
+                                       include_preprocessors=include_preprocessors, if_imbal=if_imbal)
+    return cs
+
+
+def get_combined_cs(task_type=CLASSIFICATION, include_image=False,
+                    include_text=False, include_preprocessors=None, if_imbal=False):
+    cash_cs = get_cash_cs(task_type)
+    fe_cs = get_fe_cs(task_type,
+                      include_image=include_image, include_text=include_text,
+                      include_preprocessors=include_preprocessors, if_imbal=if_imbal)
+    for hp in fe_cs.get_hyperparameters():
+        cash_cs.add_hyperparameter(hp)
+    for cond in fe_cs.get_conditions():
+        cash_cs.add_condition(cond)
+    for bid in fe_cs.get_forbiddens():
+        cash_cs.add_forbidden_clause(bid)
+    return cash_cs
+
+
 class ClassificationEvaluator(_BaseEvaluator):
-    def __init__(self, clf_config, fe_config, estimator_id, if_imbal=False, scorer=None, data_node=None, name=None,
-                 resampling_strategy='cv', resampling_params=None, seed=1,
-                 timestamp=None, output_dir=None):
+    def __init__(self, fixed_config=None, scorer=None, data_node=None, task_type=0, resampling_strategy='cv',
+                 resampling_params=None, timestamp=None, output_dir=None, seed=1, if_imbal=False):
         self.resampling_strategy = resampling_strategy
         self.resampling_params = resampling_params
-        self.hpo_config = clf_config
 
-        # TODO: Optimize: Fit the same transformers only once
-        self.fe_config = fe_config
-        self.estimator_id = estimator_id
+        self.fixed_config = fixed_config
         self.scorer = scorer if scorer is not None else balanced_accuracy_scorer
         self.if_imbal = if_imbal
+        self.task_type = task_type
         self.data_node = data_node
-        self.name = name
+        self.output_dir = output_dir
         self.seed = seed
         self.onehot_encoder = None
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
-
-        self.output_dir = output_dir
-        self.timestamp = timestamp
+        self.continue_training = False
 
         self.train_node = data_node.copy_()
         self.val_node = data_node.copy_()
 
-        self.continue_training = False
-
-        self.topk_model_saver = BanditTopKModelSaver(k=60, model_dir=self.output_dir, identifier=timestamp)
+        self.timestamp = timestamp
+        # TODO: Top-k k?
+        self.topk_model_saver = CombinedTopKModelSaver(k=60, model_dir=self.output_dir, identifier=timestamp)
 
     def get_fit_params(self, y, estimator):
         from solnml.components.utils.balancing import get_weights
@@ -66,26 +115,24 @@ class ClassificationEvaluator(_BaseEvaluator):
     def __call__(self, config, **kwargs):
         start_time = time.time()
         return_dict = dict()
-
-        if self.name is None:
-            raise ValueError('This evaluator has no name/type!')
-        assert self.name in ['hpo', 'fe']
-
-        if self.name == 'hpo':
-            hpo_config = config if config is not None else self.hpo_config
-            fe_config = kwargs.get('ano_config', self.fe_config)
-        else:
-            fe_config = config if config is not None else self.fe_config
-            hpo_config = kwargs.get('ano_config', self.hpo_config)
-
-        # Prepare configuration.
         self.seed = 1
         downsample_ratio = kwargs.get('resource_ratio', 1.0)
 
+        # Convert Configuration into dictionary
+        if not isinstance(config, dict):
+            config = config.get_dictionary().copy()
+        else:
+            config = config.copy()
+        if self.fixed_config is not None:
+            config.update(self.fixed_config)
+        self.estimator_id = config['algorithm']
+
         if 'holdout' in self.resampling_strategy:
             try:
+                # Prepare data node.
                 with warnings.catch_warnings():
                     warnings.filterwarnings("ignore")
+
                     if self.resampling_params is None or 'test_size' not in self.resampling_params:
                         test_size = 0.33
                     else:
@@ -94,19 +141,19 @@ class ClassificationEvaluator(_BaseEvaluator):
                     from sklearn.model_selection import StratifiedShuffleSplit
                     ss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=self.seed)
                     for train_index, test_index in ss.split(self.data_node.data[0], self.data_node.data[1]):
-                        _X_train, _X_val = self.data_node.data[0][train_index], self.data_node.data[0][test_index]
+                        _x_train, _x_val = self.data_node.data[0][train_index], self.data_node.data[0][test_index]
                         _y_train, _y_val = self.data_node.data[1][train_index], self.data_node.data[1][test_index]
-                    self.train_node.data = [_X_train, _y_train]
-                    self.val_node.data = [_X_val, _y_val]
+                    self.train_node.data = [_x_train, _y_train]
+                    self.val_node.data = [_x_val, _y_val]
 
-                    data_node, op_list = parse_config(self.train_node, fe_config, record=True, if_imbal=self.if_imbal)
+                    data_node, op_list = parse_config(self.train_node, config, record=True, if_imbal=self.if_imbal)
                     _val_node = self.val_node.copy_()
                     _val_node = construct_node(_val_node, op_list)
 
-                _X_train, _y_train = data_node.data
-                _X_val, _y_val = _val_node.data
+                _x_train, _y_train = data_node.data
+                _x_val, _y_val = _val_node.data
 
-                config_dict = hpo_config.get_dictionary().copy()
+                config_dict = config.copy()
                 # Prepare training and initial params for classifier.
                 init_params, fit_params = {}, {}
                 if data_node.enable_balance == 1:
@@ -124,7 +171,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                     y = np.reshape(_y_train, (len(_y_train), 1))
                     self.onehot_encoder.fit(y)
 
-                score = validation(clf, self.scorer, _X_train, _y_train, _X_val, _y_val,
+                score = validation(clf, self.scorer, _x_train, _y_train, _x_val, _y_val,
                                    random_state=self.seed,
                                    onehot=self.onehot_encoder if isinstance(self.scorer,
                                                                             _ThresholdScorer) else None,
@@ -135,9 +182,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                 lock = kwargs.get('rw_lock', Lock())
                 lock.acquire()
                 if np.isfinite(score):
-                    save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(hpo_config,
-                                                                                                       fe_config,
-                                                                                                       score,
+                    save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config, score,
                                                                                                        classifier_id)
                     if save_flag is True:
                         with open(model_path, 'wb') as f:
@@ -153,14 +198,13 @@ class ClassificationEvaluator(_BaseEvaluator):
                     except:
                         pass
 
-
-
                 lock.release()
+
             except Exception as e:
                 import traceback
-                self.logger.info('%s-evaluator: %s' % (self.name, str(e)))
+                traceback.print_exc()
+                self.logger.info('Evaluator: %s' % (str(e)))
                 score = -np.inf
-                traceback.print_exc(file=sys.stdout)
 
         elif 'cv' in self.resampling_strategy:
             # Prepare data node.
@@ -179,20 +223,19 @@ class ClassificationEvaluator(_BaseEvaluator):
                     scores = list()
 
                     for train_index, test_index in skfold.split(self.data_node.data[0], self.data_node.data[1]):
-                        _X_train, _X_val = self.data_node.data[0][train_index], self.data_node.data[0][test_index]
+                        _x_train, _x_val = self.data_node.data[0][train_index], self.data_node.data[0][test_index]
                         _y_train, _y_val = self.data_node.data[1][train_index], self.data_node.data[1][test_index]
-                        self.train_node.data = [_X_train, _y_train]
-                        self.val_node.data = [_X_val, _y_val]
+                        self.train_node.data = [_x_train, _y_train]
+                        self.val_node.data = [_x_val, _y_val]
 
-                        data_node, op_list = parse_config(self.train_node, fe_config, record=True,
-                                                          if_imbal=self.if_imbal)
+                        data_node, op_list = parse_config(self.train_node, config, record=True, if_imbal=self.if_imbal)
                         _val_node = self.val_node.copy_()
                         _val_node = construct_node(_val_node, op_list)
 
-                        _X_train, _y_train = data_node.data
-                        _X_val, _y_val = _val_node.data
+                        _x_train, _y_train = data_node.data
+                        _x_val, _y_val = _val_node.data
 
-                        config_dict = hpo_config.get_dictionary().copy()
+                        config_dict = config.copy()
                         # Prepare training and initial params for classifier.
                         init_params, fit_params = {}, {}
                         if data_node.enable_balance == 1:
@@ -210,7 +253,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                             y = np.reshape(_y_train, (len(_y_train), 1))
                             self.onehot_encoder.fit(y)
 
-                        _score = validation(clf, self.scorer, _X_train, _y_train, _X_val, _y_val,
+                        _score = validation(clf, self.scorer, _x_train, _y_train, _x_val, _y_val,
                                             random_state=self.seed,
                                             onehot=self.onehot_encoder if isinstance(self.scorer,
                                                                                      _ThresholdScorer) else None,
@@ -224,7 +267,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                 lock = kwargs.get('rw_lock', Lock())
                 lock.acquire()
                 if np.isfinite(score):
-                    _ = self.topk_model_saver.add(hpo_config, fe_config, score, classifier_id)
+                    _ = self.topk_model_saver.add(config, score, classifier_id)
                     self.topk_model_saver.save_topk_config()
                 lock.release()
 
@@ -248,29 +291,29 @@ class ClassificationEvaluator(_BaseEvaluator):
                     from sklearn.model_selection import StratifiedShuffleSplit
                     ss = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=self.seed)
                     for train_index, test_index in ss.split(self.data_node.data[0], self.data_node.data[1]):
-                        _X_train, _X_val = self.data_node.data[0][train_index], self.data_node.data[0][test_index]
+                        _x_train, _x_val = self.data_node.data[0][train_index], self.data_node.data[0][test_index]
                         _y_train, _y_val = self.data_node.data[1][train_index], self.data_node.data[1][test_index]
-                    self.train_node.data = [_X_train, _y_train]
-                    self.val_node.data = [_X_val, _y_val]
+                    self.train_node.data = [_x_train, _y_train]
+                    self.val_node.data = [_x_val, _y_val]
 
-                    data_node, op_list = parse_config(self.train_node, fe_config, record=True, if_imbal=self.if_imbal)
+                    data_node, op_list = parse_config(self.train_node, config, record=True, if_imbal=self.if_imbal)
                     _val_node = self.val_node.copy_()
                     _val_node = construct_node(_val_node, op_list)
 
-                _X_train, _y_train = data_node.data
+                _x_train, _y_train = data_node.data
 
                 if downsample_ratio != 1:
                     down_ss = StratifiedShuffleSplit(n_splits=1, test_size=downsample_ratio,
                                                      random_state=self.seed)
-                    for _, _val_index in down_ss.split(_X_train, _y_train):
-                        _act_x_train, _act_y_train = _X_train[_val_index], _y_train[_val_index]
+                    for _, _val_index in down_ss.split(_x_train, _y_train):
+                        _act_x_train, _act_y_train = _x_train[_val_index], _y_train[_val_index]
                 else:
-                    _act_x_train, _act_y_train = _X_train, _y_train
-                    _val_index = list(range(len(_X_train)))
+                    _act_x_train, _act_y_train = _x_train, _y_train
+                    _val_index = list(range(len(_x_train)))
 
-                _X_val, _y_val = _val_node.data
+                _x_val, _y_val = _val_node.data
 
-                config_dict = hpo_config.get_dictionary().copy()
+                config_dict = config.copy()
                 # Prepare training and initial params for classifier.
                 init_params, fit_params = {}, {}
                 if data_node.enable_balance == 1:
@@ -288,8 +331,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                     self.onehot_encoder = OneHotEncoder(categories='auto')
                     y = np.reshape(_y_train, (len(_y_train), 1))
                     self.onehot_encoder.fit(y)
-
-                score = validation(clf, self.scorer, _act_x_train, _act_y_train, _X_val, _y_val,
+                score = validation(clf, self.scorer, _act_x_train, _act_y_train, _x_val, _y_val,
                                    random_state=self.seed,
                                    onehot=self.onehot_encoder if isinstance(self.scorer,
                                                                             _ThresholdScorer) else None,
@@ -301,8 +343,7 @@ class ClassificationEvaluator(_BaseEvaluator):
                 lock = kwargs.get('rw_lock', Lock())
                 lock.acquire()
                 if np.isfinite(score) and downsample_ratio == 1:
-                    save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(hpo_config,
-                                                                                                       fe_config, score,
+                    save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config, score,
                                                                                                        classifier_id)
                     if save_flag is True:
                         with open(model_path, 'wb') as f:
@@ -318,8 +359,6 @@ class ClassificationEvaluator(_BaseEvaluator):
                     except:
                         pass
 
-
-
                 lock.release()
             except Exception as e:
                 import traceback
@@ -329,14 +368,15 @@ class ClassificationEvaluator(_BaseEvaluator):
 
         else:
             raise ValueError('Invalid resampling strategy: %s!' % self.resampling_strategy)
+
         try:
             self.logger.info('Evaluation<%s> | Score: %.4f | Time cost: %.2f seconds | Shape: %s' %
                              (classifier_id,
                               self.scorer._sign * score,
-                              time.time() - start_time, _X_train.shape))
+                              time.time() - start_time, _x_train.shape))
         except:
             pass
 
         # Turn it into a minimization problem.
-        return_dict['objective_value'] = -score
+        return_dict['objective'] = -score
         return -score

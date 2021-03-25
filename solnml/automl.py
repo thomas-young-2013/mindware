@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import traceback
 from solnml.utils.logging_utils import setup_logger, get_logger
 from solnml.components.metrics.metric import get_metric
@@ -10,7 +11,8 @@ from solnml.components.models.regression import _regressors
 from solnml.components.models.classification import _classifiers
 from solnml.components.models.imbalanced_classification import _imb_classifiers
 from solnml.components.meta_learning.algorithm_recomendation.ranknet_advisor_torch import RankNetAdvisor
-from solnml.bandits.first_layer_bandit import FirstLayerBandit
+from solnml.blocks.block_utils import get_node_type, get_execution_tree
+from solnml.utils.functions import is_imbalanced_dataset
 
 classification_algorithms = _classifiers.keys()
 imb_classication_algorithms = _imb_classifiers.keys()
@@ -49,7 +51,7 @@ class AutoML(object):
         self.evaluation_type = evaluation
         self.include_preprocessors = include_preprocessors
 
-        self.amount_of_resource = amount_of_resource
+        self.amount_of_resource = int(1e8) if amount_of_resource is None else amount_of_resource
         self.ensemble_method = ensemble_method
         self.ensemble_size = ensemble_size
         self.enable_meta_algorithm_selection = enable_meta_algorithm_selection
@@ -127,22 +129,39 @@ class AutoML(object):
                 self.logger.error("Meta-Learning based Algorithm Recommendation FAILED: %s." % str(e))
                 traceback.print_exc(file=sys.stdout)
 
-        self.solver = FirstLayerBandit(self.task_type, self.amount_of_resource,
-                                       self.include_algorithms, train_data,
-                                       include_preprocessors=self.include_preprocessors,
-                                       per_run_time_limit=self.per_run_time_limit,
-                                       dataset_name=self.dataset_name,
-                                       ensemble_method=self.ensemble_method,
-                                       ensemble_size=self.ensemble_size,
-                                       inner_opt_algorithm=inner_opt_algorithm,
-                                       metric=self.metric,
-                                       enable_fe=self.enable_fe,
-                                       fe_algo='bo',
-                                       seed=self.seed,
-                                       time_limit=self.time_limit,
-                                       eval_type=self.evaluation_type,
-                                       output_dir=self.output_dir)
-        self.solver.optimize()
+        if self.task_type in CLS_TASKS:
+            from solnml.components.evaluators.cls_evaluator import get_fe_cs, get_cash_cs
+            self.if_imbal = is_imbalanced_dataset(train_data)
+            self.fe_config_space = get_fe_cs(self.task_type, if_imbal=self.if_imbal)
+            self.cash_config_space = get_cash_cs(self.task_type)
+        else:
+            from solnml.components.evaluators.rgs_evaluator import get_fe_cs, get_cash_cs
+            self.fe_config_space = get_fe_cs(self.task_type)
+            self.cash_config_space = get_cash_cs(self.task_type)
+
+        # TODO: Define execution trees flexibly
+        tree_id = kwargs.get("tree_id", 1)
+        tree = get_execution_tree(tree_id)
+        solver_type = get_node_type(tree, 0)
+        self.timestamp = time.time()
+        self.solver = solver_type(tree, 0, self.task_type, self.timestamp,
+                                  self.fe_config_space, self.cash_config_space, train_data,
+                                  per_run_time_limit=self.per_run_time_limit,
+                                  dataset_name=self.dataset_name,
+                                  ensemble_method=self.ensemble_method,
+                                  ensemble_size=self.ensemble_size,
+                                  metric=self.metric,
+                                  seed=self.seed,
+                                  time_limit=self.time_limit,
+                                  trial_num=self.amount_of_resource,
+                                  eval_type=self.evaluation_type,
+                                  output_dir=self.output_dir)
+
+        for i in range(self.amount_of_resource):
+            if not (self.solver.early_stop_flag or self.solver.timeout_flag):
+                self.solver.iterate()
+
+        self.solver.fit_ensemble()
 
     def refit(self):
         self.solver.refit()

@@ -8,7 +8,7 @@ from sklearn.metrics.scorer import _BaseScorer
 from solnml.components.ensemble.base_ensemble import BaseEnsembleModel
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
-from solnml.components.fe_optimizers.parse import construct_node
+from solnml.components.feature_engineering.parse import construct_node
 
 
 class Stacking(BaseEnsembleModel):
@@ -80,10 +80,9 @@ class Stacking(BaseEnsembleModel):
                 if self.base_model_mask[model_cnt] == 1:
                     for j, (train, test) in enumerate(kf.split(X, y)):
                         x_p1, x_p2, y_p1, _ = X[train], X[test], y[train], y[test]
-                        estimator = fetch_predict_estimator(self.task_type, algo_id, config[0], x_p1, y_p1,
+                        estimator = fetch_predict_estimator(self.task_type, algo_id, config, x_p1, y_p1,
                                                             weight_balance=data.enable_balance,
-                                                            data_balance=data.data_balance
-                                                            )
+                                                            data_balance=data.data_balance)
                         with open(
                                 os.path.join(self.output_dir, '%s-model%d_part%d' % (self.timestamp, model_cnt, j)),
                                 'wb') as f:

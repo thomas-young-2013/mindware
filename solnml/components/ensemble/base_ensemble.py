@@ -1,6 +1,5 @@
 from sklearn.metrics.scorer import _BaseScorer
 from sklearn.model_selection import StratifiedShuffleSplit, ShuffleSplit
-import os
 import numpy as np
 import pickle as pkl
 import time
@@ -8,29 +7,26 @@ import time
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.ensemble.unnamed_ensemble import choose_base_models_classification, \
     choose_base_models_regression
-from solnml.components.fe_optimizers.parse import construct_node
-from solnml.components.computation.parallel_fetcher import ParallelFetcher
+from solnml.components.feature_engineering.parse import construct_node
 from solnml.utils.logging_utils import get_logger
 
 
 class BaseEnsembleModel(object):
     """Base class for model ensemble"""
 
-    def __init__(self, stats, data_node,
-                 ensemble_method: str,
+    def __init__(self, stats, ensemble_method: str,
                  ensemble_size: int,
                  task_type: int,
                  metric: _BaseScorer,
+                 data_node,
                  output_dir=None):
         self.stats = stats
-        self.node = data_node
         self.ensemble_method = ensemble_method
         self.ensemble_size = ensemble_size
         self.task_type = task_type
         self.metric = metric
         self.output_dir = output_dir
-        # TODO: n_workers
-        self.fetcher = ParallelFetcher(n_worker=1)
+        self.node = data_node
 
         self.predictions = []
         self.train_labels = None
@@ -93,5 +89,6 @@ class BaseEnsembleModel(object):
     def get_ens_model_info(self):
         raise NotImplementedError
 
+    # TODO: Refit
     def refit(self):
         raise NotImplementedError

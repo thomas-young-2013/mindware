@@ -6,7 +6,6 @@ from solnml.components.feature_engineering.transformations.preprocessor.imputer 
 from solnml.components.feature_engineering.transformations.preprocessor.onehot_encoder import \
     OneHotTransformation
 from solnml.components.feature_engineering.transformations.selector.variance_selector import VarianceSelector
-from solnml.components.fe_optimizers import EvaluationBasedOptimizer
 from solnml.components.metrics.metric import get_metric
 from solnml.utils.logging_utils import setup_logger, get_logger
 

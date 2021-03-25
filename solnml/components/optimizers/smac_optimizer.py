@@ -37,7 +37,7 @@ class SMACOptimizer(BaseOptimizer):
             _threshold = int(len(set(self.config_space.sample_configuration(5000))))
             self.config_num_threshold = _threshold
         self.logger.debug('The maximum trial number in HPO is: %d' % self.config_num_threshold)
-        self.maximum_config_num = min(600, self.config_num_threshold)
+        self.maximum_config_num = min(1500, self.config_num_threshold)
         self.eval_dict = {}
 
     def run(self):

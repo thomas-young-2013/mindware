@@ -40,7 +40,7 @@ def set_stage(udf_stage_list, stage_candidates_dict):
                                                  stage_candidates_dict[stage]}
 
 
-def get_task_hyperparameter_space(task_type, estimator_id, include_preprocessors=None,
+def get_task_hyperparameter_space(task_type, include_preprocessors=None,
                                   include_text=False, include_image=False, if_imbal=False,
                                   optimizer='smac'):
     """
@@ -67,19 +67,18 @@ def get_task_hyperparameter_space(task_type, estimator_id, include_preprocessors
     else:
         _balancer_candadates, trans_types = get_combined_fe_candidtates(_imb_balancer, _bal_addons, trans_types)
 
-    # Avoid transformations, which would take too long
-    # Combinations of non-linear models with feature learning.
+    # TODO: Avoid transformations, which would take too long
     # feature_learning = ["kitchen_sinks", "kernel_pca", "nystroem_sampler"]
-    if task_type in CLS_TASKS:
-        classifier_set = ["adaboost", "decision_tree", "extra_trees",
-                          "gradient_boosting", "k_nearest_neighbors",
-                          "libsvm_svc", "random_forest", "gaussian_nb",
-                          "decision_tree", "lightgbm"]
-
-        if estimator_id in classifier_set:
-            for tran_id in [12, 13, 15]:
-                if tran_id in trans_types:
-                    trans_types.remove(tran_id)
+    # if task_type in CLS_TASKS:
+    #     classifier_set = ["adaboost", "decision_tree", "extra_trees",
+    #                       "gradient_boosting", "k_nearest_neighbors",
+    #                       "libsvm_svc", "random_forest", "gaussian_nb",
+    #                       "decision_tree", "lightgbm"]
+    #
+    #     if estimator_id in classifier_set:
+    #         for tran_id in [12, 13, 15]:
+    #             if tran_id in trans_types:
+    #                 trans_types.remove(tran_id)
 
     preprocessor = dict()
     if include_preprocessors:

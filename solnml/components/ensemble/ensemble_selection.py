@@ -6,7 +6,7 @@ from sklearn.metrics.scorer import _BaseScorer, _PredictScorer, _ThresholdScorer
 
 from solnml.components.utils.constants import *
 from solnml.components.ensemble.base_ensemble import BaseEnsembleModel
-from solnml.components.fe_optimizers.parse import construct_node
+from solnml.components.feature_engineering.parse import construct_node
 
 
 class EnsembleSelection(BaseEnsembleModel):
@@ -262,11 +262,9 @@ class EnsembleSelection(BaseEnsembleModel):
         #         X, y = node.data
         #         if self.weights_[model_cnt] != 0:
         #             self.logger.info("Refit model %d" % model_cnt)
-        #             estimator = fetch_predict_estimator(self.task_type, config[0], X, y,
+        #             estimator = fetch_predict_estimator(self.task_type, config, X, y,
         #                                                 weight_balance=node.enable_balance,
-        #                                                 data_balance=node.data_balance,
-        #                                                 combined=True,
-        #                                                 )
+        #                                                 data_balance=node.data_balance)
         #             with open(model_path, 'wb') as f:
         #                 pkl.dump(estimator, f)
         #         model_cnt += 1

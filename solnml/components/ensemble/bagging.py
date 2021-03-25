@@ -4,8 +4,8 @@ import os
 import pickle as pkl
 
 from solnml.components.utils.constants import CLS_TASKS
-from solnml.components.fe_optimizers.parse import construct_node
 from solnml.components.ensemble.base_ensemble import BaseEnsembleModel
+from solnml.components.feature_engineering.parse import construct_node
 from functools import reduce
 
 

@@ -28,6 +28,7 @@ parser.add_argument('--mode', type=str, default='alter_hpo')
 parser.add_argument('--cv', type=str, choices=['cv', 'holdout', 'partial'], default='holdout')
 parser.add_argument('--ens', type=str, default='None')
 parser.add_argument('--enable_meta', type=str, default='false', choices=['true', 'false'])
+parser.add_argument('--tree_id', type=int, default=0)
 parser.add_argument('--time_cost', type=int, default=600)
 parser.add_argument('--start_id', type=int, default=0)
 parser.add_argument('--rep_num', type=int, default=5)
@@ -39,7 +40,7 @@ if not os.path.exists(save_folder):
 
 
 def evaluate_sys(run_id, task_type, mth, dataset, ens_method, enable_meta,
-                 eval_type='holdout', time_limit=1200, seed=1):
+                 eval_type='holdout', time_limit=1200, seed=1, tree_id=0):
     _task_type = MULTICLASS_CLS if task_type == 'cls' else REGRESSION
     train_data, test_data = load_train_test_data(dataset, task_type=_task_type)
     _enable_meta = True if enable_meta == 'true' else False
@@ -72,14 +73,14 @@ def evaluate_sys(run_id, task_type, mth, dataset, ens_method, enable_meta,
                               n_jobs=1)
 
     start_time = time.time()
-    estimator.fit(train_data, opt_strategy=mth, dataset_id=dataset)
+    estimator.fit(train_data, opt_strategy=mth, dataset_id=dataset, tree_id=tree_id)
     pred = estimator.predict(test_data)
     if task_type == 'cls':
         test_score = balanced_accuracy_score(test_data.data[1], pred)
     else:
         test_score = mean_squared_error(test_data.data[1], pred)
     validation_score = estimator._ml_engine.solver.incumbent_perf
-    eval_dict = estimator._ml_engine.solver.get_eval_dict()
+    # eval_dict = estimator._ml_engine.solver.get_eval_dict()
     print('Run ID         : %d' % run_id)
     print('Dataset        : %s' % dataset)
     print('Val/Test score : %f - %f' % (validation_score, test_score))
@@ -87,7 +88,7 @@ def evaluate_sys(run_id, task_type, mth, dataset, ens_method, enable_meta,
     save_path = save_folder + '%s_%s_%s_%s_%d_%d_%d.pkl' % (
         task_type, mth, dataset, enable_meta, time_limit, (ens_method is None), run_id)
     with open(save_path, 'wb') as f:
-        pickle.dump([dataset, validation_score, test_score, start_time, eval_dict], f)
+        pickle.dump([dataset, validation_score, test_score, start_time], f)
 
     # Delete output dir
     shutil.rmtree(os.path.join(estimator.get_output_dir()))
@@ -196,6 +197,7 @@ if __name__ == "__main__":
     time_cost = args.time_cost
     mode = args.mode
     task_type = args.task_type
+    tree_id = args.tree_id
     ens_method = args.ens
     if ens_method == 'None':
         ens_method = None
@@ -221,7 +223,7 @@ if __name__ == "__main__":
                     print('Running %s with %d-th seed' % (dataset, _id + 1))
                     if method in ['rb', 'fixed', 'alter_hpo', 'combined', 'rb_hpo']:
                         evaluate_sys(_id, task_type, method, dataset, ens_method, enable_meta,
-                                     eval_type=cv, time_limit=time_cost, seed=seed)
+                                     eval_type=cv, time_limit=time_cost, seed=seed, tree_id=tree_id)
                     elif method in ['ausk']:
                         evaluate_ausk(_id, task_type, method, dataset, ens_method, enable_meta,
                                       eval_type=cv, time_limit=time_cost, seed=seed)

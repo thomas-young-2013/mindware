@@ -8,7 +8,7 @@ from sklearn.metrics.scorer import _BaseScorer
 from solnml.components.ensemble.base_ensemble import BaseEnsembleModel
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
-from solnml.components.fe_optimizers.parse import construct_node
+from solnml.components.feature_engineering.parse import construct_node
 
 
 class Blending(BaseEnsembleModel):
@@ -42,14 +42,14 @@ class Blending(BaseEnsembleModel):
                                                                n_estimators=250)
             elif meta_learner == 'lightgbm':
                 from lightgbm import LGBMClassifier
-                self.meta_learner = LGBMClassifier(max_depth=4, learning_rate=0.05, n_estimators=150)
+                self.meta_learner = LGBMClassifier(max_depth=4, learning_rate=0.05, n_estimators=150, n_jobs=1)
         else:
             if meta_learner == 'linear':
                 from sklearn.linear_model import LinearRegression
                 self.meta_learner = LinearRegression()
             elif meta_learner == 'lightgbm':
                 from lightgbm import LGBMRegressor
-                self.meta_learner = LGBMRegressor(max_depth=4, learning_rate=0.05, n_estimators=70)
+                self.meta_learner = LGBMRegressor(max_depth=4, learning_rate=0.05, n_estimators=70, n_jobs=1)
 
     def fit(self, data):
         # Split training data for phase 1 and phase 2
@@ -77,7 +77,7 @@ class Blending(BaseEnsembleModel):
                                                               random_state=1)
 
                 if self.base_model_mask[model_cnt] == 1:
-                    estimator = fetch_predict_estimator(self.task_type, algo_id, config[0], x_p1, y_p1,
+                    estimator = fetch_predict_estimator(self.task_type, algo_id, config, x_p1, y_p1,
                                                         weight_balance=_node.enable_balance,
                                                         data_balance=_node.data_balance)
                     with open(os.path.join(self.output_dir, '%s-blending-model%d' % (self.timestamp, model_cnt)),
