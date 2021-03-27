@@ -85,8 +85,8 @@ def evaluate_sys(run_id, task_type, mth, dataset, ens_method, enable_meta,
     print('Dataset        : %s' % dataset)
     print('Val/Test score : %f - %f' % (validation_score, test_score))
 
-    save_path = save_folder + '%s_%s_%s_%s_%d_%d_%d.pkl' % (
-        task_type, mth, dataset, enable_meta, time_limit, (ens_method is None), run_id)
+    save_path = save_folder + '%s_%s_%s_%s_%d_%d_%d_%d.pkl' % (
+        task_type, mth, dataset, enable_meta, time_limit, (ens_method is None), tree_id, run_id)
     with open(save_path, 'wb') as f:
         pickle.dump([dataset, validation_score, test_score, start_time], f)
 
