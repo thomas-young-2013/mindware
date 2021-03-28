@@ -308,5 +308,4 @@ class AlternatingBlock(AbstractBlock):
             _incumbent.update(self.inc['fe'])
             _incumbent.update(self.inc['hpo'])
             self.incumbent = _incumbent.copy()
-            exit()
             # TODO: Add eval_dict
