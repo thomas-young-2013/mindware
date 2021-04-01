@@ -248,8 +248,8 @@ if __name__ == "__main__":
                         _ens_method = None
                     else:
                         _ens_method = ens_method
-                    file_path = save_folder + '%s_%s_%s_%s_%d_%d_%d.pkl' % (
-                        task_type, mth, dataset, enable_meta, time_cost, (ens_method is None), run_id)
+                    file_path = save_folder + '%s_%s_%s_%s_%d_%d_%d_%d.pkl' % (
+                        task_type, mth, dataset, enable_meta, time_cost, (ens_method is None), tree_id, run_id)
                     if not os.path.exists(file_path):
                         continue
                     with open(file_path, 'rb') as f:
