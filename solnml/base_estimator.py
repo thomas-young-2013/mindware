@@ -29,6 +29,7 @@ class BaseEstimator(object):
             random_state=1,
             n_jobs=1,
             evaluation='holdout',
+            resampling_params=None,
             output_dir="/tmp/",
             delete_output_dir_after_fit=False):
         self.dataset_name = dataset_name
@@ -46,6 +47,7 @@ class BaseEstimator(object):
         self.random_state = random_state
         self.n_jobs = n_jobs
         self.evaluation = evaluation
+        self.resampling_params = resampling_params
         self._ml_engine = None
         # Create output directory.
         if not os.path.exists(output_dir):
@@ -78,6 +80,7 @@ class BaseEstimator(object):
             random_state=self.random_state,
             n_jobs=self.n_jobs,
             evaluation=self.evaluation,
+            resampling_params=self.resampling_params,
             output_dir=self.output_dir
         )
         return engine

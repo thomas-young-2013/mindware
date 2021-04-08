@@ -46,10 +46,12 @@ def get_hpo_cs(estimator_id, task_type=REGRESSION):
     return cs
 
 
-def get_cash_cs(task_type=REGRESSION):
+def get_cash_cs(include_algorithms=None, task_type=REGRESSION):
     _candidates = get_combined_candidtates(_regressors, _addons)
+    if include_algorithms is not None:
+        _candidates = set(include_algorithms).intersection(set(_candidates.keys()))
     cs = ConfigurationSpace()
-    algo = CategoricalHyperparameter('algorithm', _candidates.keys())
+    algo = CategoricalHyperparameter('algorithm', _candidates)
     cs.add_hyperparameter(algo)
     for estimator_id in _candidates:
         estimator_cs = get_hpo_cs(estimator_id)

@@ -25,6 +25,7 @@ class AlternatingBlock(AbstractBlock):
                  output_dir="logs",
                  dataset_name='default_dataset',
                  eval_type='holdout',
+                 resampling_params=None,
                  n_jobs=1,
                  seed=1):
         super(AlternatingBlock, self).__init__(node_list, node_index, task_type, timestamp,
@@ -39,6 +40,7 @@ class AlternatingBlock(AbstractBlock):
                                                output_dir=output_dir,
                                                dataset_name=dataset_name,
                                                eval_type=eval_type,
+                                               resampling_params=resampling_params,
                                                n_jobs=n_jobs,
                                                seed=seed)
 
@@ -86,6 +88,7 @@ class AlternatingBlock(AbstractBlock):
                     output_dir=output_dir,
                     dataset_name=dataset_name,
                     eval_type=eval_type,
+                    resampling_params=resampling_params,
                     n_jobs=n_jobs,
                     seed=seed
                 )
@@ -103,6 +106,7 @@ class AlternatingBlock(AbstractBlock):
                     output_dir=output_dir,
                     dataset_name=dataset_name,
                     eval_type=eval_type,
+                    resampling_params=resampling_params,
                     n_jobs=n_jobs,
                     seed=seed
                 )
@@ -223,6 +227,7 @@ class AlternatingBlock(AbstractBlock):
                 output_dir=self.output_dir,
                 dataset_name=self.dataset_name,
                 eval_type=self.eval_type,
+                resampling_params=self.resampling_params,
                 n_jobs=self.n_jobs,
                 seed=self.seed
             )
@@ -244,6 +249,7 @@ class AlternatingBlock(AbstractBlock):
                 output_dir=self.output_dir,
                 dataset_name=self.dataset_name,
                 eval_type=self.eval_type,
+                resampling_params=self.resampling_params,
                 n_jobs=self.n_jobs,
                 seed=self.seed
             )
@@ -270,7 +276,8 @@ class AlternatingBlock(AbstractBlock):
                         timestamp=self.timestamp,
                         seed=self.seed,
                         output_dir=self.output_dir,
-                        resampling_strategy=self.eval_type)
+                        resampling_strategy=self.eval_type,
+                        resampling_params=self.resampling_params)
                 else:
                     from solnml.components.evaluators.rgs_evaluator import RegressionEvaluator
                     evaluator = RegressionEvaluator(
@@ -280,7 +287,8 @@ class AlternatingBlock(AbstractBlock):
                         timestamp=self.timestamp,
                         seed=self.seed,
                         output_dir=self.output_dir,
-                        resampling_strategy=self.eval_type)
+                        resampling_strategy=self.eval_type,
+                        resampling_params=self.resampling_params)
                 _perf = -evaluator(self.local_inc['hpo'].copy())
         except Exception as e:
             self.logger.error(str(e))

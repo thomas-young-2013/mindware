@@ -33,6 +33,7 @@ class AutoML(object):
                  per_run_time_limit=150,
                  ensemble_size=50,
                  evaluation='holdout',
+                 resampling_params=None,
                  output_dir="logs",
                  logging_config=None,
                  random_state=1,
@@ -49,6 +50,7 @@ class AutoML(object):
         self.logger = self._get_logger(self.dataset_name)
 
         self.evaluation_type = evaluation
+        self.resampling_params = resampling_params
         self.include_preprocessors = include_preprocessors
 
         self.amount_of_resource = int(1e8) if amount_of_resource is None else amount_of_resource
@@ -132,12 +134,13 @@ class AutoML(object):
         if self.task_type in CLS_TASKS:
             from solnml.components.evaluators.cls_evaluator import get_fe_cs, get_cash_cs
             self.if_imbal = is_imbalanced_dataset(train_data)
-            self.fe_config_space = get_fe_cs(self.task_type, if_imbal=self.if_imbal)
-            self.cash_config_space = get_cash_cs(self.task_type)
+            self.fe_config_space = get_fe_cs(self.task_type, include_preprocessors=self.include_preprocessors,
+                                             if_imbal=self.if_imbal)
+            self.cash_config_space = get_cash_cs(self.include_algorithms, self.task_type)
         else:
             from solnml.components.evaluators.rgs_evaluator import get_fe_cs, get_cash_cs
-            self.fe_config_space = get_fe_cs(self.task_type)
-            self.cash_config_space = get_cash_cs(self.task_type)
+            self.fe_config_space = get_fe_cs(self.task_type, include_preprocessors=self.include_preprocessors)
+            self.cash_config_space = get_cash_cs(self.include_algorithms, self.task_type)
 
         # TODO: Define execution trees flexibly
         tree_id = kwargs.get("tree_id", 1)
@@ -155,6 +158,7 @@ class AutoML(object):
                                   time_limit=self.time_limit,
                                   trial_num=self.amount_of_resource,
                                   eval_type=self.evaluation_type,
+                                  resampling_params=self.resampling_params,
                                   output_dir=self.output_dir)
 
         for i in range(self.amount_of_resource):

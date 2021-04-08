@@ -41,7 +41,7 @@ class DataNode(object):
         new_data = list([self.data[0].copy()])
         new_data.append(None if self.data[1] is None else self.data[1].copy())
         new_node = DataNode(new_data, self.feature_types.copy(), self.task_type,
-                            self.feature_names.copy() if self.feature_names else None)
+                            self.feature_names.copy() if self.feature_names is not None else None)
         new_node.trans_hist = self.trans_hist.copy()
         new_node.depth = self.depth
         new_node.enable_balance = self.enable_balance

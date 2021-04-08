@@ -24,6 +24,7 @@ class JointBlock(AbstractBlock):
                  output_dir="logs",
                  dataset_name='default_dataset',
                  eval_type='holdout',
+                 resampling_params=None,
                  n_jobs=1,
                  seed=1):
         super(JointBlock, self).__init__(node_list, node_index, task_type, timestamp,
@@ -38,6 +39,7 @@ class JointBlock(AbstractBlock):
                                          output_dir=output_dir,
                                          dataset_name=dataset_name,
                                          eval_type=eval_type,
+                                         resampling_params=resampling_params,
                                          n_jobs=n_jobs,
                                          seed=seed)
 
@@ -67,7 +69,8 @@ class JointBlock(AbstractBlock):
                 timestamp=self.timestamp,
                 output_dir=self.output_dir,
                 seed=self.seed,
-                resampling_strategy=self.eval_type)
+                resampling_strategy=self.eval_type,
+                resampling_params=self.resampling_params)
         else:
             from solnml.components.evaluators.rgs_evaluator import RegressionEvaluator
             self.evaluator = RegressionEvaluator(
@@ -77,7 +80,8 @@ class JointBlock(AbstractBlock):
                 timestamp=self.timestamp,
                 output_dir=self.output_dir,
                 seed=self.seed,
-                resampling_strategy=self.eval_type)
+                resampling_strategy=self.eval_type,
+                resampling_params=self.resampling_params)
 
         self.optimizer = build_hpo_optimizer(self.eval_type, self.evaluator, self.joint_cs,
                                              output_dir=self.output_dir,

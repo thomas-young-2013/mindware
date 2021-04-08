@@ -23,6 +23,7 @@ class ConditioningBlock(AbstractBlock):
                  output_dir="logs",
                  dataset_name='default_dataset',
                  eval_type='holdout',
+                 resampling_params=None,
                  n_jobs=1,
                  seed=1):
         """
@@ -42,6 +43,7 @@ class ConditioningBlock(AbstractBlock):
                                                 output_dir=output_dir,
                                                 dataset_name=dataset_name,
                                                 eval_type=eval_type,
+                                                resampling_params=resampling_params,
                                                 n_jobs=n_jobs,
                                                 seed=seed)
 
@@ -101,6 +103,7 @@ class ConditioningBlock(AbstractBlock):
                 output_dir=output_dir,
                 dataset_name=dataset_name,
                 eval_type=eval_type,
+                resampling_params=resampling_params,
                 n_jobs=n_jobs,
                 seed=seed
             )

@@ -28,6 +28,7 @@ class AbstractBlock(object):
                  output_dir="logs",
                  dataset_name='default_dataset',
                  eval_type='holdout',
+                 resampling_params=None,
                  n_jobs=1,
                  seed=1):
         # Tree setting
@@ -44,6 +45,7 @@ class AbstractBlock(object):
 
         # Basic settings.
         self.eval_type = eval_type
+        self.resampling_params = resampling_params
         self.task_type = task_type
         self.timestamp = timestamp
         self.fe_config_space = fe_config_space
