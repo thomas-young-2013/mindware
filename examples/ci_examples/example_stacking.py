@@ -1,4 +1,5 @@
 import os
+import shutil
 from sklearn.datasets import load_iris, load_boston
 from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.model_selection import train_test_split
@@ -14,8 +15,8 @@ def test_cls():
 
     time_limit = 120
     print('==> Start to evaluate with Budget %d' % time_limit)
-    ensemble_method = 'bagging'
-    eval_type = 'stacking'
+    ensemble_method = 'stacking'
+    eval_type = 'holdout'
 
     iris = load_iris()
     X, y = iris.data, iris.target
@@ -27,19 +28,22 @@ def test_cls():
     clf = Classifier(time_limit=time_limit,
                      output_dir=save_dir,
                      ensemble_method=ensemble_method,
-                     ensemble_size=10,
+                     enable_meta_algorithm_selection=False,
+                     ensemble_size=4,
                      evaluation=eval_type,
                      metric='acc')
     clf.fit(train_data)
     pred = clf.predict(test_data)
     print(accuracy_score(test_data.data[1], pred))
 
+    shutil.rmtree(save_dir)
+
 
 def test_rgs():
     time_limit = 120
     print('==> Start to evaluate with Budget %d' % time_limit)
-    ensemble_method = 'bagging'
-    eval_type = 'stacking'
+    ensemble_method = 'stacking'
+    eval_type = 'holdout'
 
     boston = load_boston()
     X, y = boston.data, boston.target
@@ -54,6 +58,8 @@ def test_rgs():
 
     rgs = Regressor(metric='mse',
                     ensemble_method=ensemble_method,
+                    enable_meta_algorithm_selection=False,
+                    ensemble_size=4,
                     evaluation=eval_type,
                     time_limit=time_limit,
                     output_dir=save_dir)
@@ -62,6 +68,8 @@ def test_rgs():
     pred = rgs.predict(test_data)
 
     print(mean_squared_error(test_data.data[1], pred))
+
+    shutil.rmtree(save_dir)
 
 
 if __name__ == '__main__':

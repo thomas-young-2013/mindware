@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 import numpy as np
 from ConfigSpace.configuration_space import ConfigurationSpace
@@ -140,12 +141,13 @@ def main():
                      ensemble_method=None,
                      metric='acc')
     _start_time = time.time()
-    _iter_id = 0
 
     clf.fit(train_data)
     pred = clf.predict(test_data)
 
     print(accuracy_score(test_data.data[1], pred))
+
+    shutil.rmtree(save_dir)
 
 
 if __name__ == '__main__':

@@ -1,4 +1,5 @@
 import os
+import shutil
 from sklearn.datasets import load_iris, load_boston
 from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.model_selection import train_test_split
@@ -26,6 +27,7 @@ def test_cls():
 
     clf = Classifier(time_limit=time_limit,
                      output_dir=save_dir,
+                     enable_meta_algorithm_selection=False,
                      ensemble_method=ensemble_method,
                      ensemble_size=10,
                      evaluation=eval_type,
@@ -33,6 +35,8 @@ def test_cls():
     clf.fit(train_data)
     pred = clf.predict(test_data)
     print(accuracy_score(test_data.data[1], pred))
+
+    shutil.rmtree(save_dir)
 
 
 def test_rgs():
@@ -54,6 +58,7 @@ def test_rgs():
 
     rgs = Regressor(metric='mse',
                     ensemble_method=ensemble_method,
+                    enable_meta_algorithm_selection=False,
                     evaluation=eval_type,
                     time_limit=time_limit,
                     output_dir=save_dir)
@@ -62,6 +67,8 @@ def test_rgs():
     pred = rgs.predict(test_data)
 
     print(mean_squared_error(test_data.data[1], pred))
+
+    shutil.rmtree(save_dir)
 
 
 if __name__ == '__main__':
