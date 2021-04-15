@@ -265,9 +265,7 @@ class AlternatingBlock(AbstractBlock):
         try:
             with time_limit(self.per_run_time_limit):
                 if self.task_type in CLS_TASKS:
-                    from solnml.utils.functions import is_imbalanced_dataset
                     from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
-                    self.if_imbal = is_imbalanced_dataset(self.original_data)
                     evaluator = ClassificationEvaluator(
                         self.local_inc['fe'].copy(),
                         scorer=self.metric,

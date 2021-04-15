@@ -5,7 +5,6 @@ from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.optimizers import build_hpo_optimizer
 from solnml.blocks.abstract_block import AbstractBlock
-from solnml.utils.functions import is_imbalanced_dataset
 
 
 class JointBlock(AbstractBlock):
@@ -60,7 +59,6 @@ class JointBlock(AbstractBlock):
         # Define evaluator and optimizer
         if self.task_type in CLS_TASKS:
             from solnml.components.evaluators.cls_evaluator import ClassificationEvaluator
-            self.if_imbal = is_imbalanced_dataset(self.original_data)
             self.evaluator = ClassificationEvaluator(
                 fixed_config=fixed_config,
                 scorer=self.metric,

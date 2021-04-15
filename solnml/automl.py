@@ -102,8 +102,6 @@ class AutoML(object):
         #     train_data = DataBalancer().operate(train_data)
 
         dataset_id = kwargs.get('dataset_id', None)
-        inner_opt_algorithm = kwargs.get('opt_strategy', 'alter_hpo')
-        self.logger.info('Optimization algorithm in 2rd bandit: %s' % inner_opt_algorithm)
 
         if self.enable_meta_algorithm_selection:
             try:
@@ -165,7 +163,8 @@ class AutoML(object):
             if not (self.solver.early_stop_flag or self.solver.timeout_flag):
                 self.solver.iterate()
 
-        self.solver.fit_ensemble()
+        if self.ensemble_method is not None and self.evaluation_type in ['holdout', 'partial']:
+            self.solver.fit_ensemble()
 
     def refit(self):
         self.solver.refit()
