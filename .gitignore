@@ -22,3 +22,21 @@ logs/
 data/
 
 local_examples/
+
+# TensorboardX files.
+runs/
+
+# Jupyter checkpoint files.
+test/.ipynb_checkpoints/
+
+# Other
+.tox
+.pypirc
+.ipynb_checkpoints/
+*~
+.html/
+.mypy_cache/
+
+docs/build/
+
+conf/
