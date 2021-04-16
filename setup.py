@@ -1,21 +1,25 @@
 import sys
-import pathlib
+from pathlib import Path
 from setuptools import setup, find_packages
 
-with open('requirements.txt') as fp:
-    install_reqs = [r.rstrip() for r in fp.readlines()
-                    if not r.startswith('#') and not r.startswith('git+')]
+requirements = dict()
+for extra in ["dev", "main"]:
+    # Skip `package @ git+[repo_url]` because not supported by pypi
+    requirements[extra] = [r
+                           for r in Path("requirements/%s.txt" % extra).read_text().splitlines()
+                           if '@' not in r
+                           ]
 
 if sys.version_info < (3, 5, 2):
     raise ValueError("Soln-ML requires Python 3.5.2 or newer.")
 
 if sys.version_info < (3, 6, 0):
     # NumPy 1.19.x doesn't support Python 3.5, only 3.6-3.8.
-    install_reqs.remove('numpy>=1.9.0')
-    install_reqs.append('numpy>=1.9.0,<=1.18.4')
+    requirements['main'].remove('numpy>=1.9.0')
+    requirements['main'].append('numpy>=1.9.0,<=1.18.4')
 
 # The directory containing this file
-HERE = pathlib.Path(__file__).parent
+HERE = Path(__file__).parent
 
 # The text of the README file
 README = (HERE / "README.md").read_text()
@@ -34,4 +38,5 @@ setup(name='soln-ml',
       test_suite='nose.collector',
       python_requires='>=3.5.*',
       include_package_data=True,
-      install_requires=install_reqs)
+      install_requires=requirements["main"],
+      extras_require={"dev": requirements["dev"]})
