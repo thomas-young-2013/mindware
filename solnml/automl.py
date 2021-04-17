@@ -157,7 +157,8 @@ class AutoML(object):
                                   trial_num=self.amount_of_resource,
                                   eval_type=self.evaluation_type,
                                   resampling_params=self.resampling_params,
-                                  output_dir=self.output_dir)
+                                  output_dir=self.output_dir,
+                                  n_jobs=self.n_jobs)
 
         for i in range(self.amount_of_resource):
             if not (self.solver.early_stop_flag or self.solver.timeout_flag):
