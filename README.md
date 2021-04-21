@@ -1,4 +1,6 @@
-![](docs/logos/soln_ml_300.jpg)
+<p align="center">
+<img src="https://raw.githubusercontent.com/thomas-young-2013/soln-ml/dev_refactor/docs/logos/logo.jpg" width="68%">
+</p>
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/thomas-young-2013/soln-ml/blob/master/LICENSE)
 [![Build Status](https://api.travis-ci.org/thomas-young-2013/soln-ml.svg?branch=dev_refactor)](https://www.travis-ci.org/github/thomas-young-2013/soln-ml)
