@@ -16,7 +16,9 @@ if sys.version_info < (3, 5, 2):
 if sys.version_info < (3, 6, 0):
     # NumPy 1.19.x doesn't support Python 3.5, only 3.6-3.8.
     requirements['main'].remove('numpy>=1.9.0,<1.20.0')
+    requirements['main'].remove('lightgbm')
     requirements['main'].append('numpy>=1.9.0,<=1.18.4')
+    requirements['main'].append('lightgbm<3.2.0')
 
 # The directory containing this file
 HERE = Path(__file__).parent
