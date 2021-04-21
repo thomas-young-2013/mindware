@@ -1,21 +1,19 @@
 setuptools
+pandas>=0.24.0
+numpy>=1.9.0,<1.20.0
+scipy>=0.14.1
+Cython
+
 nose
 liac-arff
 pillow
 psutil
-
-Cython
 pyyaml
-lite-bo
 statsmodels
-
 lazy-import
-lightgbm
 scikit-optimize
 
-pandas>=0.24.0
-numpy>=1.9.0
-scipy>=0.14.1
+lightgbm
 pyrfr==0.8.0
 scikit-learn==0.21.3
 imbalanced-learn==0.5.0
@@ -24,3 +22,5 @@ ConfigSpace==0.4.12
 
 torch
 torchvision
+
+lite-bo
