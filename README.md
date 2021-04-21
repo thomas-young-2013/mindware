@@ -1,13 +1,13 @@
 ![](docs/logos/soln_ml_300.jpg)
 
-[![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/thomas-young-2013/automl-toolkit/blob/master/LICENSE)
+[![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/thomas-young-2013/soln-ml/blob/master/LICENSE)
 [![Build Status](https://api.travis-ci.org/thomas-young-2013/soln-ml.svg?branch=dev_refactor)](https://www.travis-ci.org/github/thomas-young-2013/soln-ml)
-[![Issues](https://img.shields.io/github/issues-raw/thomas-young-2013/automl-toolkit.svg)](https://github.com/thomas-young-2013/automl-toolkit/issues?q=is%3Aissue+is%3Aopen)
-[![Bugs](https://img.shields.io/github/issues/thomas-young-2013/automl-toolkit/bug.svg)](https://github.com/thomas-young-2013/automl-toolkit/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
-[![Pull Requests](https://img.shields.io/github/issues-pr-raw/thomas-young-2013/automl-toolkit.svg)](https://github.com/thomas-young-2013/lite-bo/pulls?q=is%3Apr+is%3Aopen)
-[![Version](https://img.shields.io/github/release/thomas-young-2013/automl-toolkit.svg)](https://github.com/thomas-young-2013/automl-toolkit/releases)
+[![Issues](https://img.shields.io/github/issues-raw/thomas-young-2013/soln-ml.svg)](https://github.com/thomas-young-2013/soln-ml/issues?q=is%3Aissue+is%3Aopen)
+[![Bugs](https://img.shields.io/github/issues/thomas-young-2013/soln-ml/bug.svg)](https://github.com/thomas-young-2013/soln-ml/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
+[![Pull Requests](https://img.shields.io/github/issues-pr-raw/thomas-young-2013/soln-ml.svg)](https://github.com/thomas-young-2013/lite-bo/pulls?q=is%3Apr+is%3Aopen)
+[![Version](https://img.shields.io/github/release/thomas-young-2013/soln-ml.svg)](https://github.com/thomas-young-2013/soln-ml/releases)
 <!--[![Join the chat at https://gitter.im/bbo-open-box](https://badges.gitter.im/bbo-open-box.svg)](https://gitter.im/bbo-open-box?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)-->
-[![Documentation Status](https://readthedocs.org/projects/automl-toolkit/badge/?version=latest)](https://automl-toolkit.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/soln-ml/badge/?version=latest)](https://soln-ml.readthedocs.io/en/latest/?badge=latest)
 
 ------------------
 
@@ -55,7 +55,7 @@ clf.fit(train_data)
 predictions = clf.predict(test_data)
 ```
 
-For more details, please check [examples](https://github.com/thomas-young-2013/automl-toolkit/tree/master/examples).
+For more details, please check [examples](https://github.com/thomas-young-2013/soln-ml/tree/master/examples).
 
 ------------------
 
