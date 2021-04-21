@@ -1,7 +1,7 @@
 ![](docs/logos/soln_ml_300.jpg)
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/thomas-young-2013/automl-toolkit/blob/master/LICENSE)
-[![Build Status](https://api.travis-ci.org/thomas-young-2013/automl-toolkit.svg?branch=master)](https://api.travis-ci.org/thomas-young-2013)
+[![Build Status](https://api.travis-ci.org/thomas-young-2013/soln-ml.svg?branch=dev_refactor)](https://www.travis-ci.org/github/thomas-young-2013/soln-ml)
 [![Issues](https://img.shields.io/github/issues-raw/thomas-young-2013/automl-toolkit.svg)](https://github.com/thomas-young-2013/automl-toolkit/issues?q=is%3Aissue+is%3Aopen)
 [![Bugs](https://img.shields.io/github/issues/thomas-young-2013/automl-toolkit/bug.svg)](https://github.com/thomas-young-2013/automl-toolkit/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
 [![Pull Requests](https://img.shields.io/github/issues-pr-raw/thomas-young-2013/automl-toolkit.svg)](https://github.com/thomas-young-2013/lite-bo/pulls?q=is%3Apr+is%3Aopen)
