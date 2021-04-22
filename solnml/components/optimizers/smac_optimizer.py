@@ -28,6 +28,7 @@ class SMACOptimizer(BaseOptimizer):
                                 time_limit_per_trial=self.per_run_time_limit,
                                 random_state=self.seed)
         else:
+            # TODO: Potential read-write conflict on history file.
             self.optimizer = pBO(objective_function=self.evaluator,
                                  config_space=config_space,
                                  batch_size=n_jobs,
