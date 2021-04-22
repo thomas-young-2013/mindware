@@ -39,7 +39,8 @@ _preprocessor2 = OrderedDict({'discrete_categorizer': DiscreteCategorizer})
 _preprocessor = OrderedDict()
 for key in _generator:
     # if key not in ['arithmetic_transformer', 'binary_transformer', 'lda_decomposer', 'pca_decomposer', 'kitchen_sinks']:
-    if key not in ['arithmetic_transformer', 'binary_transformer', 'lda_decomposer']:
+    # TODO: Remove kernel_pca temporarily since it may lead to errors during refit().
+    if key not in ['arithmetic_transformer', 'binary_transformer', 'lda_decomposer', 'kernel_pca']:
         _preprocessor[key] = _generator[key]
 for key in _selector:
     # if key not in ['rfe_selector', 'variance_selector', 'percentile_selector', 'percentile_selector_regression']:
