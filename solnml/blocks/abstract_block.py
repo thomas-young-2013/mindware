@@ -7,8 +7,8 @@ from solnml.components.metrics.metric import get_metric
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.feature_engineering.parse import construct_node, parse_config
 from solnml.components.ensemble.ensemble_bulider import EnsembleBuilder
-from solnml.components.evaluators.base_evaluator import load_combined_transformer_estimator, fetch_predict_estimator, \
-    CombinedTopKModelSaver
+from solnml.components.evaluators.base_evaluator import fetch_predict_estimator
+from solnml.components.utils.topk_saver import CombinedTopKModelSaver, load_combined_transformer_estimator
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.utils.functions import is_imbalanced_dataset
 from solnml.utils.logging_utils import get_logger

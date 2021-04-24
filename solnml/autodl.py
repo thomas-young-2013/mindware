@@ -17,6 +17,7 @@ from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space im
 from solnml.components.utils.config_parser import ConfigParser
 from .autodl_base import AutoDLBase
 
+
 # rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
 # resource.setrlimit(resource.RLIMIT_NOFILE, (10240, rlimit[1]))
 
@@ -89,6 +90,7 @@ class AutoDL(AutoDLBase):
             optimizer = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs,
                                             output_dir=self.output_dir,
                                             per_run_time_limit=100000,
+                                            timestamp=self.timestamp,
                                             seed=self.seed, n_jobs=self.n_jobs)
             self.solvers[estimator_id] = optimizer
             self.evaluators[estimator_id] = hpo_evaluator
@@ -368,6 +370,7 @@ class AutoDL(AutoDLBase):
         optimizer = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs,
                                         output_dir=self.output_dir,
                                         per_run_time_limit=100000,
+                                        timestamp=self.timestamp,
                                         seed=self.seed, n_jobs=self.n_jobs)
         self.solvers['hpo_solver'] = optimizer
         self.evaluators['hpo_solver'] = hpo_evaluator

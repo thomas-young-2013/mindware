@@ -1,10 +1,8 @@
-from ConfigSpace import ConfigurationSpace, UnParametrizedHyperparameter, CategoricalHyperparameter
-import os
+from ConfigSpace import ConfigurationSpace, CategoricalHyperparameter
 import time
 import warnings
 import numpy as np
 import pickle as pkl
-from multiprocessing import Lock
 from sklearn.metrics.scorer import balanced_accuracy_scorer
 
 from solnml.utils.logging_utils import get_logger
@@ -12,7 +10,7 @@ from solnml.components.evaluators.base_evaluator import _BaseEvaluator
 from solnml.components.evaluators.evaluate_func import validation
 from solnml.components.feature_engineering.task_space import get_task_hyperparameter_space
 from solnml.components.feature_engineering.parse import parse_config, construct_node
-from solnml.components.evaluators.base_evaluator import CombinedTopKModelSaver
+from solnml.components.utils.topk_saver import CombinedTopKModelSaver
 from solnml.components.utils.class_loader import get_combined_candidtates
 from solnml.components.models.regression import _regressors, _addons
 from solnml.components.utils.constants import *
@@ -51,7 +49,7 @@ def get_cash_cs(include_algorithms=None, task_type=REGRESSION):
     if include_algorithms is not None:
         _candidates = set(include_algorithms).intersection(set(_candidates.keys()))
     cs = ConfigurationSpace()
-    algo = CategoricalHyperparameter('algorithm', _candidates)
+    algo = CategoricalHyperparameter('algorithm', list(_candidates))
     cs.add_hyperparameter(algo)
     for estimator_id in _candidates:
         estimator_cs = get_hpo_cs(estimator_id)
@@ -102,8 +100,6 @@ class RegressionEvaluator(_BaseEvaluator):
         self.val_node = data_node.copy_()
 
         self.timestamp = timestamp
-        # TODO: Top-k k?
-        self.topk_model_saver = CombinedTopKModelSaver(k=60, model_dir=self.output_dir, identifier=timestamp)
 
     def __call__(self, config, **kwargs):
         start_time = time.time()
@@ -153,28 +149,12 @@ class RegressionEvaluator(_BaseEvaluator):
                 score = validation(clf, self.scorer, _x_train, _y_train, _x_val, _y_val,
                                    random_state=self.seed)
 
-                if 'rw_lock' not in kwargs or kwargs['rw_lock'] is None:
-                    self.logger.info('rw_lock not defined! Possible read-write conflicts may happen!')
-                lock = kwargs.get('rw_lock', Lock())
-                lock.acquire()
                 if np.isfinite(score):
-                    save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config, score,
-                                                                                                       regressor_id)
-                    if save_flag is True:
-                        with open(model_path, 'wb') as f:
-                            pkl.dump([op_list, clf], f)
-                        self.logger.info("Model saved to %s" % model_path)
+                    model_path = CombinedTopKModelSaver.get_path_by_config(self.output_dir, config, self.timestamp)
 
-                    self.topk_model_saver.save_topk_config()
-
-                    try:
-                        if delete_flag and os.path.exists(model_path_deleted):
-                            os.remove(model_path_deleted)
-                            self.logger.info("Model deleted from %s" % model_path_deleted)
-                    except:
-                        pass
-
-                lock.release()
+                    with open(model_path, 'wb') as f:
+                        pkl.dump([op_list, clf], f)
+                    self.logger.info("Model saved to %s" % model_path)
 
             except Exception as e:
                 import traceback
@@ -219,16 +199,6 @@ class RegressionEvaluator(_BaseEvaluator):
                                             random_state=self.seed)
                         scores.append(_score)
                     score = np.mean(scores)
-
-                # TODO: Don't save models for cv
-                if 'rw_lock' not in kwargs or kwargs['rw_lock'] is None:
-                    self.logger.info('rw_lock not defined! Possible read-write conflicts may happen!')
-                lock = kwargs.get('rw_lock', Lock())
-                lock.acquire()
-                if np.isfinite(score):
-                    _ = self.topk_model_saver.add(config, score, regressor_id)
-                    self.topk_model_saver.save_topk_config()
-                lock.release()
 
             except Exception as e:
                 import traceback
@@ -279,29 +249,13 @@ class RegressionEvaluator(_BaseEvaluator):
                 score = validation(clf, self.scorer, _act_x_train, _act_y_train, _x_val, _y_val,
                                    random_state=self.seed)
 
-                # TODO: Only save models with maximum resources
-                if 'rw_lock' not in kwargs or kwargs['rw_lock'] is None:
-                    self.logger.info('rw_lock not defined! Possible read-write conflicts may happen!')
-                lock = kwargs.get('rw_lock', Lock())
-                lock.acquire()
                 if np.isfinite(score) and downsample_ratio == 1:
-                    save_flag, model_path, delete_flag, model_path_deleted = self.topk_model_saver.add(config, score,
-                                                                                                       regressor_id)
-                    if save_flag is True:
-                        with open(model_path, 'wb') as f:
-                            pkl.dump([op_list, clf], f)
-                        self.logger.info("Model saved to %s" % model_path)
+                    model_path = CombinedTopKModelSaver.get_path_by_config(self.output_dir, config, self.timestamp)
 
-                    self.topk_model_saver.save_topk_config()
+                    with open(model_path, 'wb') as f:
+                        pkl.dump([op_list, clf], f)
+                    self.logger.info("Model saved to %s" % model_path)
 
-                    try:
-                        if delete_flag and os.path.exists(model_path_deleted):
-                            os.remove(model_path_deleted)
-                            self.logger.info("Model deleted from %s" % model_path_deleted)
-                    except:
-                        pass
-
-                lock.release()
             except Exception as e:
                 import traceback
                 traceback.print_exc()

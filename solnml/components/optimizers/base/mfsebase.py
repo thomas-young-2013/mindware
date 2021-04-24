@@ -66,6 +66,8 @@ class MfseBase(object):
         time_elapsed = time.time() - start_time
         self.logger.info("Choosing next batch of configurations took %.2f sec." % time_elapsed)
 
+        full_config_list = list()
+        full_perf_list = list()
         with ParallelProcessEvaluator(self.eval_func, n_worker=self.n_workers) as executor:
             for i in range((s + 1) - int(skip_last)):  # changed from s + 1
                 if time.time() > budget + start_time:
@@ -114,6 +116,8 @@ class MfseBase(object):
                 if int(n_resource) == self.R:
                     self.incumbent_configs.extend(T)
                     self.incumbent_perfs.extend(val_losses)
+                    full_config_list.extend(T)
+                    full_perf_list.extend(val_losses)
 
                 # Select a number of best configurations for the next loop.
                 # Filter out early stops, if any.
@@ -133,3 +137,5 @@ class MfseBase(object):
                     config_dict[config] = self.target_y[item][i]
                 observations.append(config_dict)
             self.mf_advisor.update_mf_observations(observations)
+
+        return full_config_list, full_perf_list

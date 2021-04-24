@@ -6,10 +6,11 @@ import pickle as pkl
 from solnml.utils.constant import MAX_INT
 from solnml.utils.logging_utils import get_logger
 from solnml.components.evaluators.base_evaluator import _BaseEvaluator
+from solnml.components.utils.topk_saver import CombinedTopKModelSaver
 
 
 class BaseOptimizer(object):
-    def __init__(self, evaluator: _BaseEvaluator, config_space, name, seed=None):
+    def __init__(self, evaluator: _BaseEvaluator, config_space, name, timestamp, output_dir=None, seed=None):
         self.evaluator = evaluator
         self.config_space = config_space
 
@@ -22,6 +23,9 @@ class BaseOptimizer(object):
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
         self.init_hpo_iter_num = None
         self.early_stopped_flag = False
+        self.timestamp = timestamp
+        self.output_dir = output_dir
+        self.topk_saver = CombinedTopKModelSaver(k=50, model_dir=self.output_dir, identifier=self.timestamp)
 
     @abc.abstractmethod
     def run(self):
@@ -31,24 +35,42 @@ class BaseOptimizer(object):
     def iterate(self, budget=MAX_INT):
         pass
 
-    def combine_tmp_config_path(self):
-        sorted_list_path = self.evaluator.topk_model_saver.sorted_list_path
-        path_list = os.path.split(sorted_list_path)
-        tmp_path = 'tmp_' + path_list[-1]
-        tmp_filepath = os.path.join(os.path.dirname(sorted_list_path), tmp_path)
+    # TODO：Refactor the other optimizers
+    def update_saver(self, config_list, perf_list):
+        for i, perf in enumerate(perf_list):
+            if np.isfinite(perf) and perf != MAX_INT:
+                if not isinstance(config_list[i], dict):
+                    config = config_list[i].get_dictionary().copy()
+                else:
+                    config = config_list[i].copy()
+                if self.evaluator.fixed_config is not None:
+                    if not isinstance(self.evaluator.fixed_config, dict):
+                        fixed_config = self.evaluator.fixed_config.get_dictionary().copy()
+                    else:
+                        fixed_config = self.evaluator.fixed_config.copy()
+                    config.update(fixed_config)
+                classifier_id = config['algorithm']
+                # -perf: The larger, the better.
+                save_flag, model_path, delete_flag, model_path_deleted = self.topk_saver.add(config, -perf,
+                                                                                             classifier_id)
+                # By default, the evaluator has already stored the models.
+                if save_flag:
+                    pass
+                else:
+                    os.remove(model_path)
+                    self.logger.info("Model deleted from %s" % model_path)
 
-        # TODO: How to merge when using multi-process
-        try:
-            if os.path.exists(tmp_filepath):
-                self.logger.info('Temporary config path detected!')
-                with open(tmp_filepath, 'rb') as f1:
-                    sorted_file_replica = pkl.load(f1)
-                with open(sorted_list_path, 'wb') as f2:
-                    pkl.dump(sorted_file_replica, f2)
-                self.logger.info('Temporary config path merged!')
-        except EOFError:
-            self.logger.error('Temporary config path empty!')
-
+                try:
+                    if delete_flag:
+                        os.remove(model_path_deleted)
+                        self.logger.info("Model deleted from %s" % model_path_deleted)
+                    else:
+                        pass
+                except:
+                    pass
+            else:
+                continue
+        self.topk_saver.save_topk_config()
 
     def get_evaluation_stats(self):
         return

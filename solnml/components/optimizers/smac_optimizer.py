@@ -8,15 +8,14 @@ from solnml.components.optimizers.base_optimizer import BaseOptimizer, MAX_INT
 
 class SMACOptimizer(BaseOptimizer):
     def __init__(self, evaluator, config_space, name, time_limit=None, evaluation_limit=None,
-                 per_run_time_limit=300, per_run_mem_limit=1024, output_dir='./',
+                 per_run_time_limit=300, per_run_mem_limit=1024, output_dir='./', timestamp=None,
                  inner_iter_num_per_iter=1, seed=1, n_jobs=1):
-        super().__init__(evaluator, config_space, name, seed)
+        super().__init__(evaluator, config_space, name, timestamp=timestamp, output_dir=output_dir, seed=seed)
         self.time_limit = time_limit
         self.evaluation_num_limit = evaluation_limit
         self.inner_iter_num_per_iter = inner_iter_num_per_iter
         self.per_run_time_limit = per_run_time_limit
         self.per_run_mem_limit = per_run_mem_limit
-        self.output_dir = output_dir
 
         if n_jobs == 1:
             self.optimizer = BO(objective_function=self.evaluator,
@@ -87,11 +86,11 @@ class SMACOptimizer(BaseOptimizer):
                     self.logger.warning('Time limit exceeded!')
                     break
                 _config, _status, _perf, _ = self.optimizer.iterate()
+                self.update_saver([_config], [_perf[0]])
                 if _status == SUCCESS:
                     self.exp_output[time.time()] = (_config, _perf[0])
                     self.configs.append(_config)
                     self.perfs.append(-_perf[0])
-                    self.combine_tmp_config_path()
         else:
             # TODO: Cannot early stop if time elapsed since OpenBox does't support time_limit so far.
             if len(self.configs) >= self.maximum_config_num:
@@ -102,12 +101,12 @@ class SMACOptimizer(BaseOptimizer):
                 self.logger.warning('Time limit exceeded!')
             else:
                 _config_list, _status_list, _perf_list = self.optimizer.async_iterate(n=inner_iter_num)
+                self.update_saver(_config_list, _perf_list)
                 for i, _config in enumerate(_config_list):
                     if _status_list[i] == SUCCESS:
                         self.exp_output[time.time()] = (_config, _perf_list[i])
                         self.configs.append(_config)
                         self.perfs.append(-_perf_list[i])
-                        self.combine_tmp_config_path()
 
         runhistory = self.optimizer.get_history()
         if self.name == 'hpo':

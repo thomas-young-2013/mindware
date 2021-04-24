@@ -85,15 +85,15 @@ class JointBlock(AbstractBlock):
                                              output_dir=self.output_dir,
                                              per_run_time_limit=self.per_run_time_limit,
                                              inner_iter_num_per_iter=1,
+                                             timestamp=self.timestamp,
                                              seed=self.seed, n_jobs=self.n_jobs)
 
     def iterate(self, trial_num=10):
-        for _ in range(trial_num):
-            self.optimizer.iterate()
-            if time.time() - self.timestamp > self.time_limit:
-                self.timeout_flag = True
-                self.logger.info('Time elapsed!')
-                break
+        self.optimizer.inner_iter_num_per_iter = trial_num
+        self.optimizer.iterate(budget=self.time_limit + self.timestamp - time.time())
+        if time.time() - self.timestamp > self.time_limit:
+            self.timeout_flag = True
+            self.logger.info('Time elapsed!')
         self.early_stop_flag = self.optimizer.early_stopped_flag
         self.incumbent_perf = self.optimizer.incumbent_perf
         self.incumbent = self.optimizer.incumbent_config.get_dictionary().copy()
