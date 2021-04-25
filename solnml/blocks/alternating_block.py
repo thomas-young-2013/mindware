@@ -5,6 +5,7 @@ import pickle as pkl
 from ConfigSpace import ConfigurationSpace
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.utils.constants import CLS_TASKS
+from solnml.components.utils.topk_saver import CombinedTopKModelSaver
 from solnml.blocks.abstract_block import AbstractBlock
 from solnml.utils.decorators import time_limit
 
@@ -111,6 +112,8 @@ class AlternatingBlock(AbstractBlock):
                     seed=seed
                 )
 
+        self.topk_saver = CombinedTopKModelSaver(k=50, model_dir=self.output_dir, identifier=self.timestamp)
+
     def iterate(self, trial_num=10):
         # First choose one arm.
         arm_to_pull = self.arms[self.pull_cnt % 2]
@@ -167,7 +170,6 @@ class AlternatingBlock(AbstractBlock):
                         self.logger.info('Initial hp_config for FE has changed!')
                     self.init_config['hpo'] = cur_inc
 
-            # TODO: Test this part
             # Evaluate joint result here
             # Alter-HPO specific
             if arm_to_pull == 'fe' and self.sub_bandits['fe'].fixed_config != self.local_inc['hpo']:
@@ -291,19 +293,30 @@ class AlternatingBlock(AbstractBlock):
         except Exception as e:
             self.logger.error(str(e))
 
-        sorted_list_path = evaluator.topk_model_saver.sorted_list_path
-        path_list = os.path.split(sorted_list_path)
-        tmp_path = 'tmp_' + path_list[-1]
-        tmp_filepath = os.path.join(os.path.dirname(sorted_list_path), tmp_path)
+        if _perf is not None:
+            _config = self.local_inc['fe'].copy()
+            _config.update(self.local_inc['hpo'].copy())
 
-        # TODO: How to merge when using multi-process
-        if os.path.exists(tmp_filepath):
-            self.logger.info('Temporary config path detected!')
-            with open(tmp_filepath, 'rb') as f1:
-                sorted_file_replica = pkl.load(f1)
-            with open(sorted_list_path, 'wb') as f2:
-                pkl.dump(sorted_file_replica, f2)
-            self.logger.info('Temporary config path merged!')
+            classifier_id = _config['algorithm']
+            # -perf: The larger, the better.
+            save_flag, model_path, delete_flag, model_path_deleted = self.topk_saver.add(_config, -_perf,
+                                                                                         classifier_id)
+            # By default, the evaluator has already stored the models.
+            if save_flag:
+                pass
+            else:
+                os.remove(model_path)
+                self.logger.info("Model deleted from %s" % model_path)
+
+            try:
+                if delete_flag:
+                    os.remove(model_path_deleted)
+                    self.logger.info("Model deleted from %s" % model_path_deleted)
+                else:
+                    pass
+            except:
+                pass
+            self.topk_saver.save_topk_config()
 
         # Update INC.
         if _perf is not None and np.isfinite(_perf) and _perf > self.incumbent_perf:
