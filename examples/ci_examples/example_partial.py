@@ -41,4 +41,6 @@ def test_cls():
 
 
 if __name__ == '__main__':
-    test_cls()
+    # TODO:Openbox issue
+    # test_cls()
+    pass

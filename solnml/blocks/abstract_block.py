@@ -91,7 +91,7 @@ class AbstractBlock(object):
                                                         weight_balance=data_node.enable_balance,
                                                         data_balance=data_node.data_balance)
                     with open(path, 'wb')as f:
-                        pkl.dump([op_list, estimator], f)
+                        pkl.dump([op_list, estimator, None], f)
 
             self.fit_ensemble()
         else:
@@ -107,7 +107,7 @@ class AbstractBlock(object):
                                                 weight_balance=data_node.enable_balance,
                                                 data_balance=data_node.data_balance)
             with open(model_path, 'wb')as f:
-                pkl.dump([op_list, estimator], f)
+                pkl.dump([op_list, estimator, None], f)
 
     def fit_ensemble(self):
         if self.ensemble_method is not None:

@@ -1,5 +1,6 @@
 from ConfigSpace import ConfigurationSpace, CategoricalHyperparameter
 import warnings
+import os
 import time
 import numpy as np
 import pickle as pkl
@@ -178,8 +179,16 @@ class ClassificationEvaluator(_BaseEvaluator):
                 if np.isfinite(score):
                     model_path = CombinedTopKModelSaver.get_path_by_config(self.output_dir, config, self.timestamp)
 
-                    with open(model_path, 'wb') as f:
-                        pkl.dump([op_list, clf], f)
+                    if not os.path.exists(model_path):
+                        with open(model_path, 'wb') as f:
+                            pkl.dump([op_list, clf, score], f)
+                    else:
+                        with open(model_path, 'rb') as f:
+                            _, _, perf = pkl.load(f)
+                        if score > perf:
+                            with open(model_path, 'wb') as f:
+                                pkl.dump([op_list, clf, score], f)
+
                     self.logger.info("Model saved to %s" % model_path)
 
             except Exception as e:
@@ -312,8 +321,16 @@ class ClassificationEvaluator(_BaseEvaluator):
                 if np.isfinite(score) and downsample_ratio == 1:
                     model_path = CombinedTopKModelSaver.get_path_by_config(self.output_dir, config, self.timestamp)
 
-                    with open(model_path, 'wb') as f:
-                        pkl.dump([op_list, clf], f)
+                    if not os.path.exists(model_path):
+                        with open(model_path, 'wb') as f:
+                            pkl.dump([op_list, clf, score], f)
+                    else:
+                        with open(model_path, 'rb') as f:
+                            _, _, perf = pkl.load(f)
+                        if score > perf:
+                            with open(model_path, 'wb') as f:
+                                pkl.dump([op_list, clf, score], f)
+
                     self.logger.info("Model saved to %s" % model_path)
 
             except Exception as e:

@@ -38,7 +38,7 @@ class BaseEnsembleModel(object):
             model_to_eval = self.stats[algo_id]
             for idx, (_, _, path) in enumerate(model_to_eval):
                 with open(path, 'rb')as f:
-                    op_list, model = pkl.load(f)
+                    op_list, model, _ = pkl.load(f)
                 _node = self.node.copy_()
                 _node = construct_node(_node, op_list)
 

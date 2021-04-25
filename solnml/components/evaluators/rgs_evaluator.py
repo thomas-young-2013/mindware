@@ -1,6 +1,7 @@
 from ConfigSpace import ConfigurationSpace, CategoricalHyperparameter
 import time
 import warnings
+import os
 import numpy as np
 import pickle as pkl
 from sklearn.metrics.scorer import balanced_accuracy_scorer
@@ -152,8 +153,16 @@ class RegressionEvaluator(_BaseEvaluator):
                 if np.isfinite(score):
                     model_path = CombinedTopKModelSaver.get_path_by_config(self.output_dir, config, self.timestamp)
 
-                    with open(model_path, 'wb') as f:
-                        pkl.dump([op_list, clf], f)
+                    if not os.path.exists(model_path):
+                        with open(model_path, 'wb') as f:
+                            pkl.dump([op_list, clf, score], f)
+                    else:
+                        with open(model_path, 'rb') as f:
+                            _, _, perf = pkl.load(f)
+                        if score > perf:
+                            with open(model_path, 'wb') as f:
+                                pkl.dump([op_list, clf, score], f)
+
                     self.logger.info("Model saved to %s" % model_path)
 
             except Exception as e:
@@ -252,8 +261,16 @@ class RegressionEvaluator(_BaseEvaluator):
                 if np.isfinite(score) and downsample_ratio == 1:
                     model_path = CombinedTopKModelSaver.get_path_by_config(self.output_dir, config, self.timestamp)
 
-                    with open(model_path, 'wb') as f:
-                        pkl.dump([op_list, clf], f)
+                    if not os.path.exists(model_path):
+                        with open(model_path, 'wb') as f:
+                            pkl.dump([op_list, clf, score], f)
+                    else:
+                        with open(model_path, 'rb') as f:
+                            _, _, perf = pkl.load(f)
+                        if score > perf:
+                            with open(model_path, 'wb') as f:
+                                pkl.dump([op_list, clf, score], f)
+
                     self.logger.info("Model saved to %s" % model_path)
 
             except Exception as e:

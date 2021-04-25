@@ -6,7 +6,7 @@ import hashlib
 def load_combined_transformer_estimator(model_dir, config, timestamp):
     model_path = os.path.join(model_dir, '%s_%s.pkl' % (timestamp, CombinedTopKModelSaver.get_configuration_id(config)))
     with open(model_path, 'rb') as f:
-        op_list, model = pkl.load(f)
+        op_list, model, _ = pkl.load(f)
     return op_list, model
 
 
@@ -34,8 +34,8 @@ class BaseTopKModelSaver(object):
 class CombinedTopKModelSaver(BaseTopKModelSaver):
     @staticmethod
     def get_configuration_id(config: dict):
-        sorted(config.items(), key=lambda x: x[0])
-        data_dict = dict(config)
+        _config = sorted(config.items(), key=lambda x: x[0])
+        data_dict = dict(_config)
         data_list = []
         for key, value in sorted(data_dict.items(), key=lambda t: t[0]):
             if isinstance(value, float):
@@ -57,6 +57,8 @@ class CombinedTopKModelSaver(BaseTopKModelSaver):
         :param perf:
         :return:
         """
+        _config = config.copy()
+        config = dict(sorted(_config.items(), key=lambda x: x[0]))
         model_path_id = self.get_path_by_config(self.model_dir, config, self.identifier)
         model_path_removed = None
         save_flag, delete_flag = False, False
@@ -76,9 +78,7 @@ class CombinedTopKModelSaver(BaseTopKModelSaver):
                             sorted_list.append((config, perf, model_path_id))
                             break
                     self.sorted_dict[estimator_id] = sorted_list
-                    return True, model_path_id, False, model_path_removed
-                else:
-                    return False, model_path_id, False, model_path_removed
+                return True, model_path_id, False, model_path_removed
 
         if len(sorted_list) == 0:
             sorted_list.append((config, perf, model_path_id))
