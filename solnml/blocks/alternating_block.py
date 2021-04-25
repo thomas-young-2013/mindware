@@ -1,7 +1,6 @@
 import os
 import time
 import numpy as np
-import pickle as pkl
 from ConfigSpace import ConfigurationSpace
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.utils.constants import CLS_TASKS
@@ -293,7 +292,7 @@ class AlternatingBlock(AbstractBlock):
         except Exception as e:
             self.logger.error(str(e))
 
-        if _perf is not None:
+        if _perf is not None and np.isfinite(_perf):
             _config = self.local_inc['fe'].copy()
             _config.update(self.local_inc['hpo'].copy())
 

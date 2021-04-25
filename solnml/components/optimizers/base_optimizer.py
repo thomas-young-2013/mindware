@@ -37,8 +37,12 @@ class BaseOptimizer(object):
 
     # TODO：Refactor the other optimizers
     def update_saver(self, config_list, perf_list):
+        # Check if all the configs is valid in case of storing None into the config file
+        all_invalid = True
+
         for i, perf in enumerate(perf_list):
             if np.isfinite(perf) and perf != MAX_INT:
+                all_invalid = False
                 if not isinstance(config_list[i], dict):
                     config = config_list[i].get_dictionary().copy()
                 else:
@@ -70,7 +74,9 @@ class BaseOptimizer(object):
                     pass
             else:
                 continue
-        self.topk_saver.save_topk_config()
+
+        if not all_invalid:
+            self.topk_saver.save_topk_config()
 
     def get_evaluation_stats(self):
         return
