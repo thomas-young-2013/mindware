@@ -1,5 +1,6 @@
 import os
 import time
+import warnings
 import pickle as pkl
 import numpy as np
 from ConfigSpace import ConfigurationSpace
@@ -78,6 +79,11 @@ class AbstractBlock(object):
         if self.ensemble_method is not None:
             self.logger.info('Start to refit all the well-performed models!')
             config_path = os.path.join(self.output_dir, '%s_topk_config.pkl' % self.timestamp)
+
+            if not os.path.exists(config_path):
+                warnings.warn("Config path %s not found! Please check if all the evaluations are failed!" % config_path)
+                return
+
             with open(config_path, 'rb') as f:
                 stats = pkl.load(f)
             for algo_id in stats.keys():
@@ -96,6 +102,11 @@ class AbstractBlock(object):
             self.fit_ensemble()
         else:
             self.logger.info('Start to refit the best model!')
+
+            if self.incumbent is None:
+                warnings.warn("The best config is None! Please check if all the evaluations are failed!")
+                return
+
             model_path = os.path.join(self.output_dir, '%s_%s.pkl' % (
                 self.timestamp, CombinedTopKModelSaver.get_configuration_id(self.incumbent)))
             config = self.incumbent.copy()

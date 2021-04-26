@@ -92,6 +92,7 @@ def test_rgs():
     rgs = Regressor(metric='mse',
                     ensemble_method=ensemble_method,
                     enable_meta_algorithm_selection=False,
+                    include_algorithms=['k_nearest_neighbors'],
                     evaluation=eval_type,
                     time_limit=time_limit,
                     output_dir=save_dir)
