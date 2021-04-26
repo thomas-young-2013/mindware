@@ -6,12 +6,12 @@ from solnml.components.optimizers.base.bohbbase import BohbBase
 
 
 class BohbOptimizer(BaseOptimizer, BohbBase):
-    def __init__(self, evaluator, config_space, name, time_limit=None, evaluation_limit=None,
+    def __init__(self, evaluator, config_space, name, eval_type, time_limit=None, evaluation_limit=None,
                  per_run_time_limit=600, per_run_mem_limit=1024, output_dir='./', timestamp=None,
                  inner_iter_num_per_iter=1, seed=1,
                  R=27, eta=3, mode='smac', n_jobs=1):
-        BaseOptimizer.__init__(self, evaluator, config_space, name, timestamp=timestamp, output_dir=output_dir,
-                               seed=seed)
+        BaseOptimizer.__init__(self, evaluator, config_space, name, eval_type=eval_type, timestamp=timestamp,
+                               output_dir=output_dir, seed=seed)
         BohbBase.__init__(self, eval_func=self.evaluator, config_generator=mode, config_space=self.config_space,
                           seed=seed, R=R, eta=eta, n_jobs=n_jobs)
         self.time_limit = time_limit

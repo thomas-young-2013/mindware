@@ -301,20 +301,21 @@ class AlternatingBlock(AbstractBlock):
             save_flag, model_path, delete_flag, model_path_deleted = self.topk_saver.add(_config, -_perf,
                                                                                          classifier_id)
             # By default, the evaluator has already stored the models.
-            if save_flag:
-                pass
-            else:
-                os.remove(model_path)
-                self.logger.info("Model deleted from %s" % model_path)
-
-            try:
-                if delete_flag:
-                    os.remove(model_path_deleted)
-                    self.logger.info("Model deleted from %s" % model_path_deleted)
-                else:
+            if self.eval_type in ['holdout', 'partial']:
+                if save_flag:
                     pass
-            except:
-                pass
+                else:
+                    os.remove(model_path)
+                    self.logger.info("Model deleted from %s" % model_path)
+
+                try:
+                    if delete_flag:
+                        os.remove(model_path_deleted)
+                        self.logger.info("Model deleted from %s" % model_path_deleted)
+                    else:
+                        pass
+                except:
+                    pass
             self.topk_saver.save_topk_config()
 
         # Update INC.

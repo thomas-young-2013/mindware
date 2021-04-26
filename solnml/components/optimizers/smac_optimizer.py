@@ -7,10 +7,11 @@ from solnml.components.optimizers.base_optimizer import BaseOptimizer, MAX_INT
 
 
 class SMACOptimizer(BaseOptimizer):
-    def __init__(self, evaluator, config_space, name, time_limit=None, evaluation_limit=None,
+    def __init__(self, evaluator, config_space, name, eval_type, time_limit=None, evaluation_limit=None,
                  per_run_time_limit=300, per_run_mem_limit=1024, output_dir='./', timestamp=None,
                  inner_iter_num_per_iter=1, seed=1, n_jobs=1):
-        super().__init__(evaluator, config_space, name, timestamp=timestamp, output_dir=output_dir, seed=seed)
+        super().__init__(evaluator, config_space, name, eval_type=eval_type, timestamp=timestamp, output_dir=output_dir,
+                         seed=seed)
         self.time_limit = time_limit
         self.evaluation_num_limit = evaluation_limit
         self.inner_iter_num_per_iter = inner_iter_num_per_iter

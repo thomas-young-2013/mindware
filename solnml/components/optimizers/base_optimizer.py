@@ -10,7 +10,7 @@ from solnml.components.utils.topk_saver import CombinedTopKModelSaver
 
 
 class BaseOptimizer(object):
-    def __init__(self, evaluator: _BaseEvaluator, config_space, name, timestamp, output_dir=None, seed=None):
+    def __init__(self, evaluator: _BaseEvaluator, config_space, name, timestamp, eval_type, output_dir=None, seed=None):
         self.evaluator = evaluator
         self.config_space = config_space
 
@@ -20,6 +20,7 @@ class BaseOptimizer(object):
         self.start_time = time.time()
         self.timing_list = list()
         self.incumbent = None
+        self.eval_type = eval_type
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
         self.init_hpo_iter_num = None
         self.early_stopped_flag = False
@@ -58,20 +59,21 @@ class BaseOptimizer(object):
                 save_flag, model_path, delete_flag, model_path_deleted = self.topk_saver.add(config, -perf,
                                                                                              classifier_id)
                 # By default, the evaluator has already stored the models.
-                if save_flag:
-                    pass
-                else:
-                    os.remove(model_path)
-                    self.logger.info("Model deleted from %s" % model_path)
-
-                try:
-                    if delete_flag:
-                        os.remove(model_path_deleted)
-                        self.logger.info("Model deleted from %s" % model_path_deleted)
-                    else:
+                if self.eval_type in ['holdout', 'partial']:
+                    if save_flag:
                         pass
-                except:
-                    pass
+                    else:
+                        os.remove(model_path)
+                        self.logger.info("Model deleted from %s" % model_path)
+
+                    try:
+                        if delete_flag:
+                            os.remove(model_path_deleted)
+                            self.logger.info("Model deleted from %s" % model_path_deleted)
+                        else:
+                            pass
+                    except:
+                        pass
             else:
                 continue
 
