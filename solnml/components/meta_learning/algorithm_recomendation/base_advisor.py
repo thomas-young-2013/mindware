@@ -1,6 +1,7 @@
 import os
 import hashlib
 import numpy as np
+import pickle as pkl
 from collections import OrderedDict
 from solnml.datasets.utils import calculate_metafeatures
 from solnml.utils.logging_utils import get_logger
@@ -62,14 +63,18 @@ class BaseAdvisor(object):
             md5.update(exclude_str.encode('utf-8'))
             self.hash_id = md5.hexdigest()
         meta_datasets = set()
-        _folder = os.path.join(self.meta_dir, 'meta_runs')
-        meta_runs_dir = os.path.join(_folder, self.metric)
-        for _record in os.listdir(meta_runs_dir):
-            if _record.endswith('.pkl') and _record.find('-') != -1:
-                meta_name = '-'.join(_record.split('-')[:-4])
-                if self.exclude_datasets is not None and meta_name in self.exclude_datasets:
-                    continue
-                meta_datasets.add(meta_name)
+        _folder = os.path.join(self.meta_dir, 'meta_dataset_vec')
+
+        if task_type in CLS_TASKS:
+            task_prefix = 'cls'
+        else:
+            task_prefix = 'rgs'
+
+        embedding_path = os.path.join(_folder, '%s_meta_dataset_embedding.pkl' % task_prefix)
+        with open(embedding_path, 'rb')as f:
+            d = pkl.load(f)
+            meta_datasets = d['task_ids']
+
         self._builtin_datasets = sorted(list(meta_datasets))
 
         self.metadata_manager = MetaDataManager(self.meta_dir, self.algorithms, self._builtin_datasets,
