@@ -27,6 +27,7 @@ def choose_base_models_classification(predictions, num_model, interval=20):
     num_total_models = predictions.shape[0]
     base_mask = [0] * len(predictions)
     bucket = np.arange(interval + 1) / interval
+    bucket[0] -= 1e-8
     bucket[-1] += 1e-8
     distribution = []
     for prediction in predictions:
