@@ -86,7 +86,7 @@ class SMACOptimizer(BaseOptimizer):
                 if time.time() - _start_time > budget:
                     self.logger.warning('Time limit exceeded!')
                     break
-                _config, _status, _perf, _ = self.optimizer.iterate()
+                _config, _status, _, _perf = self.optimizer.iterate()
                 self.update_saver([_config], [_perf[0]])
                 if _status == SUCCESS:
                     self.exp_output[time.time()] = (_config, _perf[0])
@@ -101,7 +101,7 @@ class SMACOptimizer(BaseOptimizer):
             elif time.time() - _start_time > budget:
                 self.logger.warning('Time limit exceeded!')
             else:
-                _config_list, _status_list, _perf_list = self.optimizer.async_iterate(n=inner_iter_num)
+                _config_list, _status_list, _, _perf_list = self.optimizer.async_iterate(n=inner_iter_num)
                 self.update_saver(_config_list, _perf_list)
                 for i, _config in enumerate(_config_list):
                     if _status_list[i] == SUCCESS:
