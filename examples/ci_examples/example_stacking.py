@@ -73,5 +73,7 @@ def test_rgs():
 
 
 if __name__ == '__main__':
-    test_cls()
-    test_rgs()
+    # test_cls()
+    # test_rgs()
+    # The same as example_blending
+    pass
