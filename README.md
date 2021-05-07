@@ -12,20 +12,20 @@
 
 ------------------
 
-## Soln-ML: Towards Self-Improving AutoML System.
-Soln-ML is an AutoML system, which is capable of improving its AutoML power by learning from past experience.
+## VolcanoML: Speeding up End-to-End AutoML via Scalable Search Space Decomposition.
+Volcano-ML is an AutoML system, which is capable of improving its AutoML power by decomposing the entire AutoML search space into small ones.
 It implements many basic components that enables automatic machine learning. 
-Furthermore, this toolkit can be also used to nourish new AutoML algorithms.
-Soln-ML is developed by <a href="http://net.pku.edu.cn/~cuibin/" target="_blank" rel="nofollow">DAIM Lab</a> at Peking University.
-The goal of Soln-ML is to make machine learning easier to apply both in industry and academia.
+Furthermore, this system can be also used to nourish new AutoML algorithms.
+Volcano-ML is developed by <a href="http://net.pku.edu.cn/~cuibin/" target="_blank" rel="nofollow">DAIM Lab</a> at Peking University.
+The goal of Volcano-ML is to make machine learning easier to apply both in industry and academia.
 
-Currently, Soln-ML is compatible with: **Python >= 3.5**.
+Currently, Volcano-ML is compatible with: **Python >= 3.5**.
 
 ------------------
 
 ## Guiding principles
 
-- __User friendliness.__ Soln-ML needs few human assistance.
+- __User friendliness.__ Volcano-ML needs few human assistance.
 
 - __Easy extensibility.__ New ML algorithms are simple to add (as new classes and functions), and existing modules provide ample examples. To be able to easily create new modules allows for total expressiveness, making it suitable for advanced research.
 
@@ -34,9 +34,9 @@ Currently, Soln-ML is compatible with: **Python >= 3.5**.
 ------------------
 
 ## Characteristics
-- Soln-ML supports AutoML on large datasets.
+- Volcano-ML supports AutoML on large datasets.
 
-- Soln-ML enables transfer-learning, meta-learning and reinforcement learning techniques to make AutoML with more intelligent behaviors.
+- Volcano-ML enables transfer-learning, meta-learning techniques to make AutoML with more intelligent behaviors.
 
 ------------------
 
@@ -45,15 +45,15 @@ Currently, Soln-ML is compatible with: **Python >= 3.5**.
 Here is a brief example that uses the package.
 
 ```python
-from solnml.estimators import Classifier
-clf = Classifier(dataset_name='iris',
-                 time_limit=150,
-                 output_dir='logs/',
-                 ensemble_method='stacking',
+clf = Classifier(time_limit=time_limit,
+                 output_dir=save_dir,
+                 ensemble_method='ensemble_selection',
+                 ensemble_size=10,
                  evaluation='holdout',
                  metric='acc')
 clf.fit(train_data)
-predictions = clf.predict(test_data)
+pred = clf.predict(test_data)
+print(pred)
 ```
 
 For more details, please check [examples](https://github.com/thomas-young-2013/soln-ml/tree/master/examples).
@@ -62,15 +62,15 @@ For more details, please check [examples](https://github.com/thomas-young-2013/s
 
 ## Installation
 
-Before installing Soln-ML, please install the necessary library [swig](https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/).
+Before installing Volcano-ML, please install the necessary library [swig](https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/).
 
-Soln-ML requires SWIG (>= 3.0, <4.0) as a build dependency, and we suggest you to download & install [swig=3.0.12](https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/).
+Volcano-ML requires SWIG (>= 3.0, <4.0) as a build dependency, and we suggest you to download & install [swig=3.0.12](https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/).
 
 
-Then, you can install Soln-ML itself. There are two ways to install Soln-ML:
+Then, you can install Volcano-ML itself. There are two ways to install Volcano-ML:
 
 #### Installation via pip
-Soln-ML is available on PyPI. You can install it by tying:
+Volcano-ML is available on PyPI. You can install it by tying:
 
 ```sh
 pip install soln-ml
@@ -80,7 +80,7 @@ pip install soln-ml
 
 ```sh
 git clone https://github.com/thomas-young-2013/soln-ml.git && cd soln-ml
-cat requirements.txt | xargs -n 1 -L 1 pip install
+cat requirements/main.txt | xargs -n 1 -L 1 pip install
 python setup.py install
 ```
 
