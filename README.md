@@ -13,30 +13,26 @@
 ------------------
 
 ## VolcanoML: Speeding up End-to-End AutoML via Scalable Search Space Decomposition.
-Volcano-ML is an AutoML system, which is capable of improving its AutoML power by decomposing the entire AutoML search space into small ones.
-It implements many basic components that enables automatic machine learning. 
-Furthermore, this system can be also used to nourish new AutoML algorithms.
+Volcano-ML is a powerful AutoML system, which automates feature engineering, algorithm selection and hyperparameter tuning. 
+It is capable of improving its AutoML power by decomposing the entire large AutoML search space into small ones.
+The system executes like the eruption of a volcano, hence the name 'Volcano-ML'.
+
 Volcano-ML is developed by <a href="http://net.pku.edu.cn/~cuibin/" target="_blank" rel="nofollow">DAIM Lab</a> at Peking University.
 The goal of Volcano-ML is to make machine learning easier to apply both in industry and academia.
-
-Currently, Volcano-ML is compatible with: **Python >= 3.5**.
-
-------------------
-
-## Guiding principles
-
-- __User friendliness.__ Volcano-ML needs few human assistance.
-
-- __Easy extensibility.__ New ML algorithms are simple to add (as new classes and functions), and existing modules provide ample examples. To be able to easily create new modules allows for total expressiveness, making it suitable for advanced research.
-
-- __Work with Python__. No separate models configuration files in a declarative format. Models are described in Python code, which is compact, easier to debug, and allows for ease of extensibility.
+Currently, Volcano-ML is compatible with: **Python >= 3.6**.
 
 ------------------
 
 ## Characteristics
-- Volcano-ML supports AutoML on large datasets.
 
-- Volcano-ML enables transfer-learning, meta-learning techniques to make AutoML with more intelligent behaviors.
+- __User friendliness.__ Volcano-ML needs few human assistance. To use Volcano-ML, the users can define the task by writing only a few lines of code, regardless of the techinical details of the execution of the system.
+- __High extensibility.__ New state-of-the-art ML algorithms or feature engineer operations can be added to the system simply. The decomposition techniques in Volcano-ML ensures the efficiency of finding the best configurations over the enlarged search space. 
+- __Advanced characteristic.__ Volcano-ML provides special supports for large datasets. In addition, Volcano-ML enables transfer-learning, meta-learning techniques to make AutoML with more intelligent behaviors.
+
+------------------
+
+## Releases
+* New release: [v1.3]() -released on xx-xx-2021.
 
 ------------------
 
@@ -45,21 +41,31 @@ Currently, Volcano-ML is compatible with: **Python >= 3.5**.
 Here is a brief example that uses the package.
 
 ```python
-clf = Classifier(time_limit=time_limit,
-                 output_dir=save_dir,
-                 ensemble_method='ensemble_selection',
-                 ensemble_size=10,
-                 evaluation='holdout',
-                 metric='acc')
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from solnml.utils.data_manager import DataManager
+from solnml.estimators import Classifier
+
+iris = load_iris()
+X, y = iris.data, iris.target
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=1, stratify=y)
+dm = DataManager(X_train, y_train)
+train_data = dm.get_data_node(X_train, y_train)
+test_data = dm.get_data_node(X_test, y_test)
+
+clf = Classifier(time_limit=3600)
 clf.fit(train_data)
+
 pred = clf.predict(test_data)
-print(pred)
 ```
 
-For more details, please check [examples](https://github.com/thomas-young-2013/soln-ml/tree/master/examples).
+For more details and characteristics, please check [examples](https://github.com/thomas-young-2013/soln-ml/tree/master/examples/ci_examples/).
 
 ------------------
+## Visualization
+TODO.
 
+------------------
 ## Installation
 
 Before installing Volcano-ML, please install the necessary library [swig](https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/).
@@ -67,7 +73,7 @@ Before installing Volcano-ML, please install the necessary library [swig](https:
 Volcano-ML requires SWIG (>= 3.0, <4.0) as a build dependency, and we suggest you to download & install [swig=3.0.12](https://sourceforge.net/projects/swig/files/swig/swig-3.0.12/).
 
 
-Then, you can install Volcano-ML itself. There are two ways to install Volcano-ML:
+Then, you can install Volcano-ML itself. Volcano-ML supports and is tested on Ubuntu >= 16.04, macOS >= 10.14.1, and Windows 10 >= 1809. The installation requires a python environment that has `python 64-bit >= 3.6`.There are two ways to install Volcano-ML:
 
 #### Installation via pip
 Volcano-ML is available on PyPI. You can install it by tying:
@@ -78,6 +84,8 @@ pip install soln-ml
 
 #### Manual installation from the github source
 
+If you want to try latest code, please manually install Volcano-ML from source code by:
+
 ```sh
 git clone https://github.com/thomas-young-2013/soln-ml.git && cd soln-ml
 cat requirements/main.txt | xargs -n 1 -L 1 pip install
@@ -86,8 +94,7 @@ python setup.py install
 
 ### Tips on Installing Swig
 
-
-- **for Arch Linux User:**
+#### Linux:
 
 On Arch Linux (or any distribution with swig4 as default implementation), you need to confirm that the version of SWIG is in (>= 3.0, <4.0).
 
@@ -98,7 +105,7 @@ We suggest you to install [swig=3.0.12](https://sourceforge.net/projects/swig/fi
 make & make install
 ```
 
-- **for MACOSX User:**
+#### MACOSX:
 
 Before installing SWIG, you need to install [pcre](https://sourceforge.net/projects/pcre/files/pcre/8.44/):
 
@@ -130,6 +137,41 @@ cd $pyrfr_dir
 python setup.py install
 ```
 
-- **for Windows User:**
+#### Windows:
 
 You need to download [swigwin](https://sourceforge.net/projects/swig/files/swigwin/swigwin-3.0.12/), and then install Soln-ML.
+
+------------------
+## **Feedback**
+* Check [the existing open and closed issues](https://github.com/thomas-young-2013/soln-ml/issues?q=is%3Aissue).
+* [File an issue](https://github.com/thomas-young-2013/soln-ml/issues/new/choose) on GitHub.
+* Discuss on the Volcano-ML [Gitter]().
+
+------------------
+## **Related Projects**
+
+Targeting at openness and advancing state-of-art technology, we have also released another open source project.
+
+* [OpenBOX](https://github.com/thomas-young-2013/lite-bo): an open source system and service to efficiently solve generalized blackbox optimization problems.
+
+We encourage researchers to leverage the project to accelerate the AI development and research.
+
+---------------------
+## **Related Publications**
+
+**Efficient Automatic CASH via Rising Bandits**  
+Yang Li, Jiawei Jiang, Jinyang Gao, Yingxia Shao, Ce Zhang and Bin Cui
+Proceedings of the AAAI Conference on Artificial Intelligence (2020) 
+https://ojs.aaai.org/index.php/AAAI/article/view/5910
+
+
+
+**MFES-HB: Efficient Hyperband with Multi-Fidelity Quality Measurements**
+Yang Li, Yu Shen, Jiawei Jiang, Jinyang Gao, Ce Zhang and Bin Cui
+Proceedings of the AAAI Conference on Artificial Intelligence (2021) 
+https://arxiv.org/abs/2012.03011
+
+---------------------
+## **License**
+
+The entire codebase is under [MIT license](LICENSE).
