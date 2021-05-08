@@ -145,7 +145,7 @@ You need to download [swigwin](https://sourceforge.net/projects/swig/files/swigw
 ## **Feedback**
 * Check [the existing open and closed issues](https://github.com/thomas-young-2013/soln-ml/issues?q=is%3Aissue).
 * [File an issue](https://github.com/thomas-young-2013/soln-ml/issues/new/choose) on GitHub.
-* Discuss on the Volcano-ML [Gitter]().
+* Discuss on the Volcano-ML [Gitter](https://gitter.im/volcano-ml?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge).
 
 ------------------
 ## **Related Projects**
