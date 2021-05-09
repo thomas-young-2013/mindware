@@ -1,6 +1,8 @@
 import time
 import os
 import numpy as np
+from litebo.utils.constants import SUCCESS, FAILED
+
 from solnml.components.optimizers.base_optimizer import BaseOptimizer, MAX_INT
 from solnml.components.optimizers.base.mfsebase import MfseBase
 
@@ -12,7 +14,8 @@ class MfseOptimizer(BaseOptimizer, MfseBase):
         BaseOptimizer.__init__(self, evaluator, config_space, name, eval_type=eval_type, timestamp=timestamp,
                                output_dir=output_dir, seed=seed)
         MfseBase.__init__(self, eval_func=self.evaluator, config_space=self.config_space,
-                          seed=seed, R=R, eta=eta, n_jobs=n_jobs, output_dir=output_dir)
+                          per_run_time_limit=per_run_time_limit, seed=seed,
+                          R=R, eta=eta, n_jobs=n_jobs, output_dir=output_dir)
         self.time_limit = time_limit
         self.evaluation_num_limit = evaluation_limit
 
@@ -56,14 +59,17 @@ class MfseOptimizer(BaseOptimizer, MfseBase):
                         fe_config = self.evaluator.fe_config
                     else:
                         fe_config = None
-                    self.eval_dict[(fe_config, self.incumbent_configs[idx])] = [-self.incumbent_perfs[idx], time.time()]
+                    self.eval_dict[(fe_config, self.incumbent_configs[idx])] = [-self.incumbent_perfs[idx],
+                                                                                time.time(), FAILED if np.isinf(
+                            self.incumbent_perfs[idx]) else SUCCESS]
                 else:
                     if hasattr(self.evaluator, 'hpo_config'):
                         hpo_config = self.evaluator.hpo_config
                     else:
                         hpo_config = None
                     self.eval_dict[(self.incumbent_configs[idx], hpo_config)] = [-self.incumbent_perfs[idx],
-                                                                                 time.time()]
+                                                                                 time.time(), FAILED if np.isinf(
+                            self.incumbent_perfs[idx]) else SUCCESS]
 
             self.incumbent_perf = -self.incumbent_perfs[inc_idx]
             self.incumbent_config = self.incumbent_configs[inc_idx]

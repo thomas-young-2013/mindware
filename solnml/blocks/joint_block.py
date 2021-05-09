@@ -97,6 +97,5 @@ class JointBlock(AbstractBlock):
         self.early_stop_flag = self.optimizer.early_stopped_flag
         self.incumbent_perf = self.optimizer.incumbent_perf
         self.incumbent = self.optimizer.incumbent_config.get_dictionary().copy()
-        # TODO: Unify eval_dict for alternating space and normal space
         self.eval_dict = self.optimizer.eval_dict
         return self.incumbent_perf

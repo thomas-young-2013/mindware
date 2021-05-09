@@ -33,6 +33,8 @@ def test_cls():
                      evaluation=eval_type,
                      metric='acc')
     clf.fit(train_data)
+    print(clf.summary())
+
     pred = clf.predict(test_data)
     print(accuracy_score(test_data.data[1], pred))
 
@@ -64,8 +66,9 @@ def test_rgs():
                     output_dir=save_dir)
 
     rgs.fit(train_data)
-    pred = rgs.predict(test_data)
+    print(rgs.summary())
 
+    pred = rgs.predict(test_data)
     print(mean_squared_error(test_data.data[1], pred))
 
     shutil.rmtree(save_dir)

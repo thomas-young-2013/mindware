@@ -197,6 +197,9 @@ class BaseEstimator(object):
     def get_ens_model_info(self):
         return self._ml_engine.get_ens_model_info()
 
+    def summary(self):
+        return self._ml_engine.summary()
+
 
 class BaseDLEstimator(object):
     def __init__(
@@ -282,3 +285,4 @@ class BaseDLEstimator(object):
 
     def get_automl(self):
         return AutoDL
+

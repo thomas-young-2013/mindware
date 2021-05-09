@@ -2,6 +2,8 @@ import os
 import time
 import numpy as np
 from ConfigSpace import ConfigurationSpace
+from litebo.utils.constants import SUCCESS, TIMEOUT, FAILED
+
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.utils.constants import CLS_TASKS
 from solnml.components.utils.topk_saver import CombinedTopKModelSaver
@@ -316,7 +318,14 @@ class AlternatingBlock(AbstractBlock):
                         pass
                 except:
                     pass
+            self.eval_dict[(self.local_inc['fe'].copy(), self.local_inc['hpo'].copy())] = [_perf,
+                                                                                           time.time(),
+                                                                                           SUCCESS]
             self.topk_saver.save_topk_config()
+        else:
+            self.eval_dict[(self.local_inc['fe'].copy(), self.local_inc['hpo'].copy())] = [_perf,
+                                                                                           time.time(),
+                                                                                           FAILED]
 
         # Update INC.
         if _perf is not None and np.isfinite(_perf) and _perf > self.incumbent_perf:
@@ -327,4 +336,3 @@ class AlternatingBlock(AbstractBlock):
             _incumbent.update(self.inc['fe'])
             _incumbent.update(self.inc['hpo'])
             self.incumbent = _incumbent.copy()
-            # TODO: Add eval_dict

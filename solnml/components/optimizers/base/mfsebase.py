@@ -7,14 +7,16 @@ from litebo.core.mf_batch_advisor import MFBatchAdvisor
 from solnml.utils.constant import MAX_INT
 from solnml.utils.logging_utils import get_logger
 from solnml.components.computation.parallel_process import ParallelProcessEvaluator
+from solnml.utils.decorators import time_limit
 
 
 class MfseBase(object):
-    def __init__(self, eval_func, config_space,
+    def __init__(self, eval_func, config_space, per_run_time_limit=600,
                  seed=1, R=81, eta=3, n_jobs=1, output_dir='./'):
         self.eval_func = eval_func
         self.config_space = config_space
         self.n_workers = n_jobs
+        self.per_run_time_limit = per_run_time_limit
 
         self.trial_cnt = 0
         self.configs = list()
@@ -99,10 +101,11 @@ class MfseBase(object):
                             self.logger.warning('Time limit exceeded!')
                             break
                         try:
-                            # TODO: Add time limit
-                            val_loss = self.eval_func(config, resource_ratio=float(n_resource / self.R),
-                                                      eta=self.eta, first_iter=(i == 0))
+                            with time_limit(self.per_run_time_limit):
+                                val_loss = self.eval_func(config, resource_ratio=float(n_resource / self.R),
+                                                          eta=self.eta, first_iter=(i == 0))
                         except Exception as e:
+                            # TODO: Distinguish error type
                             val_loss = np.inf
                         val_losses.append(val_loss)
                         if np.isfinite(val_loss):

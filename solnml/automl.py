@@ -4,7 +4,7 @@ import time
 import traceback
 from solnml.utils.logging_utils import setup_logger, get_logger
 from solnml.components.metrics.metric import get_metric
-from solnml.components.utils.constants import CLS_TASKS, RGS_TASKS, IMG_CLS, TEXT_CLS
+from solnml.components.utils.constants import CLS_TASKS, RGS_TASKS, IMG_CLS, TEXT_CLS, SUCCESS
 from solnml.components.ensemble import ensemble_list
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.models.regression import _regressors
@@ -61,6 +61,10 @@ class AutoML(object):
         self.task_type = task_type
         self.n_jobs = n_jobs
         self.solver = None
+
+        self.global_start_time = time.time()
+        self.eval_time = None
+        self.total_time = None
 
         # Disable meta learning
         if self.include_preprocessors is not None:
@@ -163,9 +167,11 @@ class AutoML(object):
         for i in range(self.amount_of_resource):
             if not (self.solver.early_stop_flag or self.solver.timeout_flag):
                 self.solver.iterate()
+        self.eval_time = time.time() - self.timestamp
 
         if self.ensemble_method is not None and self.evaluation_type in ['holdout', 'partial']:
             self.solver.fit_ensemble()
+        self.total_time = time.time() - self.global_start_time
 
     def refit(self):
         self.solver.refit()
@@ -189,3 +195,64 @@ class AutoML(object):
 
     def get_val_stats(self):
         return self.solver.get_stats()
+
+    def summary(self):
+        from terminaltables import AsciiTable
+        incumbent = self.solver.incumbent
+        if not incumbent:
+            return 'No incumbents in history. Please run fit() first.'
+        configs_table = []
+        nil = "-"
+        parameters = list(incumbent.copy().keys())
+        for para in parameters:
+            row = []
+            row.append(para)
+            val = incumbent.get(para, None)
+            if val is None:
+                val = nil
+            if isinstance(val, float):
+                val = "%.6f" % val
+            elif not isinstance(val, str):
+                val = str(val)
+            row.append(val)
+            configs_table.append(row)
+        configs_title = ["Parameters", "Optimal Value"]
+
+        total_eval_dict = self.solver.eval_dict.copy()
+        num_configs = len(self.solver.eval_dict)
+        failed_configs = 0
+        for key in total_eval_dict:
+            perf, _, state = total_eval_dict[key]
+            if state != SUCCESS:
+                failed_configs += 1
+
+        table_data = ([configs_title] +
+                      configs_table +
+                      [["Optimal Validation Performance", self.solver.incumbent_perf]] +
+                      [['Number of Configurations', num_configs]] +
+                      [['Number of Failed Configurations', failed_configs]] +
+                      [['Search Runtime', '%.3f sec' % self.eval_time]] +  # TODO: Precise search time.
+                      [['Total Runtime', '%.3f sec' % self.total_time]] +
+                      [['Average Evaluation Time', 0]] +  # TODO: Wait for OpenBOX
+                      [['Maximum Valid Evaluation Time', 0]] +
+                      [['Minimum Evaluation Time', 0]]
+                      )
+
+        M = 8
+        raw_table = AsciiTable(
+            table_data
+            # title="Result of Optimization"
+        ).table
+        lines = raw_table.splitlines()
+        title_line = lines[1]
+        st = title_line.index("|", 1)
+        col = "Optimal Value"
+        L = len(title_line)
+        lines[0] = "+" + "-" * (L - 2) + "+"
+        new_title_line = title_line[:st + 1] + (" " + col + " " * (L - st - 3 - len(col))) + "|"
+        lines[1] = new_title_line
+        bar = "\n" + lines.pop() + "\n"
+        finals = lines[-M:]
+        prevs = lines[:-M]
+        render_table = "\n".join(prevs) + bar + bar.join(finals) + bar
+        return render_table

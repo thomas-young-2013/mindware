@@ -33,6 +33,7 @@ def test_cls():
                      evaluation=eval_type,
                      metric='acc')
     clf.fit(train_data, tree_id=2)
+    print(clf.summary())
 
     pred = clf.predict(test_data)
     print(accuracy_score(test_data.data[1], pred))

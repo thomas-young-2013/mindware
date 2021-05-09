@@ -32,6 +32,7 @@ def test_cls():
                      evaluation=eval_type,
                      metric='acc')
     clf.fit(train_data)
+    print(clf.summary())
     clf.refit()
 
     pred = clf.predict(test_data)
@@ -64,6 +65,7 @@ def test_cls_without_ensemble():
                      evaluation=eval_type,
                      metric='acc')
     clf.fit(train_data)
+    print(clf.summary())
     clf.refit()
 
     pred = clf.predict(test_data)
@@ -92,15 +94,14 @@ def test_rgs():
     rgs = Regressor(metric='mse',
                     ensemble_method=ensemble_method,
                     enable_meta_algorithm_selection=False,
-                    include_algorithms=['k_nearest_neighbors'],
                     evaluation=eval_type,
                     time_limit=time_limit,
                     output_dir=save_dir)
     rgs.fit(train_data)
+    print(rgs.summary())
     rgs.refit()
 
     pred = rgs.predict(test_data)
-
     print(mean_squared_error(test_data.data[1], pred))
 
     shutil.rmtree(save_dir)

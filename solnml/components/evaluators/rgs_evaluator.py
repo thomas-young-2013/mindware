@@ -49,6 +49,8 @@ def get_cash_cs(include_algorithms=None, task_type=REGRESSION):
     _candidates = get_combined_candidtates(_regressors, _addons)
     if include_algorithms is not None:
         _candidates = set(include_algorithms).intersection(set(_candidates.keys()))
+        if len(_candidates) == 0:
+            raise ValueError("No algorithms included! Please check the spelling of the included algorithms!")
     cs = ConfigurationSpace()
     algo = CategoricalHyperparameter('algorithm', list(_candidates))
     cs.add_hyperparameter(algo)
@@ -118,119 +120,69 @@ class RegressionEvaluator(_BaseEvaluator):
         self.estimator_id = config['algorithm']
 
         if 'holdout' in self.resampling_strategy:
-            try:
-                # Prepare data node.
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore")
+            # Prepare data node.
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
 
-                    if self.resampling_params is None or 'test_size' not in self.resampling_params:
-                        test_size = 0.33
-                    else:
-                        test_size = self.resampling_params['test_size']
+                if self.resampling_params is None or 'test_size' not in self.resampling_params:
+                    test_size = 0.33
+                else:
+                    test_size = self.resampling_params['test_size']
 
-                    from sklearn.model_selection import ShuffleSplit
-                    ss = ShuffleSplit(n_splits=1, test_size=test_size, random_state=self.seed)
-                    for train_index, test_index in ss.split(self.data_node.data[0], self.data_node.data[1]):
-                        _x_train, _x_val = self.data_node.data[0][train_index], self.data_node.data[0][test_index]
-                        _y_train, _y_val = self.data_node.data[1][train_index], self.data_node.data[1][test_index]
-                    self.train_node.data = [_x_train, _y_train]
-                    self.val_node.data = [_x_val, _y_val]
+                from sklearn.model_selection import ShuffleSplit
+                ss = ShuffleSplit(n_splits=1, test_size=test_size, random_state=self.seed)
+                for train_index, test_index in ss.split(self.data_node.data[0], self.data_node.data[1]):
+                    _x_train, _x_val = self.data_node.data[0][train_index], self.data_node.data[0][test_index]
+                    _y_train, _y_val = self.data_node.data[1][train_index], self.data_node.data[1][test_index]
+                self.train_node.data = [_x_train, _y_train]
+                self.val_node.data = [_x_val, _y_val]
 
-                    data_node, op_list = parse_config(self.train_node, config, record=True)
-                    _val_node = self.val_node.copy_()
-                    _val_node = construct_node(_val_node, op_list)
+                data_node, op_list = parse_config(self.train_node, config, record=True)
+                _val_node = self.val_node.copy_()
+                _val_node = construct_node(_val_node, op_list)
 
-                _x_train, _y_train = data_node.data
-                _x_val, _y_val = _val_node.data
+            _x_train, _y_train = data_node.data
+            _x_val, _y_val = _val_node.data
 
-                config_dict = config.copy()
-                # regression gadgets
-                regressor_id, clf = get_estimator(config_dict, self.estimator_id)
+            config_dict = config.copy()
+            # regression gadgets
+            regressor_id, clf = get_estimator(config_dict, self.estimator_id)
 
-                score = validation(clf, self.scorer, _x_train, _y_train, _x_val, _y_val,
-                                   random_state=self.seed)
+            score = validation(clf, self.scorer, _x_train, _y_train, _x_val, _y_val,
+                               random_state=self.seed)
 
-                if np.isfinite(score):
-                    model_path = CombinedTopKModelSaver.get_path_by_config(self.output_dir, config, self.timestamp)
+            if np.isfinite(score):
+                model_path = CombinedTopKModelSaver.get_path_by_config(self.output_dir, config, self.timestamp)
 
-                    if not os.path.exists(model_path):
+                if not os.path.exists(model_path):
+                    with open(model_path, 'wb') as f:
+                        pkl.dump([op_list, clf, score], f)
+                else:
+                    with open(model_path, 'rb') as f:
+                        _, _, perf = pkl.load(f)
+                    if score > perf:
                         with open(model_path, 'wb') as f:
                             pkl.dump([op_list, clf, score], f)
-                    else:
-                        with open(model_path, 'rb') as f:
-                            _, _, perf = pkl.load(f)
-                        if score > perf:
-                            with open(model_path, 'wb') as f:
-                                pkl.dump([op_list, clf, score], f)
 
-                    self.logger.info("Model saved to %s" % model_path)
-
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                self.logger.info('Evaluator: %s' % (str(e)))
-                score = -np.inf
+                self.logger.info("Model saved to %s" % model_path)
 
         elif 'cv' in self.resampling_strategy:
-            # Prepare data node.
-            try:
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore")
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
 
-                    if 'cv' in self.resampling_strategy:
-                        if self.resampling_params is None or 'folds' not in self.resampling_params:
-                            folds = 5
-                        else:
-                            folds = self.resampling_params['folds']
-
-                    from sklearn.model_selection import KFold
-                    kfold = KFold(n_splits=folds, random_state=self.seed, shuffle=False)
-                    scores = list()
-
-                    for train_index, test_index in kfold.split(self.data_node.data[0], self.data_node.data[1]):
-                        _x_train, _x_val = self.data_node.data[0][train_index], self.data_node.data[0][test_index]
-                        _y_train, _y_val = self.data_node.data[1][train_index], self.data_node.data[1][test_index]
-                        self.train_node.data = [_x_train, _y_train]
-                        self.val_node.data = [_x_val, _y_val]
-
-                        data_node, op_list = parse_config(self.train_node, config, record=True)
-                        _val_node = self.val_node.copy_()
-                        _val_node = construct_node(_val_node, op_list)
-
-                        _x_train, _y_train = data_node.data
-                        _x_val, _y_val = _val_node.data
-
-                        config_dict = config.copy()
-                        # regressor gadgets
-                        regressor_id, clf = get_estimator(config_dict, self.estimator_id)
-
-                        _score = validation(clf, self.scorer, _x_train, _y_train, _x_val, _y_val,
-                                            random_state=self.seed)
-                        scores.append(_score)
-                    score = np.mean(scores)
-
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                self.logger.info('Evaluator: %s' % (str(e)))
-                score = -np.inf
-
-        elif 'partial' in self.resampling_strategy:
-            try:
-                # Prepare data node.
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore")
-
-                    if self.resampling_params is None or 'test_size' not in self.resampling_params:
-                        test_size = 0.33
+                if 'cv' in self.resampling_strategy:
+                    if self.resampling_params is None or 'folds' not in self.resampling_params:
+                        folds = 5
                     else:
-                        test_size = self.resampling_params['test_size']
+                        folds = self.resampling_params['folds']
 
-                    from sklearn.model_selection import ShuffleSplit
-                    ss = ShuffleSplit(n_splits=1, test_size=test_size, random_state=self.seed)
-                    for train_index, test_index in ss.split(self.data_node.data[0], self.data_node.data[1]):
-                        _x_train, _x_val = self.data_node.data[0][train_index], self.data_node.data[0][test_index]
-                        _y_train, _y_val = self.data_node.data[1][train_index], self.data_node.data[1][test_index]
+                from sklearn.model_selection import KFold
+                kfold = KFold(n_splits=folds, random_state=self.seed, shuffle=False)
+                scores = list()
+
+                for train_index, test_index in kfold.split(self.data_node.data[0], self.data_node.data[1]):
+                    _x_train, _x_val = self.data_node.data[0][train_index], self.data_node.data[0][test_index]
+                    _y_train, _y_val = self.data_node.data[1][train_index], self.data_node.data[1][test_index]
                     self.train_node.data = [_x_train, _y_train]
                     self.val_node.data = [_x_val, _y_val]
 
@@ -238,46 +190,74 @@ class RegressionEvaluator(_BaseEvaluator):
                     _val_node = self.val_node.copy_()
                     _val_node = construct_node(_val_node, op_list)
 
-                _x_train, _y_train = data_node.data
+                    _x_train, _y_train = data_node.data
+                    _x_val, _y_val = _val_node.data
 
-                if downsample_ratio != 1:
-                    down_ss = ShuffleSplit(n_splits=1, test_size=downsample_ratio,
-                                           random_state=self.seed)
-                    for _, _val_index in down_ss.split(_x_train, _y_train):
-                        _act_x_train, _act_y_train = _x_train[_val_index], _y_train[_val_index]
+                    config_dict = config.copy()
+                    # regressor gadgets
+                    regressor_id, clf = get_estimator(config_dict, self.estimator_id)
+
+                    _score = validation(clf, self.scorer, _x_train, _y_train, _x_val, _y_val,
+                                        random_state=self.seed)
+                    scores.append(_score)
+                score = np.mean(scores)
+
+        elif 'partial' in self.resampling_strategy:
+            # Prepare data node.
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+
+                if self.resampling_params is None or 'test_size' not in self.resampling_params:
+                    test_size = 0.33
                 else:
-                    _act_x_train, _act_y_train = _x_train, _y_train
-                    _val_index = list(range(len(_x_train)))
+                    test_size = self.resampling_params['test_size']
 
-                _x_val, _y_val = _val_node.data
+                from sklearn.model_selection import ShuffleSplit
+                ss = ShuffleSplit(n_splits=1, test_size=test_size, random_state=self.seed)
+                for train_index, test_index in ss.split(self.data_node.data[0], self.data_node.data[1]):
+                    _x_train, _x_val = self.data_node.data[0][train_index], self.data_node.data[0][test_index]
+                    _y_train, _y_val = self.data_node.data[1][train_index], self.data_node.data[1][test_index]
+                self.train_node.data = [_x_train, _y_train]
+                self.val_node.data = [_x_val, _y_val]
 
-                config_dict = config.copy()
-                # Regressor gadgets
-                regressor_id, clf = get_estimator(config_dict, self.estimator_id)
+                data_node, op_list = parse_config(self.train_node, config, record=True)
+                _val_node = self.val_node.copy_()
+                _val_node = construct_node(_val_node, op_list)
 
-                score = validation(clf, self.scorer, _act_x_train, _act_y_train, _x_val, _y_val,
-                                   random_state=self.seed)
+            _x_train, _y_train = data_node.data
 
-                if np.isfinite(score) and downsample_ratio == 1:
-                    model_path = CombinedTopKModelSaver.get_path_by_config(self.output_dir, config, self.timestamp)
+            if downsample_ratio != 1:
+                down_ss = ShuffleSplit(n_splits=1, test_size=downsample_ratio,
+                                       random_state=self.seed)
+                for _, _val_index in down_ss.split(_x_train, _y_train):
+                    _act_x_train, _act_y_train = _x_train[_val_index], _y_train[_val_index]
+            else:
+                _act_x_train, _act_y_train = _x_train, _y_train
+                _val_index = list(range(len(_x_train)))
 
-                    if not os.path.exists(model_path):
+            _x_val, _y_val = _val_node.data
+
+            config_dict = config.copy()
+            # Regressor gadgets
+            regressor_id, clf = get_estimator(config_dict, self.estimator_id)
+
+            score = validation(clf, self.scorer, _act_x_train, _act_y_train, _x_val, _y_val,
+                               random_state=self.seed)
+
+            if np.isfinite(score) and downsample_ratio == 1:
+                model_path = CombinedTopKModelSaver.get_path_by_config(self.output_dir, config, self.timestamp)
+
+                if not os.path.exists(model_path):
+                    with open(model_path, 'wb') as f:
+                        pkl.dump([op_list, clf, score], f)
+                else:
+                    with open(model_path, 'rb') as f:
+                        _, _, perf = pkl.load(f)
+                    if score > perf:
                         with open(model_path, 'wb') as f:
                             pkl.dump([op_list, clf, score], f)
-                    else:
-                        with open(model_path, 'rb') as f:
-                            _, _, perf = pkl.load(f)
-                        if score > perf:
-                            with open(model_path, 'wb') as f:
-                                pkl.dump([op_list, clf, score], f)
 
-                    self.logger.info("Model saved to %s" % model_path)
-
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                self.logger.info('Evaluator: %s' % (str(e)))
-                score = -np.inf
+                self.logger.info("Model saved to %s" % model_path)
 
         else:
             raise ValueError('Invalid resampling strategy: %s!' % self.resampling_strategy)

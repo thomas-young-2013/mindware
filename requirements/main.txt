@@ -12,6 +12,7 @@ pyyaml
 statsmodels
 lazy-import
 scikit-optimize
+terminaltables
 
 lightgbm
 pyrfr==0.8.0

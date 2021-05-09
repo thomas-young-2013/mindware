@@ -143,8 +143,9 @@ def main():
     _start_time = time.time()
 
     clf.fit(train_data)
-    pred = clf.predict(test_data)
+    print(clf.summary())
 
+    pred = clf.predict(test_data)
     print(accuracy_score(test_data.data[1], pred))
 
     shutil.rmtree(save_dir)
