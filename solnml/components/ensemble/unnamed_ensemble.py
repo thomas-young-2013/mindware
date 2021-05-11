@@ -39,7 +39,11 @@ def choose_base_models_classification(predictions, num_model, interval=20):
             freq = list(counts / counts.sum())
             freq_array += freq
         distribution.append(freq_array)  # Shape: (num_total_models,20*num_class)
+
+    # TODO: Debug
+    print(distribution)
     distribution = np.array(distribution)
+
 
     # Apply the clustering algorithm
     model = AgglomerativeClustering(n_clusters=num_model, linkage="complete")
