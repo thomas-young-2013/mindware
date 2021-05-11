@@ -6,7 +6,7 @@
 [![Build Status](https://api.travis-ci.org/thomas-young-2013/soln-ml.svg?branch=dev_refactor)](https://www.travis-ci.org/github/thomas-young-2013/soln-ml)
 [![Issues](https://img.shields.io/github/issues-raw/thomas-young-2013/soln-ml.svg)](https://github.com/thomas-young-2013/soln-ml/issues?q=is%3Aissue+is%3Aopen)
 [![Bugs](https://img.shields.io/github/issues/thomas-young-2013/soln-ml/bug.svg)](https://github.com/thomas-young-2013/soln-ml/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
-[![Pull Requests](https://img.shields.io/github/issues-pr-raw/thomas-young-2013/soln-ml.svg)](https://github.com/thomas-young-2013/lite-bo/pulls?q=is%3Apr+is%3Aopen)
+[![Pull Requests](https://img.shields.io/github/issues-pr-raw/thomas-young-2013/soln-ml.svg)](https://github.com/thomas-young-2013/open-box/pulls?q=is%3Apr+is%3Aopen)
 [![Version](https://img.shields.io/github/release/thomas-young-2013/soln-ml.svg)](https://github.com/thomas-young-2013/soln-ml/releases) [![Join the chat at https://gitter.im/volcano-ml](https://badges.gitter.im/volcano-ml.svg)](https://gitter.im/volcano-ml?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Documentation Status](https://readthedocs.org/projects/soln-ml/badge/?version=latest)](https://soln-ml.readthedocs.io/en/latest/?badge=latest)
 
@@ -152,7 +152,7 @@ You need to download [swigwin](https://sourceforge.net/projects/swig/files/swigw
 
 Targeting at openness and advancing state-of-art technology, we have also released another open source project.
 
-* [OpenBOX](https://github.com/thomas-young-2013/lite-bo): an open source system and service to efficiently solve generalized blackbox optimization problems.
+* [OpenBOX](https://github.com/thomas-young-2013/open-box): an open source system and service to efficiently solve generalized blackbox optimization problems.
 
 We encourage researchers to leverage the project to accelerate the AI development and research.
 
