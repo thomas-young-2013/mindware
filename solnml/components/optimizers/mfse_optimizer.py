@@ -1,7 +1,7 @@
 import time
 import os
 import numpy as np
-from litebo.utils.constants import SUCCESS, FAILED
+from openbox.utils.constants import SUCCESS, FAILED
 
 from solnml.components.optimizers.base_optimizer import BaseOptimizer, MAX_INT
 from solnml.components.optimizers.base.mfsebase import MfseBase

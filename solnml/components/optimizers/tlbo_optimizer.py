@@ -5,8 +5,8 @@ import pickle as pkl
 import re
 from collections import OrderedDict
 
-from litebo.utils.constants import SUCCESS
-from litebo.optimizer.smbo import SMBO
+from openbox.utils.constants import SUCCESS
+from openbox.optimizer.smbo import SMBO
 from solnml.components.optimizers.base_optimizer import BaseOptimizer, MAX_INT
 
 cur_dir = os.path.dirname(__file__)

@@ -20,9 +20,9 @@ class AcquisitionFunctionMaximizer(object, metaclass=abc.ABCMeta):
 
     Parameters
     ----------
-    acquisition_function : ~litebo.acquisition_function.acquisition.AbstractAcquisitionFunction
+    acquisition_function : ~openbox.acquisition_function.acquisition.AbstractAcquisitionFunction
 
-    config_space : ~litebo.config_space.ConfigurationSpace
+    config_space : ~openbox.config_space.ConfigurationSpace
 
     rng : np.random.RandomState or int, optional
     """
@@ -56,9 +56,9 @@ class AcquisitionFunctionMaximizer(object, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        runhistory: ~litebo.utils.history_container.HistoryContainer
+        runhistory: ~openbox.utils.history_container.HistoryContainer
             runhistory object
-        stats: ~litebo.stats.stats.Stats
+        stats: ~openbox.stats.stats.Stats
             current stats object
         num_points: int
             number of points to be sampled
@@ -67,7 +67,7 @@ class AcquisitionFunctionMaximizer(object, metaclass=abc.ABCMeta):
         Returns
         -------
         iterable
-            An iterable consisting of :class:`litebo.config_space.Configuration`.
+            An iterable consisting of :class:`openbox.config_space.Configuration`.
         """
         return [t[1] for t in self._maximize(runhistory, num_points, **kwargs)]
 
@@ -86,9 +86,9 @@ class AcquisitionFunctionMaximizer(object, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        runhistory: ~litebo.utils.history_container.HistoryContainer
+        runhistory: ~openbox.utils.history_container.HistoryContainer
             runhistory object
-        stats: ~litebo.stats.stats.Stats
+        stats: ~openbox.stats.stats.Stats
             current stats object
         num_points: int
             number of points to be sampled
@@ -98,7 +98,7 @@ class AcquisitionFunctionMaximizer(object, metaclass=abc.ABCMeta):
         -------
         iterable
             An iterable consistng of
-            tuple(acqusition_value, :class:`litebo.config_space.Configuration`).
+            tuple(acqusition_value, :class:`openbox.config_space.Configuration`).
         """
         raise NotImplementedError()
 
@@ -133,13 +133,13 @@ class AcquisitionFunctionMaximizer(object, metaclass=abc.ABCMeta):
 
 class LocalSearch(AcquisitionFunctionMaximizer):
 
-    """Implementation of litebo's local search.
+    """Implementation of openbox's local search.
 
     Parameters
     ----------
-    acquisition_function : ~litebo.acquisition_function.acquisition.AbstractAcquisitionFunction
+    acquisition_function : ~openbox.acquisition_function.acquisition.AbstractAcquisitionFunction
 
-    config_space : ~litebo.config_space.ConfigurationSpace
+    config_space : ~openbox.config_space.ConfigurationSpace
 
     rng : np.random.RandomState or int, optional
 
@@ -175,9 +175,9 @@ class LocalSearch(AcquisitionFunctionMaximizer):
 
         Parameters
         ----------
-        runhistory: ~litebo.utils.history_container.HistoryContainer
+        runhistory: ~openbox.utils.history_container.HistoryContainer
             runhistory object
-        stats: ~litebo.stats.stats.Stats
+        stats: ~openbox.stats.stats.Stats
             current stats object
         num_points: int
             number of points to be sampled
@@ -311,9 +311,9 @@ class RandomSearch(AcquisitionFunctionMaximizer):
 
     Parameters
     ----------
-    acquisition_function : ~litebo.acquisition_function.acquisition.AbstractAcquisitionFunction
+    acquisition_function : ~openbox.acquisition_function.acquisition.AbstractAcquisitionFunction
 
-    config_space : ~litebo.config_space.ConfigurationSpace
+    config_space : ~openbox.config_space.ConfigurationSpace
 
     rng : np.random.RandomState or int, optional
     """
@@ -329,7 +329,7 @@ class RandomSearch(AcquisitionFunctionMaximizer):
 
         Parameters
         ----------
-        runhistory: ~litebo.utils.history_container.HistoryContainer
+        runhistory: ~openbox.utils.history_container.HistoryContainer
             runhistory object
         num_points: int
             number of points to be sampled
@@ -342,7 +342,7 @@ class RandomSearch(AcquisitionFunctionMaximizer):
         -------
         iterable
             An iterable consistng of
-            tuple(acqusition_value, :class:`litebo.config_space.Configuration`).
+            tuple(acqusition_value, :class:`openbox.config_space.Configuration`).
         """
 
         if num_points > 1:
@@ -361,7 +361,7 @@ class RandomSearch(AcquisitionFunctionMaximizer):
 
 
 class InterleavedLocalAndRandomSearch(AcquisitionFunctionMaximizer):
-    """Implements litebo's default acquisition function optimization.
+    """Implements openbox's default acquisition function optimization.
 
     This optimizer performs local search from the previous best points
     according, to the acquisition function, uses the acquisition function to
@@ -370,9 +370,9 @@ class InterleavedLocalAndRandomSearch(AcquisitionFunctionMaximizer):
 
     Parameters
     ----------
-    acquisition_function : ~litebo.acquisition_function.acquisition.AbstractAcquisitionFunction
+    acquisition_function : ~openbox.acquisition_function.acquisition.AbstractAcquisitionFunction
 
-    config_space : ~litebo.config_space.ConfigurationSpace
+    config_space : ~openbox.config_space.ConfigurationSpace
 
     rng : np.random.RandomState or int, optional
 
@@ -430,11 +430,11 @@ class InterleavedLocalAndRandomSearch(AcquisitionFunctionMaximizer):
 
         Parameters
         ----------
-        runhistory: ~litebo.utils.history_container.HistoryContainer
+        runhistory: ~openbox.utils.history_container.HistoryContainer
             runhistory object
         num_points: int
             number of points to be sampled
-        random_configuration_chooser: ~litebo.optimizer.random_configuration_chooser.RandomConfigurationChooser
+        random_configuration_chooser: ~openbox.optimizer.random_configuration_chooser.RandomConfigurationChooser
             part of the returned ChallengerList such
             that we can interleave random configurations
             by a scheme defined by the random_configuration_chooser;
@@ -446,7 +446,7 @@ class InterleavedLocalAndRandomSearch(AcquisitionFunctionMaximizer):
         Returns
         -------
         Iterable[Configuration]
-            to be concrete: ~litebo.ei_optimization.ChallengerList
+            to be concrete: ~openbox.ei_optimization.ChallengerList
         """
 
         next_configs_by_local_search = self.local_search._maximize(
@@ -462,7 +462,7 @@ class InterleavedLocalAndRandomSearch(AcquisitionFunctionMaximizer):
 
         # Having the configurations from random search, sorted by their
         # acquisition function value is important for the first few iterations
-        # of litebo. As long as the random forest predicts constant value, we
+        # of openbox. As long as the random forest predicts constant value, we
         # want to use only random configurations. Having them at the begging of
         # the list ensures this (even after adding the configurations by local
         # search, and then sorting them)

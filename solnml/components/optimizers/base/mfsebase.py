@@ -2,7 +2,7 @@ import time
 import numpy as np
 from collections import OrderedDict
 from math import log, ceil
-from litebo.core.mf_batch_advisor import MFBatchAdvisor
+from openbox.core.mf_batch_advisor import MFBatchAdvisor
 
 from solnml.utils.constant import MAX_INT
 from solnml.utils.logging_utils import get_logger

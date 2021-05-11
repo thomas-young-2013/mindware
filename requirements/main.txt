@@ -24,4 +24,4 @@ ConfigSpace==0.4.12
 torch
 torchvision
 
-lite-bo
+openbox

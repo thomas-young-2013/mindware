@@ -1,5 +1,8 @@
 import os
 import shutil
+import sys
+
+sys.path.append(os.getcwd())
 from sklearn.datasets import load_iris, load_boston
 from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.model_selection import train_test_split

@@ -1,8 +1,8 @@
 import time
 import numpy as np
-from litebo.optimizer.parallel_smbo import pSMBO as pBO
-from litebo.optimizer.generic_smbo import SMBO as BO
-from litebo.utils.constants import SUCCESS
+from openbox.optimizer.parallel_smbo import pSMBO as pBO
+from openbox.optimizer.generic_smbo import SMBO as BO
+from openbox.utils.constants import SUCCESS
 from solnml.components.optimizers.base_optimizer import BaseOptimizer, MAX_INT
 
 

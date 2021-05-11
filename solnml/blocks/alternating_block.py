@@ -2,7 +2,7 @@ import os
 import time
 import numpy as np
 from ConfigSpace import ConfigurationSpace
-from litebo.utils.constants import SUCCESS, TIMEOUT, FAILED
+from openbox.utils.constants import SUCCESS, TIMEOUT, FAILED
 
 from solnml.components.feature_engineering.transformation_graph import DataNode
 from solnml.components.utils.constants import CLS_TASKS

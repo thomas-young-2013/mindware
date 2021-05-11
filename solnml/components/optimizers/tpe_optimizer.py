@@ -1,6 +1,6 @@
 import time
 import numpy as np
-from litebo.utils.constants import SUCCESS, FAILED
+from openbox.utils.constants import SUCCESS, FAILED
 from solnml.components.optimizers.base_optimizer import BaseOptimizer
 from solnml.components.transfer_learning.tlbo.models.kde import TPE
 
