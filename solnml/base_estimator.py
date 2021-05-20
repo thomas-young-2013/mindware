@@ -23,6 +23,7 @@ class BaseEstimator(object):
             include_preprocessors=None,
             enable_meta_algorithm_selection=True,
             enable_fe=True,
+            optimizer = 'smac',
             ensemble_method='ensemble_selection',
             ensemble_size=50,
             per_run_time_limit=150,
@@ -41,6 +42,7 @@ class BaseEstimator(object):
         self.include_preprocessors = include_preprocessors
         self.enable_meta_algorithm_selection = enable_meta_algorithm_selection
         self.enable_fe = enable_fe
+        self.optimizer = optimizer
         self.ensemble_method = ensemble_method
         self.ensemble_size = ensemble_size
         self.per_run_time_limit = per_run_time_limit
@@ -74,6 +76,7 @@ class BaseEstimator(object):
             include_preprocessors=self.include_preprocessors,
             enable_meta_algorithm_selection=self.enable_meta_algorithm_selection,
             enable_fe=self.enable_fe,
+            optimizer = self.optimizer,
             ensemble_method=self.ensemble_method,
             ensemble_size=self.ensemble_size,
             per_run_time_limit=self.per_run_time_limit,
