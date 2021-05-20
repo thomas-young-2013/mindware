@@ -95,7 +95,7 @@ class RandomSearchOptimizer(BaseOptimizer):
                 self.early_stopped_flag = True
                 self.logger.warning('Already explored 70 percentage of the '
                                     'hyperspace or maximum configuration number met: %d!' % self.maximum_config_num)
-            if time.time() - _start_time > budget:
+            elif time.time() - _start_time > budget:
                 self.logger.warning('Time limit exceeded!')
             else:
                 _config_list, _status_list, _, _perf_list = self.optimizer.async_iterate(n=inner_iter_num)
@@ -115,7 +115,7 @@ class RandomSearchOptimizer(BaseOptimizer):
             self.eval_dict = {(fe_config, hpo_config): [-run_history.perfs[i], time.time(), run_history.trial_states[i]]
                               for i, hpo_config in enumerate(run_history.configurations)}
         else:
-            if hasattr(self.evaluator, 'hpo'):
+            if hasattr(self.evaluator, 'hpo_config'):
                 hpo_config = self.evaluator.hpo_config
             else:
                 hpo_config = None

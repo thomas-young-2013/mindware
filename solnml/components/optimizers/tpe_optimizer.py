@@ -94,7 +94,7 @@ class TPEOptimizer(BaseOptimizer):
             self.eval_dict = {(fe_config, hpo_config): [-run_history.perfs[i], time.time(), run_history.trial_states[i]]
                               for i, hpo_config in enumerate(run_history.configurations)}
         else:
-            if hasattr(self.evaluator, 'hpo'):
+            if hasattr(self.evaluator, 'hpo_config'):
                 hpo_config = self.evaluator.hpo_config
             else:
                 hpo_config = None
