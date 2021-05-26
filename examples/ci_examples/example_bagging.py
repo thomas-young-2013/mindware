@@ -28,10 +28,12 @@ def test_cls():
     clf = Classifier(time_limit=time_limit,
                      output_dir=save_dir,
                      enable_meta_algorithm_selection=False,
+                     optimizer='tpe',
                      ensemble_method=ensemble_method,
                      ensemble_size=10,
                      evaluation=eval_type,
-                     metric='acc')
+                     metric='acc',
+                     n_jobs=1)
     clf.fit(train_data)
     print(clf.summary())
 
