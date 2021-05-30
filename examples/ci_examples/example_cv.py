@@ -29,6 +29,7 @@ def test_cls():
                      output_dir=save_dir,
                      ensemble_method=ensemble_method,
                      enable_meta_algorithm_selection=False,
+                     include_algorithms=['random_forest'],
                      evaluation=eval_type,
                      metric='acc')
     clf.fit(train_data)
@@ -62,6 +63,7 @@ def test_cls_without_ensemble():
                      output_dir=save_dir,
                      ensemble_method=ensemble_method,
                      enable_meta_algorithm_selection=False,
+                     include_algorithms=['random_forest'],
                      evaluation=eval_type,
                      metric='acc')
     clf.fit(train_data)
