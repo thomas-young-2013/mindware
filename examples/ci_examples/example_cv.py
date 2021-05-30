@@ -110,4 +110,4 @@ def test_rgs():
 if __name__ == '__main__':
     test_cls()
     test_cls_without_ensemble()
-    test_rgs()
+    # test_rgs()
