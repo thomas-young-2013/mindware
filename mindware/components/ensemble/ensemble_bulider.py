@@ -1,5 +1,4 @@
-from sklearn.metrics.scorer import _BaseScorer
-import numpy as np
+from sklearn.metrics._scorer import _BaseScorer
 
 ensemble_list = ['bagging', 'blending', 'stacking', 'ensemble_selection']
 

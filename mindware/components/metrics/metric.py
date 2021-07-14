@@ -1,4 +1,4 @@
-from sklearn.metrics.scorer import make_scorer, _BaseScorer
+from sklearn.metrics._scorer import make_scorer, _BaseScorer
 from functools import partial
 
 
@@ -8,7 +8,7 @@ def get_metric(metric):
         from sklearn.metrics import accuracy_score
         return make_scorer(accuracy_score)
     elif metric in ["balanced_accuracy", "bal_acc"]:
-        from sklearn.metrics.scorer import balanced_accuracy_scorer
+        from sklearn.metrics._scorer import balanced_accuracy_scorer
         return balanced_accuracy_scorer
     elif metric == 'f1':
         from sklearn.metrics import f1_score

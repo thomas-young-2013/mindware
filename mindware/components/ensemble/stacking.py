@@ -3,7 +3,7 @@ import warnings
 import os
 import pickle as pkl
 from sklearn.model_selection import StratifiedKFold, KFold
-from sklearn.metrics.scorer import _BaseScorer
+from sklearn.metrics._scorer import _BaseScorer
 
 from mindware.components.ensemble.base_ensemble import BaseEnsembleModel
 from mindware.components.utils.constants import CLS_TASKS

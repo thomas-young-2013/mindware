@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import scipy.spatial
-from sklearn.metrics.scorer import _BaseScorer
+from sklearn.metrics._scorer import _BaseScorer
 from mindware.components.utils.constants import CLS_TASKS
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import accuracy_score

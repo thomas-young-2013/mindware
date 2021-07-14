@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.compose import ColumnTransformer
-from sklearn.utils.testing import ignore_warnings
 from sklearn.preprocessing._encoders import OrdinalEncoder, _BaseEncoder
 from mindware.utils.data_manager import DataManager
 from mindware.components.feature_engineering.fe_pipeline import FEPipeline
@@ -90,10 +89,10 @@ class NanOrdinalEncoder(_BaseEncoder):
         return result
 
 
-@ignore_warnings([RuntimeWarning, FutureWarning])
 def calculate_metafeatures(dataset, dataset_id=None, data_dir='./', task_type=None):
     if isinstance(dataset, str):
-        X, y, feature_types = load_data(dataset, data_dir, datanode_returned=False, preprocess=False, task_type=task_type)
+        X, y, feature_types = load_data(dataset, data_dir, datanode_returned=False, preprocess=False,
+                                        task_type=task_type)
         dataset_id = dataset
     elif isinstance(dataset, DataNode):
         X, y, feature_types = dataset.data[0], dataset.data[1], dataset.feature_types

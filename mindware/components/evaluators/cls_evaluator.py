@@ -4,7 +4,7 @@ import os
 import time
 import numpy as np
 import pickle as pkl
-from sklearn.metrics.scorer import balanced_accuracy_scorer, _ThresholdScorer
+from sklearn.metrics._scorer import balanced_accuracy_scorer, _ThresholdScorer
 from sklearn.preprocessing import OneHotEncoder
 
 from mindware.utils.logging_utils import get_logger

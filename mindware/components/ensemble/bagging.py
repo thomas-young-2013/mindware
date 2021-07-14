@@ -1,4 +1,4 @@
-from sklearn.metrics.scorer import _BaseScorer
+from sklearn.metrics._scorer import _BaseScorer
 import numpy as np
 import os
 import pickle as pkl

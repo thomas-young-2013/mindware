@@ -4,7 +4,7 @@ import warnings
 import os
 import numpy as np
 import pickle as pkl
-from sklearn.metrics.scorer import balanced_accuracy_scorer
+from sklearn.metrics._scorer import balanced_accuracy_scorer
 
 from mindware.utils.logging_utils import get_logger
 from mindware.components.evaluators.base_evaluator import _BaseEvaluator
