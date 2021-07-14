@@ -5,10 +5,10 @@ from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
 
-from solnml.datasets.image_dataset import ImageDataset
-from solnml.estimators import ImageClassifier
-from solnml.components.models.img_classification import add_classifier
-from solnml.components.models.img_classification.resnext import ResNeXtClassifier
+from mindware.datasets.image_dataset import ImageDataset
+from mindware.estimators import ImageClassifier
+from mindware.components.models.img_classification import add_classifier
+from mindware.components.models.img_classification.resnext import ResNeXtClassifier
 
 # Add user-defined classifier
 add_classifier(ResNeXtClassifier)

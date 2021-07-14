@@ -3,8 +3,8 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from solnml.components.meta_learning.meta_feature.meta_features import calculate_all_metafeatures
-from solnml.components.utils.constants import REGRESSION
+from mindware.components.meta_learning.meta_feature.meta_features import calculate_all_metafeatures
+from mindware.components.utils.constants import REGRESSION
 
 np.random.seed(1)
 X = np.random.rand(100, 5)

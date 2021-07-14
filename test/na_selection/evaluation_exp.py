@@ -6,8 +6,8 @@ import pickle as pk
 from sklearn.metrics import accuracy_score
 sys.path.append(os.getcwd())
 
-from solnml.datasets.image_dataset import ImageDataset
-from solnml.estimators import ImageClassifier
+from mindware.datasets.image_dataset import ImageDataset
+from mindware.estimators import ImageClassifier
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--n_jobs', type=int, default=1)

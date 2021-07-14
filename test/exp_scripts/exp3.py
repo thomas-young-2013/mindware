@@ -13,8 +13,8 @@ from sklearn.metrics import balanced_accuracy_score
 sys.path.append(os.getcwd())
 import autosklearn.classification
 
-from solnml.datasets.utils import load_train_test_data
-from solnml.components.utils.constants import CATEGORICAL, MULTICLASS_CLS
+from mindware.datasets.utils import load_train_test_data
+from mindware.components.utils.constants import CATEGORICAL, MULTICLASS_CLS
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,vehicle,yeast,' \
@@ -38,7 +38,7 @@ def evaluate_2rd_hmab(run_id, mth, dataset, algo,
     task_type = MULTICLASS_CLS
     train_data, test_data = load_train_test_data(dataset, task_type=task_type)
 
-    from solnml.estimators import Classifier
+    from mindware.estimators import Classifier
     clf = Classifier(time_limit=time_limit,
                      per_run_time_limit=300,
                      output_dir=save_folder,

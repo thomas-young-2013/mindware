@@ -6,7 +6,7 @@ from ConfigSpace.hyperparameters import UniformFloatHyperparameter, \
 import numpy as np
 from lightgbm import LGBMClassifier
 
-from solnml.components.utils.constants import *
+from mindware.components.utils.constants import *
 from autosklearn.pipeline.components.base import AutoSklearnClassificationAlgorithm
 
 

@@ -4,12 +4,12 @@ import argparse
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
 
 sys.path.append(os.getcwd())
-from solnml.datasets.image_dataset import ImageDataset
-from solnml.components.optimizers.base.config_space_utils import sample_configurations
-from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space
-from solnml.components.evaluators.dl_evaluator import DLEvaluator
-from solnml.components.metrics.metric import get_metric
-from solnml.components.utils.constants import IMG_CLS
+from mindware.datasets.image_dataset import ImageDataset
+from mindware.components.optimizers.base.config_space_utils import sample_configurations
+from mindware.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space
+from mindware.components.evaluators.dl_evaluator import DLEvaluator
+from mindware.components.metrics.metric import get_metric
+from mindware.components.utils.constants import IMG_CLS
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--network', type=str, default='mobilenet')
@@ -28,8 +28,8 @@ evaluator = DLEvaluator(None,
                         image_size=32)
 
 
-from solnml.components.computation.parallel_process import ParallelProcessEvaluator
-from solnml.components.models.img_classification import _classifiers
+from mindware.components.computation.parallel_process import ParallelProcessEvaluator
+from mindware.components.models.img_classification import _classifiers
 network_id = args.network
 config_space = _classifiers[network_id].get_hyperparameter_search_space()
 model = UnParametrizedHyperparameter("estimator", network_id)

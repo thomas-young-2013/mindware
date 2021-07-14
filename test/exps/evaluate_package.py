@@ -1,5 +1,5 @@
-from solnml.datasets.utils import load_train_test_data
-from solnml.estimators import Classifier
+from mindware.datasets.utils import load_train_test_data
+from mindware.estimators import Classifier
 
 
 def evaluate_package():

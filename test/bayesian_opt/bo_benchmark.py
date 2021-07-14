@@ -7,12 +7,12 @@ import pickle as pk
 
 sys.path.append(os.getcwd())
 
-from solnml.components.transfer_learning.tlbo.bo_optimizer import BO
+from mindware.components.transfer_learning.tlbo.bo_optimizer import BO
 from ConfigSpace.hyperparameters import UnParametrizedHyperparameter
-from solnml.datasets.utils import load_train_test_data
-from solnml.components.metrics.metric import get_metric
-from solnml.components.models.classification import _classifiers
-from solnml.components.utils.constants import MULTICLASS_CLS
+from mindware.datasets.utils import load_train_test_data
+from mindware.components.metrics.metric import get_metric
+from mindware.components.models.classification import _classifiers
+from mindware.components.utils.constants import MULTICLASS_CLS
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--algo', type=str, default='libsvm_svc')
@@ -42,7 +42,7 @@ def get_configspace(optimizer='smac'):
 
 
 def get_estimator(config):
-    from solnml.components.models.classification import _classifiers, _addons
+    from mindware.components.models.classification import _classifiers, _addons
     classifier_type = config['estimator']
     config_ = config.copy()
     config_.pop('estimator', None)
@@ -120,14 +120,14 @@ def evaluate(mth, dataset, run_id):
         perfs = [trial['result']['loss'] for trial in trials.trials]
         perf_bo = min(perfs)
     elif mth == 'tpe_bo':
-        from solnml.components.transfer_learning.tlbo.tpe_optimizer import TPE_BO
+        from mindware.components.transfer_learning.tlbo.tpe_optimizer import TPE_BO
         bo = TPE_BO(objective_function, config_space, max_runs=max_runs)
         bo.run()
         print('lite BO result')
         print(bo.get_incumbent())
         perf_bo = bo.history_container.incumbent_value
     elif mth == 'random_search':
-        from solnml.components.transfer_learning.tlbo.tpe_optimizer import TPE_BO
+        from mindware.components.transfer_learning.tlbo.tpe_optimizer import TPE_BO
         bo = TPE_BO(objective_function, config_space, surrogate_model=mth, max_runs=max_runs)
         bo.run()
         print('lite BO result')

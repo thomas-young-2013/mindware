@@ -4,8 +4,8 @@ from sklearn.datasets import load_iris, load_boston
 from sklearn.metrics import accuracy_score, mean_squared_error
 from sklearn.model_selection import train_test_split
 
-from solnml.utils.data_manager import DataManager
-from solnml.estimators import Classifier, Regressor
+from mindware.utils.data_manager import DataManager
+from mindware.estimators import Classifier, Regressor
 
 
 def test_cls():

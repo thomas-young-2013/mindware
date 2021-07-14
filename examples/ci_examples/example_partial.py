@@ -4,8 +4,8 @@ from sklearn.datasets import load_iris
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
-from solnml.utils.data_manager import DataManager
-from solnml.estimators import Classifier
+from mindware.utils.data_manager import DataManager
+from mindware.estimators import Classifier
 
 
 def test_cls():

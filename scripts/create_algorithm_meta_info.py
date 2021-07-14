@@ -9,9 +9,9 @@ sys.path.append(os.getcwd())
 from autosklearn.classification import AutoSklearnClassifier
 from autosklearn.pipeline.components.classification import add_classifier
 
-from solnml.components.utils.constants import MULTICLASS_CLS, BINARY_CLS, REGRESSION, CLS_TASKS, CATEGORICAL
-from solnml.datasets.utils import load_train_test_data
-from solnml.components.metrics.metric import get_metric
+from mindware.components.utils.constants import MULTICLASS_CLS, BINARY_CLS, REGRESSION, CLS_TASKS, CATEGORICAL
+from mindware.datasets.utils import load_train_test_data
+from mindware.components.metrics.metric import get_metric
 from scripts.ausk_udf_models.lightgbm import LightGBM
 from scripts.ausk_udf_models.logistic_regression import Logistic_Regression
 

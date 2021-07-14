@@ -21,7 +21,4 @@ imbalanced-learn==0.5.0
 tabulate>=0.8.5
 ConfigSpace==0.4.12
 
-torch
-torchvision
-
 openbox

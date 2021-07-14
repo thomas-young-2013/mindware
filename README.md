@@ -43,8 +43,8 @@ Here is a brief example that uses the package.
 ```python
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from solnml.utils.data_manager import DataManager
-from solnml.estimators import Classifier
+from mindware.utils.data_manager import DataManager
+from mindware.estimators import Classifier
 
 iris = load_iris()
 X, y = iris.data, iris.target

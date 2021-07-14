@@ -10,9 +10,9 @@ from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
 
-from solnml.datasets.utils import load_train_test_data
+from mindware.datasets.utils import load_train_test_data
 from sklearn.model_selection import StratifiedShuffleSplit
-from solnml.components.feature_engineering.transformation_graph import DataNode, TransformationGraph
+from mindware.components.feature_engineering.transformation_graph import DataNode, TransformationGraph
 
 
 def train_valid_split(node: DataNode):
@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
         qt = FastICA(n_components=7, random_state=1)
     elif trans_name == 'quantile':
-        from solnml.components.feature_engineering.transformations.utils import QuantileTransformer
+        from mindware.components.feature_engineering.transformations.utils import QuantileTransformer
 
         qt = QuantileTransformer()
     elif trans_name == 'variance_selector':
@@ -143,7 +143,7 @@ if __name__ == "__main__":
 
         qt = Nystroem()
     elif trans_name == 'kernel_pca':
-        from solnml.components.feature_engineering.transformations.utils import KernelPCA
+        from mindware.components.feature_engineering.transformations.utils import KernelPCA
 
         qt = KernelPCA()
     elif trans_name == 'kitchen_sink':

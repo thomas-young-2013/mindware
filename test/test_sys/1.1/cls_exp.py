@@ -4,8 +4,8 @@ import sys
 from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
-from solnml.datasets.utils import load_train_test_data
-from solnml.estimators import Classifier
+from mindware.datasets.utils import load_train_test_data
+from mindware.estimators import Classifier
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str, default='pc4')

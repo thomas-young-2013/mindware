@@ -3,7 +3,7 @@ import sys
 from torchvision import transforms
 sys.path.append(os.getcwd())
 
-from solnml.datasets.image_dataset import ImageDataset
+from mindware.datasets.image_dataset import ImageDataset
 
 data_transforms = {
     'train': transforms.Compose([

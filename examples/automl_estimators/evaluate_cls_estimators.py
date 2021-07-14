@@ -4,8 +4,8 @@ import argparse
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 
-from solnml.utils.data_manager import DataManager
-from solnml.estimators import Classifier
+from mindware.utils.data_manager import DataManager
+from mindware.estimators import Classifier
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--time_limit', type=int, default=150)

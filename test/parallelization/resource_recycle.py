@@ -3,8 +3,8 @@ import sys
 import time
 
 sys.path.append(os.getcwd())
-from solnml.utils.proc_thread.proc_func import kill_proc_tree
-from solnml.components.computation.parallel_process import ParallelProcessEvaluator
+from mindware.utils.proc_thread.proc_func import kill_proc_tree
+from mindware.components.computation.parallel_process import ParallelProcessEvaluator
 
 
 def evaluate_func(a=None, data_node=None, name='fe', resource_ratio=0.1):

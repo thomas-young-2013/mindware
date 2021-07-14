@@ -5,12 +5,12 @@ from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
 
-from solnml.datasets.image_dataset import ImageDataset
-from solnml.estimators import ImageClassifier
-from solnml.components.models.img_classification.resnet50 import ResNet50Classifier
-from solnml.components.models.img_classification.resnext import ResNeXtClassifier
-from solnml.components.models.img_classification.senet import SENetClassifier
-from solnml.components.models.img_classification.nasnet import NASNetClassifier
+from mindware.datasets.image_dataset import ImageDataset
+from mindware.estimators import ImageClassifier
+from mindware.components.models.img_classification.resnet50 import ResNet50Classifier
+from mindware.components.models.img_classification.resnext import ResNeXtClassifier
+from mindware.components.models.img_classification.senet import SENetClassifier
+from mindware.components.models.img_classification.nasnet import NASNetClassifier
 
 data_dir = 'data/img_datasets/hymenoptera_data/'
 image_data = ImageDataset(data_path=data_dir)

@@ -3,8 +3,8 @@ import sys
 import numpy as np
 import pickle as pk
 sys.path.append(os.getcwd())
-from solnml.datasets.utils import calculate_metafeatures
-from solnml.components.utils.constants import MULTICLASS_CLS
+from mindware.datasets.utils import calculate_metafeatures
+from mindware.components.utils.constants import MULTICLASS_CLS
 
 datasets = ['balloon', 'kc1', 'quake', 'segment', 'madelon', 'space_ga',
             'kr-vs-kp', 'cpu_small', 'sick', 'hypothyroid(1)', 'hypothyroid(2)',

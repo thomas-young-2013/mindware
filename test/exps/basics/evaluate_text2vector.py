@@ -4,11 +4,11 @@ import sys
 
 sys.path.append(os.getcwd())
 
-from solnml.components.feature_engineering.transformations.preprocessor.text2vector import \
+from mindware.components.feature_engineering.transformations.preprocessor.text2vector import \
     Text2VectorTransformation
-from solnml.components.feature_engineering.transformation_graph import DataNode
-from solnml.components.utils.constants import *
-from solnml.estimators import Classifier
+from mindware.components.feature_engineering.transformation_graph import DataNode
+from mindware.components.utils.constants import *
+from mindware.estimators import Classifier
 
 x = np.array([[1, 'I am good', 'I am right', 3], [2, 'He is good', 'He is ok', 4],
               [2.5, 'Everyone is good', 'Everyone is ok', 7], [1.3333, 'well', 'what', 5]])

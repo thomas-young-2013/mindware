@@ -9,9 +9,9 @@ import autosklearn.classification
 from sklearn.metrics import balanced_accuracy_score
 
 sys.path.append(os.getcwd())
-from solnml.estimators import Classifier
-from solnml.datasets.utils import load_train_test_data
-from solnml.components.utils.constants import CATEGORICAL, MULTICLASS_CLS
+from mindware.estimators import Classifier
+from mindware.datasets.utils import load_train_test_data
+from mindware.components.utils.constants import CATEGORICAL, MULTICLASS_CLS
 
 parser = argparse.ArgumentParser()
 dataset_set = 'dna,pollen,abalone,splice,madelon,spambase,wind,page-blocks(1),pc2,segment'

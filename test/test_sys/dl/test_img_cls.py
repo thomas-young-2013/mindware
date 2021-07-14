@@ -7,19 +7,19 @@ from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
 
-from solnml.datasets.image_dataset import ImageDataset
-from solnml.estimators import ImageClassifier
-from solnml.components.models.img_classification.resnet50 import ResNet50Classifier
-from solnml.components.models.img_classification.resnet34 import ResNet34Classifier
-from solnml.components.models.img_classification.resnet101 import ResNet101Classifier
-from solnml.components.models.img_classification.resnext import ResNeXtClassifier
-from solnml.components.models.img_classification.senet import SENetClassifier
-from solnml.components.models.img_classification.nasnet import NASNetClassifier
-from solnml.components.models.img_classification.mobilenet import MobileNettClassifier
-from solnml.components.models.img_classification.efficientnet import EfficientNetClassifier
-from solnml.components.models.img_classification.resnet110_32 import ResNet110_32Classifier
-from solnml.components.models.img_classification.densenet190_32 import DenseNet190_32Classifier
-from solnml.components.models.img_classification.densenet100_32 import DenseNet100_32Classifier
+from mindware.datasets.image_dataset import ImageDataset
+from mindware.estimators import ImageClassifier
+from mindware.components.models.img_classification.resnet50 import ResNet50Classifier
+from mindware.components.models.img_classification.resnet34 import ResNet34Classifier
+from mindware.components.models.img_classification.resnet101 import ResNet101Classifier
+from mindware.components.models.img_classification.resnext import ResNeXtClassifier
+from mindware.components.models.img_classification.senet import SENetClassifier
+from mindware.components.models.img_classification.nasnet import NASNetClassifier
+from mindware.components.models.img_classification.mobilenet import MobileNettClassifier
+from mindware.components.models.img_classification.efficientnet import EfficientNetClassifier
+from mindware.components.models.img_classification.resnet110_32 import ResNet110_32Classifier
+from mindware.components.models.img_classification.densenet190_32 import DenseNet190_32Classifier
+from mindware.components.models.img_classification.densenet100_32 import DenseNet100_32Classifier
 
 phase = 'test'
 

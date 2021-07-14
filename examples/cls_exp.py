@@ -8,8 +8,8 @@ from sklearn.metrics import balanced_accuracy_score
 from sklearn.model_selection import train_test_split
 
 sys.path.append(os.getcwd())
-from solnml.utils.data_manager import DataManager
-from solnml.estimators import Classifier
+from mindware.utils.data_manager import DataManager
+from mindware.estimators import Classifier
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--time_limit', type=int, default=1200)

@@ -8,8 +8,8 @@ from sklearn.metrics import balanced_accuracy_score, mean_squared_error
 
 sys.path.append(os.getcwd())
 from tpot import TPOTClassifier, TPOTRegressor
-from solnml.datasets.utils import load_data, load_train_test_data
-from solnml.components.utils.constants import MULTICLASS_CLS, REGRESSION
+from mindware.datasets.utils import load_data, load_train_test_data
+from mindware.components.utils.constants import MULTICLASS_CLS, REGRESSION
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,' \
@@ -33,7 +33,7 @@ def evaluate_tpot(dataset, task_type, run_id, time_limit, seed=1, use_fe=True):
     n_job = args.n_job
     # Construct the ML model.
     if not use_fe:
-        from solnml.utils.tpot_config import classifier_config_dict
+        from mindware.utils.tpot_config import classifier_config_dict
         config = classifier_config_dict
 
     _task_type = MULTICLASS_CLS if task_type == 'cls' else REGRESSION

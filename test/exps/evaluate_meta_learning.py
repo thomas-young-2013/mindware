@@ -8,7 +8,7 @@ from autosklearn.data.xy_data_manager import XYDataManager
 from autosklearn.util.backend import create
 from autosklearn.util import pipeline, StopWatch
 
-from solnml.datasets.utils import load_data
+from mindware.datasets.utils import load_data
 
 dataset_name = 'diabetes'
 X, y, _ = load_data(dataset_name)

@@ -2,10 +2,10 @@ import os
 import sys
 import numpy as np
 sys.path.append(os.getcwd())
-from solnml.components.meta_learning.algorithm_recomendation.ranknet_advisor import RankNetAdvisor
-from solnml.components.meta_learning.algorithm_recomendation.gbm_advisor import GBMAdvisor
-from solnml.components.meta_learning.algorithm_recomendation.metadata_manager import get_feature_vector
-from solnml.components.utils.constants import MULTICLASS_CLS
+from mindware.components.meta_learning.algorithm_recomendation.ranknet_advisor import RankNetAdvisor
+from mindware.components.meta_learning.algorithm_recomendation.gbm_advisor import GBMAdvisor
+from mindware.components.meta_learning.algorithm_recomendation.metadata_manager import get_feature_vector
+from mindware.components.utils.constants import MULTICLASS_CLS
 
 
 def average_precision_atN(preds, true_labels):

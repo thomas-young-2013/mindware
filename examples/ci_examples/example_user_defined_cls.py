@@ -10,12 +10,12 @@ from sklearn.datasets import load_iris
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
-from solnml.utils.data_manager import DataManager
-from solnml.estimators import Classifier
-from solnml.components.models.base_model import BaseClassificationModel
-from solnml.components.models.classification import add_classifier
-from solnml.components.utils.configspace_utils import check_none
-from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
+from mindware.utils.data_manager import DataManager
+from mindware.estimators import Classifier
+from mindware.components.models.base_model import BaseClassificationModel
+from mindware.components.models.classification import add_classifier
+from mindware.components.utils.configspace_utils import check_none
+from mindware.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
 
 
 class UserDefinedDecisionTree(BaseClassificationModel):

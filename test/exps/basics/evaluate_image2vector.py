@@ -4,11 +4,11 @@ import sys
 
 sys.path.append(os.getcwd())
 
-from solnml.components.feature_engineering.transformations.preprocessor.image2vector import \
+from mindware.components.feature_engineering.transformations.preprocessor.image2vector import \
     Image2VectorTransformation
-from solnml.components.feature_engineering.transformation_graph import DataNode
-from solnml.components.utils.constants import *
-from solnml.components.utils.image_util import *
+from mindware.components.feature_engineering.transformation_graph import DataNode
+from mindware.components.utils.constants import *
+from mindware.components.utils.image_util import *
 
 x = []
 for i in range(300):

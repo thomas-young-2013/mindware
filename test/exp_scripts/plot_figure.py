@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 sys.path.append(os.getcwd())
-from solnml.utils.functions import get_increasing_sequence
+from mindware.utils.functions import get_increasing_sequence
 
 parser = argparse.ArgumentParser()
 dataset_set = 'dna,pollen,abalone,splice,madelon,spambase,wind,page-blocks(1),pc2,segment'

@@ -6,21 +6,21 @@ from ConfigSpace import ConfigurationSpace
 from ConfigSpace import InCondition
 from ConfigSpace.hyperparameters import CategoricalHyperparameter, UnParametrizedHyperparameter
 
-from solnml.components.utils.constants import IMG_CLS, TEXT_CLS, OBJECT_DET
-from solnml.datasets.base_dl_dataset import DLDataset
-from solnml.components.ensemble.dl_ensemble.ensemble_bulider import EnsembleBuilder, ensemble_list
-from solnml.components.optimizers import build_hpo_optimizer
-from solnml.components.evaluators.dl_evaluator import DLEvaluator
-from solnml.components.evaluators.base_dl_evaluator import get_estimator_with_parameters, TopKModelSaver, get_estimator
-from solnml.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space, \
+from mindware.components.utils.constants import IMG_CLS, TEXT_CLS, OBJECT_DET
+from mindware.datasets.base_dl_dataset import DLDataset
+from mindware.components.ensemble.dl_ensemble.ensemble_bulider import EnsembleBuilder, ensemble_list
+from mindware.components.optimizers import build_hpo_optimizer
+from mindware.components.evaluators.dl_evaluator import DLEvaluator
+from mindware.components.evaluators.base_dl_evaluator import get_estimator_with_parameters, TopKModelSaver, get_estimator
+from mindware.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_aug_hyperparameter_space, \
     get_test_transforms
-from solnml.components.metrics.metric import get_metric
-from solnml.datasets.image_dataset import ImageDataset
-from solnml.estimators import ImageClassifier
+from mindware.components.metrics.metric import get_metric
+from mindware.datasets.image_dataset import ImageDataset
+from mindware.estimators import ImageClassifier
 
 
 def get_model_config_space(estimator_id, include_estimator=True, include_aug=True):
-    from solnml.components.models.img_classification import _classifiers as _img_estimators, _addons as _img_addons
+    from mindware.components.models.img_classification import _classifiers as _img_estimators, _addons as _img_addons
     clf_class = _img_estimators[estimator_id]
     default_cs = clf_class.get_hyperparameter_search_space()
     model = UnParametrizedHyperparameter("estimator", estimator_id)

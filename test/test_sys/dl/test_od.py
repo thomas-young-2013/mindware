@@ -6,9 +6,9 @@ import pickle as pkl
 from sklearn.metrics import accuracy_score
 
 sys.path.append(os.getcwd())
-from solnml.components.models.object_detection.yolov3 import Yolov3
-from solnml.datasets.od_dataset import ODDataset
-from solnml.estimators import ObjectionDetecter
+from mindware.components.models.object_detection.yolov3 import Yolov3
+from mindware.datasets.od_dataset import ODDataset
+from mindware.estimators import ObjectionDetecter
 
 mode = 'fit'
 if mode == 'fit':

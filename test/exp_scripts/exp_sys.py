@@ -16,8 +16,8 @@ sys.path.append(os.getcwd())
 import autosklearn.classification
 import autosklearn.regression
 
-from solnml.datasets.utils import load_train_test_data
-from solnml.components.utils.constants import CATEGORICAL, MULTICLASS_CLS, REGRESSION
+from mindware.datasets.utils import load_train_test_data
+from mindware.components.utils.constants import CATEGORICAL, MULTICLASS_CLS, REGRESSION
 
 parser = argparse.ArgumentParser()
 dataset_set = 'diabetes,spectf,credit,ionosphere,lymphography,pc4,vehicle,yeast,' \
@@ -45,7 +45,7 @@ def evaluate_sys(run_id, task_type, mth, dataset, ens_method, enable_meta,
     train_data, test_data = load_train_test_data(dataset, task_type=_task_type)
     _enable_meta = True if enable_meta == 'true' else False
     if task_type == 'cls':
-        from solnml.estimators import Classifier
+        from mindware.estimators import Classifier
         estimator = Classifier(time_limit=time_limit,
                                per_run_time_limit=30,
                                output_dir=save_folder,
@@ -60,7 +60,7 @@ def evaluate_sys(run_id, task_type, mth, dataset, ens_method, enable_meta,
                                                    'logistic_regression', 'random_forest'],
                                n_jobs=1)
     else:
-        from solnml.estimators import Regressor
+        from mindware.estimators import Regressor
         estimator = Regressor(time_limit=time_limit,
                               per_run_time_limit=90,
                               output_dir=save_folder,

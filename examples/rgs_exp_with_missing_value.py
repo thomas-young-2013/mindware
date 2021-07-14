@@ -6,9 +6,9 @@ from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 
 sys.path.append(os.getcwd())
-from solnml.utils.data_manager import DataManager
-from solnml.components.feature_engineering.fe_pipeline import FEPipeline
-from solnml.estimators import Regressor
+from mindware.utils.data_manager import DataManager
+from mindware.components.feature_engineering.fe_pipeline import FEPipeline
+from mindware.estimators import Regressor
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--time_limit', type=int, default=1200)
@@ -31,7 +31,7 @@ print('==> Start to evaluate with Budget %d' % time_limit)
 dm = DataManager()
 train_node = dm.load_train_csv("train_dataset.csv", label_col=-1, header='infer', na_values=['nan', '?'])
 test_node = dm.load_test_csv("test_dataset.csv", header='infer', has_label=True)
-from solnml.components.utils.constants import REGRESSION
+from mindware.components.utils.constants import REGRESSION
 
 pipeline = FEPipeline(fe_enabled=False, task_type=REGRESSION)
 train_data = pipeline.fit_transform(train_node)
