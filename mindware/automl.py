@@ -88,10 +88,9 @@ class AutoML(object):
             raise ValueError("%s is not supported for ensemble!" % ensemble_method)
 
     def _get_logger(self, name):
-        logger_name = 'SolnML-%s(%d)' % (name, self.seed)
+        logger_name = 'MindWare-%s(%d)' % (name, self.seed)
         setup_logger(os.path.join(self.output_dir, '%s.log' % str(logger_name)),
-                     self.logging_config,
-                     )
+                     self.logging_config)
         return get_logger(logger_name)
 
     def fit(self, train_data: DataNode, **kwargs):

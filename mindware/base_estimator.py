@@ -13,7 +13,7 @@ from mindware.components.feature_engineering.transformation_graph import DataNod
 class BaseEstimator(object):
     def __init__(
             self,
-            dataset_name='default_dataset_name',
+            dataset_name='default_name',
             time_limit=300,
             amount_of_resource=None,
             metric='acc',
@@ -21,7 +21,7 @@ class BaseEstimator(object):
             include_preprocessors=None,
             enable_meta_algorithm_selection=True,
             enable_fe=True,
-            optimizer = 'smac',
+            optimizer='smac',
             ensemble_method='ensemble_selection',
             ensemble_size=50,
             per_run_time_limit=150,
@@ -149,8 +149,8 @@ class BaseEstimator(object):
             for jt in range(j):
                 corre_mat[it, jt] = np.corrcoef(X0[:, it], X[:, jt])[0, 1]
         df = pd.DataFrame(corre_mat)
-        df.columns = ['origin_fearure' + str(it) for it in range(i)]
-        df.index = ['transformed_fearure' + str(jt) for jt in range(j)]
+        df.columns = ['origin_feature' + str(it) for it in range(i)]
+        df.index = ['transformed_feature' + str(jt) for jt in range(j)]
         return df
 
     def feature_origin(self):
