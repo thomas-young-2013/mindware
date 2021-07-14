@@ -1,5 +1,5 @@
-include solnml/utils/logging.yaml
+include mindware/utils/logging.yaml
 recursive-include solnml *.pyx
 include requirements.txt
-recursive-include solnml/components/meta_learning/meta_resource *.pkl
-recursive-include solnml/components/meta_learning/meta_resource *.pth
+recursive-include mindware/components/meta_learning/meta_resource *.pkl
+recursive-include mindware/components/meta_learning/meta_resource *.pth

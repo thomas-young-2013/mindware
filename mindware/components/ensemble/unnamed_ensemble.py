@@ -39,9 +39,9 @@ def choose_base_models_classification(predictions, num_model, interval=20):
             freq = list(counts / counts.sum())
             freq_array += freq
 
-        # TODO: Debug
-        print(prediction)
-        print(freq_array)
+        # TODO: Debug inf output
+        # print(prediction)
+        # print(freq_array)
         distribution.append(freq_array)  # Shape: (num_total_models,20*num_class)
 
     distribution = np.array(distribution)
