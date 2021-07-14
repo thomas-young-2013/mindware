@@ -7,9 +7,7 @@ import pandas as pd
 import shutil
 
 from mindware.automl import AutoML
-from mindware.autodl import AutoDL
 from mindware.components.feature_engineering.transformation_graph import DataNode
-from mindware.datasets.base_dl_dataset import DLDataset
 
 
 class BaseEstimator(object):
@@ -202,90 +200,3 @@ class BaseEstimator(object):
 
     def summary(self):
         return self._ml_engine.summary()
-
-
-class BaseDLEstimator(object):
-    def __init__(
-            self,
-            dataset_name='default_dataset_name',
-            time_limit=1200,
-            metric='acc',
-            include_algorithms=None,
-            ensemble_method='bagging',
-            ensemble_size=50,
-            max_epoch=150,
-            skip_profile=False,
-            config_file_path=None,
-            random_state=1,
-            n_jobs=1,
-            evaluation='holdout',
-            output_dir="/tmp/"):
-        self.dataset_name = dataset_name
-        self.metric = metric
-        self.task_type = None
-        self.time_limit = time_limit
-        self.include_algorithms = include_algorithms
-        self.ensemble_method = ensemble_method
-        self.ensemble_size = ensemble_size
-        self.max_epoch = max_epoch
-        self.skip_profile = skip_profile
-        self.config_file_path = config_file_path
-        self.random_state = random_state
-        self.n_jobs = n_jobs
-        self.evaluation = evaluation
-        self.output_dir = output_dir
-        self._ml_engine = None
-        # Create output directory.
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-
-    def build_engine(self):
-        """Build AutoML controller"""
-        engine = self.get_automl()(
-            dataset_name=self.dataset_name,
-            task_type=self.task_type,
-            metric=self.metric,
-            time_limit=self.time_limit,
-            include_algorithms=self.include_algorithms,
-            ensemble_method=self.ensemble_method,
-            ensemble_size=self.ensemble_size,
-            max_epoch=self.max_epoch,
-            config_file_path=self.config_file_path,
-            skip_profile=self.skip_profile,
-            random_state=self.random_state,
-            n_jobs=self.n_jobs,
-            evaluation=self.evaluation,
-            output_dir=self.output_dir
-        )
-        return engine
-
-    def fit(self, data: DLDataset, **kwargs):
-        try:
-            assert data is not None and isinstance(data, DLDataset)
-            self._ml_engine = self.build_engine()
-            self._ml_engine.fit(data, **kwargs)
-        except Exception as e:
-            print(e)
-            print("-" * 60)
-            traceback.print_exc(file=sys.stdout)
-            print("-" * 60)
-        return self
-
-    def predict(self, X: DLDataset, mode='test', batch_size=1, n_jobs=1):
-        return self._ml_engine.predict(X, mode=mode, batch_size=batch_size, n_jobs=n_jobs)
-
-    def score(self, data: DLDataset, mode='test'):
-        return self._ml_engine.score(data, mode=mode)
-
-    def refit(self, data: DLDataset):
-        return self._ml_engine.refit(data)
-
-    def predict_proba(self, X: DLDataset, mode='test', batch_size=1, n_jobs=1):
-        return self._ml_engine.predict_proba(X, mode=mode, batch_size=batch_size, n_jobs=n_jobs)
-
-    def get_runtime_history(self):
-        return self._ml_engine._get_runtime_info()
-
-    def get_automl(self):
-        return AutoDL
-
