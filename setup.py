@@ -26,14 +26,14 @@ HERE = Path(__file__).parent
 # The text of the README file
 README = (HERE / "README.md").read_text()
 
-setup(name='soln-ml',
+setup(name='mindware',
       version='1.0.5',
       long_description=README,
       long_description_content_type="text/markdown",
-      description='Soln-ML: Towards Self-Improving AutoML System.',
-      author='AutoML Researcher @ DAIM',
+      description='MindWare: Towards Efficient AutoML System.',
+      author='AutoML Researchers @ DAIR',
       author_email='liyang.cs@pku.edu.cn',
-      url='https://github.com/thomas-young-2013/soln-ml',
+      url='https://github.com/thomas-young-2013/mindware',
       keywords='AutoML,machine learning',
       packages=find_packages(exclude=['docs', 'examples', 'test']),
       license='LICENSE.txt',
