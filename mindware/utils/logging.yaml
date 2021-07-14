@@ -16,7 +16,7 @@ handlers:
     class: logging.FileHandler
     level: DEBUG
     formatter: simple
-    filename: soln-ml.log
+    filename: mindware.log
 
 root:
   level: DEBUG
