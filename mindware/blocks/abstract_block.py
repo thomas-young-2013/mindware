@@ -25,6 +25,7 @@ class AbstractBlock(object):
                  trial_num=0,
                  time_limit=None,
                  metric='acc',
+                 optimizer='smac',
                  ensemble_method='ensemble_selection',
                  ensemble_size=50,
                  per_run_time_limit=300,
@@ -56,6 +57,7 @@ class AbstractBlock(object):
         self.fixed_config = fixed_config
         self.original_data = data.copy_()
         self.metric = get_metric(metric)
+        self.optimizer = optimizer
         self.ensemble_method = ensemble_method
         self.ensemble_size = ensemble_size
         self.n_jobs = n_jobs

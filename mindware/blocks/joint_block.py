@@ -17,6 +17,7 @@ class JointBlock(AbstractBlock):
                  time_limit=None,
                  trial_num=0,
                  metric='acc',
+                 optimizer='smac',
                  ensemble_method='ensemble_selection',
                  ensemble_size=50,
                  per_run_time_limit=300,
@@ -32,6 +33,7 @@ class JointBlock(AbstractBlock):
                                          time_limit=time_limit,
                                          trial_num=trial_num,
                                          metric=metric,
+                                         optimizer=optimizer,
                                          ensemble_method=ensemble_method,
                                          ensemble_size=ensemble_size,
                                          per_run_time_limit=per_run_time_limit,
@@ -82,6 +84,7 @@ class JointBlock(AbstractBlock):
                 resampling_params=self.resampling_params)
 
         self.optimizer = build_hpo_optimizer(self.eval_type, self.evaluator, self.joint_cs,
+                                             optimizer=self.optimizer,
                                              output_dir=self.output_dir,
                                              per_run_time_limit=self.per_run_time_limit,
                                              inner_iter_num_per_iter=1,

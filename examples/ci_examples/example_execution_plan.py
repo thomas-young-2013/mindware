@@ -30,8 +30,10 @@ def test_cls():
                      ensemble_method=ensemble_method,
                      enable_meta_algorithm_selection=False,
                      ensemble_size=10,
+                     optimizer='random_search',
                      evaluation=eval_type,
-                     metric='acc')
+                     metric='acc',
+                     n_jobs=1)
     clf.fit(train_data, tree_id=2)
     print(clf.summary())
 

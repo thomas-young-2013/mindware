@@ -27,6 +27,7 @@ class AutoML(object):
                  metric='bal_acc',
                  include_algorithms=None,
                  include_preprocessors=None,
+                 optimizer='smac',
                  ensemble_method='ensemble_selection',
                  enable_meta_algorithm_selection=True,
                  enable_fe=True,
@@ -54,6 +55,7 @@ class AutoML(object):
         self.include_preprocessors = include_preprocessors
 
         self.amount_of_resource = int(1e8) if amount_of_resource is None else amount_of_resource
+        self.optimizer = optimizer
         self.ensemble_method = ensemble_method
         self.ensemble_size = ensemble_size
         self.enable_meta_algorithm_selection = enable_meta_algorithm_selection
@@ -153,6 +155,7 @@ class AutoML(object):
                                   self.fe_config_space, self.cash_config_space, train_data,
                                   per_run_time_limit=self.per_run_time_limit,
                                   dataset_name=self.dataset_name,
+                                  optimizer= self.optimizer,
                                   ensemble_method=self.ensemble_method,
                                   ensemble_size=self.ensemble_size,
                                   metric=self.metric,
