@@ -1,18 +1,18 @@
 <p align="center">
-<img src="https://raw.githubusercontent.com/thomas-young-2013/soln-ml/dev_refactor/docs/logos/logo.jpg" width="68%">
+<img src="https://raw.githubusercontent.com/thomas-young-2013/mindware/dev_refactor/docs/logos/logo.jpg" width="68%">
 </p>
 
-[![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/thomas-young-2013/soln-ml/blob/master/LICENSE)
-[![Build Status](https://api.travis-ci.org/thomas-young-2013/soln-ml.svg?branch=dev_refactor)](https://www.travis-ci.org/github/thomas-young-2013/soln-ml)
-[![Issues](https://img.shields.io/github/issues-raw/thomas-young-2013/soln-ml.svg)](https://github.com/thomas-young-2013/soln-ml/issues?q=is%3Aissue+is%3Aopen)
-[![Bugs](https://img.shields.io/github/issues/thomas-young-2013/soln-ml/bug.svg)](https://github.com/thomas-young-2013/soln-ml/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
-[![Pull Requests](https://img.shields.io/github/issues-pr-raw/thomas-young-2013/soln-ml.svg)](https://github.com/thomas-young-2013/soln-ml/pulls?q=is%3Apr+is%3Aopen)
-[![Version](https://img.shields.io/github/release/thomas-young-2013/soln-ml.svg)](https://github.com/thomas-young-2013/soln-ml/releases) [![Join the chat at https://gitter.im/volcano-ml](https://badges.gitter.im/volcano-ml.svg)](https://gitter.im/volcano-ml?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Documentation Status](https://readthedocs.org/projects/soln-ml/badge/?version=latest)](https://soln-ml.readthedocs.io/en/latest/?badge=latest)
+[![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/thomas-young-2013/mindware/blob/master/LICENSE)
+[![Build Status](https://api.travis-ci.org/thomas-young-2013/mindware.svg?branch=dev_refactor)](https://www.travis-ci.org/github/thomas-young-2013/mindware)
+[![Issues](https://img.shields.io/github/issues-raw/thomas-young-2013/mindware.svg)](https://github.com/thomas-young-2013/mindware/issues?q=is%3Aissue+is%3Aopen)
+[![Bugs](https://img.shields.io/github/issues/thomas-young-2013/mindware/bug.svg)](https://github.com/thomas-young-2013/mindware/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
+[![Pull Requests](https://img.shields.io/github/issues-pr-raw/thomas-young-2013/mindware.svg)](https://github.com/thomas-young-2013/mindware/pulls?q=is%3Apr+is%3Aopen)
+[![Version](https://img.shields.io/github/release/thomas-young-2013/mindware.svg)](https://github.com/thomas-young-2013/mindware/releases) [![Join the chat at https://gitter.im/volcano-ml](https://badges.gitter.im/volcano-ml.svg)](https://gitter.im/volcano-ml?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Documentation Status](https://readthedocs.org/projects/mindware/badge/?version=latest)](https://mindware.readthedocs.io/en/latest/?badge=latest)
 
 ------------------
 
-## VolcanoML: Speeding up End-to-End AutoML via Scalable Search Space Decomposition.
+## MindWare: Efficient open-source AutoML system for .
 Volcano-ML is a powerful AutoML system, which automates feature engineering, algorithm selection and hyperparameter tuning. 
 It is capable of improving its AutoML power by decomposing the entire large AutoML search space into small ones.
 The system executes like the eruption of a volcano, hence the name 'Volcano-ML'.
@@ -59,7 +59,7 @@ clf.fit(train_data)
 pred = clf.predict(test_data)
 ```
 
-For more details and characteristics, please check [examples](https://github.com/thomas-young-2013/soln-ml/tree/master/examples/ci_examples/).
+For more details and characteristics, please check [examples](https://github.com/thomas-young-2013/mindware/tree/master/examples/ci_examples/).
 
 ------------------
 ## Visualization
@@ -79,7 +79,7 @@ Then, you can install Volcano-ML itself. Volcano-ML supports and is tested on Ub
 Volcano-ML is available on PyPI. You can install it by tying:
 
 ```sh
-pip install soln-ml
+pip install mindware
 ```
 
 #### Manual installation from the github source
@@ -87,7 +87,7 @@ pip install soln-ml
 If you want to try latest code, please manually install Volcano-ML from source code by:
 
 ```sh
-git clone https://github.com/thomas-young-2013/soln-ml.git && cd soln-ml
+git clone https://github.com/thomas-young-2013/mindware.git && cd mindware
 cat requirements/main.txt | xargs -n 1 -L 1 pip install
 python setup.py install
 ```
@@ -143,8 +143,8 @@ You need to download [swigwin](https://sourceforge.net/projects/swig/files/swigw
 
 ------------------
 ## **Feedback**
-* Check [the existing open and closed issues](https://github.com/thomas-young-2013/soln-ml/issues?q=is%3Aissue).
-* [File an issue](https://github.com/thomas-young-2013/soln-ml/issues/new/choose) on GitHub.
+* Check [the existing open and closed issues](https://github.com/thomas-young-2013/mindware/issues?q=is%3Aissue).
+* [File an issue](https://github.com/thomas-young-2013/mindware/issues/new/choose) on GitHub.
 * Discuss on the Volcano-ML [Gitter](https://gitter.im/volcano-ml?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge).
 
 ------------------
