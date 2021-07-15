@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://raw.githubusercontent.com/thomas-young-2013/mindware/master/docs/imgs/logo.png" width="68%">
+<img src="https://raw.githubusercontent.com/thomas-young-2013/mindware/master/docs/imgs/logo.png" width="60%">
 </p>
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/thomas-young-2013/mindware/blob/master/LICENSE)
@@ -106,9 +106,9 @@ We appreciate all contributions and thank all the contributors!
 
 ## **Related Projects**
 
-Targeting at openness and advancing state-of-art technology, we have also released another open source project.
+Targeting at openness and advancing state-of-art technology, we have also released several open source projects.
 
-* [OpenBOX](https://github.com/thomas-young-2013/mindware): an open source system and service to efficiently solve generalized blackbox optimization problems.
+* [OpenBOX](https://github.com/PKU-DAIR/open-box): an open source system and service to efficiently solve generalized blackbox optimization problems.
 
 We encourage researchers to leverage the project to accelerate the AI development and research.
 
