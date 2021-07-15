@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-:github_url: https://github.com/thomas-young-2013/soln-ml
+:github_url: https://github.com/thomas-young-2013/mindware
 
 VolcanoML: End-to-End AutoML System with Scalable Search Space Decomposition
 ============================================================================

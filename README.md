@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://raw.githubusercontent.com/thomas-young-2013/mindware/dev_refactor/docs/logos/logo.jpg" width="68%">
+<img src="https://raw.githubusercontent.com/thomas-young-2013/mindware/dev_refactor/docs/imgs/logo.jpg" width="68%">
 </p>
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/thomas-young-2013/mindware/blob/master/LICENSE)
@@ -56,9 +56,7 @@ cat requirements/main.txt | xargs -n 1 -L 1 pip install
 python setup.py install --user
 ```
 
-### Verify installation
-xxx.
-
+For more detailed installation instructions, please refer to our [Installation Guide Document](https://mindware.readthedocs.io/en/latest/installation/installation_guide.html).
 
 ## Example
 
