@@ -73,7 +73,7 @@ html_theme_options = {
     'logo_only': True,
     'style_nav_header_background': 'black',
 }
-html_logo = '../imgs/logo.jpg'
+html_logo = '../imgs/logo.png'
 
 source_parsers = {
     '.md': CommonMarkParser,
