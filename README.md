@@ -134,7 +134,7 @@ https://arxiv.org/abs/2012.03011
 
 
 
-**MindWare: A Generalized Black-box Optimization Service**
+**OpenBox: A Generalized Black-box Optimization Service**
 Yang Li, Yu Shen, Wentao Zhang, Yuanwei Chen, Huaijun Jiang, Mingchao Liu, Jiawei Jiang, Jinyang Gao, Wentao Wu, Zhi Yang, Ce Zhang and Bin Cui
 ACM SIGKDD Conference on Knowledge Discovery and Data Mining (SIGKDD 2021).
 https://arxiv.org/abs/2106.00421
