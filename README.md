@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://raw.githubusercontent.com/thomas-young-2013/mindware/docs/imgs/logo.png" width="68%">
+<img src="https://raw.githubusercontent.com/thomas-young-2013/mindware/master/docs/imgs/logo.png" width="68%">
 </p>
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/thomas-young-2013/mindware/blob/master/LICENSE)
