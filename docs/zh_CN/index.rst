@@ -10,21 +10,18 @@ VolcanoML: End-to-End AutoML System with Scalable Search Space Decomposition
 
 Coming soon!
 
-----------------------------------------
-
-Contents
---------
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Doc Template from PyTorch (example)
-
-   examples/pytorch_rst_complex_example
 
 
-Indices and tables
-------------------
+------------------------------------------------
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+..  toctree::
+    :caption: 目录
+    :maxdepth: 2
+    :titlesonly:
+
+    概览 <overview/overview>
+    安装 <installation/installation_guide>
+    快速入门 <quick_start/quick_start>
+    使用实例 <examples/examples>
+    研究成果 <research_and_publications/research_and_publications>
+    更新历史 <change_logs/change_logs>
