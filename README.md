@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://raw.githubusercontent.com/thomas-young-2013/mindware/master/docs/imgs/logo.png" width="60%">
+<img src="https://raw.githubusercontent.com/thomas-young-2013/mindware/master/docs/imgs/logo.png" width="40%">
 </p>
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/thomas-young-2013/mindware/blob/master/LICENSE)
@@ -10,7 +10,7 @@
 [![Version](https://img.shields.io/github/release/thomas-young-2013/mindware.svg)](https://github.com/thomas-young-2013/mindware/releases) [![Join the chat at https://gitter.im/volcano-ml](https://badges.gitter.im/volcano-ml.svg)](https://gitter.im/volcano-ml?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Documentation Status](https://readthedocs.org/projects/mindware/badge/?version=latest)](https://mindware.readthedocs.io/en/latest/?badge=latest)
 
-------------------
+[MindWare Doc](https://mindware.readthedocs.io) | [MindWare中文文档](https://mindware.readthedocs.io/zh_CN/latest/)
 
 ## MindWare: Efficient Open-source AutoML System.
 **MindWare** is an efficient open-source system to help users to automate the process of 1) data pre-processing, 2) feature engineering, 3) algorithm selection, 4) architecture design, 5) hyper-parameter tuning, and 6) model ensembling.
@@ -18,7 +18,7 @@ It is capable of improving its AutoML power by decomposing the entire large Auto
 MindWare is designed and developed by the AutoML team from the <a href="http://net.pku.edu.cn/~cuibin/" target="_blank" rel="nofollow">DAIR Lab</a> of Peking University.
 The goal is to make machine learning easier to apply both in industry and academia, and help facilitate data science.
 
-------------------
+
 ## Who Should Consider MindWare
 * Non-expert users who want to use machine learning techniques in their applications.
 * ML Platform owners who want to support AutoML in their platform.
@@ -31,12 +31,12 @@ The goal is to make machine learning easier to apply both in industry and academ
 - __High extensibility.__ New state-of-the-art ML algorithms or feature engineer operations can be added to the system. The decomposition techniques in MindWare ensures the efficiency of finding the best configurations over the enlarged search space. 
 - __Advanced characteristic.__ MindWare provides special supports for large datasets. In addition, MindWare enables transfer-learning, meta-learning techniques to make AutoML with more intelligent behaviors.
 
-------------------
 
-## Releases
-* New release: [v1.3]() Coming soon.
+## MindWare Capability in a Glance
+<p align="center">
+<img src="https://raw.githubusercontent.com/thomas-young-2013/mindware/master/docs/imgs/mindware_framework.png" width="80%">
+</p>
 
-------------------
 
 ## Installation
 MindWare requires *python>=3.6*. There are two ways to install MindWare:
@@ -81,7 +81,7 @@ clf.fit(train_data)
 pred = clf.predict(test_data)
 ```
 
-For more details and characteristics, please check [examples](https://github.com/thomas-young-2013/mindware/tree/master/examples/ci_examples/).
+For more details and characteristics, please read the [documents](https://mindware.readthedocs.io/en/latest/?badge=latest) and [examples](https://github.com/thomas-young-2013/mindware/tree/master/examples/ci_examples/).
 
 
 ## **Releases and Contributing**
