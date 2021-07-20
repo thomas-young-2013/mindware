@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://raw.githubusercontent.com/thomas-young-2013/mindware/master/docs/imgs/logo.png" width="40%">
+<img src="docs/imgs/logo.png" width="40%">
 </p>
 
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/thomas-young-2013/mindware/blob/master/LICENSE)
@@ -34,7 +34,7 @@ The goal is to make machine learning easier to apply both in industry and academ
 
 ## MindWare Capability in a Glance
 <p align="center">
-<img src="https://raw.githubusercontent.com/thomas-young-2013/mindware/master/docs/imgs/mindware_framework.png" width="80%">
+<img src="docs/imgs/mindware_framework.png" width="80%">
 </p>
 
 
