@@ -15,7 +15,7 @@
 ## MindWare: Efficient Open-source AutoML System.
 **MindWare** is an efficient open-source system to help users to automate the process of 1) data pre-processing, 2) feature engineering, 3) algorithm selection, 4) architecture design, 5) hyper-parameter tuning, and 6) model ensembling.
 It is capable of improving its AutoML power by decomposing the entire large AutoML search space into small ones, and solve each sub-problems jointly and efficiently.
-MindWare is designed and developed by the AutoML team from the <a href="http://net.pku.edu.cn/~cuibin/" target="_blank" rel="nofollow">DAIR Lab</a> of Peking University.
+MindWare is designed and developed by the AutoML team from the <a href="http://net.pku.edu.cn/~cuibin/" target="_blank" rel="nofollow">DAIR Lab</a> at Peking University.
 The goal is to make machine learning easier to apply both in industry and academia, and help facilitate data science.
 
 
@@ -117,6 +117,7 @@ We encourage researchers to leverage the project to accelerate the AI developmen
 **VolcanoML: Speeding up End-to-End AutoML via Scalable Search Space Decomposition**
 Yang Li, Yu Shen, Wentao Zhang, Jiawei Jiang, Bolin Ding, Yaliang Li, Jingren Zhou, Zhi Yang, Wentao Wu, Ce Zhang and Bin Cui
 International Conference on Very Large Data Bases (VLDB 2021).
+https://arxiv.org/abs/2107.08861
 
 
 
