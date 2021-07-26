@@ -36,9 +36,9 @@ def get_estimator(task_type, config, max_epoch, device='cpu'):
         from solnml.components.models.object_detection import _classifiers, _addons
     else:
         raise ValueError('Invalid task type %s!' % task_type)
-    classifier_type = config['estimator']
+    classifier_type = config['algorithm']
     config_ = config.copy()
-    config_.pop('estimator', None)
+    config_.pop('algorithm', None)
     config_['random_state'] = 1
     config_['epoch_num'] = max_epoch
     config_['device'] = torch.device(device)

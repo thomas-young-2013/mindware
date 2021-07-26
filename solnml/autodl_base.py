@@ -204,7 +204,7 @@ class AutoDLBase(object):
             raise ValueError("Algorithm %s not supported!" % estimator_id)
 
         default_cs = clf_class.get_hyperparameter_search_space()
-        model = UnParametrizedHyperparameter("estimator", estimator_id)
+        model = UnParametrizedHyperparameter("algorithm", estimator_id)
         if include_estimator:
             default_cs.add_hyperparameter(model)
         if self.task_type == IMG_CLS and include_aug is True:

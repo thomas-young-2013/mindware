@@ -121,7 +121,7 @@ class AutoDL(AutoDLBase):
                                                 n_jobs=self.n_jobs)
             inc_config, inc_perf = self.see_optimizer.run(dl_evaluator)
             self.best_algo_config = inc_config
-            self.best_algo_id = inc_config['estimator']
+            self.best_algo_id = inc_config['algorithm']
             return
 
         algorithm_candidates = self.select_network_architectures(algorithm_candidates, dl_evaluator, num_arch=1,
@@ -170,7 +170,7 @@ class AutoDL(AutoDLBase):
                 max_resource = np.max(rs)
                 if max_resource in self.eval_hist_configs:
                     idxs = [idx for (idx, config) in enumerate(self.eval_hist_configs[max_resource])
-                            if config['estimator'] == self.best_algo_id]
+                            if config['algorithm'] == self.best_algo_id]
                     best_idx = np.argmax([self.eval_hist_perfs[max_resource][idx] for idx in idxs])
                     self.best_algo_config = self.eval_hist_configs[max_resource][best_idx]
                     set_flag = True
@@ -232,7 +232,7 @@ class AutoDL(AutoDLBase):
             #         intersection_dict[key] = hpo_eval_dict[key]
 
             hpo_eval_list = filter(lambda item: item[1] != -np.inf, hpo_eval_dict.items())
-            hpo_eval_list = sorted(hpo_eval_list, key=lambda item: item[1][0], reverse=True)
+            hpo_eval_list = sorted(hpo_eval_list, key=lambda item: item[1], reverse=True)
             model_items = list()
 
             if len(hpo_eval_list) > 20:
@@ -340,7 +340,7 @@ class AutoDL(AutoDLBase):
 
     def get_pipeline_config_space(self, algorithm_candidates):
         cs = ConfigurationSpace()
-        estimator_choice = CategoricalHyperparameter("estimator", algorithm_candidates,
+        estimator_choice = CategoricalHyperparameter("algorithm", algorithm_candidates,
                                                      default_value=algorithm_candidates[0])
         cs.add_hyperparameter(estimator_choice)
         if self.task_type == IMG_CLS:
