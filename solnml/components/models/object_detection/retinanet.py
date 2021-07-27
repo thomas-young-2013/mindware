@@ -12,7 +12,7 @@ from solnml.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PRED
 # TODO: Remain to be modified
 class RetinaNet(BaseODClassificationNeuralNetwork):
 
-    def fit(self, dataset):
+    def fit(self, dataset, **kwargs):
         from .nn_utils.retinanet import resnet101
 
         # TODO: Standardize inputs
@@ -22,9 +22,9 @@ class RetinaNet(BaseODClassificationNeuralNetwork):
         super().fit(dataset)
         return self
 
-    def predict(self, X):
+    def predict(self, dataset, sampler=None, batch_size=None):
         self.model.training = False
-        return super().predict(X)
+        return super().predict(dataset)
 
     @staticmethod
     def get_properties(dataset_properties=None):

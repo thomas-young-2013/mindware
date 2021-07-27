@@ -155,6 +155,11 @@ class ResNet(nn.Module):
         return x
 
 
+def shaped_resnet(depth, num_classes):
+    # Ensure depth = 6n + 2
+    return ResNet(depth=depth, num_classes=num_classes)
+
+
 def resnet20(num_classes):
     return ResNet(depth=20, num_classes=num_classes)
 

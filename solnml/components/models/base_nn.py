@@ -59,7 +59,7 @@ class BaseNeuralNetwork:
                 setattr(self, param, value)
         return self
 
-    def set_empty_model(self, dataset):
+    def set_empty_model(self, config, dataset):
         raise NotImplementedError
 
     @staticmethod

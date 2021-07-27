@@ -14,7 +14,7 @@ class SENetClassifier(BaseImgClassificationNeuralNetwork):
         super().fit(dataset, **kwargs)
         return self
 
-    def set_empty_model(self, dataset):
+    def set_empty_model(self, config, dataset):
         from .nn_utils.senet import se_resnext101_32x4d
         self.model = se_resnext101_32x4d(num_classes=len(dataset.classes),
                                          grayscale=self.grayscale,
@@ -31,4 +31,3 @@ class SENetClassifier(BaseImgClassificationNeuralNetwork):
                 'is_deterministic': False,
                 'input': (DENSE, SPARSE, UNSIGNED_DATA),
                 'output': (PREDICTIONS,)}
-

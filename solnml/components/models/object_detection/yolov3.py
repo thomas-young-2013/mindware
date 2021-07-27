@@ -79,7 +79,7 @@ class Yolov3(BaseODClassificationNeuralNetwork):
                 predictions.append(outputs.to('cpu').detach().numpy())
         return predictions
 
-    def set_empty_model(self, dataset):
+    def set_empty_model(self, config, dataset):
         from .nn_utils.yolov3 import Darknet
 
         self.model = Darknet(num_class=len(dataset.classes), img_size=dataset.image_size)

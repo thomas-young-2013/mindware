@@ -16,7 +16,7 @@ class NaiveBertClassifier(BaseTextClassificationNeuralNetwork):
         super().fit(dataset, **kwargs)
         return self
 
-    def set_empty_model(self, dataset):
+    def set_empty_model(self, config, dataset):
         from .nn_utils.naivebert import BaseModel
         if dataset.config_path is None:
             config_path = self.config

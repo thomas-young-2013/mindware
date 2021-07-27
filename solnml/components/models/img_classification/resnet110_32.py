@@ -13,7 +13,7 @@ class ResNet110_32Classifier(BaseImgClassificationNeuralNetwork):
         super().fit(dataset, **kwargs)
         return self
 
-    def set_empty_model(self, dataset):
+    def set_empty_model(self, config, dataset):
         from .nn_utils.resnet_32 import resnet110
         if self.grayscale:
             raise ValueError("Only support RGB inputs!")

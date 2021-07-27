@@ -13,7 +13,7 @@ class EfficientNetClassifier(BaseImgClassificationNeuralNetwork):
         super().fit(dataset, **kwargs)
         return self
 
-    def set_empty_model(self, dataset):
+    def set_empty_model(self, config, dataset):
         from .nn_utils.efficientnet import EfficientNet
         self.model = EfficientNet.from_pretrained('efficientnet-b0', advprop=True,
                                                   num_classes=len(dataset.classes),

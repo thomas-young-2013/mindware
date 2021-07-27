@@ -14,7 +14,7 @@ class NASNetClassifier(BaseImgClassificationNeuralNetwork):
         super().fit(dataset, **kwargs)
         return self
 
-    def set_empty_model(self, dataset):
+    def set_empty_model(self, config, dataset):
         from solnml.components.models.img_classification.nn_utils.nasnet import nasnetalarge
         self.model = nasnetalarge(num_classes=len(dataset.classes),
                                   grayscale=self.grayscale,

@@ -16,7 +16,7 @@ class DPCNNBertClassifier(BaseTextClassificationNeuralNetwork):
         super().fit(dataset, **kwargs)
         return self
 
-    def set_empty_model(self, dataset):
+    def set_empty_model(self, config, dataset):
         from .nn_utils.dpcnnbert import DPCNNModel
         if dataset.config_path is None:
             config_path = self.config

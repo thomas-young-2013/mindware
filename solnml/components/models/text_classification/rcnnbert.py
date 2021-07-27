@@ -16,7 +16,7 @@ class RCNNBertClassifier(BaseTextClassificationNeuralNetwork):
         super().fit(dataset, **kwargs)
         return self
 
-    def set_empty_model(self, dataset):
+    def set_empty_model(self, config, dataset):
         from .nn_utils.rcnnbert import RCNNModel
         if dataset.config_path is None:
             config_path = self.config
@@ -36,4 +36,3 @@ class RCNNBertClassifier(BaseTextClassificationNeuralNetwork):
                 'is_deterministic': False,
                 'input': (DENSE, SPARSE, UNSIGNED_DATA),
                 'output': (PREDICTIONS,)}
-

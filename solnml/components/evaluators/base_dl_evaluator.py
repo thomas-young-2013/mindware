@@ -72,7 +72,7 @@ def get_estimator_with_parameters(task_type, config, max_epoch, dataset, timesta
     config_dict = config.get_dictionary().copy()
     _, model = get_estimator(task_type, config_dict, max_epoch, device=device)
     model_path = os.path.join(model_dir, TopKModelSaver.get_path_by_config(config, timestamp))
-    model.set_empty_model(dataset)
+    model.set_empty_model(config=config, dataset=dataset)
     model.model.load_state_dict(torch.load(model_path)['model'])
     model.model.eval()
     return model

@@ -13,7 +13,7 @@ class ResNet50Classifier(BaseImgClassificationNeuralNetwork):
         super().fit(dataset, **kwargs)
         return self
 
-    def set_empty_model(self, dataset):
+    def set_empty_model(self, config, dataset):
         from .nn_utils.pytorch_zoo_model import resnet50
         if self.grayscale:
             raise ValueError("Models from pytorch-model zoo only support RGB inputs!")

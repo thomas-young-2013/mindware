@@ -13,7 +13,7 @@ class DenseNet100_32Classifier(BaseImgClassificationNeuralNetwork):
         super().fit(dataset, **kwargs)
         return self
 
-    def set_empty_model(self, dataset):
+    def set_empty_model(self, config, dataset):
         from .nn_utils.densenet_32 import densenet100bc
         if self.grayscale:
             raise ValueError("Only support RGB inputs!")
