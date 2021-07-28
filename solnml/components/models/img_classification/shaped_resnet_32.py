@@ -10,12 +10,13 @@ from solnml.components.utils.configspace_utils import check_for_bool
 
 
 class ShapedResNet_32Classifier(BaseImgClassificationNeuralNetwork):
-    def __init__(self, depth, optimizer, batch_size, epoch_num, lr_decay, weight_decay,
+    def __init__(self, depth, inplane, optimizer, batch_size, epoch_num, lr_decay, weight_decay,
                  sgd_learning_rate=None, sgd_momentum=None, nesterov=None,
                  adam_learning_rate=None, beta1=None, random_state=None,
                  grayscale=False, device='cpu', **kwargs):
         super(BaseImgClassificationNeuralNetwork, self).__init__()
         self.depth = depth
+        self.inplane = inplane
         self.optimizer = optimizer
         self.batch_size = batch_size
         self.max_epoch = epoch_num
@@ -43,7 +44,8 @@ class ShapedResNet_32Classifier(BaseImgClassificationNeuralNetwork):
         from .nn_utils.resnet_32 import shaped_resnet
         if self.grayscale:
             raise ValueError("Only support RGB inputs!")
-        self.model = shaped_resnet(depth=self.depth, num_classes=len(dataset.train_dataset.classes))
+        self.model = shaped_resnet(depth=self.depth, inplane=self.inplane,
+                                   num_classes=len(dataset.train_dataset.classes))
         self.model.to(self.device)
         super().fit(dataset, **kwargs)
         return self
@@ -53,7 +55,8 @@ class ShapedResNet_32Classifier(BaseImgClassificationNeuralNetwork):
         if self.grayscale:
             raise ValueError("Only support RGB inputs!")
         depth = config['depth']
-        self.model = shaped_resnet(depth=depth, num_classes=len(dataset.classes))
+        inplane = config['inplane']
+        self.model = shaped_resnet(depth=depth, inplane=inplane, num_classes=len(dataset.classes))
 
     @staticmethod
     def get_properties(dataset_properties=None):
@@ -71,6 +74,7 @@ class ShapedResNet_32Classifier(BaseImgClassificationNeuralNetwork):
     def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
         cs = ConfigurationSpace()
         depth = UniformIntegerHyperparameter('depth', 20, 122, default_value=20, q=6)
+        inplane = UniformIntegerHyperparameter('inplane', 16, 128, default_value=32)
         optimizer = CategoricalHyperparameter('optimizer', ['SGD'], default_value='SGD')
         sgd_learning_rate = CategoricalHyperparameter(
             "sgd_learning_rate", [1e-3, 3e-3, 7e-3, 1e-2, 3e-2, 7e-2, 1e-1],
@@ -86,6 +90,6 @@ class ShapedResNet_32Classifier(BaseImgClassificationNeuralNetwork):
                                                  default_value=1e-4)
         epoch_num = UnParametrizedHyperparameter("epoch_num", 150)
         cs.add_hyperparameters(
-            [depth, optimizer, sgd_learning_rate, sgd_momentum, batch_size, epoch_num,
-             lr_decay, weight_decay, nesterov])
+            [depth, inplane, optimizer, sgd_learning_rate, sgd_momentum, batch_size,
+             epoch_num, lr_decay, weight_decay, nesterov])
         return cs

@@ -87,7 +87,7 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, depth, num_classes, block_name='BasicBlock'):
+    def __init__(self, depth, num_classes, inplane=16, block_name='BasicBlock'):
         super(ResNet, self).__init__()
         # Model type specifies number of layers for CIFAR-10 model
         if block_name == 'BasicBlock':
@@ -103,16 +103,16 @@ class ResNet(nn.Module):
         else:
             raise ValueError('block_name shoule be Basicblock or Bottleneck')
 
-        self.inplanes = 16
-        self.conv_1 = nn.Conv2d(3, 16, kernel_size=3, padding=1,
+        self.inplanes = inplane
+        self.conv_1 = nn.Conv2d(3, inplane, kernel_size=3, padding=1,
                                 bias=False)
-        self.bn_1 = nn.BatchNorm2d(16)
+        self.bn_1 = nn.BatchNorm2d(inplane)
         self.relu = nn.ReLU(inplace=True)
-        self.stage_1 = self._make_layer(block, 16, n)
-        self.stage_2 = self._make_layer(block, 32, n, stride=2)
-        self.stage_3 = self._make_layer(block, 64, n, stride=2)
+        self.stage_1 = self._make_layer(block, inplane, n)
+        self.stage_2 = self._make_layer(block, inplane * 2, n, stride=2)
+        self.stage_3 = self._make_layer(block, inplane * 4, n, stride=2)
         self.avgpool = nn.AvgPool2d(8)
-        self.fc = nn.Linear(64 * block.expansion, num_classes)
+        self.fc = nn.Linear(inplane * 4 * block.expansion, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -155,9 +155,9 @@ class ResNet(nn.Module):
         return x
 
 
-def shaped_resnet(depth, num_classes):
+def shaped_resnet(depth, inplane, num_classes):
     # Ensure depth = 6n + 2
-    return ResNet(depth=depth, num_classes=num_classes)
+    return ResNet(depth=depth, num_classes=num_classes, inplane=inplane)
 
 
 def resnet20(num_classes):

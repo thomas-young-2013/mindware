@@ -85,6 +85,7 @@ class AutoDL(AutoDLBase):
                                         dataset=train_data,
                                         device=self.device,
                                         seed=self.seed,
+                                        continue_training=True if self.evaluation_type == 'partial' else False,
                                         timestamp=self.timestamp,
                                         **kwargs)
             optimizer = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs,
@@ -113,6 +114,7 @@ class AutoDL(AutoDLBase):
                                    dataset=train_data,
                                    device=self.device,
                                    seed=self.seed,
+                                   continue_training=False,
                                    timestamp=self.timestamp,
                                    **kwargs)
         if self.optalgo == 'see':
@@ -365,6 +367,7 @@ class AutoDL(AutoDLBase):
                                     dataset=train_data,
                                     device=self.device,
                                     image_size=self.image_size,
+                                    continue_training=True if self.evaluation_type == 'partial' else False,
                                     seed=self.seed,
                                     timestamp=self.timestamp)
         optimizer = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs,
