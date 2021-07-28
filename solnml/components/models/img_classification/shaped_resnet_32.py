@@ -74,7 +74,7 @@ class ShapedResNet_32Classifier(BaseImgClassificationNeuralNetwork):
     def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
         cs = ConfigurationSpace()
         depth = UniformIntegerHyperparameter('depth', 20, 122, default_value=20, q=6)
-        inplane = UniformIntegerHyperparameter('inplane', 16, 128, default_value=32)
+        inplane = UniformIntegerHyperparameter('inplane', 16, 64, default_value=32)
         optimizer = CategoricalHyperparameter('optimizer', ['SGD'], default_value='SGD')
         sgd_learning_rate = CategoricalHyperparameter(
             "sgd_learning_rate", [1e-3, 3e-3, 7e-3, 1e-2, 3e-2, 7e-2, 1e-1],
