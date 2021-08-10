@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 sys.path.append(os.getcwd())
 from mindware.utils.data_manager import DataManager
 from mindware.estimators import Classifier
+from mindware.distrib.worker import EvaluationWorker
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--time_limit', type=int, default=1200)
@@ -56,6 +57,8 @@ clf = Classifier(time_limit=time_limit,
                  metric='acc',
                  n_jobs=n_jobs)
 
+clf.initialize(train_data, tree_id=0)
+
 if role == 'master':
     # bind the IP, port, etc.
     clf.fit(train_data)
@@ -63,5 +66,6 @@ if role == 'master':
     print(balanced_accuracy_score(test_data.data[1], pred))
 else:
     # Set up evaluation workers.
-    evaluator = clf.build_evaluator()
+    evaluator = clf.get_evaluator()
+    worker = EvaluationWorker(evaluator, args.master_ip, args.port)
     evaluator.run()
