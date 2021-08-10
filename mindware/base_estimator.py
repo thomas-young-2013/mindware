@@ -118,6 +118,11 @@ class BaseEstimator(object):
             raise AttributeError("Please initialize the estimator first!")
         return self._ml_engine.solver.evaluator
 
+    def get_config_space(self):
+        if self._ml_engine is None:
+            raise AttributeError("Please initialize the estimator first!")
+        return self._ml_engine.solver.joint_cs
+
     def show_info(self):
         raise NotImplementedError()
 

@@ -10,9 +10,10 @@ sys.path.append(os.getcwd())
 from mindware.utils.data_manager import DataManager
 from mindware.estimators import Classifier
 from mindware.distrib.worker import EvaluationWorker
+from mindware.distrib.master import Master
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--time_limit', type=int, default=1200)
+parser.add_argument('--time_limit', type=int, default=300)
 parser.add_argument('--eval_type', type=str, default='holdout',
                     choices=['holdout', 'cv', 'partial'])
 parser.add_argument('--ens_method', default='ensemble_selection',
@@ -54,17 +55,17 @@ clf = Classifier(time_limit=time_limit,
                  ensemble_method=ensemble_method,
                  evaluation=eval_type,
                  metric='acc',
+                 enable_meta_algorithm_selection=False,
                  n_jobs=n_jobs)
 
 clf.initialize(train_data, tree_id=0)
 
 if role == 'master':
     # bind the IP, port, etc.
-    clf.fit(train_data)
-    pred = clf.predict(test_data)
-    print(balanced_accuracy_score(test_data.data[1], pred))
+    master = Master(clf, ip=args.master_ip, port=args.port)
+    master.run()
 else:
     # Set up evaluation workers.
     evaluator = clf.get_evaluator()
     worker = EvaluationWorker(evaluator, args.master_ip, args.port)
-    evaluator.run()
+    worker.run()
