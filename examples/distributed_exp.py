@@ -1,7 +1,6 @@
-import argparse
 import os
 import sys
-import time
+import argparse
 
 from sklearn.datasets import load_iris
 from sklearn.metrics import balanced_accuracy_score
