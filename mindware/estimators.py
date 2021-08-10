@@ -8,12 +8,7 @@ from mindware.components.feature_engineering.transformation_graph import DataNod
 class Classifier(BaseEstimator):
     """This class implements the classification task. """
 
-    def fit(self, data: DataNode, **kwargs):
-        """
-        Fit the classifier to given training data.
-        :param data: instance of DataNode
-        :return: self
-        """
+    def initialize(self, data: DataNode, **kwargs):
         if self.metric is None:
             self.metric = 'acc'
 
@@ -24,6 +19,16 @@ class Classifier(BaseEstimator):
         else:
             raise ValueError("Invalid Task Type: %s!" % task_type)
         self.task_type = task_type
+        super().initialize(data=data, **kwargs)
+
+    def fit(self, data: DataNode, **kwargs):
+        """
+        Fit the classifier to given training data.
+        :param data: instance of DataNode
+        :return: self
+        """
+        if self._ml_engine is None:
+            self.initialize(data=data, **kwargs)
         super().fit(data, **kwargs)
 
         return self
@@ -119,17 +124,22 @@ class Classifier(BaseEstimator):
 class Regressor(BaseEstimator):
     """This class implements the regression task. """
 
+    def initialize(self, data: DataNode, **kwargs):
+        self.metric = 'mse' if self.metric is None else self.metric
+
+        # Check the task type: {continuous}
+        task_type = type_dict['continuous']
+        self.task_type = task_type
+        super().initialize(data=data, **kwargs)
+
     def fit(self, data, **kwargs):
         """
         Fit the regressor to given training data.
         :param data: DataNode
         :return: self
         """
-        self.metric = 'mse' if self.metric is None else self.metric
-
-        # Check the task type: {continuous}
-        task_type = type_dict['continuous']
-        self.task_type = task_type
+        if self._ml_engine is None:
+            self.initialize(data=data, **kwargs)
         super().fit(data, **kwargs)
 
         return self

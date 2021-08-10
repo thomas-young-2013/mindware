@@ -93,14 +93,7 @@ class AutoML(object):
                      self.logging_config)
         return get_logger(logger_name)
 
-    def fit(self, train_data: DataNode, **kwargs):
-        """
-        This function includes this following two procedures.
-            1. tune each algorithm's hyperparameters.
-            2. engineer each algorithm's features automatically.
-        :param train_data:
-        :return:
-        """
+    def initialize(self, train_data: DataNode, **kwargs):
         # Check whether this dataset is balanced or not.
         # if self.task_type in CLS_TASKS and is_imbalanced_dataset(train_data):
         #     self.logger.info('Input dataset is imbalanced!')
@@ -154,7 +147,7 @@ class AutoML(object):
                                   self.fe_config_space, self.cash_config_space, train_data,
                                   per_run_time_limit=self.per_run_time_limit,
                                   dataset_name=self.dataset_name,
-                                  optimizer= self.optimizer,
+                                  optimizer=self.optimizer,
                                   ensemble_method=self.ensemble_method,
                                   ensemble_size=self.ensemble_size,
                                   metric=self.metric,
@@ -165,6 +158,17 @@ class AutoML(object):
                                   resampling_params=self.resampling_params,
                                   output_dir=self.output_dir,
                                   n_jobs=self.n_jobs)
+
+    def fit(self, train_data: DataNode, **kwargs):
+        """
+        This function includes this following two procedures.
+            1. tune each algorithm's hyperparameters.
+            2. engineer each algorithm's features automatically.
+        :param train_data:
+        :return:
+        """
+        if self.solver is None:
+            self.initialize(train_data, **kwargs)
 
         for i in range(self.amount_of_resource):
             if not (self.solver.early_stop_flag or self.solver.timeout_flag):

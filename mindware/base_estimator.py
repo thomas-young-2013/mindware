@@ -74,7 +74,7 @@ class BaseEstimator(object):
             include_preprocessors=self.include_preprocessors,
             enable_meta_algorithm_selection=self.enable_meta_algorithm_selection,
             enable_fe=self.enable_fe,
-            optimizer = self.optimizer,
+            optimizer=self.optimizer,
             ensemble_method=self.ensemble_method,
             ensemble_size=self.ensemble_size,
             per_run_time_limit=self.per_run_time_limit,
@@ -86,9 +86,13 @@ class BaseEstimator(object):
         )
         return engine
 
-    def fit(self, data: DataNode, **kwargs):
+    def initialize(self, data: DataNode, **kwargs):
         assert data is not None and isinstance(data, DataNode)
         self._ml_engine = self.build_engine()
+        self._ml_engine.initialize(data, **kwargs)
+
+    def fit(self, data: DataNode, **kwargs):
+        assert data is not None and isinstance(data, DataNode)
         self._ml_engine.fit(data, **kwargs)
         if self.delete_output_dir:
             shutil.rmtree(self.output_dir)
@@ -108,6 +112,11 @@ class BaseEstimator(object):
 
     def get_automl(self):
         return AutoML
+
+    def get_evaluator(self):
+        if self._ml_engine is None:
+            raise AttributeError("Please initialize the estimator first!")
+        return self._ml_engine.solver.evaluator
 
     def show_info(self):
         raise NotImplementedError()
