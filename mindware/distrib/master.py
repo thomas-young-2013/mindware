@@ -48,6 +48,7 @@ class Master(object):
             if None not in results:
                 break
 
+            time.sleep(1.)
         # Calculate parameters in ensemble selection.
 
     def run(self):
