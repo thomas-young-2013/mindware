@@ -13,7 +13,7 @@ from mindware.distrib.worker import EvaluationWorker
 from mindware.distrib.master import Master
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--time_limit', type=int, default=300)
+parser.add_argument('--time_limit', type=int, default=120)
 parser.add_argument('--eval_type', type=str, default='holdout',
                     choices=['holdout', 'cv', 'partial'])
 parser.add_argument('--ens_method', default='ensemble_selection',
@@ -66,6 +66,5 @@ if role == 'master':
     master.run()
 else:
     # Set up evaluation workers.
-    evaluator = clf.get_evaluator()
-    worker = EvaluationWorker(evaluator, args.master_ip, args.port)
+    worker = EvaluationWorker(clf, args.master_ip, args.port)
     worker.run()

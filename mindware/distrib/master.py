@@ -19,8 +19,11 @@ class Master(object):
 
         self.evaluator = self.estimator.get_evaluator()
         self.config_space = self.estimator.get_config_space()
+        self.eval_type = self.estimator.evaluation
+        self.output_dir = self.estimator.output_dir
         self.optimizer = mqSMBO(self.evaluator, self.config_space, runtime_limit=self.estimator.time_limit,
-                                ip=ip, port=port, authkey=authkey)
+                                eval_type=self.eval_type, ip=ip, port=port, authkey=authkey,
+                                logging_dir=self.output_dir)
 
     def run(self):
         self.optimizer.run()
