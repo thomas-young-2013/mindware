@@ -92,6 +92,7 @@ class mqSMBO(BOBase):
         self.incumbent_perf = float("-INF")
         self.incumbent_config = self.config_space.get_default_configuration()
         self.eval_dict = {}
+        self.workers = set()
 
     def async_run(self):
         config_num = 0
@@ -115,8 +116,9 @@ class mqSMBO(BOBase):
                     break
                 # Report result.
                 cur_num += 1
-                config, trial_state, constraints, objs, elapsed_time = observation
+                config, trial_state, constraints, objs, elapsed_time, worker_info, extra_info = observation
 
+                self.workers.add(worker_info)
                 _perf = float("INF") if objs is None else objs[0]
                 self.configs.append(config)
                 self.perfs.append(_perf)

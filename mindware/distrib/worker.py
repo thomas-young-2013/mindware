@@ -15,6 +15,8 @@ from mindware.utils.logging_utils import get_logger
 from mindware.components.utils.constants import CLS_TASKS
 from mindware.components.utils.topk_saver import CombinedTopKModelSaver
 from mindware.components.feature_engineering.parse import construct_node
+from openbox.core.message_queue.sender_messager import SenderMessager
+from openbox.core.message_queue.receiver_messager import ReceiverMessager
 
 
 class BaseWorker(object):
@@ -23,6 +25,8 @@ class BaseWorker(object):
         self.estimator = estimator
         self.evaluator = estimator.get_evaluator()
         self.worker_messager = WorkerMessager(ip, port, authkey)
+        # the IP, PORT about this worker.
+        self.receiver_messager = ReceiverMessager()
 
 
 class EvaluationWorker(BaseWorker):
@@ -38,6 +42,18 @@ class EvaluationWorker(BaseWorker):
 
     def run(self):
         while True:
+            # Get message
+            try:
+                msg = self.receiver_messager.receive_message()
+            except Exception as e:
+                self.logger.error("Worker receive message error: %s." % str(e))
+                break
+            if msg is not None:
+                # Step1: do some stuffs.
+                # Step2: send the result to master.
+                self.receiver_messager.send_message()
+                pass
+
             # Get config
             try:
                 msg = self.worker_messager.receive_message()
