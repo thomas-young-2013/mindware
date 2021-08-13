@@ -26,6 +26,7 @@ parser.add_argument('--parallel_strategy', type=str, default='async',
                     choices=['sync', 'async'])
 parser.add_argument('--master_ip', type=str, default='127.0.0.1')
 parser.add_argument('--port', type=int, default=13579)
+parser.add_argument('--worker_port', type=int, default=12345)
 
 args = parser.parse_args()
 time_limit = args.time_limit
@@ -64,7 +65,9 @@ if role == 'master':
     # bind the IP, port, etc.
     master = Master(clf, ip=args.master_ip, port=args.port)
     master.run()
+    print(master.predict())
 else:
     # Set up evaluation workers.
-    worker = EvaluationWorker(clf, args.master_ip, args.port)
+    worker = EvaluationWorker(clf, args.master_ip, args.port, worker_port=args.worker_port)
     worker.run()
+    worker.predict(test_data)

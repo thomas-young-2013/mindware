@@ -1,6 +1,4 @@
 import time
-import os
-import numpy as np
 from typing import List
 from collections import OrderedDict
 
@@ -10,7 +8,6 @@ from openbox.core.async_batch_advisor import AsyncBatchAdvisor
 from openbox.optimizer.base import BOBase
 from openbox.core.message_queue.master_messager import MasterMessager
 from openbox.core.base import Observation
-from mindware.components.utils.topk_saver import CombinedTopKModelSaver
 
 
 class mqSMBO(BOBase):
@@ -91,8 +88,8 @@ class mqSMBO(BOBase):
         self.perfs = list()
         self.incumbent_perf = float("-INF")
         self.incumbent_config = self.config_space.get_default_configuration()
-        self.eval_dict = {}
-        self.workers = set()
+        self.eval_dict = dict()
+        self.workers = dict()
 
     def async_run(self):
         config_num = 0
@@ -118,7 +115,10 @@ class mqSMBO(BOBase):
                 cur_num += 1
                 config, trial_state, constraints, objs, elapsed_time, worker_info, extra_info = observation
 
-                self.workers.add(worker_info)
+                stored_info = list(self.workers.values())
+                if worker_info not in stored_info:
+                    self.workers[len(self.workers)] = worker_info
+
                 _perf = float("INF") if objs is None else objs[0]
                 self.configs.append(config)
                 self.perfs.append(_perf)
@@ -129,7 +129,8 @@ class mqSMBO(BOBase):
                     self.incumbent_config = config
 
                 if objs is None:
-                    observation = Observation(config, trial_state, constraints, self.FAILED_PERF, elapsed_time)
+                    observation = Observation(config, trial_state, constraints, self.FAILED_PERF, elapsed_time,
+                                              worker_info=worker_info, extra=extra_info)
                 self.config_advisor.update_observation(observation)
 
                 self.logger.info('Master: Get %d observation: %s' % (cur_num, str(observation)))
@@ -155,9 +156,10 @@ class mqSMBO(BOBase):
                     continue
                 # Report result.
                 result_num += 1
-                config, trial_state, constraints, objs, elapsed_time = observation
+                config, trial_state, constraints, objs, elapsed_time, worker_info, extra_info = observation
                 if objs is None:
-                    observation = Observation(config, trial_state, constraints, self.FAILED_PERF, elapsed_time)
+                    observation = Observation(config, trial_state, constraints, self.FAILED_PERF, elapsed_time,
+                                              worker_info, extra_info)
                 self.config_advisor.update_observation(observation)
                 self.logger.info('Master: In the %d-th batch [%d], observation is: %s'
                                  % (batch_id, result_num, str(observation)))
@@ -172,4 +174,3 @@ class mqSMBO(BOBase):
             self.sync_run()
 
         return self.get_history()
-
