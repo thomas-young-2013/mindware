@@ -60,7 +60,8 @@ class Bagging(BaseEnsembleModel):
                     else:
                         dataset = test_data.val_dataset
                 estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
-                                                          dataset, self.timestamp, device=self.device)
+                                                          dataset, self.timestamp, device=self.device,
+                                                          model_dir=self.output_dir)
                 if self.task_type in CLS_TASKS:
                     if mode == 'test':
                         model_pred_list.append(estimator.predict_proba(test_data.test_dataset))

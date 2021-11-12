@@ -116,7 +116,8 @@ class AutoDLBase(object):
                  output_dir="logs/",
                  random_state=1,
                  n_jobs=1):
-        from mindware.components.models.img_classification import _classifiers as _img_estimators, _addons as _img_addons
+        from mindware.components.models.img_classification import _classifiers as _img_estimators, \
+            _addons as _img_addons
         from mindware.components.models.text_classification import _classifiers as _text_estimators, \
             _addons as _text_addons
         from mindware.components.models.object_detection import _classifiers as _od_estimators, _addons as _od_addons
@@ -173,6 +174,8 @@ class AutoDLBase(object):
         self.es = None
         self.solvers = dict()
         self.evaluators = dict()
+        self.optimizer = None
+        self.evaluator = None
         # Single model.
         self.best_algo_id = None
         self.best_algo_config = None

@@ -73,117 +73,108 @@ class AutoDL(AutoDLBase):
             self._fit_in_hpo_way(algorithm_candidates, train_data, **kwargs)
             return
 
-        # Initialize solver for each architecture.
-        for estimator_id in self.include_algorithms:
-            cs = self.get_model_config_space(estimator_id)
-            default_config = cs.get_default_configuration()
-            cs.seed(self.seed)
+        cs = self.get_pipeline_config_space(self.include_algorithms)
+        cs.seed(self.seed)
 
-            hpo_evaluator = DLEvaluator(None,
-                                        self.task_type,
-                                        max_epoch=self.max_epoch,
-                                        scorer=self.metric,
-                                        dataset=train_data,
-                                        device=self.device,
-                                        seed=self.seed,
-                                        model_dir=self.output_dir,
-                                        continue_training=True if self.evaluation_type == 'partial' else False,
-                                        timestamp=self.timestamp,
-                                        **kwargs)
-            optimizer = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs,
-                                            output_dir=self.output_dir,
-                                            per_run_time_limit=100000,
-                                            timestamp=self.timestamp,
-                                            seed=self.seed, n_jobs=self.n_jobs)
-            self.solvers[estimator_id] = optimizer
-            self.evaluators[estimator_id] = hpo_evaluator
+        self.evaluator = DLEvaluator(None,
+                                     self.task_type,
+                                     max_epoch=self.max_epoch,
+                                     scorer=self.metric,
+                                     dataset=train_data,
+                                     device=self.device,
+                                     seed=self.seed,
+                                     model_dir=self.output_dir,
+                                     continue_training=False,
+                                     timestamp=self.timestamp,
+                                     **kwargs)
+        self.optimizer = build_hpo_optimizer(
+            'partial_hypertune' if self.evaluation_type == 'partial' else self.evaluation_type,
+            self.evaluator, cs,
+            output_dir=self.output_dir,
+            per_run_time_limit=1000000,
+            timestamp=self.timestamp,
+            runtime_limit=self.time_limit,
+            seed=self.seed, n_jobs=self.n_jobs)
 
         # Execute profiling procedure.
-        if not self.skip_profile:
-            algorithm_candidates = self.profile_models(num_train_samples)
-            if len(algorithm_candidates) == 0:
-                raise ValueError('After profiling, no arch is in the candidates!')
-            else:
-                self.logger.info('After profiling, arch candidates={%s}' % ','.join(algorithm_candidates))
+        # if not self.skip_profile:
+        #     algorithm_candidates = self.profile_models(num_train_samples)
+        #     if len(algorithm_candidates) == 0:
+        #         raise ValueError('After profiling, no arch is in the candidates!')
+        #     else:
+        #         self.logger.info('After profiling, arch candidates={%s}' % ','.join(algorithm_candidates))
 
         # Execute neural architecture selection.
-        self.logger.info('Before NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
+        # self.logger.info('Before NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
 
-        dl_evaluator = DLEvaluator(None,
-                                   self.task_type,
-                                   max_epoch=self.max_epoch,
-                                   scorer=self.metric,
-                                   dataset=train_data,
-                                   device=self.device,
-                                   seed=self.seed,
-                                   continue_training=False,
-                                   timestamp=self.timestamp,
-                                   **kwargs)
-        if self.optalgo == 'see':
-            from mindware.components.optimizers.cashp_optimizer import CashpOptimizer
-            self.see_optimizer = CashpOptimizer(self.task_type, algorithm_candidates, self.time_limit,
-                                                n_jobs=self.n_jobs)
-            inc_config, inc_perf = self.see_optimizer.run(dl_evaluator)
-            self.best_algo_config = inc_config
-            self.best_algo_id = inc_config['algorithm']
-            return
+        # dl_evaluator = DLEvaluator(None,
+        #                            self.task_type,
+        #                            max_epoch=self.max_epoch,
+        #                            scorer=self.metric,
+        #                            dataset=train_data,
+        #                            device=self.device,
+        #                            seed=self.seed,
+        #                            continue_training=False,
+        #                            timestamp=self.timestamp,
+        #                            **kwargs)
+        # if self.optalgo == 'see':
+        #     from mindware.components.optimizers.cashp_optimizer import CashpOptimizer
+        #     self.see_optimizer = CashpOptimizer(self.task_type, algorithm_candidates, self.time_limit,
+        #                                         n_jobs=self.n_jobs)
+        #     inc_config, inc_perf = self.see_optimizer.run(dl_evaluator)
+        #     self.best_algo_config = inc_config
+        #     self.best_algo_id = inc_config['algorithm']
+        #     return
+        #
+        # algorithm_candidates = self.select_network_architectures(algorithm_candidates, dl_evaluator, num_arch=1,
+        #                                                          **kwargs)
+        # self.logger.info('After NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
 
-        algorithm_candidates = self.select_network_architectures(algorithm_candidates, dl_evaluator, num_arch=1,
-                                                                 **kwargs)
-        self.logger.info('After NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
         # Control flow via round robin.
-        n_algorithm = len(algorithm_candidates)
-        if self.trial_num is None:
-            algo_id = 0
-            while True:
-                _time_elapsed = time.time() - _start_time
-                if _time_elapsed >= self.time_limit:
-                    break
-                _budget_left = self.time_limit - _time_elapsed
-                self.solvers[algorithm_candidates[algo_id]].iterate(budget=_budget_left)
-                algo_id = (algo_id + 1) % n_algorithm
-        else:
-            for id in self.trial_num:
-                self.solvers[algorithm_candidates[id % n_algorithm]].iterate()
+        recorder = self.optimizer.run()
 
-        # Best architecture id.
-        best_scores_ = list()
-        for estimator_id in algorithm_candidates:
-            if estimator_id in self.solvers:
-                solver_ = self.solvers[estimator_id]
-                if len(solver_.perfs) > 0:
-                    best_scores_.append(np.max(solver_.perfs))
-                else:
-                    best_scores_.append(-np.inf)
-            else:
-                best_scores_.append(-np.inf)
-        print(algorithm_candidates, best_scores_)
-        assert len(algorithm_candidates) > 0
+        # # Best architecture id.
+        # best_scores_ = list()
+        # for estimator_id in algorithm_candidates:
+        #     if estimator_id in self.solvers:
+        #         solver_ = self.solvers[estimator_id]
+        #         if len(solver_.perfs) > 0:
+        #             best_scores_.append(np.max(solver_.perfs))
+        #         else:
+        #             best_scores_.append(-np.inf)
+        #     else:
+        #         best_scores_.append(-np.inf)
+        # print(algorithm_candidates, best_scores_)
+        # assert len(algorithm_candidates) > 0
+        #
+        # if len(best_scores_) > 1 and (np.array(best_scores_) > -np.inf).any():
+        #     self.best_algo_id = algorithm_candidates[np.argmax(best_scores_)]
+        #     # Best model configuration.
+        #     solver_ = self.solvers[self.best_algo_id]
+        #     inc_idx = np.argmax(solver_.perfs)
+        #     self.best_algo_config = solver_.configs[inc_idx]
+        # else:
+        #     self.best_algo_id = algorithm_candidates[0]
+        #     rs = list(self.eval_hist_perfs.keys())
+        #     set_flag = False
+        #     if len(rs) > 0:
+        #         max_resource = np.max(rs)
+        #         if max_resource in self.eval_hist_configs:
+        #             idxs = [idx for (idx, config) in enumerate(self.eval_hist_configs[max_resource])
+        #                     if config['algorithm'] == self.best_algo_id]
+        #             best_idx = np.argmax([self.eval_hist_perfs[max_resource][idx] for idx in idxs])
+        #             self.best_algo_config = self.eval_hist_configs[max_resource][best_idx]
+        #             set_flag = True
+        #     if not set_flag:
+        #         solver_ = self.solvers[self.best_algo_id]
+        #         inc_idx = np.argmax(solver_.perfs)
+        #         self.best_algo_config = solver_.configs[inc_idx]
 
-        if len(best_scores_) > 1 and (np.array(best_scores_) > -np.inf).any():
-            self.best_algo_id = algorithm_candidates[np.argmax(best_scores_)]
-            # Best model configuration.
-            solver_ = self.solvers[self.best_algo_id]
-            inc_idx = np.argmax(solver_.perfs)
-            self.best_algo_config = solver_.configs[inc_idx]
-        else:
-            self.best_algo_id = algorithm_candidates[0]
-            rs = list(self.eval_hist_perfs.keys())
-            set_flag = False
-            if len(rs) > 0:
-                max_resource = np.max(rs)
-                if max_resource in self.eval_hist_configs:
-                    idxs = [idx for (idx, config) in enumerate(self.eval_hist_configs[max_resource])
-                            if config['algorithm'] == self.best_algo_id]
-                    best_idx = np.argmax([self.eval_hist_perfs[max_resource][idx] for idx in idxs])
-                    self.best_algo_config = self.eval_hist_configs[max_resource][best_idx]
-                    set_flag = True
-            if not set_flag:
-                solver_ = self.solvers[self.best_algo_id]
-                inc_idx = np.argmax(solver_.perfs)
-                self.best_algo_config = solver_.configs[inc_idx]
+        if len(recorder.incumbents) == 0:
+            raise ValueError("No configuration is fully evaluated!")
 
-        print(self.best_algo_config)
+        self.best_algo_config = recorder.incumbents[0]
+
         # Skip Ensemble
         if self.task_type == OBJECT_DET:
             return
@@ -298,7 +289,8 @@ class AutoDL(AutoDLBase):
         if self.es is None:
             self.load_predict_data(test_data)
             model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, self.max_epoch,
-                                                   test_data.test_dataset, self.timestamp, device=self.device)
+                                                   test_data.test_dataset, self.timestamp, device=self.device,
+                                                   model_dir=self.output_dir)
             if mode == 'test':
                 return model_.predict_proba(test_data.test_dataset, batch_size=batch_size)
             else:
@@ -314,7 +306,8 @@ class AutoDL(AutoDLBase):
         if self.es is None:
             self.load_predict_data(test_data)
             model_ = get_estimator_with_parameters(self.task_type, self.best_algo_config, self.max_epoch,
-                                                   test_data.test_dataset, self.timestamp, device=self.device)
+                                                   test_data.test_dataset, self.timestamp, device=self.device,
+                                                   model_dir=self.output_dir)
             if mode == 'test':
                 return model_.predict(test_data.test_dataset, batch_size=batch_size)
             else:
@@ -366,7 +359,7 @@ class AutoDL(AutoDLBase):
                                     timestamp=self.timestamp)
         optimizer = build_hpo_optimizer(self.evaluation_type, hpo_evaluator, cs,
                                         output_dir=self.output_dir,
-                                        per_run_time_limit=100000,
+                                        per_run_time_limit=1000000,
                                         timestamp=self.timestamp,
                                         seed=self.seed, n_jobs=self.n_jobs)
         self.solvers['hpo_solver'] = optimizer

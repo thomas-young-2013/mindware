@@ -3,16 +3,19 @@ from mindware.components.optimizers.random_search_optimizer import RandomSearchO
 from mindware.components.optimizers.mfse_optimizer import MfseOptimizer
 from mindware.components.optimizers.bohb_optimizer import BohbOptimizer
 from mindware.components.optimizers.tpe_optimizer import TPEOptimizer
+from mindware.components.optimizers.hypertune_optimizer import LocalParallelAMFES
 
 
 def build_hpo_optimizer(eval_type, evaluator, config_space, optimizer='smac',
                         per_run_time_limit=600, per_run_mem_limit=1024,
                         output_dir='./', inner_iter_num_per_iter=1,
-                        timestamp=None, seed=1, n_jobs=1):
+                        timestamp=None, seed=1, n_jobs=1, runtime_limit=None):
     if eval_type == 'partial':
         optimizer_class = MfseOptimizer
     elif eval_type == 'partial_bohb':
         optimizer_class = BohbOptimizer
+    elif eval_type == 'partial_hypertune':
+        optimizer_class = LocalParallelAMFES
     else:
         # TODO: Support asynchronous BO
         if optimizer == 'random_search':
@@ -24,8 +27,10 @@ def build_hpo_optimizer(eval_type, evaluator, config_space, optimizer='smac',
         else:
             raise ValueError("Invalid optimizer %s" % optimizer)
 
+    kwargs = {}
+    kwargs['runtime_limit'] = runtime_limit
     return optimizer_class(evaluator, config_space, 'hpo',
                            eval_type=eval_type, output_dir=output_dir,
                            per_run_time_limit=per_run_time_limit,
                            inner_iter_num_per_iter=inner_iter_num_per_iter,
-                           timestamp=timestamp, seed=seed, n_jobs=n_jobs)
+                           timestamp=timestamp, seed=seed, n_jobs=n_jobs, **kwargs)
