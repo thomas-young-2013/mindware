@@ -57,8 +57,7 @@ dataset = 'cifar10'
 data_dir = 'data/img_datasets/%s/' % dataset
 image_data = ImageDataset(data_path=data_dir, train_val_split=True)
 
-hpo_evaluator = DLEvaluator(cs.get_default_configuration(),
-                            IMG_CLS,
+hpo_evaluator = DLEvaluator(IMG_CLS,
                             scorer=get_metric('acc'),
                             dataset=image_data,
                             device='cuda',

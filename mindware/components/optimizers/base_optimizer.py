@@ -48,12 +48,16 @@ class BaseOptimizer(object):
                     config = config_list[i].get_dictionary().copy()
                 else:
                     config = config_list[i].copy()
-                if self.evaluator.fixed_config is not None:
-                    if not isinstance(self.evaluator.fixed_config, dict):
-                        fixed_config = self.evaluator.fixed_config.get_dictionary().copy()
+
+                # Update fixed configurations for alternating blocks
+                fixed_config = getattr(self.evaluator, 'fixed_config', None)
+                if fixed_config is not None:
+                    if not isinstance(fixed_config, dict):
+                        fixed_config = fixed_config.get_dictionary().copy()
                     else:
-                        fixed_config = self.evaluator.fixed_config.copy()
+                        fixed_config = fixed_config.copy()
                     config.update(fixed_config)
+
                 classifier_id = config['algorithm']
                 # -perf: The larger, the better.
                 save_flag, model_path, delete_flag, model_path_deleted = self.topk_saver.add(config, -perf,

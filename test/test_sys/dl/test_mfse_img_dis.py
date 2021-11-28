@@ -58,8 +58,7 @@ from mindware.components.utils.worker import async_mqmfWorker as Worker
 from mindware.components.evaluators.dl_evaluator import DLEvaluator
 from sklearn.metrics._scorer import accuracy_scorer
 
-evaluator = DLEvaluator(None,
-                        task_type=5,
+evaluator = DLEvaluator(task_type=5,
                         max_epoch=max_epoch,
                         scorer=accuracy_scorer,
                         dataset=image_data,

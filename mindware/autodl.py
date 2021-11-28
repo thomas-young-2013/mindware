@@ -76,8 +76,7 @@ class AutoDL(AutoDLBase):
         cs = self.get_pipeline_config_space(self.include_algorithms)
         cs.seed(self.seed)
 
-        self.evaluator = DLEvaluator(None,
-                                     self.task_type,
+        self.evaluator = DLEvaluator(self.task_type,
                                      max_epoch=self.max_epoch,
                                      scorer=self.metric,
                                      dataset=train_data,
@@ -107,8 +106,7 @@ class AutoDL(AutoDLBase):
         # Execute neural architecture selection.
         # self.logger.info('Before NAS, arch candidates={%s}' % ','.join(algorithm_candidates))
 
-        # dl_evaluator = DLEvaluator(None,
-        #                            self.task_type,
+        # dl_evaluator = DLEvaluator(self.task_type,
         #                            max_epoch=self.max_epoch,
         #                            scorer=self.metric,
         #                            dataset=train_data,
@@ -347,8 +345,7 @@ class AutoDL(AutoDLBase):
 
     def _fit_in_hpo_way(self, algorithm_candidates, train_data, **kwargs):
         cs = self.get_pipeline_config_space(algorithm_candidates)
-        hpo_evaluator = DLEvaluator(None,
-                                    self.task_type,
+        hpo_evaluator = DLEvaluator(self.task_type,
                                     max_epoch=self.max_epoch,
                                     scorer=self.metric,
                                     dataset=train_data,

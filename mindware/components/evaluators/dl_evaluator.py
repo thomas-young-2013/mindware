@@ -16,9 +16,8 @@ from .base_dl_evaluator import get_estimator
 
 
 class DLEvaluator(_BaseEvaluator):
-    def __init__(self, fixed_config, task_type, model_dir='data/dl_models/', max_epoch=150, scorer=None, dataset=None,
+    def __init__(self, task_type, model_dir='data/dl_models/', max_epoch=150, scorer=None, dataset=None,
                  continue_training=True, device='cpu', seed=1, timestamp=None, record=True, **kwargs):
-        self.fixed_config = fixed_config
         self.task_type = task_type
         self.max_epoch = max_epoch
         self.scorer = scorer if scorer is not None else accuracy_scorer

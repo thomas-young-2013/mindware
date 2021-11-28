@@ -20,8 +20,7 @@ data_dir = 'data/img_datasets/%s/' % args.dataset
 
 image_data = ImageDataset(data_path=data_dir, train_val_split=True)
 image_data.set_test_path(data_dir)
-evaluator = DLEvaluator(None,
-                        IMG_CLS,
+evaluator = DLEvaluator(IMG_CLS,
                         scorer=get_metric('acc'),
                         dataset=image_data,
                         device='cuda',
