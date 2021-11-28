@@ -17,7 +17,7 @@ from .base_dl_evaluator import get_estimator
 
 class DLEvaluator(_BaseEvaluator):
     def __init__(self, fixed_config, task_type, model_dir='data/dl_models/', max_epoch=150, scorer=None, dataset=None,
-                 continue_training=True, device='cpu', seed=1, timestamp=None, **kwargs):
+                 continue_training=True, device='cpu', seed=1, timestamp=None, record=True, **kwargs):
         self.fixed_config = fixed_config
         self.task_type = task_type
         self.max_epoch = max_epoch
@@ -31,6 +31,7 @@ class DLEvaluator(_BaseEvaluator):
         self.model_dir = model_dir
         self.device = device
         self.logger = get_logger(self.__module__ + "." + self.__class__.__name__)
+        self.record = record
         if task_type == IMG_CLS:
             self.image_size = kwargs['image_size']
 
@@ -52,7 +53,7 @@ class DLEvaluator(_BaseEvaluator):
         first_iter = kwargs.get('first_iter', False)
 
         config_model_path = os.path.join(self.model_dir,
-                                         'tmp_' + CombinedTopKModelSaver.get_configuration_id(config_dict)+'.pt')
+                                         'tmp_' + CombinedTopKModelSaver.get_configuration_id(config_dict) + '.pt')
 
         if self.continue_training:
             # Continue training
@@ -105,8 +106,9 @@ class DLEvaluator(_BaseEvaluator):
                      'scheduler': estimator.scheduler.state_dict(),
                      'epoch_num': estimator.epoch_num,
                      'early_stop': estimator.early_stop}
-            torch.save(state, model_path)
-            self.logger.info("Model saved to %s" % model_path)
+            if self.record:
+                torch.save(state, model_path)
+                self.logger.info("Model saved to %s" % model_path)
 
         # Turn it into a minimization problem.
         return_dict['score'] = -score
