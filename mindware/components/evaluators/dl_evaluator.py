@@ -12,13 +12,14 @@ from mindware.components.evaluators.base_evaluator import _BaseEvaluator
 from mindware.components.utils.topk_saver import CombinedTopKModelSaver
 from mindware.components.evaluators.dl_evaluate_func import dl_holdout_validation
 from mindware.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_transforms
-from .base_dl_evaluator import get_estimator
+from .base_dl_evaluator import get_estimator, get_nas_estimator
 
 
 class DLEvaluator(_BaseEvaluator):
-    def __init__(self, task_type, model_dir='data/dl_models/', max_epoch=150, scorer=None, dataset=None,
-                 continue_training=True, device='cpu', seed=1, timestamp=None, record=True, **kwargs):
+    def __init__(self, task_type, model_dir='data/dl_models/', mode='selection', max_epoch=150, scorer=None,
+                 dataset=None, continue_training=True, device='cpu', seed=1, timestamp=None, record=True, **kwargs):
         self.task_type = task_type
+        self.mode = mode
         self.max_epoch = max_epoch
         self.scorer = scorer if scorer is not None else accuracy_scorer
         self.dataset = copy.deepcopy(dataset)
@@ -41,11 +42,13 @@ class DLEvaluator(_BaseEvaluator):
         else:
             self.dataset.load_data()
         start_time = time.time()
-        return_dict = dict()
 
         config_dict = config.get_dictionary().copy()
 
-        classifier_id, estimator = get_estimator(self.task_type, config_dict, self.max_epoch, device=self.device)
+        if self.mode == 'selection':
+            classifier_id, estimator = get_estimator(self.task_type, config_dict, self.max_epoch, device=self.device)
+        elif self.mode == 'search':
+            classifier_id, estimator = get_nas_estimator(config_dict, self.max_epoch, device=self.device)
 
         epoch_ratio = kwargs.get('resource_ratio', 1.0)
         eta = kwargs.get('eta', 3)
@@ -103,13 +106,14 @@ class DLEvaluator(_BaseEvaluator):
             state = {'model': estimator.model.state_dict(),
                      'optimizer': estimator.optimizer_.state_dict(),
                      'scheduler': estimator.scheduler.state_dict(),
-                     'epoch_num': estimator.epoch_num,
-                     'early_stop': estimator.early_stop}
+                     'epoch_num': estimator.epoch_num}
+            if hasattr(estimator, 'early_stop'):
+                state['early_stop'] = estimator.early_stop
             if self.record:
                 torch.save(state, model_path)
                 self.logger.info("Model saved to %s" % model_path)
 
-        # Turn it into a minimization problem.
-        return_dict['score'] = -score
-        return_dict['early_stop'] = estimator.early_stop_flag
+        # # Turn it into a minimization problem.
+        # return_dict['score'] = -score
+        # return_dict['early_stop'] = estimator.early_stop_flag
         return -score

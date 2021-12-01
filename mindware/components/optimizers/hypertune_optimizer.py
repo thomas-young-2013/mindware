@@ -47,7 +47,7 @@ class LocalParallelAMFES:
                  median_imputation=None,  # None, 'top', 'corresponding', 'all'
                  seed=1,
                  restart_needed=True,
-                 runtime_limit=None,
+                 time_limit=None,
                  ip='',
                  port=13579,
                  authkey=b'abc',
@@ -72,7 +72,7 @@ class LocalParallelAMFES:
                                    random_state=seed,
                                    restart_needed=restart_needed,
                                    time_limit_per_trial=per_run_time_limit,
-                                   runtime_limit=runtime_limit,
+                                   runtime_limit=time_limit,
                                    output_dir=output_dir,
                                    ip=ip, port=port, authkey=authkey)
 

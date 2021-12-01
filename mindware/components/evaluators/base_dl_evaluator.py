@@ -80,3 +80,38 @@ def get_estimator_with_parameters(task_type, config, max_epoch, dataset, timesta
     model.model.load_state_dict(torch.load(model_path)['model'])
     model.model.eval()
     return model
+
+
+def get_nas_estimator(config, max_epoch, device='cpu'):
+    from mindware.components.models.search import _searchers, _addons
+    space = config['algorithm']
+    config_ = config.copy()
+    config_.pop('algorithm', None)
+    if space in _searchers.keys():
+        try:
+            estimator = _searchers[space](config_, epoch_num=max_epoch, device=torch.device(device))
+        except Exception as e:
+            raise ValueError('Create estimator error: %s' % str(e))
+    elif space in _addons.components.keys():
+        try:
+            estimator = _addons.components[space](config_, epoch_num=max_epoch, device=torch.device(device))
+        except Exception as e:
+            raise ValueError('Create estimator error: %s' % str(e))
+    else:
+        raise ValueError('space - %s is invalid!' % space)
+
+    return space, estimator
+
+
+def get_nas_estimator_with_parameters(config, max_epoch, dataset, timestamp, device='cpu',
+                                      model_dir='data/dl_models/'):
+    if not isinstance(config, dict):
+        config_dict = config.get_dictionary().copy()
+    else:
+        config_dict = config.copy()
+    _, model = get_nas_estimator(config_dict, max_epoch, device=device)
+    model_path = CombinedTopKModelSaver.get_path_by_config(model_dir, config, timestamp)
+    model.set_empty_model(config=config, dataset=dataset)
+    model.model.load_state_dict(torch.load(model_path)['model'])
+    model.model.eval()
+    return model

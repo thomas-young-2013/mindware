@@ -5,7 +5,7 @@ from sklearn.metrics._scorer import _BaseScorer
 from torch.utils.data import Dataset
 from mindware.utils.logging_utils import get_logger
 from mindware.datasets.base_dl_dataset import DLDataset
-from mindware.components.evaluators.base_dl_evaluator import CombinedTopKModelSaver, get_estimator
+from mindware.components.evaluators.base_dl_evaluator import CombinedTopKModelSaver, get_estimator, get_nas_estimator
 
 
 class BaseEnsembleModel(object):
@@ -18,6 +18,7 @@ class BaseEnsembleModel(object):
                  metric: _BaseScorer,
                  timestamp: float,
                  output_dir=None,
+                 mode='selection',
                  device='cpu'):
         self.stats = stats
         self.ensemble_method = ensemble_method
@@ -26,6 +27,7 @@ class BaseEnsembleModel(object):
         self.max_epoch = max_epoch
         self.metric = metric
         self.output_dir = output_dir
+        self.mode = mode
         self.device = device
 
         self.seed = 1
@@ -49,7 +51,11 @@ class BaseEnsembleModel(object):
                     os.remove(model_path)
 
                 # Refit the models.
-                _, clf = get_estimator(self.task_type, config_dict, self.max_epoch)
+                if self.mode == 'selection':
+                    _, clf = get_estimator(self.task_type, config_dict, self.max_epoch)
+                elif self.mode == 'search':
+                    _, clf = get_nas_estimator(config_dict, self.max_epoch)
+                    
                 # TODO: if train ans val are two parts, we need to merge it into one dataset.
                 clf.fit(dataset.train_dataset)
                 # Save to the disk.

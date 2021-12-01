@@ -5,7 +5,8 @@ from torch.utils.data import DataLoader
 
 from mindware.components.utils.constants import CLS_TASKS, IMG_CLS
 from mindware.components.ensemble.dl_ensemble.base_ensemble import BaseEnsembleModel
-from mindware.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
+from mindware.components.evaluators.base_dl_evaluator import get_estimator_with_parameters, \
+    get_nas_estimator_with_parameters
 from mindware.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_test_transforms
 
 
@@ -18,6 +19,7 @@ class Blending(BaseEnsembleModel):
                  timestamp: float,
                  output_dir=None,
                  device='cpu',
+                 mode='selection',
                  meta_learner='lightgbm', **kwargs):
         super().__init__(stats=stats,
                          ensemble_method='blending',
@@ -27,6 +29,7 @@ class Blending(BaseEnsembleModel):
                          metric=metric,
                          timestamp=timestamp,
                          output_dir=output_dir,
+                         mode=mode,
                          device=device)
         try:
             from lightgbm import LGBMClassifier
@@ -71,9 +74,17 @@ class Blending(BaseEnsembleModel):
                     train_data.load_data(test_transforms, test_transforms)
                 else:
                     train_data.load_data()
-                estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
-                                                          train_data.train_dataset, self.timestamp, device=self.device,
-                                                          model_dir=self.output_dir)
+
+                if self.mode == 'selection':
+                    estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
+                                                              train_data.train_dataset, self.timestamp,
+                                                              device=self.device,
+                                                              model_dir=self.output_dir)
+                elif self.mode == 'search':
+                    estimator = get_nas_estimator_with_parameters(config, self.max_epoch,
+                                                                  train_data.train_dataset, self.timestamp,
+                                                                  device=self.device,
+                                                                  model_dir=self.output_dir)
 
                 if not train_data.subset_sampler_used:
                     loader = DataLoader(train_data.val_dataset)
@@ -147,9 +158,15 @@ class Blending(BaseEnsembleModel):
                             loader = DataLoader(dataset)
                             num_samples = len(loader)
 
-                estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
-                                                          dataset, self.timestamp, device=self.device,
-                                                          model_dir=self.output_dir)
+                if self.mode == 'selection':
+                    estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
+                                                              dataset, self.timestamp, device=self.device,
+                                                              model_dir=self.output_dir)
+                if self.mode == 'search':
+                    estimator = get_nas_estimator_with_parameters(config, self.max_epoch,
+                                                                  dataset, self.timestamp, device=self.device,
+                                                                  model_dir=self.output_dir)
+
                 if self.task_type in CLS_TASKS:
                     if mode == 'test':
                         pred = estimator.predict_proba(test_data.test_dataset)

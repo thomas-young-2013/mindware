@@ -8,7 +8,8 @@ from sklearn.metrics._scorer import _BaseScorer, _PredictScorer, _ThresholdScore
 from mindware.components.utils.constants import CLS_TASKS, TASK_TYPES, IMG_CLS
 from mindware.datasets.base_dl_dataset import DLDataset
 from mindware.components.ensemble.dl_ensemble.base_ensemble import BaseEnsembleModel
-from mindware.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
+from mindware.components.evaluators.base_dl_evaluator import get_estimator_with_parameters, \
+    get_nas_estimator_with_parameters
 from mindware.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_test_transforms
 
 
@@ -23,7 +24,8 @@ class EnsembleSelection(BaseEnsembleModel):
             output_dir=None,
             device='cpu',
             sorted_initialization: bool = False,
-            mode: str = 'fast',
+            ens_mode: str = 'fast',
+            mode='selection',
             **kwargs
     ):
         super().__init__(stats=stats,
@@ -34,10 +36,11 @@ class EnsembleSelection(BaseEnsembleModel):
                          metric=metric,
                          timestamp=timestamp,
                          output_dir=output_dir,
+                         mode=mode,
                          device=device)
         self.model_idx = list()
         self.sorted_initialization = sorted_initialization
-        self.mode = mode
+        self.ens_mode = ens_mode
         self.encoder = OneHotEncoder()
         self.random_state = np.random.RandomState(self.seed)
 
@@ -64,8 +67,8 @@ class EnsembleSelection(BaseEnsembleModel):
             raise ValueError('Unknown task type %s.' % self.task_type)
         if not isinstance(self.metric, _BaseScorer):
             raise ValueError('Metric must be of type scorer')
-        if self.mode not in ('fast', 'slow'):
-            raise ValueError('Unknown mode %s' % self.mode)
+        if self.ens_mode not in ('fast', 'slow'):
+            raise ValueError('Unknown mode %s' % self.ens_mode)
 
         model_pred_list = list()
         num_samples = 0
@@ -80,9 +83,15 @@ class EnsembleSelection(BaseEnsembleModel):
                 else:
                     train_data.load_data()
 
-                estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
-                                                          train_data.train_dataset, self.timestamp,
-                                                          device=self.device, model_dir=self.output_dir)
+                if self.mode == 'selection':
+                    estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
+                                                              train_data.train_dataset, self.timestamp,
+                                                              device=self.device, model_dir=self.output_dir)
+                elif self.mode == 'search':
+                    estimator = get_nas_estimator_with_parameters(config, self.max_epoch,
+                                                              train_data.train_dataset, self.timestamp,
+                                                              device=self.device, model_dir=self.output_dir)
+
                 if self.task_type in CLS_TASKS:
                     if not train_data.subset_sampler_used:
                         pred = estimator.predict_proba(train_data.val_dataset)
@@ -131,7 +140,7 @@ class EnsembleSelection(BaseEnsembleModel):
         return self
 
     def _fit(self, predictions, labels):
-        if self.mode == 'fast':
+        if self.ens_mode == 'fast':
             self._fast(predictions, labels)
         else:
             self._slow(predictions, labels)
@@ -291,9 +300,15 @@ class EnsembleSelection(BaseEnsembleModel):
                             loader = DataLoader(dataset)
                             num_samples = len(loader)
 
-                estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
-                                                          dataset, self.timestamp, device=self.device,
-                                                          model_dir=self.output_dir)
+                if self.mode == 'selection':
+                    estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
+                                                              dataset, self.timestamp, device=self.device,
+                                                              model_dir=self.output_dir)
+                elif self.mode == 'search':
+                    estimator = get_nas_estimator_with_parameters(config, self.max_epoch,
+                                                                  dataset, self.timestamp, device=self.device,
+                                                                  model_dir=self.output_dir)
+
                 if cur_idx in self.model_idx:
                     if self.task_type in CLS_TASKS:
                         if mode == 'test':

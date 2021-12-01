@@ -31,17 +31,17 @@ data_dir = 'data/img_datasets/cifar10/'
 image_data = ImageDataset(data_path=data_dir, train_val_split=True)
 save_dir = './data/eval_exps/mindware'
 
-from mindware.autodl import AutoDL
+from mindware.autodl import ModelSelection
 
 max_epoch = 81
-clf = AutoDL(time_limit=18000,
-             max_epoch=max_epoch,
-             include_algorithms=['resnet32_32'],
-             ensemble_method='ensemble_selection',
-             evaluation='partial',
-             skip_profile=True,
-             output_dir=save_dir,
-             n_jobs=2)
+clf = ModelSelection(time_limit=18000,
+                     max_epoch=max_epoch,
+                     include_algorithms=['resnet32_32'],
+                     ensemble_method='ensemble_selection',
+                     evaluation='partial',
+                     skip_profile=True,
+                     output_dir=save_dir,
+                     n_jobs=2)
 
 # Space
 config_space = clf.get_pipeline_config_space(clf.include_algorithms)

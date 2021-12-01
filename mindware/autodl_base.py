@@ -365,7 +365,7 @@ class AutoDLBase(object):
             else:
                 C = [C[indices[0]]]
             r *= eta
-        archs, reduced_archs = [config['estimator'] for config in C], list()
+        archs, reduced_archs = [config['algorithm'] for config in C], list()
         # Preserve the partial-relationship order.
         for _arch in archs:
             if _arch not in reduced_archs:

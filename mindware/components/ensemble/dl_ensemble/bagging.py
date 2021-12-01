@@ -3,7 +3,8 @@ from sklearn.metrics._scorer import _BaseScorer
 
 from mindware.components.utils.constants import CLS_TASKS, IMG_CLS
 from mindware.datasets.base_dl_dataset import DLDataset
-from mindware.components.evaluators.base_dl_evaluator import get_estimator_with_parameters
+from mindware.components.evaluators.base_dl_evaluator import get_estimator_with_parameters, \
+    get_nas_estimator_with_parameters
 from mindware.components.ensemble.dl_ensemble.base_ensemble import BaseEnsembleModel
 from mindware.components.models.img_classification.nn_utils.nn_aug.aug_hp_space import get_test_transforms
 
@@ -18,7 +19,9 @@ class Bagging(BaseEnsembleModel):
                  metric: _BaseScorer,
                  timestamp: float,
                  output_dir=None,
-                 device='cpu', **kwargs):
+                 device='cpu',
+                 mode='selection',
+                 **kwargs):
         super().__init__(stats=stats,
                          ensemble_method='bagging',
                          ensemble_size=ensemble_size,
@@ -27,6 +30,7 @@ class Bagging(BaseEnsembleModel):
                          metric=metric,
                          timestamp=timestamp,
                          output_dir=output_dir,
+                         mode=mode,
                          device=device)
 
         if self.task_type == IMG_CLS:
@@ -59,9 +63,16 @@ class Bagging(BaseEnsembleModel):
                         dataset = test_data.train_dataset
                     else:
                         dataset = test_data.val_dataset
-                estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
-                                                          dataset, self.timestamp, device=self.device,
-                                                          model_dir=self.output_dir)
+
+                if self.mode == 'selection':
+                    estimator = get_estimator_with_parameters(self.task_type, config, self.max_epoch,
+                                                              dataset, self.timestamp, device=self.device,
+                                                              model_dir=self.output_dir)
+                elif self.mode == 'search':
+                    estimator = get_nas_estimator_with_parameters(config, self.max_epoch,
+                                                                  dataset, self.timestamp, device=self.device,
+                                                                  model_dir=self.output_dir)
+
                 if self.task_type in CLS_TASKS:
                     if mode == 'test':
                         model_pred_list.append(estimator.predict_proba(test_data.test_dataset))

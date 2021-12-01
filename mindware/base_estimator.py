@@ -7,7 +7,7 @@ import pandas as pd
 import shutil
 
 from mindware.automl import AutoML
-from mindware.autodl import AutoDL
+from mindware.autodl import ModelSelection, ModelSearch
 from mindware.components.feature_engineering.transformation_graph import DataNode
 from mindware.datasets.base_dl_dataset import DLDataset
 
@@ -224,7 +224,9 @@ class BaseDLEstimator(object):
             dataset_name='default_dataset_name',
             time_limit=1200,
             metric='acc',
+            mode='selection',
             include_algorithms=None,
+            space=None,
             ensemble_method='bagging',
             ensemble_size=50,
             max_epoch=150,
@@ -234,11 +236,14 @@ class BaseDLEstimator(object):
             n_jobs=1,
             evaluation='holdout',
             output_dir="/tmp/"):
+        assert mode in ['selection', 'search']
         self.dataset_name = dataset_name
         self.metric = metric
+        self.mode = mode
         self.task_type = None
         self.time_limit = time_limit
         self.include_algorithms = include_algorithms
+        self.space = space
         self.ensemble_method = ensemble_method
         self.ensemble_size = ensemble_size
         self.max_epoch = max_epoch
@@ -263,6 +268,7 @@ class BaseDLEstimator(object):
             metric=self.metric,
             time_limit=self.time_limit,
             include_algorithms=self.include_algorithms,
+            space=self.space,
             ensemble_method=self.ensemble_method,
             ensemble_size=self.ensemble_size,
             max_epoch=self.max_epoch,
@@ -303,4 +309,7 @@ class BaseDLEstimator(object):
         return self._ml_engine._get_runtime_info()
 
     def get_automl(self):
-        return AutoDL
+        if self.mode == 'selection':
+            return ModelSelection
+        elif self.mode == 'search':
+            return ModelSearch

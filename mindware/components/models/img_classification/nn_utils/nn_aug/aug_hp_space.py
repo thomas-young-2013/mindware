@@ -53,17 +53,18 @@ def get_transforms(config, image_size=None):
     config = config.get_dictionary()
     if image_size is not None:
         image_size = image_size
-    elif config['estimator'] not in resize_size_dict:
+    elif config['algorithm'] not in resize_size_dict:
         image_size = 32
     else:
-        image_size = resize_size_dict[config['estimator']]
+        image_size = resize_size_dict[config['algorithm']]
 
     val_transforms = transforms.Compose([
         transforms.Resize(image_size),
         transforms.CenterCrop(image_size),
         transforms.ToTensor(),
     ])
-    if check_for_bool(config['aug']):
+    if_aug = config.get('aug', None)
+    if if_aug is not None and check_for_bool(if_aug):
         if check_for_bool(config['auto_aug']):
             # from .transforms import AutoAugment
             data_transforms = {
@@ -114,10 +115,10 @@ def get_test_transforms(config, image_size=None):
         config = config.copy()
     if image_size is not None:
         image_size = image_size
-    elif config['estimator'] not in resize_size_dict:
+    elif config['algorithm'] not in resize_size_dict:
         image_size = 224
     else:
-        image_size = resize_size_dict[config['estimator']]
+        image_size = resize_size_dict[config['algorithm']]
     test_transforms = transforms.Compose([
         transforms.Resize(image_size),
         transforms.CenterCrop(image_size),

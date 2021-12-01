@@ -27,10 +27,9 @@ def build_hpo_optimizer(eval_type, evaluator, config_space, optimizer='smac',
         else:
             raise ValueError("Invalid optimizer %s" % optimizer)
 
-    kwargs = {}
-    kwargs['runtime_limit'] = runtime_limit
     return optimizer_class(evaluator, config_space, 'hpo',
                            eval_type=eval_type, output_dir=output_dir,
                            per_run_time_limit=per_run_time_limit,
                            inner_iter_num_per_iter=inner_iter_num_per_iter,
-                           timestamp=timestamp, seed=seed, n_jobs=n_jobs, **kwargs)
+                           time_limit=runtime_limit, timestamp=timestamp,
+                           seed=seed, n_jobs=n_jobs)

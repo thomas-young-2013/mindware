@@ -65,7 +65,7 @@ class SMACOptimizer(BaseOptimizer):
             if self.time_limit is not None and time.time() - self.start_time > self.time_limit:
                 break
             self.iterate()
-        return np.max(self.perfs)
+        return self.optimizer.get_history()
 
     def iterate(self, budget=MAX_INT):
         _start_time = time.time()
