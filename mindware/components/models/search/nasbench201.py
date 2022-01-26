@@ -1,6 +1,6 @@
 from mindware.components.models.base_searcher import BaseSearcher
 from mindware.components.utils.constants import DENSE, SPARSE, UNSIGNED_DATA, PREDICTIONS
-from mindware.components.models.search.nas_utils.nb1_utils import bench101_opt_choices
+from mindware.components.models.search.nas_utils.nb2_utils.nasbench2_ops import OPS, NUM_OPERATIONS
 
 from ConfigSpace.configuration_space import ConfigurationSpace
 from ConfigSpace.hyperparameters import CategoricalHyperparameter
@@ -8,7 +8,7 @@ from ConfigSpace.hyperparameters import CategoricalHyperparameter
 NUM_WORKERS = 10
 
 
-class NASBench101Searcher(BaseSearcher):
+class NASBench201Searcher(BaseSearcher):
     def __init__(self, arch_config, batch_size=128,
                  epoch_num=108, learning_rate=3e-4,
                  weight_decay=1e-4, lr_decay=1e-1,
@@ -25,12 +25,12 @@ class NASBench101Searcher(BaseSearcher):
                          device=device,
                          **kwargs)
 
-        self.space = 'nasbench101'
+        self.space = 'nasbench201'
 
     @staticmethod
     def get_properties(dataset_properties=None):
-        return {'shortname': 'NB101Searcher',
-                'name': 'NASBench101Searcher',
+        return {'shortname': 'NB201Searcher',
+                'name': 'NASBench201Searcher',
                 'handles_regression': False,
                 'handles_classification': True,
                 'handles_multiclass': True,
@@ -41,13 +41,11 @@ class NASBench101Searcher(BaseSearcher):
 
     @staticmethod
     def get_hyperparameter_search_space(dataset_properties=None, optimizer='smac'):
-        vertex = 7
         cs = ConfigurationSpace()
-        total_edges = sum(list(range(vertex)))
-        for e in range(0, total_edges):
-            cs.add_hyperparameter(CategoricalHyperparameter('edge_%d' % e, choices=[0, 1]))
-
-        for v in range(1, vertex - 1):
-            cs.add_hyperparameter(CategoricalHyperparameter('vertex_%d' % v, choices=bench101_opt_choices))
+        operations = list(OPS.keys())
+        for i in range(NUM_OPERATIONS):
+            cs.add_hyperparameter(
+                CategoricalHyperparameter('op_%d' % i, choices=operations,
+                                          default_value=operations[-1]))
 
         return cs
