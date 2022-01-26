@@ -154,6 +154,8 @@ class DataManager(object):
         return DataNode(data, self.feature_types, feature_names=self.test_X.columns.values)
 
     def preprocess(self, input_node, task_type=CLASSIFICATION, train_phase=True):
+        if not isinstance(input_node.data[0], pd.DataFrame):
+            input_node.data[0] = pd.DataFrame(input_node.data[0])
         try:
             input_node = self.remove_uninf_cols(input_node, train_phase=True)
             input_node = self.impute_cols(input_node)
